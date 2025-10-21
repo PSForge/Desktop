@@ -1,24 +1,71 @@
 import { useState, useEffect, useMemo } from "react";
-import { Command, ScriptCommand } from "@shared/schema";
+import { Command, ScriptCommand, ValidationResult } from "@shared/schema";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Header } from "@/components/header";
 import { CommandSidebar } from "@/components/command-sidebar";
 import { ParameterForm } from "@/components/parameter-form";
 import { CodePreview } from "@/components/code-preview";
 import { ValidationPanel } from "@/components/validation-panel";
 import { ExportDialog } from "@/components/export-dialog";
-import { generatePowerShellScript, validatePowerShellScript } from "@/lib/script-generator";
+import { generatePowerShellScript } from "@/lib/script-generator";
 
 export default function ScriptBuilder() {
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult>({
+    isValid: true,
+    errors: [],
+  });
+  const [lastValidatedCode, setLastValidatedCode] = useState<string>('');
 
   const generatedCode = useMemo(() => {
     return generatePowerShellScript(scriptCommands);
   }, [scriptCommands]);
 
-  const validationErrors = useMemo(() => {
-    return validatePowerShellScript(generatedCode);
-  }, [generatedCode]);
+  const validationMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await apiRequest<ValidationResult>('/api/validate', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response;
+    },
+    onSuccess: (data, variables) => {
+      setValidationResult(data);
+      setLastValidatedCode(variables);
+    },
+    onError: (error, variables) => {
+      console.error('Validation failed:', error);
+      setValidationResult({
+        isValid: false,
+        errors: [{
+          line: 0,
+          message: 'Failed to validate script - please try again',
+          severity: 'error'
+        }],
+      });
+      setLastValidatedCode(variables);
+    },
+  });
+
+  useEffect(() => {
+    if (!generatedCode.trim()) {
+      setValidationResult({
+        isValid: true,
+        errors: [],
+      });
+      setLastValidatedCode('');
+      return;
+    }
+
+    if (generatedCode !== lastValidatedCode && !validationMutation.isPending) {
+      validationMutation.mutate(generatedCode);
+    }
+  }, [generatedCode, lastValidatedCode, validationMutation]);
 
   const handleAddCommand = (command: Command) => {
     const defaultParameters: Record<string, any> = {};
@@ -120,11 +167,14 @@ export default function ScriptBuilder() {
           </div>
 
           <div className="h-80 border-b">
-            <CodePreview code={generatedCode} validationErrors={validationErrors} />
+            <CodePreview code={generatedCode} validationErrors={validationResult.errors || []} />
           </div>
 
           <div className="p-4">
-            <ValidationPanel errors={validationErrors} />
+            <ValidationPanel 
+              errors={validationResult.errors || []} 
+              isValidating={validationMutation.isPending}
+            />
           </div>
         </div>
       </div>

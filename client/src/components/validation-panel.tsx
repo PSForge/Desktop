@@ -1,7 +1,8 @@
-import { AlertCircle, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle, Info, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ValidationPanelProps {
   errors: Array<{ line?: number; message: string; severity: string }>;
@@ -12,6 +13,25 @@ export function ValidationPanel({ errors, isValidating }: ValidationPanelProps) 
   const errorCount = errors.filter(e => e.severity === 'error').length;
   const warningCount = errors.filter(e => e.severity === 'warning').length;
   const infoCount = errors.filter(e => e.severity === 'info').length;
+
+  if (isValidating) {
+    return (
+      <Card data-testid="validation-loading">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <CardTitle className="text-sm">Validating Script...</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {

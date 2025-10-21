@@ -6,11 +6,12 @@ A professional web-based PowerShell script generator that allows IT technicians 
 ## Recent Changes (October 21, 2025)
 - Initial project setup with full-stack JavaScript architecture
 - Implemented complete frontend with dark mode theme as default
-- Created comprehensive PowerShell command library with 15+ common commands
+- Created comprehensive PowerShell command library with 40+ enterprise commands across 18 categories
 - Built visual script builder with drag-and-drop interface
 - Added real-time code preview with syntax highlighting
 - Implemented validation panel with error/warning detection
 - Added export functionality for .ps1 file download
+- **NEW: AI Helper Bot** - Integrated OpenAI-powered assistant that suggests PowerShell commands based on natural language requests, with conversation history persistence and one-click command addition
 
 ## Project Architecture
 
@@ -34,6 +35,14 @@ A professional web-based PowerShell script generator that allows IT technicians 
 4. **ValidationPanel** - Real-time error and warning display
 5. **Header** - Application navigation with export/save actions
 6. **ThemeToggle** - Dark/light mode switcher
+7. **AIHelperBot** - OpenAI-powered assistant for command suggestions
+   - Collapsible right-side panel (384px width)
+   - Natural language query processing
+   - Context-aware command suggestions with parameter recommendations
+   - One-click command addition to script
+   - Conversation history persistence via localStorage
+   - Security: Sanitized conversation history (10 msg limit, 5k char/msg)
+   - Type coercion for suggested parameters (boolean, int, array handling)
 
 ### PowerShell Command Categories
 - File System (Get-ChildItem, Copy-Item, Remove-Item)
@@ -62,9 +71,17 @@ A professional web-based PowerShell script generator that allows IT technicians 
 2. Frontend: http://localhost:5000
 3. Backend API: http://localhost:5000/api/*
 
-## Next Steps
-- Implement backend validation API endpoints
-- Add advanced PowerShell cmdlets
-- Implement script templates library
+## Completed Features
+- ✅ Backend validation API with PowerShell syntax checking
+- ✅ Expanded command library with 40+ enterprise commands
+- ✅ AI-powered assistant for command suggestions
+- ✅ Conversation history persistence
+- ✅ Security hardening (conversation sanitization, type validation)
+- ✅ E2E testing passing
+
+## Next Steps (Future Enhancements)
+- Implement script templates library (pre-built common scenarios)
 - Add collaborative features for sharing scripts
 - Implement script version history
+- Add PowerShell script debugging capabilities
+- Integrate with PowerShell Gallery for module discovery

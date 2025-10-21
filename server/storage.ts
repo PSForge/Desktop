@@ -1,37 +1,51 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type Script, type InsertScript } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getScript(id: string): Promise<Script | undefined>;
+  getAllScripts(): Promise<Script[]>;
+  createScript(script: InsertScript): Promise<Script>;
+  updateScript(id: string, script: Partial<InsertScript>): Promise<Script | undefined>;
+  deleteScript(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private scripts: Map<string, Script>;
 
   constructor() {
-    this.users = new Map();
+    this.scripts = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getScript(id: string): Promise<Script | undefined> {
+    return this.scripts.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async getAllScripts(): Promise<Script[]> {
+    return Array.from(this.scripts.values());
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createScript(insertScript: InsertScript): Promise<Script> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const script: Script = {
+      ...insertScript,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    this.scripts.set(id, script);
+    return script;
+  }
+
+  async updateScript(id: string, updates: Partial<InsertScript>): Promise<Script | undefined> {
+    const existing = this.scripts.get(id);
+    if (!existing) return undefined;
+
+    const updated: Script = { ...existing, ...updates };
+    this.scripts.set(id, updated);
+    return updated;
+  }
+
+  async deleteScript(id: string): Promise<boolean> {
+    return this.scripts.delete(id);
   }
 }
 

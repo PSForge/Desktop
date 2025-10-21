@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
+import { getAIHelperResponse } from "./ai-helper";
 import { 
   insertScriptSchema, 
   insertValidationRequestSchema,
@@ -28,6 +29,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Validation error:", error);
       return res.status(500).json({
         error: "Internal server error during validation"
+      });
+    }
+  });
+
+  app.post("/api/ai-helper", async (req, res) => {
+    try {
+      const { message, conversationHistory } = req.body;
+
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({
+          error: "Invalid request: message is required"
+        });
+      }
+
+      const sanitizedHistory = Array.isArray(conversationHistory) 
+        ? conversationHistory
+            .slice(-10)
+            .filter((msg: any) => 
+              msg && 
+              typeof msg === 'object' &&
+              (msg.role === 'user' || msg.role === 'assistant') &&
+              typeof msg.content === 'string'
+            )
+            .map((msg: any) => ({
+              role: msg.role,
+              content: msg.content.substring(0, 5000)
+            }))
+        : [];
+
+      const result = await getAIHelperResponse(message, sanitizedHistory);
+
+      return res.json(result);
+    } catch (error) {
+      console.error("AI helper error:", error);
+      return res.status(500).json({
+        error: "Failed to get AI response",
+        response: "I'm having trouble connecting right now. Please try again.",
+        suggestions: []
       });
     }
   });

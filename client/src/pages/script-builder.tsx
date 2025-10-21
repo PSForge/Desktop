@@ -8,11 +8,14 @@ import { ParameterForm } from "@/components/parameter-form";
 import { CodePreview } from "@/components/code-preview";
 import { ValidationPanel } from "@/components/validation-panel";
 import { ExportDialog } from "@/components/export-dialog";
+import { AIHelperBot } from "@/components/ai-helper-bot";
 import { generatePowerShellScript } from "@/lib/script-generator";
+import { powershellCommands } from "@/lib/powershell-commands";
 
 export default function ScriptBuilder() {
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [aiBotOpen, setAiBotOpen] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult>({
     isValid: true,
     errors: [],
@@ -66,6 +69,64 @@ export default function ScriptBuilder() {
     
     command.parameters.forEach(param => {
       if (param.defaultValue !== undefined) {
+        defaultParameters[param.id] = param.defaultValue;
+      } else if (param.type === 'switch' || param.type === 'boolean') {
+        defaultParameters[param.id] = false;
+      } else if (param.type === 'array') {
+        defaultParameters[param.id] = [];
+      } else if (param.type === 'int') {
+        defaultParameters[param.id] = 0;
+      } else {
+        defaultParameters[param.id] = '';
+      }
+    });
+
+    const newCommand: ScriptCommand = {
+      id: crypto.randomUUID(),
+      commandId: command.id,
+      commandName: command.name,
+      parameters: defaultParameters,
+      order: scriptCommands.length,
+    };
+
+    setScriptCommands([...scriptCommands, newCommand]);
+  };
+
+  const handleAddCommandFromBot = (commandId: string, suggestedParameters?: Record<string, string>) => {
+    const command = powershellCommands.find(cmd => cmd.id === commandId);
+    if (!command) return;
+
+    const defaultParameters: Record<string, any> = {};
+    
+    command.parameters.forEach(param => {
+      if (suggestedParameters && suggestedParameters[param.id] !== undefined) {
+        const suggestedValue = suggestedParameters[param.id];
+        
+        if (param.type === 'switch' || param.type === 'boolean') {
+          defaultParameters[param.id] = 
+            suggestedValue === 'true' || 
+            suggestedValue === 'True' || 
+            suggestedValue === '1' || 
+            suggestedValue === 'yes' ||
+            suggestedValue === true;
+        } else if (param.type === 'int') {
+          const parsed = parseInt(suggestedValue as string, 10);
+          defaultParameters[param.id] = isNaN(parsed) ? 0 : parsed;
+        } else if (param.type === 'array') {
+          if (Array.isArray(suggestedValue)) {
+            defaultParameters[param.id] = suggestedValue;
+          } else if (typeof suggestedValue === 'string') {
+            defaultParameters[param.id] = suggestedValue
+              .split(',')
+              .map(v => v.trim())
+              .filter(v => v.length > 0);
+          } else {
+            defaultParameters[param.id] = [];
+          }
+        } else {
+          defaultParameters[param.id] = suggestedValue;
+        }
+      } else if (param.defaultValue !== undefined) {
         defaultParameters[param.id] = param.defaultValue;
       } else if (param.type === 'switch' || param.type === 'boolean') {
         defaultParameters[param.id] = false;
@@ -171,7 +232,25 @@ export default function ScriptBuilder() {
             />
           </div>
         </div>
+
+        {aiBotOpen && (
+          <div className="w-96 flex-shrink-0">
+            <AIHelperBot
+              onAddCommand={handleAddCommandFromBot}
+              isOpen={aiBotOpen}
+              onToggle={() => setAiBotOpen(!aiBotOpen)}
+            />
+          </div>
+        )}
       </div>
+
+      {!aiBotOpen && (
+        <AIHelperBot
+          onAddCommand={handleAddCommandFromBot}
+          isOpen={aiBotOpen}
+          onToggle={() => setAiBotOpen(!aiBotOpen)}
+        />
+      )}
 
       <ExportDialog
         open={exportDialogOpen}

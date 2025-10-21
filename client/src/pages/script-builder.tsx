@@ -25,14 +25,8 @@ export default function ScriptBuilder() {
 
   const validationMutation = useMutation({
     mutationFn: async (code: string) => {
-      const response = await apiRequest<ValidationResult>('/api/validate', {
-        method: 'POST',
-        body: JSON.stringify({ code }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      return response;
+      const response = await apiRequest('POST', '/api/validate', { code });
+      return response.json();
     },
     onSuccess: (data, variables) => {
       setValidationResult(data);

@@ -14,6 +14,14 @@ export const commandCategories = [
   "Event Logs",
   "Services",
   "Variables & Data",
+  "Azure",
+  "Exchange Online",
+  "Azure AD",
+  "SharePoint",
+  "MECM",
+  "Exchange Server",
+  "Hyper-V",
+  "Windows Server",
 ] as const;
 export type CommandCategory = typeof commandCategories[number];
 

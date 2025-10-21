@@ -1,7 +1,7 @@
-# PowerShell Script Generator
+# PSForge - PowerShell Script Builder
 
 ## Overview
-A professional web-based PowerShell script generator that allows IT technicians and system administrators to build PowerShell scripts visually through an intuitive GUI. The application features real-time syntax generation, parameter validation, error checking, and script export functionality.
+PSForge is a professional web-based PowerShell script builder that allows IT technicians and system administrators to build PowerShell scripts visually through an intuitive GUI. The application features real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export functionality.
 
 ## Recent Changes (October 21, 2025)
 - Initial project setup with full-stack JavaScript architecture

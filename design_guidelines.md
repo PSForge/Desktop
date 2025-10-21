@@ -1,9 +1,14 @@
-# PowerShell Script Generator - Design Guidelines
+# PSForge - Design Guidelines
 
 ## Design Approach
 **Selected Approach:** Design System (Developer Tools Focused)
 **Primary References:** VS Code, GitHub Desktop, Linear
 **Justification:** As a utility-focused developer/IT professional tool with complex forms and code output, the interface prioritizes efficiency, clarity, and professional aesthetics over visual flair.
+
+## Branding
+**Name:** PSForge (PowerShell Forge)
+**Logo:** Anvil/forge icon with PowerShell prompt (>_) and golden sparkles
+**Logo Usage:** Full logo with text in header at h-10 (40px height)
 
 ## Core Design Elements
 

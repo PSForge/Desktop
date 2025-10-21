@@ -6,17 +6,24 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 ## Recent Changes (October 21, 2025)
 - Initial project setup with full-stack JavaScript architecture
 - Implemented complete frontend with dark mode theme as default
-- Created comprehensive PowerShell command library with 40+ enterprise commands across 18 categories
+- Created comprehensive PowerShell command library with 80+ enterprise commands across 18 categories
 - Built visual script builder with drag-and-drop interface
 - Added real-time code preview with syntax highlighting
 - Implemented validation panel with error/warning detection
 - Added export functionality for .ps1 file download
 - **AI Helper Bot** - Integrated OpenAI-powered assistant with natural language command suggestions
 - **Updated Branding** - Rebranded to PSForge with new logo featuring anvil/forge icon
-- **NEW: Tabbed Interface** - Restructured app with three tabs:
+- **Tabbed Interface** - Restructured app with three tabs:
   - Script Generator: Visual command builder (original functionality)
   - AI Assistant: Dedicated full-screen AI chat interface
   - GUI Builder: Placeholder for future PowerShell GUI creation tool
+- **LATEST: Expanded Command Library** - Added 25+ new cmdlets including:
+  - File System: New-Item, Move-Item, Rename-Item, Test-Path, Get-Content, Set-Content, Add-Content
+  - Network: Invoke-WebRequest, Get-NetIPAddress, Get-NetAdapter, Test-NetConnection, Resolve-DnsName
+  - Services: Stop-Service, Restart-Service, Set-Service
+  - Process Management: Start-Process, Wait-Process
+  - Event Logs: Get-WinEvent, Clear-EventLog, Write-EventLog
+  - Security: Get-Credential, Get-Acl, Set-Acl
 
 ## Project Architecture
 
@@ -53,15 +60,23 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
    - Security: Sanitized conversation history (10 msg limit, 5k char/msg)
    - Type coercion for suggested parameters (boolean, int, array handling)
 
-### PowerShell Command Categories
-- File System (Get-ChildItem, Copy-Item, Remove-Item)
-- Network (Test-Connection, Invoke-WebRequest)
-- Services (Get-Service, Start-Service, Stop-Service)
-- Process Management (Get-Process, Stop-Process)
-- Event Logs (Get-EventLog)
-- Active Directory (Get-ADUser, New-ADUser)
-- Registry (Get-ItemProperty, Set-ItemProperty)
-- Security (Set-ExecutionPolicy)
+### PowerShell Command Categories (80+ Commands)
+- **File System** (10 commands): Get-ChildItem, Copy-Item, Remove-Item, New-Item, Move-Item, Rename-Item, Test-Path, Get-Content, Set-Content, Add-Content
+- **Network** (7 commands): Test-Connection, Invoke-WebRequest, Get-NetIPAddress, Get-NetAdapter, Test-NetConnection, Resolve-DnsName
+- **Services** (6 commands): Get-Service, Start-Service, Stop-Service, Restart-Service, Set-Service
+- **Process Management** (4 commands): Get-Process, Stop-Process, Start-Process, Wait-Process
+- **Event Logs** (4 commands): Get-EventLog, Get-WinEvent, Clear-EventLog, Write-EventLog
+- **Security** (4 commands): Set-ExecutionPolicy, Get-Credential, Get-Acl, Set-Acl
+- **Active Directory** (7 commands): Get-ADUser, New-ADUser, Set-ADUser, Remove-ADUser, Get-ADGroup, New-ADGroup, Add-ADGroupMember
+- **Registry** (2 commands): Get-ItemProperty, Set-ItemProperty
+- **Azure** (5 commands): Get-AzVM, Start-AzVM, Stop-AzVM, New-AzVM, Get-AzResourceGroup
+- **Azure AD** (4 commands): Get-AzureADUser, New-AzureADUser, Set-AzureADUser, Get-AzureADGroup
+- **Exchange Online** (4 commands): Get-Mailbox, New-Mailbox, Set-Mailbox, Get-MailboxStatistics
+- **SharePoint** (3 commands): Get-SPOSite, New-SPOSite, Set-SPOSite
+- **MECM** (4 commands): Get-CMDevice, New-CMDeviceCollection, Add-CMDeviceCollectionMember, Invoke-CMDeviceCollectionUpdate
+- **Exchange Server** (3 commands): Get-ExchangeServer, Get-MailboxDatabase, Test-ServiceHealth
+- **Hyper-V** (4 commands): Get-VM, Start-VM, Stop-VM, New-VM
+- **Windows Server** (8 commands): Get-WindowsFeature, Install-WindowsFeature, Restart-Computer, Get-ComputerInfo, Get-Disk, Test-NetConnection
 
 ## Design System
 - **Primary Color**: PowerShell Blue (217 91% 60%)

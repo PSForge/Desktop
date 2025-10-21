@@ -1455,6 +1455,761 @@ export const powershellCommands: Command[] = [
       }
     ],
     example: 'Get-Disk -Number 0'
+  },
+  {
+    id: "new-item",
+    name: "New-Item",
+    category: "File System",
+    description: "Creates a new item (file, directory, symbolic link, etc.)",
+    syntax: "New-Item [-Path] <string[]> [-ItemType <string>] [-Value <Object>] [-Force]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path where the item will be created",
+        required: true
+      },
+      {
+        id: "itemtype",
+        name: "ItemType",
+        type: "select",
+        description: "Specifies the type of item to create",
+        required: false,
+        options: ["File", "Directory", "SymbolicLink", "Junction", "HardLink"],
+        defaultValue: "File"
+      },
+      {
+        id: "value",
+        name: "Value",
+        type: "string",
+        description: "Initial value or content for the item",
+        required: false
+      },
+      {
+        id: "force",
+        name: "Force",
+        type: "switch",
+        description: "Forces creation, overwriting existing read-only items",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'New-Item -Path "C:\\Logs" -ItemType Directory'
+  },
+  {
+    id: "move-item",
+    name: "Move-Item",
+    category: "File System",
+    description: "Moves an item from one location to another",
+    syntax: "Move-Item [-Path] <string[]> [-Destination] <string> [-Force]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to the items to move",
+        required: true
+      },
+      {
+        id: "destination",
+        name: "Destination",
+        type: "path",
+        description: "Specifies the path to the new location",
+        required: true
+      },
+      {
+        id: "force",
+        name: "Force",
+        type: "switch",
+        description: "Forces the command to run without asking for confirmation",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Move-Item -Path "C:\\file.txt" -Destination "D:\\file.txt"'
+  },
+  {
+    id: "rename-item",
+    name: "Rename-Item",
+    category: "File System",
+    description: "Renames an item in a provider namespace",
+    syntax: "Rename-Item [-Path] <string> [-NewName] <string> [-Force]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to the item to rename",
+        required: true
+      },
+      {
+        id: "newname",
+        name: "NewName",
+        type: "string",
+        description: "Specifies the new name of the item",
+        required: true
+      },
+      {
+        id: "force",
+        name: "Force",
+        type: "switch",
+        description: "Forces the command to run without asking for confirmation",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Rename-Item -Path "C:\\old.txt" -NewName "new.txt"'
+  },
+  {
+    id: "test-path",
+    name: "Test-Path",
+    category: "File System",
+    description: "Determines whether all elements of a path exist",
+    syntax: "Test-Path [-Path] <string[]> [-PathType <string>] [-IsValid]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to test",
+        required: true
+      },
+      {
+        id: "pathtype",
+        name: "PathType",
+        type: "select",
+        description: "Tests for specific type of path",
+        required: false,
+        options: ["Leaf", "Container", "Any"],
+        defaultValue: "Any"
+      },
+      {
+        id: "isvalid",
+        name: "IsValid",
+        type: "switch",
+        description: "Tests whether the syntax of the path is correct",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Test-Path -Path "C:\\file.txt" -PathType Leaf'
+  },
+  {
+    id: "get-content",
+    name: "Get-Content",
+    category: "File System",
+    description: "Gets the content of the item at the specified location",
+    syntax: "Get-Content [-Path] <string[]> [-TotalCount <int>] [-Tail <int>] [-Raw] [-Encoding <string>]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to an item",
+        required: true
+      },
+      {
+        id: "totalcount",
+        name: "TotalCount",
+        type: "int",
+        description: "Gets the specified number of lines from the beginning",
+        required: false
+      },
+      {
+        id: "tail",
+        name: "Tail",
+        type: "int",
+        description: "Gets the specified number of lines from the end",
+        required: false
+      },
+      {
+        id: "raw",
+        name: "Raw",
+        type: "switch",
+        description: "Reads content as a single string instead of array of lines",
+        required: false,
+        defaultValue: false
+      },
+      {
+        id: "encoding",
+        name: "Encoding",
+        type: "select",
+        description: "Specifies the file encoding",
+        required: false,
+        options: ["ASCII", "UTF8", "UTF7", "UTF32", "Unicode", "BigEndianUnicode", "Default"]
+      }
+    ],
+    example: 'Get-Content -Path "C:\\log.txt" -Tail 10'
+  },
+  {
+    id: "set-content",
+    name: "Set-Content",
+    category: "File System",
+    description: "Writes or replaces the content in an item with new content",
+    syntax: "Set-Content [-Path] <string[]> [-Value] <Object[]> [-Encoding <string>] [-Force]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to the item",
+        required: true
+      },
+      {
+        id: "value",
+        name: "Value",
+        type: "string",
+        description: "Specifies the new content for the item",
+        required: true
+      },
+      {
+        id: "encoding",
+        name: "Encoding",
+        type: "select",
+        description: "Specifies the file encoding",
+        required: false,
+        options: ["ASCII", "UTF8", "UTF7", "UTF32", "Unicode", "BigEndianUnicode", "Default"]
+      },
+      {
+        id: "force",
+        name: "Force",
+        type: "switch",
+        description: "Forces the command to run without asking for confirmation",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Set-Content -Path "C:\\file.txt" -Value "New content"'
+  },
+  {
+    id: "add-content",
+    name: "Add-Content",
+    category: "File System",
+    description: "Appends content to the specified items",
+    syntax: "Add-Content [-Path] <string[]> [-Value] <Object[]> [-Encoding <string>]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to the item",
+        required: true
+      },
+      {
+        id: "value",
+        name: "Value",
+        type: "string",
+        description: "Specifies the content to be added",
+        required: true
+      },
+      {
+        id: "encoding",
+        name: "Encoding",
+        type: "select",
+        description: "Specifies the file encoding",
+        required: false,
+        options: ["ASCII", "UTF8", "UTF7", "UTF32", "Unicode", "BigEndianUnicode", "Default"]
+      }
+    ],
+    example: 'Add-Content -Path "C:\\log.txt" -Value "Log entry"'
+  },
+  {
+    id: "invoke-webrequest",
+    name: "Invoke-WebRequest",
+    category: "Network",
+    description: "Gets content from a web page on the Internet",
+    syntax: "Invoke-WebRequest [-Uri] <Uri> [-Method <string>] [-Headers <hashtable>] [-Body <Object>]",
+    parameters: [
+      {
+        id: "uri",
+        name: "Uri",
+        type: "string",
+        description: "Specifies the Uniform Resource Identifier (URI)",
+        required: true
+      },
+      {
+        id: "method",
+        name: "Method",
+        type: "select",
+        description: "Specifies the method used for the web request",
+        required: false,
+        options: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+        defaultValue: "GET"
+      },
+      {
+        id: "body",
+        name: "Body",
+        type: "string",
+        description: "Specifies the body of the request",
+        required: false
+      }
+    ],
+    example: 'Invoke-WebRequest -Uri "https://api.example.com/data" -Method GET'
+  },
+  {
+    id: "get-netipaddress",
+    name: "Get-NetIPAddress",
+    category: "Network",
+    description: "Gets IP address configuration",
+    syntax: "Get-NetIPAddress [-InterfaceAlias <string>] [-AddressFamily <string>]",
+    parameters: [
+      {
+        id: "interfacealias",
+        name: "InterfaceAlias",
+        type: "string",
+        description: "Specifies the network interface alias",
+        required: false
+      },
+      {
+        id: "addressfamily",
+        name: "AddressFamily",
+        type: "select",
+        description: "Specifies the IP address family",
+        required: false,
+        options: ["IPv4", "IPv6"]
+      }
+    ],
+    example: 'Get-NetIPAddress -AddressFamily IPv4'
+  },
+  {
+    id: "get-netadapter",
+    name: "Get-NetAdapter",
+    category: "Network",
+    description: "Gets basic network adapter properties",
+    syntax: "Get-NetAdapter [[-Name] <string[]>] [-Physical] [-IncludeHidden]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Specifies the name of the network adapter",
+        required: false,
+        defaultValue: "*"
+      },
+      {
+        id: "physical",
+        name: "Physical",
+        type: "switch",
+        description: "Returns only physical network adapters",
+        required: false,
+        defaultValue: false
+      },
+      {
+        id: "includehidden",
+        name: "IncludeHidden",
+        type: "switch",
+        description: "Includes hidden network adapters in the output",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Get-NetAdapter -Physical'
+  },
+  {
+    id: "test-netconnection",
+    name: "Test-NetConnection",
+    category: "Network",
+    description: "Displays diagnostic information for a connection",
+    syntax: "Test-NetConnection [[-ComputerName] <string>] [-Port <int>] [-TraceRoute]",
+    parameters: [
+      {
+        id: "computername",
+        name: "ComputerName",
+        type: "string",
+        description: "Specifies the target computer to test",
+        required: false,
+        defaultValue: "localhost"
+      },
+      {
+        id: "port",
+        name: "Port",
+        type: "int",
+        description: "Specifies the TCP port number on the target",
+        required: false
+      },
+      {
+        id: "traceroute",
+        name: "TraceRoute",
+        type: "switch",
+        description: "Runs a traceroute diagnostic test",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Test-NetConnection -ComputerName "google.com" -Port 443'
+  },
+  {
+    id: "resolve-dnsname",
+    name: "Resolve-DnsName",
+    category: "Network",
+    description: "Performs a DNS query for the specified name",
+    syntax: "Resolve-DnsName [-Name] <string> [-Type <string>] [-Server <string>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Specifies the name to resolve",
+        required: true
+      },
+      {
+        id: "type",
+        name: "Type",
+        type: "select",
+        description: "Specifies the DNS record type",
+        required: false,
+        options: ["A", "AAAA", "CNAME", "MX", "NS", "PTR", "SOA", "SRV", "TXT", "ALL"]
+      },
+      {
+        id: "server",
+        name: "Server",
+        type: "string",
+        description: "Specifies the DNS server to query",
+        required: false
+      }
+    ],
+    example: 'Resolve-DnsName -Name "www.example.com" -Type A'
+  },
+  {
+    id: "stop-service",
+    name: "Stop-Service",
+    category: "Services",
+    description: "Stops one or more running services",
+    syntax: "Stop-Service [-Name] <string[]> [-Force] [-PassThru]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Specifies the service names of services to stop",
+        required: true
+      },
+      {
+        id: "force",
+        name: "Force",
+        type: "switch",
+        description: "Forces the command to run without asking for confirmation",
+        required: false,
+        defaultValue: false
+      },
+      {
+        id: "passthru",
+        name: "PassThru",
+        type: "switch",
+        description: "Returns an object representing the service",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Stop-Service -Name "Spooler" -Force'
+  },
+  {
+    id: "restart-service",
+    name: "Restart-Service",
+    category: "Services",
+    description: "Stops and then starts one or more services",
+    syntax: "Restart-Service [-Name] <string[]> [-Force] [-PassThru]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Specifies the service names of services to restart",
+        required: true
+      },
+      {
+        id: "force",
+        name: "Force",
+        type: "switch",
+        description: "Forces the command to run without asking for confirmation",
+        required: false,
+        defaultValue: false
+      },
+      {
+        id: "passthru",
+        name: "PassThru",
+        type: "switch",
+        description: "Returns an object representing the service",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Restart-Service -Name "wuauserv"'
+  },
+  {
+    id: "set-service",
+    name: "Set-Service",
+    category: "Services",
+    description: "Changes the properties of a service",
+    syntax: "Set-Service [-Name] <string> [-DisplayName <string>] [-Description <string>] [-StartupType <string>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Specifies the service name",
+        required: true
+      },
+      {
+        id: "displayname",
+        name: "DisplayName",
+        type: "string",
+        description: "Specifies a new display name for the service",
+        required: false
+      },
+      {
+        id: "description",
+        name: "Description",
+        type: "string",
+        description: "Specifies a new description for the service",
+        required: false
+      },
+      {
+        id: "startuptype",
+        name: "StartupType",
+        type: "select",
+        description: "Sets the startup mode of the service",
+        required: false,
+        options: ["Automatic", "Manual", "Disabled", "AutomaticDelayedStart"]
+      }
+    ],
+    example: 'Set-Service -Name "BITS" -StartupType Automatic'
+  },
+  {
+    id: "start-process",
+    name: "Start-Process",
+    category: "Process Management",
+    description: "Starts one or more processes on the local computer",
+    syntax: "Start-Process [-FilePath] <string> [-ArgumentList <string[]>] [-Wait] [-WorkingDirectory <string>]",
+    parameters: [
+      {
+        id: "filepath",
+        name: "FilePath",
+        type: "path",
+        description: "Specifies the path to the program file",
+        required: true
+      },
+      {
+        id: "argumentlist",
+        name: "ArgumentList",
+        type: "array",
+        description: "Specifies parameters or argument values",
+        required: false
+      },
+      {
+        id: "wait",
+        name: "Wait",
+        type: "switch",
+        description: "Waits for the process to complete before accepting more input",
+        required: false,
+        defaultValue: false
+      },
+      {
+        id: "workingdirectory",
+        name: "WorkingDirectory",
+        type: "path",
+        description: "Specifies the working directory for the process",
+        required: false
+      }
+    ],
+    example: 'Start-Process -FilePath "notepad.exe" -ArgumentList "C:\\file.txt"'
+  },
+  {
+    id: "wait-process",
+    name: "Wait-Process",
+    category: "Process Management",
+    description: "Waits for processes to stop before accepting more input",
+    syntax: "Wait-Process [[-Name] <string[]>] [-Timeout <int>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Specifies the process names",
+        required: false
+      },
+      {
+        id: "id",
+        name: "Id",
+        type: "int",
+        description: "Specifies the process IDs",
+        required: false
+      },
+      {
+        id: "timeout",
+        name: "Timeout",
+        type: "int",
+        description: "Maximum time to wait in seconds",
+        required: false
+      }
+    ],
+    example: 'Wait-Process -Name "notepad" -Timeout 30'
+  },
+  {
+    id: "get-winevent",
+    name: "Get-WinEvent",
+    category: "Event Logs",
+    description: "Gets events from event logs and event tracing log files",
+    syntax: "Get-WinEvent [-LogName] <string[]> [-MaxEvents <int>] [-Oldest]",
+    parameters: [
+      {
+        id: "logname",
+        name: "LogName",
+        type: "select",
+        description: "Specifies the event log name",
+        required: false,
+        options: ["Application", "System", "Security", "Setup", "ForwardedEvents"],
+        defaultValue: "Application"
+      },
+      {
+        id: "maxevents",
+        name: "MaxEvents",
+        type: "int",
+        description: "Maximum number of events to return",
+        required: false
+      },
+      {
+        id: "oldest",
+        name: "Oldest",
+        type: "switch",
+        description: "Returns events in oldest-first order",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Get-WinEvent -LogName System -MaxEvents 10'
+  },
+  {
+    id: "clear-eventlog",
+    name: "Clear-EventLog",
+    category: "Event Logs",
+    description: "Deletes all entries from specified event logs",
+    syntax: "Clear-EventLog [-LogName] <string[]> [[-ComputerName] <string[]>]",
+    parameters: [
+      {
+        id: "logname",
+        name: "LogName",
+        type: "select",
+        description: "Specifies the event log name",
+        required: true,
+        options: ["Application", "System", "Security"]
+      },
+      {
+        id: "computername",
+        name: "ComputerName",
+        type: "string",
+        description: "Specifies the remote computer",
+        required: false
+      }
+    ],
+    example: 'Clear-EventLog -LogName Application'
+  },
+  {
+    id: "write-eventlog",
+    name: "Write-EventLog",
+    category: "Event Logs",
+    description: "Writes an event to an event log",
+    syntax: "Write-EventLog [-LogName] <string> [-Source] <string> [-EventId] <int> [-EntryType <string>] [-Message <string>]",
+    parameters: [
+      {
+        id: "logname",
+        name: "LogName",
+        type: "select",
+        description: "Specifies the event log name",
+        required: true,
+        options: ["Application", "System"]
+      },
+      {
+        id: "source",
+        name: "Source",
+        type: "string",
+        description: "Specifies the event source",
+        required: true
+      },
+      {
+        id: "eventid",
+        name: "EventId",
+        type: "int",
+        description: "Specifies the event identifier (1-65535)",
+        required: true
+      },
+      {
+        id: "entrytype",
+        name: "EntryType",
+        type: "select",
+        description: "Specifies the entry type",
+        required: false,
+        options: ["Error", "Warning", "Information", "SuccessAudit", "FailureAudit"],
+        defaultValue: "Information"
+      },
+      {
+        id: "message",
+        name: "Message",
+        type: "string",
+        description: "Specifies the event message",
+        required: false
+      }
+    ],
+    example: 'Write-EventLog -LogName Application -Source "MyApp" -EventId 1000 -EntryType Information -Message "Application started"'
+  },
+  {
+    id: "get-credential",
+    name: "Get-Credential",
+    category: "Security",
+    description: "Gets a credential object based on a user name and password",
+    syntax: "Get-Credential [[-UserName] <string>] [-Message <string>]",
+    parameters: [
+      {
+        id: "username",
+        name: "UserName",
+        type: "string",
+        description: "Specifies a user name",
+        required: false
+      },
+      {
+        id: "message",
+        name: "Message",
+        type: "string",
+        description: "Specifies a message for the credential prompt",
+        required: false
+      }
+    ],
+    example: 'Get-Credential -UserName "Administrator" -Message "Enter credentials"'
+  },
+  {
+    id: "get-acl",
+    name: "Get-Acl",
+    category: "Security",
+    description: "Gets the security descriptor for a resource",
+    syntax: "Get-Acl [[-Path] <string[]>]",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to a resource",
+        required: true
+      }
+    ],
+    example: 'Get-Acl -Path "C:\\Important"'
+  },
+  {
+    id: "set-acl",
+    name: "Set-Acl",
+    category: "Security",
+    description: "Changes the security descriptor of a specified item",
+    syntax: "Set-Acl [-Path] <string[]> [-AclObject] <Object>",
+    parameters: [
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Specifies the path to a resource",
+        required: true
+      }
+    ],
+    example: 'Get-Acl "C:\\Source" | Set-Acl "C:\\Destination"'
   }
 ];
 

@@ -128,8 +128,8 @@ export function ScriptGeneratorTab({
       <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden min-h-0">
         <CommandSidebar onAddCommand={handleAddCommand} />
 
-        <div className="flex-1 flex flex-col md:overflow-hidden min-w-0">
-          <div className="md:flex-1 md:flex md:flex-col border-b md:overflow-hidden">
+        <div className="flex-1 flex flex-col md:overflow-hidden min-w-0 min-h-0">
+          <div className="md:flex-1 md:flex md:flex-col border-b md:overflow-auto md:min-h-0">
             <ParameterForm
               scriptCommands={scriptCommands}
               onUpdateCommand={handleUpdateCommand}
@@ -138,7 +138,7 @@ export function ScriptGeneratorTab({
             />
           </div>
 
-          <div className="h-48 sm:h-64 md:h-80 border-b md:shrink-0 overflow-hidden">
+          <div className="h-48 sm:h-64 md:flex-1 border-b md:shrink-0 overflow-hidden md:min-h-0">
             <CodePreview code={generatedCode} validationErrors={validationResult.errors || []} />
           </div>
 

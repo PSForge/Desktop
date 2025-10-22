@@ -3,7 +3,6 @@ import { Search, ChevronDown, ChevronRight, Plus, FolderOpen, Terminal } from "l
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Command, CommandCategory, commandCategories } from "@shared/schema";
 import { powershellCommands, getCommandsByCategory, searchCommands } from "@/lib/powershell-commands";
@@ -43,10 +42,10 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
   };
 
   return (
-    <div className="w-96 border-r bg-card flex flex-col h-full" data-testid="sidebar-commands">
-      <div className="p-6 border-b space-y-4">
+    <div className="w-full sm:w-80 md:w-96 border-b md:border-b-0 md:border-r bg-card flex flex-col md:h-full md:shrink-0" data-testid="sidebar-commands">
+      <div className="p-4 sm:p-6 border-b space-y-3 sm:space-y-4 md:shrink-0">
         <div>
-          <h2 className="text-lg font-medium mb-1" data-testid="text-sidebar-title">Command Library</h2>
+          <h2 className="text-base sm:text-lg font-medium mb-1" data-testid="text-sidebar-title">Command Library</h2>
           <p className="text-xs text-muted-foreground" data-testid="text-sidebar-description">Select commands to build your script</p>
         </div>
         
@@ -62,7 +61,7 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="md:flex-1 md:overflow-auto">
         <div className="p-4 space-y-2">
           {filteredCommands ? (
             filteredCommands.length > 0 ? (
@@ -129,7 +128,7 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
             })
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

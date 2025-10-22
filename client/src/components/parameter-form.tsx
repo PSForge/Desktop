@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ScriptCommand } from "@shared/schema";
 import { getCommandById } from "@/lib/powershell-commands";
 
@@ -42,7 +41,7 @@ export function ParameterForm({
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <div className="flex-1 md:overflow-auto">
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -68,7 +67,7 @@ export function ParameterForm({
           />
         ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 }
 

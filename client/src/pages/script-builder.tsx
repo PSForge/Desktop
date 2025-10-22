@@ -47,21 +47,23 @@ export default function ScriptBuilder() {
       />
 
       <Tabs defaultValue="script-generator" className="flex-1 flex flex-col overflow-hidden">
-        <div className="border-b px-6">
-          <TabsList className="h-12">
-            <TabsTrigger value="script-generator" className="flex items-center gap-2" data-testid="tab-script-generator">
-              <FileCode className="h-4 w-4" />
-              Script Generator
-            </TabsTrigger>
-            <TabsTrigger value="ai-assistant" className="flex items-center gap-2" data-testid="tab-ai-assistant">
-              <Sparkles className="h-4 w-4" />
-              AI Assistant
-            </TabsTrigger>
-            <TabsTrigger value="gui-builder" className="flex items-center gap-2" data-testid="tab-gui-builder">
-              <Layout className="h-4 w-4" />
-              GUI Builder
-            </TabsTrigger>
-          </TabsList>
+        <div className="border-b px-3 sm:px-6">
+          <div className="flex flex-row gap-2 h-10 sm:h-12 overflow-x-auto">
+            <TabsList className="h-full inline-flex">
+              <TabsTrigger value="script-generator" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-script-generator">
+                <FileCode className="h-4 w-4" />
+                <span>Script</span>
+              </TabsTrigger>
+              <TabsTrigger value="ai-assistant" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-ai-assistant">
+                <Sparkles className="h-4 w-4" />
+                <span>AI</span>
+              </TabsTrigger>
+              <TabsTrigger value="gui-builder" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-gui-builder">
+                <Layout className="h-4 w-4" />
+                <span>GUI</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </div>
 
         <TabsContent value="script-generator" className="flex-1 flex flex-col overflow-hidden mt-0">

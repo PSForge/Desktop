@@ -39,14 +39,14 @@ export default function ScriptBuilder() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="min-h-screen md:h-screen flex flex-col bg-background">
       <Header
         onExport={handleExport}
         onSave={handleSave}
         hasCommands={scriptCommands.length > 0}
       />
 
-      <Tabs defaultValue="script-generator" className="flex-1 flex flex-col overflow-hidden">
+      <Tabs defaultValue="script-generator" className="flex-1 flex flex-col md:overflow-hidden">
         <div className="border-b px-3 sm:px-6">
           <div className="flex flex-row gap-2 h-10 sm:h-12 overflow-x-auto">
             <TabsList className="h-full inline-flex">
@@ -66,7 +66,7 @@ export default function ScriptBuilder() {
           </div>
         </div>
 
-        <TabsContent value="script-generator" className="flex-1 flex flex-col overflow-hidden mt-0">
+        <TabsContent value="script-generator" className="flex-1 flex flex-col md:overflow-hidden mt-0">
           <ScriptGeneratorTab
             scriptCommands={scriptCommands}
             setScriptCommands={setScriptCommands}
@@ -75,14 +75,14 @@ export default function ScriptBuilder() {
           />
         </TabsContent>
 
-        <TabsContent value="ai-assistant" className="flex-1 flex flex-col overflow-hidden mt-0">
+        <TabsContent value="ai-assistant" className="flex-1 flex flex-col md:overflow-hidden mt-0">
           <AIAssistantTab
             scriptCommands={scriptCommands}
             setScriptCommands={setScriptCommands}
           />
         </TabsContent>
 
-        <TabsContent value="gui-builder" className="flex-1 flex flex-col overflow-hidden mt-0">
+        <TabsContent value="gui-builder" className="flex-1 flex flex-col md:overflow-hidden mt-0">
           <GUIBuilderTab />
         </TabsContent>
       </Tabs>

@@ -24,14 +24,18 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
   - Process Management: Start-Process, Wait-Process
   - Event Logs: Get-WinEvent, Clear-EventLog, Write-EventLog
   - Security: Get-Credential, Get-Acl, Set-Acl
-- **LATEST: Comprehensive Responsive Design** - Full mobile/tablet/desktop support:
-  - Single scroll context on mobile (no double scrollbars)
-  - Adaptive layout: stacks vertically on mobile, side-by-side on desktop
-  - Responsive header with icon-only buttons on mobile
-  - Responsive tabs with horizontal scroll on narrow screens
-  - Sidebar: full-width on mobile (natural height), fixed-width on desktop (320px-384px)
-  - Optimized for all devices: 320px phones to 4K desktops
-  - Logo scales appropriately (40px mobile, 56px desktop)
+- **LATEST: Comprehensive Responsive Design** - Full mobile/tablet/desktop support with E2E testing:
+  - **Single document scroll on mobile** (< 768px): No nested scrollbars, natural content flow
+  - **Fixed layout on desktop** (≥ 768px): Internal component scrolls only (sidebar & parameters)
+  - **Adaptive breakpoints**: Mobile (<768px), Tablet (768-1023px), Desktop (≥1024px)
+  - **Responsive components**:
+    - Root container: `min-h-screen` mobile (grows), `md:h-screen` desktop (fixed)
+    - Sidebar: full-width mobile, 320-384px fixed width desktop
+    - Code preview: constrained heights (192px mobile, 256px tablet, 320px desktop)
+    - Parameter form: natural height mobile, internal scroll desktop
+  - **Smooth transitions** between breakpoints with content persistence
+  - **Tested across viewports**: 375x667 (iPhone), 768x1024 (iPad), 1920x1080 (Desktop)
+  - All content accessible on all device sizes
 
 ## Project Architecture
 

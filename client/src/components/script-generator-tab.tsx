@@ -69,7 +69,7 @@ export function ScriptGeneratorTab({
     if (generatedCode !== lastValidatedCode && !validationMutation.isPending) {
       validationMutation.mutate(generatedCode);
     }
-  }, [generatedCode, lastValidatedCode, validationMutation]);
+  }, [generatedCode, lastValidatedCode]);
 
   const handleAddCommand = (command: Command) => {
     const defaultParameters: Record<string, any> = {};
@@ -125,7 +125,7 @@ export function ScriptGeneratorTab({
 
   return (
     <>
-      <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden">
         <CommandSidebar onAddCommand={handleAddCommand} />
 
         <div className="flex-1 flex flex-col md:overflow-hidden min-w-0">
@@ -138,7 +138,7 @@ export function ScriptGeneratorTab({
             />
           </div>
 
-          <div className="h-48 sm:h-64 md:h-80 border-b md:shrink-0">
+          <div className="h-48 sm:h-64 md:h-80 border-b md:shrink-0 overflow-hidden">
             <CodePreview code={generatedCode} validationErrors={validationResult.errors || []} />
           </div>
 

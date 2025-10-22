@@ -125,7 +125,7 @@ export function ScriptGeneratorTab({
 
   return (
     <>
-      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden h-full">
         <CommandSidebar onAddCommand={handleAddCommand} />
 
         <div className="flex-1 flex flex-col md:overflow-hidden min-w-0">

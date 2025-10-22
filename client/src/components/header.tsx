@@ -14,7 +14,7 @@ export function Header({ onExport, onSave, hasCommands }: HeaderProps) {
     <header className="h-16 border-b bg-background flex items-center justify-between px-6 sticky top-0 z-50" data-testid="header-main">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-3">
-          <img src={logoUrl} alt="PSForge" className="h-10 w-auto" data-testid="logo-psforge" />
+          <img src={logoUrl} alt="PSForge" className="h-14 w-auto" data-testid="logo-psforge" />
         </div>
       </div>
       

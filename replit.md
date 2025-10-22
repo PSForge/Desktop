@@ -12,7 +12,7 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 - Implemented validation panel with error/warning detection
 - Added export functionality for .ps1 file download
 - **AI Helper Bot** - Integrated OpenAI-powered assistant with natural language command suggestions
-- **Updated Branding** - Rebranded to PSForge with new logo featuring anvil/forge icon
+- **Updated Branding** - Rebranded to PSForge with new logo featuring anvil/forge icon (transparent background, 56px height for readability)
 - **Tabbed Interface** - Restructured app with three tabs:
   - Script Generator: Visual command builder (original functionality)
   - AI Assistant: Dedicated full-screen AI chat interface

@@ -199,31 +199,6 @@ export const powershellCommands: Command[] = [
     example: 'Start-Service -Name "Spooler"'
   },
   {
-    id: "stop-service",
-    name: "Stop-Service",
-    category: "Services",
-    description: "Stops one or more running services",
-    syntax: "Stop-Service [-Name] <string[]> [-Force]",
-    parameters: [
-      {
-        id: "name",
-        name: "Name",
-        type: "string",
-        description: "Specifies the service names of services to stop",
-        required: true
-      },
-      {
-        id: "force",
-        name: "Force",
-        type: "switch",
-        description: "Forces the command to run without asking for user confirmation",
-        required: false,
-        defaultValue: false
-      }
-    ],
-    example: 'Stop-Service -Name "Spooler" -Force'
-  },
-  {
     id: "get-process",
     name: "Get-Process",
     category: "Process Management",
@@ -407,31 +382,6 @@ export const powershellCommands: Command[] = [
       }
     ],
     example: 'Set-ItemProperty -Path "HKLM:\\Software\\MyApp" -Name "Version" -Value "1.0"'
-  },
-  {
-    id: "invoke-webrequest",
-    name: "Invoke-WebRequest",
-    category: "Network",
-    description: "Gets content from a web page on the internet",
-    syntax: "Invoke-WebRequest [-Uri] <Uri> [-Method <string>] [-Headers <IDictionary>]",
-    parameters: [
-      {
-        id: "uri",
-        name: "Uri",
-        type: "string",
-        description: "Specifies the URI of the web page",
-        required: true
-      },
-      {
-        id: "method",
-        name: "Method",
-        type: "string",
-        description: "Specifies the method used for the web request",
-        required: false,
-        defaultValue: "GET"
-      }
-    ],
-    example: 'Invoke-WebRequest -Uri "https://api.example.com/data"'
   },
   {
     id: "set-executionpolicy",

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const parameterTypes = ["string", "int", "boolean", "switch", "array", "path"] as const;
+export const parameterTypes = ["string", "int", "boolean", "switch", "array", "path", "select"] as const;
 export type ParameterType = typeof parameterTypes[number];
 
 export const commandCategories = [
@@ -33,6 +33,7 @@ export const parameterSchema = z.object({
   required: z.boolean().default(false),
   defaultValue: z.any().optional(),
   value: z.any().optional(),
+  options: z.array(z.string()).optional(),
 });
 
 export const commandSchema = z.object({

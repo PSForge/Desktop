@@ -1,3 +1,10 @@
+import { 
+  escapePowerShellString, 
+  buildPowerShellArray, 
+  toPowerShellBoolean,
+  validateRequiredFields 
+} from './powershell-utils';
+
 export interface ADTaskParameter {
   id: string;
   label: string;
@@ -15,6 +22,7 @@ export interface ADTask {
   category: string;
   description: string;
   parameters: ADTaskParameter[];
+  validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;
 }
 
@@ -34,21 +42,39 @@ export const adTasks: ADTask[] = [
       { id: 'homeDrivePath', label: 'Home Drive Path', type: 'path', required: false, placeholder: '\\\\server\\home\\' },
       { id: 'groups', label: 'Security Groups (comma-separated)', type: 'textarea', required: false, placeholder: 'Domain Users, IT Staff' }
     ],
-    scriptTemplate: (params) => `# New Hire Provisioning Script
+    validate: (params) => {
+      const required = ['firstName', 'lastName', 'department', 'jobTitle', 'manager', 'ou'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const firstName = escapePowerShellString(params.firstName);
+      const lastName = escapePowerShellString(params.lastName);
+      const department = escapePowerShellString(params.department);
+      const jobTitle = escapePowerShellString(params.jobTitle);
+      const manager = escapePowerShellString(params.manager);
+      const ou = escapePowerShellString(params.ou);
+      const homeDrivePath = params.homeDrivePath ? escapePowerShellString(params.homeDrivePath) : '';
+      const groups = params.groups ? buildPowerShellArray(params.groups) : '';
+
+      return `# New Hire Provisioning Script
 # Generated: ${new Date().toISOString()}
 
 # Import Active Directory module
 Import-Module ActiveDirectory
 
 # User details
-$FirstName = "${params.firstName}"
-$LastName = "${params.lastName}"
+$FirstName = "${firstName}"
+$LastName = "${lastName}"
 $Username = ($FirstName.Substring(0,1) + $LastName).ToLower()
 $DisplayName = "$FirstName $LastName"
-$Department = "${params.department}"
-$Title = "${params.jobTitle}"
-$Manager = "${params.manager}"
-$OU = "${params.ou}"
+$Department = "${department}"
+$Title = "${jobTitle}"
+$Manager = "${manager}"
+$OU = "${ou}"
 
 # Generate secure password
 $Password = ConvertTo-SecureString -String (New-Guid).ToString() -AsPlainText -Force
@@ -71,9 +97,9 @@ try {
         -ChangePasswordAtLogon $true
     
     Write-Host "✓ User account created: $Username" -ForegroundColor Green
-    ${params.homeDrivePath ? `
+    ${homeDrivePath ? `
     # Create home drive
-    $HomePath = "${params.homeDrivePath}$Username"
+    $HomePath = "${homeDrivePath}$Username"
     New-Item -Path $HomePath -ItemType Directory -Force
     $Acl = Get-Acl $HomePath
     $Ar = New-Object System.Security.AccessControl.FileSystemAccessRule($Username, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
@@ -82,9 +108,9 @@ try {
     
     Set-ADUser -Identity $Username -HomeDrive "H:" -HomeDirectory $HomePath
     Write-Host "✓ Home drive created and configured" -ForegroundColor Green
-` : ''}${params.groups ? `
+` : ''}${groups ? `
     # Add to security groups
-    $Groups = @(${params.groups.split(',').map((g: string) => `"${g.trim()}"`).join(', ')})
+    $Groups = ${groups}
     foreach ($Group in $Groups) {
         Add-ADGroupMember -Identity $Group -Members $Username -ErrorAction SilentlyContinue
         Write-Host "✓ Added to group: $Group" -ForegroundColor Green
@@ -97,7 +123,8 @@ try {
     
 } catch {
     Write-Error "Failed to provision user: $_"
-}`
+}`;
+    }
   },
   {
     id: 'offboarding-disable',
@@ -110,14 +137,28 @@ try {
       { id: 'archivePath', label: 'Archive Path (optional)', type: 'path', required: false, placeholder: '\\\\server\\archives\\' },
       { id: 'removeGroups', label: 'Remove All Groups', type: 'boolean', required: false, defaultValue: true }
     ],
-    scriptTemplate: (params) => `# User Offboarding Script
+    validate: (params) => {
+      const required = ['username', 'disabledOU'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const username = escapePowerShellString(params.username);
+      const disabledOU = escapePowerShellString(params.disabledOU);
+      const archivePath = params.archivePath ? escapePowerShellString(params.archivePath) : '';
+      const removeGroups = toPowerShellBoolean(params.removeGroups);
+
+      return `# User Offboarding Script
 # Generated: ${new Date().toISOString()}
 
 Import-Module ActiveDirectory
 
-$Username = "${params.username}"
-$DisabledOU = "${params.disabledOU}"
-$RemoveGroups = $${params.removeGroups}
+$Username = "${username}"
+$DisabledOU = "${disabledOU}"
+$RemoveGroups = ${removeGroups}
 
 try {
     # Get user object
@@ -130,7 +171,7 @@ try {
     # Set description with disable date
     $Description = "Disabled on $(Get-Date -Format 'yyyy-MM-dd') - Former: $($User.Title)"
     Set-ADUser -Identity $Username -Description $Description
-    ${params.removeGroups ? `
+    ${params.removeGroups !== false ? `
     # Remove from all groups except Domain Users
     if ($RemoveGroups) {
         $Groups = $User.MemberOf | Where-Object { $_ -notlike "*Domain Users*" }
@@ -143,10 +184,10 @@ try {
     # Move to disabled OU
     Move-ADObject -Identity $User.DistinguishedName -TargetPath $DisabledOU
     Write-Host "✓ Moved to disabled OU" -ForegroundColor Green
-    ${params.archivePath ? `
+    ${archivePath ? `
     # Archive home drive
     if ($User.HomeDirectory -and (Test-Path $User.HomeDirectory)) {
-        $ArchivePath = "${params.archivePath}$Username-$(Get-Date -Format 'yyyyMMdd')"
+        $ArchivePath = "${archivePath}$Username-$(Get-Date -Format 'yyyyMMdd')"
         Copy-Item -Path $User.HomeDirectory -Destination $ArchivePath -Recurse -Force
         Write-Host "✓ Home drive archived to: $ArchivePath" -ForegroundColor Green
     }
@@ -156,7 +197,8 @@ try {
     
 } catch {
     Write-Error "Failed to offboard user: $_"
-}`
+}`;
+    }
   },
   {
     id: 'password-expiry-notification',
@@ -169,15 +211,29 @@ try {
       { id: 'smtpServer', label: 'SMTP Server', type: 'text', required: true, placeholder: 'smtp.company.com' },
       { id: 'fromEmail', label: 'From Email', type: 'email', required: true, placeholder: 'noreply@company.com' }
     ],
-    scriptTemplate: (params) => `# Password Expiry Notification Script
+    validate: (params) => {
+      const required = ['daysBeforeExpiry', 'smtpServer', 'fromEmail'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const daysBeforeExpiry = parseInt(params.daysBeforeExpiry) || 14;
+      const searchBase = params.searchBase ? escapePowerShellString(params.searchBase) : '';
+      const smtpServer = escapePowerShellString(params.smtpServer);
+      const fromEmail = escapePowerShellString(params.fromEmail);
+
+      return `# Password Expiry Notification Script
 # Generated: ${new Date().toISOString()}
 
 Import-Module ActiveDirectory
 
-$DaysBeforeExpiry = ${params.daysBeforeExpiry}
-$SMTPServer = "${params.smtpServer}"
-$FromEmail = "${params.fromEmail}"
-${params.searchBase ? `$SearchBase = "${params.searchBase}"` : '$SearchBase = (Get-ADDomain).DistinguishedName'}
+$DaysBeforeExpiry = ${daysBeforeExpiry}
+$SMTPServer = "${smtpServer}"
+$FromEmail = "${fromEmail}"
+${searchBase ? `$SearchBase = "${searchBase}"` : '$SearchBase = (Get-ADDomain).DistinguishedName'}
 
 # Get domain password policy
 $MaxPasswordAge = (Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge.Days
@@ -232,7 +288,8 @@ IT Department
 }
 
 Write-Host ""
-Write-Host "Found $($ExpiringUsers.Count) users with expiring passwords" -ForegroundColor Cyan`
+Write-Host "Found $($ExpiringUsers.Count) users with expiring passwords" -ForegroundColor Cyan`;
+    }
   },
   {
     id: 'cleanup-stale-computers',
@@ -245,15 +302,29 @@ Write-Host "Found $($ExpiringUsers.Count) users with expiring passwords" -Foregr
       { id: 'quarantineOU', label: 'Quarantine OU (if moving)', type: 'text', required: false, placeholder: 'OU=Quarantine,DC=company,DC=com' },
       { id: 'exportPath', label: 'Report Export Path', type: 'path', required: false, placeholder: 'C:\\Reports\\StaleComputers.csv' }
     ],
-    scriptTemplate: (params) => `# Stale Computers Cleanup Script
+    validate: (params) => {
+      const required = ['inactiveDays', 'action'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const inactiveDays = parseInt(params.inactiveDays) || 90;
+      const action = escapePowerShellString(params.action);
+      const quarantineOU = params.quarantineOU ? escapePowerShellString(params.quarantineOU) : '';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+
+      return `# Stale Computers Cleanup Script
 # Generated: ${new Date().toISOString()}
 
 Import-Module ActiveDirectory
 
-$InactiveDays = ${params.inactiveDays}
-$Action = "${params.action}"
-${params.quarantineOU ? `$QuarantineOU = "${params.quarantineOU}"` : ''}
-${params.exportPath ? `$ExportPath = "${params.exportPath}"` : ''}
+$InactiveDays = ${inactiveDays}
+$Action = "${action}"
+${quarantineOU ? `$QuarantineOU = "${quarantineOU}"` : ''}
+${exportPath ? `$ExportPath = "${exportPath}"` : ''}
 
 # Calculate cutoff date
 $CutoffDate = (Get-Date).AddDays(-$InactiveDays)
@@ -277,7 +348,7 @@ foreach ($Computer in $StaleComputers) {
             Write-Host "  ✓ Disabled" -ForegroundColor Green
         }
         "Move to Quarantine OU" {
-            ${params.quarantineOU ? `
+            ${quarantineOU ? `
             Move-ADObject -Identity $Computer.DistinguishedName -TargetPath $QuarantineOU
             Write-Host "  ✓ Moved to quarantine" -ForegroundColor Green
             ` : `Write-Host "  ⚠ Quarantine OU not specified" -ForegroundColor Red`}
@@ -291,7 +362,7 @@ foreach ($Computer in $StaleComputers) {
         }
     }
 }
-${params.exportPath ? `
+${exportPath ? `
 # Export report
 $StaleComputers | Select-Object Name, LastLogonDate, OperatingSystem, Description | 
     Export-Csv -Path $ExportPath -NoTypeInformation
@@ -299,7 +370,8 @@ Write-Host ""
 Write-Host "Report exported to: $ExportPath" -ForegroundColor Green
 ` : ''}
 Write-Host ""
-Write-Host "Stale computers cleanup completed!" -ForegroundColor Green`
+Write-Host "Stale computers cleanup completed!" -ForegroundColor Green`;
+    }
   },
   {
     id: 'backup-all-gpos',
@@ -311,13 +383,26 @@ Write-Host "Stale computers cleanup completed!" -ForegroundColor Green`
       { id: 'retentionDays', label: 'Retention Days (delete older)', type: 'number', required: false, defaultValue: 30, placeholder: '30' },
       { id: 'comment', label: 'Backup Comment', type: 'text', required: false, placeholder: 'Scheduled daily backup' }
     ],
-    scriptTemplate: (params) => `# GPO Backup Script
+    validate: (params) => {
+      const required = ['backupPath'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const backupPath = escapePowerShellString(params.backupPath);
+      const retentionDays = params.retentionDays ? parseInt(params.retentionDays) : 0;
+      const comment = params.comment ? escapePowerShellString(params.comment) : '';
+
+      return `# GPO Backup Script
 # Generated: ${new Date().toISOString()}
 
 Import-Module GroupPolicy
 
-$BackupPath = "${params.backupPath}"
-${params.retentionDays ? `$RetentionDays = ${params.retentionDays}` : ''}
+$BackupPath = "${backupPath}"
+${retentionDays ? `$RetentionDays = ${retentionDays}` : ''}
 $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $BackupFolder = Join-Path $BackupPath $Timestamp
 
@@ -334,13 +419,13 @@ try {
     # Backup each GPO
     foreach ($GPO in $GPOs) {
         try {
-            Backup-GPO -Guid $GPO.Id -Path $BackupFolder ${params.comment ? `-Comment "${params.comment}"` : ''} | Out-Null
+            Backup-GPO -Guid $GPO.Id -Path $BackupFolder ${comment ? `-Comment "${comment}"` : ''} | Out-Null
             Write-Host "✓ $($GPO.DisplayName)" -ForegroundColor Green
         } catch {
             Write-Host "✗ $($GPO.DisplayName) - Error: $_" -ForegroundColor Red
         }
     }
-    ${params.retentionDays ? `
+    ${retentionDays ? `
     # Clean up old backups
     Write-Host ""
     Write-Host "Cleaning up backups older than $RetentionDays days..." -ForegroundColor Yellow
@@ -358,7 +443,8 @@ try {
     
 } catch {
     Write-Error "GPO backup failed: $_"
-}`
+}`;
+    }
   },
   {
     id: 'audit-priv-groups',
@@ -371,15 +457,29 @@ try {
       { id: 'alertEmail', label: 'Alert Email (optional)', type: 'email', required: false, placeholder: 'security@company.com' },
       { id: 'smtpServer', label: 'SMTP Server (if email)', type: 'text', required: false, placeholder: 'smtp.company.com' }
     ],
-    scriptTemplate: (params) => `# Privileged Groups Audit Script
+    validate: (params) => {
+      const required = ['groups', 'baselinePath'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const groups = buildPowerShellArray(params.groups);
+      const baselinePath = escapePowerShellString(params.baselinePath);
+      const alertEmail = params.alertEmail ? escapePowerShellString(params.alertEmail) : '';
+      const smtpServer = params.smtpServer ? escapePowerShellString(params.smtpServer) : '';
+
+      return `# Privileged Groups Audit Script
 # Generated: ${new Date().toISOString()}
 
 Import-Module ActiveDirectory
 
-$Groups = @(${params.groups.split(',').map((g: string) => `"${g.trim()}"`).join(', ')})
-$BaselinePath = "${params.baselinePath}"
-${params.alertEmail ? `$AlertEmail = "${params.alertEmail}"` : ''}
-${params.smtpServer ? `$SMTPServer = "${params.smtpServer}"` : ''}
+$Groups = ${groups}
+$BaselinePath = "${baselinePath}"
+${alertEmail ? `$AlertEmail = "${alertEmail}"` : ''}
+${smtpServer ? `$SMTPServer = "${smtpServer}"` : ''}
 
 # Create baseline directory if needed
 if (!(Test-Path $BaselinePath)) {
@@ -447,7 +547,7 @@ foreach ($GroupName in $Groups) {
         Write-Warning "Failed to audit $GroupName: $_"
     }
 }
-${params.alertEmail && params.smtpServer ? `
+${alertEmail && smtpServer ? `
 # Send alert if changes detected
 if ($Changes.Count -gt 0) {
     $Body = "Privileged group changes detected:\\n\\n"
@@ -462,6 +562,7 @@ if ($Changes.Count -gt 0) {
 }
 ` : ''}
 Write-Host ""
-Write-Host "Privileged groups audit completed!" -ForegroundColor Green`
+Write-Host "Privileged groups audit completed!" -ForegroundColor Green`;
+    }
   }
 ];

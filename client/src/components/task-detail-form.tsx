@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowLeft, Code } from "lucide-react";
+import { ArrowLeft, Code, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TaskDetailFormProps {
   task: ADTask;
@@ -16,6 +17,7 @@ interface TaskDetailFormProps {
 }
 
 export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFormProps) {
+  const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
     task.parameters.forEach(param => {
@@ -30,8 +32,30 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const script = task.scriptTemplate(formData);
-    onGenerateScript(script);
+    
+    // Validate if validation function exists
+    if (task.validate) {
+      const error = task.validate(formData);
+      if (error) {
+        toast({
+          title: "Validation Error",
+          description: error,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    try {
+      const script = task.scriptTemplate(formData);
+      onGenerateScript(script);
+    } catch (error) {
+      toast({
+        title: "Script Generation Error",
+        description: "Failed to generate script. Please check your inputs.",
+        variant: "destructive",
+      });
+    }
   };
 
   const renderInput = (param: ADTaskParameter) => {

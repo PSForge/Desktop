@@ -3,7 +3,7 @@
 ## Overview
 PSForge is a professional web-based PowerShell script builder that allows IT technicians and system administrators to build PowerShell scripts visually through an intuitive GUI. The application features real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export functionality.
 
-## Recent Changes (October 22, 2025)
+## Recent Changes (October 23, 2025)
 - Initial project setup with full-stack JavaScript architecture
 - Implemented complete frontend with dark mode theme as default
 - Created comprehensive PowerShell command library with 80+ enterprise commands across 18 categories
@@ -24,7 +24,12 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
   - Process Management: Start-Process, Wait-Process
   - Event Logs: Get-WinEvent, Clear-EventLog, Write-EventLog
   - Security: Get-Credential, Get-Acl, Set-Acl
-- **LATEST: Comprehensive Responsive Design** - Full mobile/tablet/desktop support with E2E testing:
+- **LATEST: Fixed TabsContent Layout Issue** - Eliminated persistent white space at bottom of viewport:
+  - Modified TabsContent component to use `data-[state=inactive]:absolute` positioning
+  - Inactive tabs no longer participate in flex layout (absolutely positioned & invisible)
+  - Removed `md:shrink-0` constraint from CodePreview for proper flex sizing
+  - Desktop layout now properly fills viewport height without extra bottom spacing
+- **Comprehensive Responsive Design** - Full mobile/tablet/desktop support with E2E testing:
   - **Single document scroll on mobile** (< 768px): No nested scrollbars, natural content flow
   - **Fixed layout on desktop** (≥ 768px): Internal component scrolls only (sidebar & parameters)
   - **Adaptive breakpoints**: Mobile (<768px), Tablet (768-1023px), Desktop (≥1024px)

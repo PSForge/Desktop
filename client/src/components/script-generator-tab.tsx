@@ -138,7 +138,7 @@ export function ScriptGeneratorTab({
             />
           </div>
 
-          <div className="h-48 sm:h-64 md:flex-1 border-b md:shrink-0 overflow-hidden md:min-h-0">
+          <div className="h-48 sm:h-64 md:flex-1 border-b overflow-hidden md:min-h-0">
             <CodePreview code={generatedCode} validationErrors={validationResult.errors || []} />
           </div>
 

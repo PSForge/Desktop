@@ -61,7 +61,7 @@ export default function ScriptBuilder() {
           </div>
         </div>
 
-        <TabsContent value="script-generator" className="flex-1 flex flex-col md:overflow-hidden mt-0 min-h-0">
+        <TabsContent value="script-generator" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0">
           <ScriptGeneratorTab
             scriptCommands={scriptCommands}
             setScriptCommands={setScriptCommands}
@@ -70,7 +70,7 @@ export default function ScriptBuilder() {
           />
         </TabsContent>
 
-        <TabsContent value="ai-assistant" className="flex-1 flex flex-col md:overflow-hidden mt-0 min-h-0">
+        <TabsContent value="ai-assistant" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0">
           <AIAssistantTab
             scriptCommands={scriptCommands}
             setScriptCommands={setScriptCommands}

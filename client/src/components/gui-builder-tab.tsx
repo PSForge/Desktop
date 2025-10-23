@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { TaskDetailForm } from "@/components/task-detail-form";
 import { ScriptPreviewDialog } from "@/components/script-preview-dialog";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
+import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
 import {
   FolderOpen,
   Network,
@@ -152,7 +153,7 @@ interface GUIBuilderTabProps {
 }
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
-  const [selectedTask, setSelectedTask] = useState<ADTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
 
@@ -161,7 +162,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     setSelectedTask(null);
   };
 
-  const handleTaskSelect = (task: ADTask) => {
+  const handleTaskSelect = (task: ADTask | MECMTask) => {
     setSelectedTask(task);
   };
 
@@ -175,7 +176,11 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
   };
 
   // Get tasks for selected category
-  const categoryTasks = selectedCategory === 'active-directory' ? adTasks : [];
+  const categoryTasks = selectedCategory === 'active-directory' 
+    ? adTasks 
+    : selectedCategory === 'mecm'
+    ? mecmTasks
+    : [];
 
   // If a task is selected, show the task detail form
   if (selectedTask) {
@@ -234,7 +239,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           })}
         </div>
 
-        {selectedCategory === 'active-directory' && categoryTasks.length > 0 && (
+        {(selectedCategory === 'active-directory' || selectedCategory === 'mecm') && categoryTasks.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">
               Available Tasks for {categories.find(c => c.id === selectedCategory)?.name}
@@ -269,7 +274,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           </div>
         )}
 
-        {selectedCategory && selectedCategory !== 'active-directory' && (
+        {selectedCategory && selectedCategory !== 'active-directory' && selectedCategory !== 'mecm' && (
           <div className="mt-8 p-6 border rounded-lg bg-muted/50">
             <p className="text-center text-muted-foreground">
               Tasks for <span className="font-semibold text-foreground">

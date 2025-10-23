@@ -18,7 +18,7 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Layout**: Tabbed interface with three main sections:
     - **Script Generator**: Direct code editor with command sidebar and real-time preview.
     - **AI Assistant**: Full-screen AI chat interface for natural language command help.
-    - **GUI Builder**: Category-based task interface for common configuration scripts with user-friendly forms, including 30 comprehensive Active Directory automation tasks.
+    - **GUI Builder**: Category-based task interface for common configuration scripts with user-friendly forms, including 30 comprehensive Active Directory automation tasks and 13 MECM (Microsoft Endpoint Configuration Manager) tasks across Collections & Queries, Applications & Deployments, and Software Updates categories.
 - **UI/UX Decisions**: Dark mode default, responsive design for mobile/tablet/desktop, consistent spacing, Inter for UI typography, JetBrains Mono for code.
 
 ### Backend (Express.js)

@@ -29,12 +29,22 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
   - Inactive tabs no longer participate in flex layout (absolutely positioned & invisible)
   - Removed `md:shrink-0` constraint from CodePreview for proper flex sizing
   - Desktop layout now properly fills viewport height without extra bottom spacing
-- **LATEST: GUI Builder Tab** - Added category-based interface for common configuration tasks:
-  - 16 PowerShell categories with custom icons (File System, Network, Services, etc.)
-  - Grid layout with clickable category cards
-  - Visual indicators for selected category
-  - Placeholder for task selection within each category
-  - Responsive grid: 1 column mobile, 2 tablet, 3-4 desktop
+- **LATEST: Active Directory Tasks in GUI Builder** - Implemented complete task-based script generation:
+  - **6 Active Directory automation tasks** covering identity lifecycle, computer management, GPO, and security
+  - **Task selection UI** - Clickable task cards showing task name, category, and description
+  - **Dynamic parameter forms** - Intelligently rendered forms based on task requirements (text, email, path, number, boolean, select, textarea)
+  - **Secure script generation** - All user inputs are safely escaped to prevent PowerShell injection
+  - **Input validation** - Required field validation with user-friendly error messages
+  - **Script preview dialog** - View generated PowerShell scripts before download
+  - **Copy & Export** - Copy to clipboard and download as .ps1 files
+  
+  **Available Active Directory Tasks:**
+  1. **New Hire Provisioning** - Create user with groups, home drive, manager assignment
+  2. **User Offboarding** - Disable account, remove groups, move to disabled OU, archive home drive
+  3. **Password Expiry Notification** - Find expiring passwords and send email notifications
+  4. **Cleanup Stale Computers** - Report/disable/quarantine/delete inactive computer accounts
+  5. **Backup All GPOs** - Timestamped GPO backups with retention policy
+  6. **Audit Privileged Groups** - Monitor Domain Admins, Enterprise Admins, etc. with change alerts
 - **Comprehensive Responsive Design** - Full mobile/tablet/desktop support with E2E testing:
   - **Single document scroll on mobile** (< 768px): No nested scrollbars, natural content flow
   - **Fixed layout on desktop** (≥ 768px): Internal component scrolls only (sidebar & parameters)
@@ -82,6 +92,18 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
    - Conversation history persistence via localStorage
    - Security: Sanitized conversation history (10 msg limit, 5k char/msg)
    - Type coercion for suggested parameters (boolean, int, array handling)
+8. **GUIBuilderTab** - Task-based script generation interface
+   - Category selection with 16 PowerShell categories
+   - Task list view for selected category
+   - Task detail form with dynamic input rendering
+9. **TaskDetailForm** - Dynamic form component for task parameters
+   - Supports 7 input types: text, email, path, number, boolean, select, textarea
+   - Required field validation with toast notifications
+   - Safe PowerShell script generation with escaping
+10. **ScriptPreviewDialog** - Script preview and export dialog
+    - Syntax-highlighted PowerShell code preview
+    - Copy to clipboard functionality
+    - Download as .ps1 file
 
 ### PowerShell Command Categories (80+ Commands)
 - **File System** (10 commands): Get-ChildItem, Copy-Item, Remove-Item, New-Item, Move-Item, Rename-Item, Test-Path, Get-Content, Set-Content, Add-Content
@@ -120,15 +142,29 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 
 ## Completed Features
 - ✅ Backend validation API with PowerShell syntax checking
-- ✅ Expanded command library with 40+ enterprise commands
+- ✅ Expanded command library with 80+ enterprise commands
 - ✅ AI-powered assistant for command suggestions
 - ✅ Conversation history persistence
 - ✅ Security hardening (conversation sanitization, type validation)
-- ✅ E2E testing passing
+- ✅ GUI Builder with Active Directory task automation (6 tasks)
+- ✅ Secure PowerShell script generation with input escaping
+- ✅ Input validation with user-friendly error messages
+- ✅ Script preview and export functionality (.ps1 download)
+- ✅ E2E testing passing with validation and security tests
+
+## Security Features
+- **PowerShell Injection Prevention** - All user inputs are escaped using dedicated utility functions
+  - Escapes backticks, quotes, dollar signs, and special characters
+  - Safe array building from comma-separated values
+  - Proper boolean conversion to PowerShell $true/$false
+- **Input Validation** - Required field validation before script generation
+- **Error Handling** - Try-catch blocks with user-friendly error messages
 
 ## Next Steps (Future Enhancements)
+- Add remaining tasks for other 15 PowerShell categories in GUI Builder
 - Implement script templates library (pre-built common scenarios)
 - Add collaborative features for sharing scripts
 - Implement script version history
 - Add PowerShell script debugging capabilities
 - Integrate with PowerShell Gallery for module discovery
+- Add unit tests for PowerShell utility functions

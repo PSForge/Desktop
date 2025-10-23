@@ -1,19 +1,205 @@
-import { Construction } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  FolderOpen,
+  Network,
+  Settings,
+  Activity,
+  FileText,
+  Users,
+  Database,
+  Shield,
+  Cloud,
+  Mail,
+  CloudCog,
+  Share2,
+  Server,
+  HardDrive,
+  MonitorPlay,
+  Terminal
+} from "lucide-react";
 
-export function GUIBuilderTab() {
+interface CategoryConfig {
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  description: string;
+  color: string;
+}
+
+const categories: CategoryConfig[] = [
+  {
+    id: "file-system",
+    name: "File System",
+    icon: FolderOpen,
+    description: "Manage files and folders",
+    color: "text-blue-500"
+  },
+  {
+    id: "network",
+    name: "Network",
+    icon: Network,
+    description: "Network configuration and diagnostics",
+    color: "text-green-500"
+  },
+  {
+    id: "services",
+    name: "Services",
+    icon: Settings,
+    description: "Windows service management",
+    color: "text-purple-500"
+  },
+  {
+    id: "process-management",
+    name: "Process Management",
+    icon: Activity,
+    description: "Control running processes",
+    color: "text-orange-500"
+  },
+  {
+    id: "event-logs",
+    name: "Event Logs",
+    icon: FileText,
+    description: "View and manage system logs",
+    color: "text-yellow-500"
+  },
+  {
+    id: "active-directory",
+    name: "Active Directory",
+    icon: Users,
+    description: "User and group administration",
+    color: "text-indigo-500"
+  },
+  {
+    id: "registry",
+    name: "Registry",
+    icon: Database,
+    description: "Windows registry operations",
+    color: "text-red-500"
+  },
+  {
+    id: "security",
+    name: "Security",
+    icon: Shield,
+    description: "Security and permissions",
+    color: "text-pink-500"
+  },
+  {
+    id: "azure",
+    name: "Azure",
+    icon: Cloud,
+    description: "Azure cloud resources",
+    color: "text-sky-500"
+  },
+  {
+    id: "exchange-online",
+    name: "Exchange Online",
+    icon: Mail,
+    description: "Office 365 mailbox management",
+    color: "text-teal-500"
+  },
+  {
+    id: "azure-ad",
+    name: "Azure AD",
+    icon: CloudCog,
+    description: "Azure Active Directory",
+    color: "text-cyan-500"
+  },
+  {
+    id: "sharepoint",
+    name: "SharePoint",
+    icon: Share2,
+    description: "SharePoint site administration",
+    color: "text-emerald-500"
+  },
+  {
+    id: "mecm",
+    name: "MECM",
+    icon: Server,
+    description: "Configuration Manager",
+    color: "text-violet-500"
+  },
+  {
+    id: "exchange-server",
+    name: "Exchange Server",
+    icon: HardDrive,
+    description: "On-premises Exchange",
+    color: "text-amber-500"
+  },
+  {
+    id: "hyper-v",
+    name: "Hyper-V",
+    icon: MonitorPlay,
+    description: "Virtual machine management",
+    color: "text-fuchsia-500"
+  },
+  {
+    id: "windows-server",
+    name: "Windows Server",
+    icon: Terminal,
+    description: "Server configuration and features",
+    color: "text-lime-500"
+  }
+];
+
+interface GUIBuilderTabProps {
+  selectedCategory: string | null;
+  onCategorySelect: (categoryId: string) => void;
+}
+
+export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
+  const handleCategoryClick = (categoryId: string) => {
+    onCategorySelect(categoryId);
+  };
+
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <Card className="max-w-2xl w-full">
-        <CardContent className="p-12 text-center">
-          <Construction className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold mb-2">GUI Builder Coming Soon</h2>
-          <p className="text-muted-foreground">
-            This tab will allow you to build PowerShell GUI applications visually.
-            Stay tuned for updates!
-          </p>
-        </CardContent>
-      </Card>
+    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="p-4 sm:p-6 border-b">
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">GUI Script Builder</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Select a category to build configuration scripts with an easy-to-use interface
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {categories.map((category) => {
+            const Icon = category.icon;
+            const isSelected = selectedCategory === category.id;
+
+            return (
+              <Card
+                key={category.id}
+                className={`cursor-pointer transition-all hover-elevate active-elevate-2 ${
+                  isSelected ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => handleCategoryClick(category.id)}
+                data-testid={`category-card-${category.id}`}
+              >
+                <CardHeader className="flex flex-col items-center text-center space-y-2 p-6">
+                  <div className={`${category.color} mb-2`}>
+                    <Icon className="h-12 w-12" />
+                  </div>
+                  <CardTitle className="text-base">{category.name}</CardTitle>
+                  <CardDescription className="text-xs">
+                    {category.description}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          })}
+        </div>
+
+        {selectedCategory && (
+          <div className="mt-8 p-6 border rounded-lg bg-muted/50">
+            <p className="text-center text-muted-foreground">
+              Task selection for <span className="font-semibold text-foreground">
+                {categories.find(c => c.id === selectedCategory)?.name}
+              </span> will be added here
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

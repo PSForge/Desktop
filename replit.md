@@ -16,7 +16,7 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 - **Tabbed Interface** - Restructured app with three tabs:
   - Script Generator: Visual command builder (original functionality)
   - AI Assistant: Dedicated full-screen AI chat interface
-  - GUI Builder: Placeholder for future PowerShell GUI creation tool
+  - GUI Builder: Category-based task interface for common configuration scripts with user-friendly forms
 - **Expanded Command Library** - Added 25+ new cmdlets including:
   - File System: New-Item, Move-Item, Rename-Item, Test-Path, Get-Content, Set-Content, Add-Content
   - Network: Invoke-WebRequest, Get-NetIPAddress, Get-NetAdapter, Test-NetConnection, Resolve-DnsName
@@ -24,11 +24,17 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
   - Process Management: Start-Process, Wait-Process
   - Event Logs: Get-WinEvent, Clear-EventLog, Write-EventLog
   - Security: Get-Credential, Get-Acl, Set-Acl
-- **LATEST: Fixed TabsContent Layout Issue** - Eliminated persistent white space at bottom of viewport:
+- **Fixed TabsContent Layout Issue** - Eliminated persistent white space at bottom of viewport:
   - Modified TabsContent component to use `data-[state=inactive]:absolute` positioning
   - Inactive tabs no longer participate in flex layout (absolutely positioned & invisible)
   - Removed `md:shrink-0` constraint from CodePreview for proper flex sizing
   - Desktop layout now properly fills viewport height without extra bottom spacing
+- **LATEST: GUI Builder Tab** - Added category-based interface for common configuration tasks:
+  - 16 PowerShell categories with custom icons (File System, Network, Services, etc.)
+  - Grid layout with clickable category cards
+  - Visual indicators for selected category
+  - Placeholder for task selection within each category
+  - Responsive grid: 1 column mobile, 2 tablet, 3-4 desktop
 - **Comprehensive Responsive Design** - Full mobile/tablet/desktop support with E2E testing:
   - **Single document scroll on mobile** (< 768px): No nested scrollbars, natural content flow
   - **Fixed layout on desktop** (≥ 768px): Internal component scrolls only (sidebar & parameters)
@@ -52,7 +58,7 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 - **Layout**: Tabbed interface with three main sections
   - Script Generator tab - Visual command builder with parameter forms and code preview
   - AI Assistant tab - Full-screen AI chat interface for natural language command help
-  - GUI Builder tab - Placeholder for future PowerShell GUI builder functionality
+  - GUI Builder tab - Category-based interface with 16 categories, each with custom icons and task selection
 - **Key Pages**:
   - `/` - ScriptBuilder (main application with tabbed interface)
 

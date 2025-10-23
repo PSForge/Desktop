@@ -4,12 +4,14 @@ import { ScriptCommand } from "@shared/schema";
 import { Header } from "@/components/header";
 import { ScriptGeneratorTab } from "@/components/script-generator-tab";
 import { AIAssistantTab } from "@/components/ai-assistant-tab";
+import { GUIBuilderTab } from "@/components/gui-builder-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileCode, Sparkles } from "lucide-react";
+import { FileCode, Sparkles, LayoutGrid } from "lucide-react";
 
 export default function ScriptBuilder() {
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [selectedGuiCategory, setSelectedGuiCategory] = useState<string | null>(null);
 
   const handleSave = () => {
     localStorage.setItem('powershell-script', JSON.stringify({
@@ -57,6 +59,10 @@ export default function ScriptBuilder() {
                 <Sparkles className="h-4 w-4" />
                 <span>AI</span>
               </TabsTrigger>
+              <TabsTrigger value="gui-builder" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-gui-builder">
+                <LayoutGrid className="h-4 w-4" />
+                <span>GUI</span>
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -74,6 +80,13 @@ export default function ScriptBuilder() {
           <AIAssistantTab
             scriptCommands={scriptCommands}
             setScriptCommands={setScriptCommands}
+          />
+        </TabsContent>
+
+        <TabsContent value="gui-builder" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0">
+          <GUIBuilderTab 
+            selectedCategory={selectedGuiCategory}
+            onCategorySelect={setSelectedGuiCategory}
           />
         </TabsContent>
       </Tabs>

@@ -1,0 +1,221 @@
+this is another sweet spot for PS Forge 🎯.
+Windows Server administration is full of repetitive PowerShell-friendly tasks, especially in mid- to large-scale environments where admins are constantly provisioning, securing, and maintaining infrastructure.
+
+Below is a curated Windows Server automation task list, structured specifically for what would make strong, reusable PS Forge script templates.
+
+🧑‍💻 Identity & Access (AD-Integrated Servers)
+
+Join or remove server from domain
+
+Inputs: Domain, OU path, credentials.
+
+Options: Auto-restart after join.
+
+Rename server + join domain
+
+Ideal for standard naming conventions.
+
+Bulk server domain join from CSV
+
+Add/Remove server to/from AD groups
+
+E.g., tiering, OU placement.
+
+Configure local administrator group membership
+
+Ensure only baseline accounts are present.
+
+Reset or sync computer account password
+
+Useful for “broken trust” remediation.
+
+Enable/disable RDP or WinRM for remote admin
+
+🖥️ Server Provisioning & Role Configuration
+
+Install or remove Windows Server roles/features
+
+File Server, DNS, DHCP, IIS, Hyper-V, AD DS, etc.
+
+Inputs: Feature list, source path (if needed).
+
+Bulk install roles on multiple servers
+
+E.g., add FS + DFS on a cluster of file servers.
+
+Promote server to domain controller
+
+With optional DNS, Global Catalog, SafeMode password.
+
+Demote domain controller gracefully
+
+Install and configure IIS web server
+
+Sites, bindings, SSL, cert assignment.
+
+Enable Hyper-V role and configure switches
+
+🧭 Group Policy & Security
+
+Force GPO update (gpupdate) on remote servers
+
+Inputs: Server list or OU scope.
+
+Export/import GPO backups
+
+Link GPO to OU programmatically
+
+Audit and report local security policy settings
+
+e.g., RDP, firewall, password policies.
+
+Apply baseline security templates automatically
+
+Configure Windows Firewall rules via script
+
+Add/Remove local users or groups
+
+🕒 Patch Management & Windows Update
+
+Trigger Windows Update scan and install
+
+Standalone or via WSUS.
+
+Report installed updates / missing patches
+
+Export per server.
+
+Bulk reboot servers after patch window
+
+Defer reboots with maintenance window logic
+
+WSUS client reset & remediation script
+
+Install optional updates or specific KB
+
+🧹 Maintenance & Monitoring
+
+Check and clear Windows event logs
+
+By age, size, or specific log type.
+
+Export logs to central share for analysis
+
+Disk cleanup / temp file purge
+
+WinSxS component cleanup, temp folders.
+
+Check free disk space across multiple servers
+
+Monitor CPU, RAM, disk usage
+
+Scheduled reporting or alerting.
+
+Restart or stop specific services gracefully
+
+Bulk restart service across multiple servers
+
+Check and update service startup types
+
+Start/Stop maintenance mode (e.g., for monitoring systems)
+
+🧰 Backup, Recovery & Storage
+
+Schedule Windows Server Backup job
+
+Full or incremental.
+
+Export/import backup policies
+
+Disk volume reports
+
+Free space, mount points, labels.
+
+Create or extend volumes programmatically
+
+Enable BitLocker and escrow recovery key to AD
+
+Automated VSS snapshot creation and cleanup
+
+🔐 Security Hardening & Compliance
+
+Audit RDP session activity
+
+Who’s logged on, idle sessions, session timeouts.
+
+Auto logoff idle RDP sessions
+
+Disable legacy protocols (SMBv1, TLS 1.0, etc.)
+
+Check and enforce minimum password length / lockout policy
+
+Enable or disable services (e.g., Telnet, FTP)
+
+Audit failed logons and export security events
+
+Rotate local administrator passwords (LAPS or custom)
+
+🌐 Networking & DNS/DHCP
+
+Configure static IP / DNS settings
+
+For new builds or IP reassignments.
+
+Bulk network configuration from CSV
+
+Add/remove DNS A/PTR records
+
+Flush & register DNS on multiple servers
+
+DHCP scope creation and configuration
+
+DHCP reservations import/export
+
+Check NIC status, speed, and errors
+
+Enable/disable NICs programmatically
+
+🧾 Reporting & Inventory
+
+Inventory installed roles/features across servers
+
+Server OS version / patch level inventory
+
+Local user/group membership report
+
+Service status inventory
+
+Uptime report across fleet
+
+Export hardware specs (CPU, RAM, disk)
+
+Get active sessions and logged-on users
+
+Generate compliance reports (firewall, AV, updates)
+
+🚀 High-Value PS Forge Script Templates for Windows Server
+Category	Task Example	Inputs
+Domain Join & Identity	Bulk domain join + rename	CSV (Hostname, OU, Domain)
+Role Installation	Install roles/features, promote DC	Feature list, credentials
+Patching	Scan/install updates, schedule reboot	Server list, maintenance window
+Monitoring & Maintenance	Disk cleanup, event log export, service restarts	Target servers, log types, thresholds
+Networking	Bulk IP/DNS config	CSV with IP/mask/gateway/DNS
+Security	Firewall configuration, SMBv1 disable, session logoff	Servers, policy presets
+Reporting	Server inventory, uptime, patch status	OU or list of servers, export path
+Backup & Storage	Schedule backup jobs, volume management	Schedule, path, retention
+Compliance & Hardening	Enforce password policies, disable legacy protocols	Policy template, server list
+🪄 PS Forge UX Suggestions (Windows Server)
+
+✅ Target selectors: OU, server list (manual or CSV import).
+
+⚡ Toggles: -WhatIf by default for config changes.
+
+🧰 Role picker: UI drop-down for common Windows roles/features.
+
+📅 Scheduling: patch/maintenance window support.
+
+🧾 Reporting outputs: CSV, HTML, and Teams webhook integration.
+
+🧱 Modular actions: combine “Check → Report → Remediate” flows.
+
+🪝 Integration hooks: support for AD, WSUS, DHCP, DNS cmdlets.

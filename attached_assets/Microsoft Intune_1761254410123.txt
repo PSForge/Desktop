@@ -1,0 +1,260 @@
+Microsoft Intune is one of the richest sources of repeatable admin tasks in the Microsoft ecosystem.
+
+Almost everything in Intune (device management, app deployment, compliance policies, update rings, autopilot, reporting, cleanup) can be scripted and standardized, making it perfect for PS Forge automation.
+
+☁️ Intune (Endpoint Management) — High-Value Repeatable Tasks
+
+Primary tooling:
+
+Microsoft Graph PowerShell SDK (preferred)
+
+Microsoft Intune PowerShell SDK (legacy)
+
+Device management endpoints (deviceManagement) in Microsoft Graph.
+
+🧑‍💻 Device Enrollment & Autopilot
+
+Import Autopilot devices from CSV
+
+Inputs: Serial number, hardware hash, group tag, assigned profile.
+
+Options: Validate device hash, auto-assign profile.
+
+Assign Autopilot profiles (bulk)
+
+Inputs: Device IDs or serials, profile ID.
+
+Sync Autopilot devices / force registration refresh
+
+Export Autopilot inventory
+
+Inputs: filter by group tag, date range.
+
+Assign devices to AAD dynamic groups (for deployment rings)
+
+Remove stale Autopilot entries
+
+Age or last check-in threshold.
+
+💻 Device Configuration & Compliance
+
+Create or update configuration profiles
+
+Wi-Fi, VPN, BitLocker, firewall, device restrictions, Endpoint Protection.
+
+Inputs: JSON or template, platform (Win/iOS/macOS/Android).
+
+Assign configuration profiles to groups
+
+Inputs: Group ID, profile ID.
+
+Create compliance policies
+
+Inputs: Platform, rules (OS version, encryption, password), actions.
+
+Assign compliance policies to groups
+
+Monitor and report compliance status
+
+By device, by policy, by user.
+
+Remove or remediate non-compliant devices
+
+e.g., retire, wipe, re-enroll.
+
+📱 App Deployment & Management
+
+Bulk import and assign apps
+
+Win32, MSI, Store, LOB, iOS, Android.
+
+Inputs: source path, detection rules, install commands, groups.
+
+Assign apps to groups (required/available/uninstall)
+
+Update existing app deployments (new version)
+
+Remove stale or failed app assignments
+
+Report on app deployment status
+
+Configure app protection (MAM) policies
+
+Inputs: platform, app list, restrictions, wipe actions.
+
+🧭 Endpoint Security & Baselines
+
+Deploy security baselines
+
+Inputs: Baseline type (MDE, Windows Security), version.
+
+Assign baselines to groups
+
+Deploy configuration profiles for Defender, BitLocker, firewall
+
+Assign Endpoint Detection and Response (EDR) policies
+
+Enable Tamper Protection via Intune settings
+
+Monitor compliance drift & remediate
+
+🪙 Software Update & Feature Management
+
+Create Windows Update rings
+
+Inputs: Deferral periods, deadlines, restart behavior, user experience.
+
+Assign rings to groups
+
+Create feature update policies
+
+Target specific OS build/version.
+
+Report update compliance & rollout status
+
+Pause/resume or expire rings
+
+Bulk device update check (graph action)
+
+🧾 Reporting & Inventory
+
+Export device inventory
+
+Device name, model, OS version, ownership, last check-in, compliance.
+
+Export user/device relationship mapping
+
+Export application deployment status
+
+Export update compliance reports
+
+List devices not checking in > N days
+
+Summarize devices by OS/platform/build
+
+Report enrolled devices vs licensed users
+
+Report policy assignment coverage
+
+🧹 Maintenance & Cleanup
+
+Retire or wipe devices (bulk)
+
+Inputs: device IDs or names.
+
+Delete stale devices
+
+Based on last check-in or inactivity threshold.
+
+Re-enroll devices with issues
+
+Script for wipe + autopilot reprovision.
+
+Remove stale app deployments
+
+Reset configuration/profile assignments
+
+🧰 Role-Based Access & Scope Tags
+
+Create and assign scope tags
+
+Inputs: tag name, assigned groups.
+
+Assign RBAC roles to groups
+
+Inputs: role ID, scope tag, security group.
+
+Report role assignments
+
+Review and clean up unused roles
+
+🔐 Conditional Access & Compliance Tie-ins
+
+Assign CA policies linked to compliance
+
+e.g., block access if non-compliant.
+
+Report on devices failing CA checks
+
+MFA / device compliance alignment checks
+
+⚡ Windows 365 / Co-Management Integrations
+
+Link Cloud PCs to Intune policies
+
+Assign configuration profiles and update rings to W365 groups
+
+Monitor Cloud PC compliance & performance metrics
+
+🚀 High-Value PS Forge Script Templates
+Category	Task Example	Typical Inputs
+Autopilot	Bulk import devices + assign profiles	CSV, profile ID, group tag
+Device Cleanup	Retire/wipe stale devices	Age threshold, CSV, dry-run toggle
+App Deployment	Bulk import + assign apps	Source path, detection rules, install commands
+Update Management	Create + assign update rings	Deferrals, deadlines, group
+Reporting	Device inventory/export	Filters (OS, last check-in), export path
+Compliance	Create + assign compliance policies	Platform, rule sets, groups
+Security Baselines	Assign baselines + monitor drift	Baseline type, group
+Scope & RBAC	Create scope tags, assign roles	Role, group, tag
+Autopilot Maintenance	Remove stale entries, force sync	Threshold, dry-run
+App/Device Remediation	Detect failed deployments, remediate	App IDs, device IDs
+🧠 PowerShell / Graph Surfaces to Use
+
+Microsoft Graph PowerShell SDK
+
+Autopilot: /deviceManagement/windowsAutopilotDeviceIdentities
+
+Devices: /deviceManagement/managedDevices
+
+Configuration & compliance: /deviceManagement/deviceConfigurations, /compliancePolicies
+
+Apps: /deviceAppManagement/mobileApps
+
+Updates: /deviceManagement/windowsUpdateRings, /featureUpdateProfiles
+
+Reports: /deviceManagement/reports
+
+RBAC: /deviceManagement/roleAssignments, /roleDefinitions, /scopeTags
+
+Intune PowerShell SDK (still works for some legacy workflows)
+
+AzureAD / Entra ID module (for group management)
+
+🪄 PS Forge UX Suggestions (Intune)
+
+✅ Scope selectors: Groups, devices, CSV import.
+
+🧰 Dry-run defaults for destructive actions (wipe/retire/delete).
+
+🕒 Scheduling: For compliance, update ring checks, stale device cleanup.
+
+🪝 Integration: Tie device offboarding to OneDrive, Exchange, license reclaim.
+
+📊 Reporting: Export as CSV + HTML dashboard, with Teams webhook optional.
+
+🧭 Validation: Pre-flight checks for policy existence, group membership, and Graph throttling limits.
+
+🧱 Idempotency: Skip or update objects already in desired state (e.g., profiles, rings, apps).
+
+📦 Suggested Repo Layout
+/Intune.Automation/
+  /Autopilot/        Import-AutopilotDevices.ps1, Assign-AutopilotProfile.ps1, Cleanup-Autopilot.ps1
+  /Devices/          Export-DeviceInventory.ps1, Retire-OldDevices.ps1, Wipe-DeviceBulk.ps1
+  /Apps/             Import-AppsBulk.ps1, Assign-AppsToGroup.ps1, Update-AppDeployment.ps1
+  /Compliance/       Create-CompliancePolicy.ps1, Assign-CompliancePolicy.ps1
+  /Updates/          New-UpdateRing.ps1, Assign-UpdateRing.ps1, Export-UpdateCompliance.ps1
+  /Security/         Deploy-SecurityBaseline.ps1, Assign-DefenderProfile.ps1
+  /RBAC/             New-ScopeTag.ps1, Assign-IntuneRole.ps1
+  /Reporting/        Get-DeviceComplianceReport.ps1, Get-IntuneInventory.ps1
+  /Common/           Connect-Graph.ps1, Invoke-StdLogger.psm1
+
+
+✅ Why this is perfect for PS Forge:
+
+Intune involves high-volume, highly structured objects (profiles, apps, rings, policies).
+
+Admins often do these tasks in bulk or on a schedule.
+
+Microsoft Graph makes almost everything scriptable.
+
+You can combine multiple actions into pre-built “flows” (e.g., Autopilot + policy assignment + app deployment).

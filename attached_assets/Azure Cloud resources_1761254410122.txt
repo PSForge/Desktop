@@ -1,0 +1,285 @@
+this is a big one 🚀.
+Microsoft Azure administration involves tons of repeat tasks that are perfect for PS Forge automation.
+
+Below is a curated, structured task list for Azure Cloud Resources, covering the major areas admins and cloud engineers touch every day.
+
+☁️ Subscription & Resource Management
+
+Create new Resource Groups
+
+Inputs: Name, location, tags.
+
+Options: Lock level (CanNotDelete/ReadOnly).
+
+Bulk Resource Group creation
+
+From CSV (Name, Location, Tags).
+
+Tagging resources at scale
+
+Add/Remove/Replace tags across resources or RGs.
+
+Lock/unlock resource groups
+
+Prevent accidental deletion.
+
+Move resources between RGs or subscriptions
+
+List unused/empty RGs and optionally delete
+
+Export resource inventory
+
+RG name, type, location, cost center, tags.
+
+🏗️ Compute (VMs / Scale Sets)
+
+Create Virtual Machine (VM)
+
+Inputs: Name, RG, location, size, image, network, disk, credentials.
+
+Options: availability set, zone, tags, managed identity.
+
+Bulk VM deployment from CSV
+
+Perfect for standardized environments.
+
+Start/Stop/Restart VMs
+
+Schedule shutdown/startup.
+
+Resize VMs in bulk
+
+Input: target size, scope (tags/RG).
+
+Attach/Detach data disks
+
+Input: size, SKU, caching options.
+
+Enable or disable Boot Diagnostics
+
+Export VM inventory
+
+Name, size, OS, IP, NIC, RG, tags, managed identity.
+
+Create/Attach NSG & assign rules to VM
+
+Snapshot VM disks / create image
+
+For DR and golden images.
+
+Deallocate or delete stopped VMs older than X days
+
+🧰 Networking (VNet / NSG / Load Balancers)
+
+Create/Configure VNet & Subnets
+
+Inputs: Name, address space, subnet list, RG, location.
+
+Create NSG and add rules
+
+Inputs: priority, ports, direction, source/destination.
+
+Bulk NSG rule creation from CSV
+
+Assign NSG to NICs or subnets
+
+Create Public IP addresses
+
+Configure Load Balancer
+
+Frontend IP, backend pool, health probes, rules.
+
+Manage Application Gateways
+
+Listeners, WAF policies, routing rules.
+
+Peer VNets across subscriptions
+
+Remove unused NICs / IPs / NSGs
+
+🪙 Storage Accounts
+
+Create storage accounts
+
+Inputs: RG, name, replication type, network rules.
+
+Enable/disable soft delete & versioning
+
+Configure SAS tokens and access policies
+
+Set lifecycle management rules
+
+Archive/expire blobs based on age.
+
+Create containers and assign RBAC
+
+Report on storage usage & redundancy
+
+Rotate storage keys or generate SAS links
+
+Lock down storage to VNet/subnet
+
+🔐 Identity & Access (RBAC / IAM)
+
+Assign RBAC role to user/group/service principal
+
+Inputs: principal ID, scope (RG/subscription/resource), role.
+
+Remove or update role assignments
+
+Export role assignments for audit
+
+Create custom RBAC roles
+
+Add managed identities to resources
+
+Bulk assignment of roles to groups or managed identities
+
+Check orphaned role assignments
+
+Policy enforcement for least privilege
+
+🧭 Azure Policy & Governance
+
+Assign built-in policy
+
+Inputs: scope, parameters, enforcement mode.
+
+Assign initiative (policy set)
+
+Create policy assignment from JSON template
+
+Export non-compliant resources report
+
+Remediate non-compliance automatically
+
+Deploy tagging & naming convention policy
+
+Cleanup & report unused policies
+
+🧭 Azure Monitor / Logging
+
+Enable diagnostic settings on resources
+
+Send to Log Analytics / Storage / Event Hub.
+
+Create/Attach Log Analytics workspace
+
+Configure alert rules
+
+Inputs: metric, threshold, action group.
+
+Bulk enable monitoring across RG
+
+Create scheduled queries & workbooks
+
+Export resource health alerts
+
+Start/stop VMs on schedule with alert triggers
+
+🧾 Backup & DR
+
+Enable Azure Backup on VMs
+
+Inputs: Recovery Vault, retention policy, schedule.
+
+Initiate or restore backup
+
+Create snapshots for DR
+
+Configure site recovery replication
+
+Cleanup old recovery points
+
+Export backup status report
+
+🧭 Security & Compliance
+
+Enable Microsoft Defender for Cloud (formerly ASC)
+
+Enable Just-In-Time access on VMs
+
+Apply NSG hardening rules
+
+Enable encryption at rest (Disk/Storage)
+
+Enable MFA / conditional access (if tied to Azure AD)
+
+Export security recommendations report
+
+Remediate high severity recommendations
+
+📈 Cost Management & Reporting
+
+Export cost data per RG or tag
+
+By date range or resource type.
+
+Tag resources with cost center
+
+Identify and stop idle resources
+
+Schedule daily/weekly cost reports
+
+Budget creation & alerts
+
+Right-sizing recommendations (VM resize)
+
+🧹 Maintenance & Hygiene
+
+Remove unused NICs / IPs / disks / public IPs
+
+Identify orphaned resources
+
+Auto-tag resources missing tags
+
+Deallocate or delete stopped VMs
+
+Check resource locks and expiration dates
+
+Rotate secrets & keys (Key Vault)
+
+Update NSG rules with standard baselines
+
+🪄 PS Forge UX Suggestions (Azure)
+
+✅ Scope picker: Subscription, RG, Tag-based selection.
+
+📄 Template upload: JSON (ARM/Bicep/Policy), CSV (bulk resources, NSG rules).
+
+🧰 Safety: -WhatIf on by default for destructive tasks.
+
+🕒 Schedule support: For start/stop VMs, cost reports, policy remediation.
+
+📊 Reporting outputs: CSV, HTML, and webhook notifications (e.g., Teams).
+
+🪝 Tagging hooks: enforce or auto-add [PSForge] tags for tracking automation.
+
+🚀 Top 15 Azure Script Template Ideas for PS Forge
+Category	Task Example	Typical Inputs
+Resource Management	Create RGs in bulk	CSV (Name, Location, Tags)
+Tagging	Apply tags across RG or subscription	Scope, tag key/value
+VM Operations	Start/Stop/Resize VMs	VM names, new size, schedule
+Networking	Deploy NSGs & rules from CSV	NSG name, RG, rule list
+Storage	Create storage + lifecycle policy	RG, name, SKU, network rules
+RBAC	Assign/remove roles to users/groups	Principal, scope, role
+Policy	Assign built-in policy, remediate	Scope, policy definition ID
+Monitoring	Enable diagnostics to Log Analytics	Resource IDs, workspace ID
+Backup/DR	Enable backup on VMs	Vault, schedule, retention policy
+Security	Enable Defender, JIT, Encryption	Subscription, resource list
+Cost	Export cost report	RG/tag/date range
+Cleanup	Remove unused NICs, disks, IPs	Age threshold, type
+Inventory	Export all resources	Subscription, tags, RG
+Automation	Schedule VM start/stop	VM list, time
+Key Vault	Rotate secrets/keys	Vault name, age threshold
+🧠 PS Forge PowerShell Surface Areas
+
+Az PowerShell Modules (modern): Az.Resources, Az.Compute, Az.Network, Az.Storage, Az.Monitor, Az.KeyVault, Az.RecoveryServices, Az.Security, Az.CostManagement.
+
+Legacy AzureRM (deprecated, but some orgs still use).
+
+JSON ARM/Bicep for advanced infra templating.
+
+REST API hooks where PowerShell cmdlets lag.
+
+✅ This structure is perfect for building a modular template pack in PS Forge — each resource area (Compute, Network, Storage, RBAC, Policy, etc.) becomes a category in your UI, with CSV/JSON upload, -WhatIf safety, and optional scheduling.

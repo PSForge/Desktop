@@ -1,0 +1,199 @@
+Active Directory Repo
+
+Here’s a practical, repo-ready menu of AD admin tasks that are perfect to automate with PowerShell. I grouped them by area, added typical triggers/frequency, and the key cmdlets/modules you’ll lean on. Use it as a backlog to build out your scripts.
+
+Identity lifecycle (users)
+
+New-hire user provisioning (create, license map, groups, home/profile paths, mailbox enable if hybrid) — Onboarding trigger — New-ADUser, Set-ADUser, Add-ADGroupMember
+
+Bulk user import/update from HR CSV/API — Daily — same as above + CSV parsing
+
+Username/email alias generation with collision handling — On demand — string logic, Get-ADUser
+
+Stale/disabled account cleanup (90/180 days) — Weekly — Search-ADAccount -AccountInactive, Remove-ADUser (careful), move to quarantine OU
+
+Account deprovisioning (disable, remove groups, move OU, mailbox convert, BitLocker/OneDrive access handoff) — Offboarding trigger — Disable-ADAccount, Remove-ADGroupMember
+
+Password resets / Smart unlock (with approval check) — On demand — Set-ADAccountPassword, Unlock-ADAccount
+
+MFA/Hello readiness report (hybrid) — Weekly — Get-ADUser, Azure Graph/Mg* as needed
+
+Expiring password notifications (email/Teams) — Daily — Get-ADUser -Properties "msDS-UserPasswordExpiryTimeComputed"
+
+Groups & access
+
+Role/department group auto-membership (rules engine) — Daily — Get-ADUser, Add/Remove-ADGroupMember
+
+Orphaned/empty groups report & cleanup — Monthly — Get-ADGroup, Get-ADGroupMember
+
+Nested group depth audit (token bloat) — Monthly — ACL walk + Get-ADGroupMember -Recursive
+
+Privileged group change watcher (send diff) — Real-time (Scheduled Task + event) — Get-ADGroupMember, Security logs 4728/4729
+
+Computers & OUs
+
+Join domain / rename / standardize descriptions — On demand — Add-Computer, Rename-Computer, Set-ADComputer
+
+Stale computer accounts cleanup (no logon X days) — Weekly — Search-ADAccount -ComputersOnly -AccountInactive
+
+Automated OU placement by site/subnet or naming convention — On create & nightly — Move-ADObject, Get-ADReplicationSite
+
+BitLocker recovery key escrow check & export — Weekly — AD BitLocker CSE attributes, Get-ADObject
+
+Local admin group hygiene across endpoints (just-in-time) — Daily — Invoke-Command, net localgroup, Get-LocalGroupMember
+
+SCCM/Intune device reconciliation with AD — Weekly — compare inventories, Get-ADComputer
+
+GPO & configuration
+
+GPO baseline drift report (hash compare, who/when) — Daily — Get-GPO, Backup-GPO, Get-GPOReport
+
+GPO backup/restore rotation (versioned) — Daily — Backup-GPO, timestamped folders
+
+Link auditing & orphaned GPO detection — Monthly — Get-GPLink, Get-GPO -All
+
+WMI filter usage audit — Monthly — Get-GPWmiFilter
+
+DNS / DHCP (if in scope)
+
+Stale DNS record scavenging report (safe mode) — Weekly — Get-DnsServerResourceRecord, Remove-DnsServerResourceRecord
+
+PTR/A consistency check — Weekly — compare forward/reverse zones
+
+DHCP lease/export & reservation sync to AD descriptions — Weekly — Get-DhcpServerv4Lease, Add-DhcpServerv4Reservation
+
+File/Print & permissions
+
+NTFS/Share permission review (least privilege report) — Monthly — Get-Acl, Get-SmbShareAccess
+
+Broken inheritance & “Everyone/Authenticated Users” alerts — Monthly
+
+Home drives provisioning/cleanup — Onboarding/Offboarding — New-Item, icacls/Set-Acl
+
+Print queue inventory & orphaned drivers cleanup — Monthly — Get-Printer, Remove-PrinterDriver
+
+Security & compliance
+
+Dormant privileged accounts/DA logon alert — Daily — Search-ADAccount, event 4624 parsing
+
+Kerberoastable SPN audit (AES only policy check) — Monthly — Get-ADUser -Filter {ServicePrincipalName -like "*"}, check msDS-SupportedEncryptionTypes
+
+LDAP signing/channel binding compliance check — Monthly — GPO + DC registry audit
+
+Fine-grained password policies inventory & conflicts — Monthly — Get-ADFineGrainedPasswordPolicy, Get-ADUserResultantPasswordPolicy
+
+“Password never expires” and unconstrained delegation audit — Monthly — Get-ADUser/Computer -LDAPFilter ...
+
+Audit critical changes: new trusts, schema/forest/domain changes — Daily — event IDs 1919/1920/4739 etc.
+
+Reporting & inventory
+
+Weekly AD health report (DCs, replication, DIT size, USN, SYSVOL) — Weekly — Get-ADDomainController, repadmin /replsummary (wrap), dcdiag (parse)
+
+Replication failure watcher with per-site summary — Daily — repadmin /showrepl, parse for fails
+
+Locked-out user hunt (source DC/host) — On demand — event 4740 correlation
+
+UPN & email suffix consistency report — Monthly
+
+Licensed vs unlicensed (hybrid) reconciliation — Weekly — AD vs Entra ID (MgGraph)
+
+Migrations & hygiene
+
+Attribute normalization (phone/title/manager, case/format) — Monthly — Set-ADUser
+
+sAMAccountName/UPN domain transition helper — As needed
+
+Bulk photo import/export (thumbnailPhoto) — On demand
+
+CSV-driven mass moves/renames — On demand — Move-ADObject, Rename-ADObject
+
+Automation plumbing (nice to have)
+
+Standard AD script logging (CMTrace/CSV/JSON), transcript, and error policy wrapper
+
+Pre-flight guardrails (dry-run/-WhatIf, safety prompts outside non-interactive)
+
+Role-based config: dev/test/prod targeting via parameters
+
+Notification hooks (Teams/Webhook/SMTP) for success/failure
+
+Idempotent design: re-runs don’t break state
+
+Suggested repo layout
+/ActiveDirectory.Automation/
+  /Identity/
+    NewHire-Provisioning.ps1
+    Offboarding-DisableAndArchive.ps1
+    Bulk-User-UpdateFromCSV.ps1
+    Notify-PasswordExpiry.ps1
+  /Groups/
+    Enforce-DeptMembership.ps1
+    Audit-PrivGroupsChanges.ps1
+  /Computers/
+    Cleanup-StaleComputers.ps1
+    Move-Computers-BySite.ps1
+    Audit-BitLockerRecovery.ps1
+  /GPO/
+    Backup-AllGPOs.ps1
+    Report-GPODrift.ps1
+  /DNS-DHCP/
+    Report-StaleDnsRecords.ps1
+    Sync-DhcpReservationsToAD.ps1
+  /Security/
+    Audit-KerberoastableSPNs.ps1
+    Audit-UnconstrainedDelegation.ps1
+  /Reporting/
+    Health-ADWeekly.ps1
+    Find-AccountLockoutSource.ps1
+  /Common/
+    Invoke-StandardLogger.psm1
+    Import-HRFeed.psm1
+    Config.json
+
+Starter “Top 12” scripts to build first
+
+NewHire-Provisioning.ps1 – CSV/HR feed → user, groups, home drive, manager, welcome email/Teams.
+
+Offboarding-DisableAndArchive.ps1 – disable, strip groups, move to “Disabled Users”, set expiry, home drive archive.
+
+Notify-PasswordExpiry.ps1 – find expiring users, email/Teams DM.
+
+Cleanup-StaleComputers.ps1 – report vs delete flag, quarantine OU move.
+
+Backup-AllGPOs.ps1 – daily timestamped backups + prune older than N days.
+
+Report-GPODrift.ps1 – compare backup hashes; post a diff.
+
+Audit-PrivGroupsChanges.ps1 – diff DA/EA/Schema Admins, send alert with who/when.
+
+Health-ADWeekly.ps1 – dcdiag/repadmin parsers → single HTML report.
+
+Find-AccountLockoutSource.ps1 – parse 4740 across DCs, output lastBadPwd/host.
+
+Audit-KerberoastableSPNs.ps1 – flag RC4-only, stale SPNs, service accounts without AES.
+
+Report-StaleDnsRecords.ps1 – list candidates (no delete by default).
+
+Move-Computers-BySite.ps1 – place computers into correct OU by site/subnet map.
+
+Common cmdlets/modules you’ll use
+
+ActiveDirectory (RSAT): Get/New/Set/Remove-ADUser|Group|Computer|OrganizationalUnit, Search-ADAccount, Move-ADObject, Get-ADReplication*, Get-ADFineGrainedPasswordPolicy.
+GPO: Get/Backup/Restore-GPO, Get-GPLink, Get-GPWmiFilter.
+DNS/DHCP: DnsServer, DhcpServer.
+OS/Remote: Invoke-Command, Get-WinEvent, Get-Acl/Set-Acl, Test-Connection.
+
+Guardrails to bake into every script
+
+Dry-run switch (-WhatIf, custom -Confirm:$false handling).
+
+Scope filters (OU include/exclude, site list, regex on names).
+
+Backups before change (e.g., GPO, ACL).
+
+Logging (transcript + structured JSON/CSV; clear exit codes).
+
+RBAC (fail fast if not running with required rights).
+
+Change tickets (accept -ChangeId param; log it).

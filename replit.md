@@ -32,7 +32,11 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Code Preview**: Syntax-highlighted PowerShell code output.
 - **Validation Panel**: Real-time error and warning display.
 - **AI Helper Bot**: OpenAI-powered assistant providing context-aware command suggestions and one-click command addition, with conversation history persistence and sanitized input.
-- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping.
+- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping. Supports 83 automation tasks across:
+  - **Active Directory** (30 tasks): User & Computer Management, Group Policy, Organization & Delegation, Security & Permissions, Replication & Sites, Reporting & Auditing
+  - **MECM** (13 tasks): Collections & Queries, Applications & Deployments, Software Updates
+  - **Exchange Online** (20 tasks): User Mailboxes & Licenses, Distribution & Groups, Transport Rules & Mail Flow, Message Trace & Reporting, Shared & Resource Mailboxes, Security & Compliance, Maintenance & Hygiene, Reporting & Inventory
+  - **Exchange Server** (20 tasks): Mailboxes & Users, Distribution Groups & Contacts, Mail Flow & Transport Rules, Database & DAG Management, Maintenance & Hygiene, Security & Compliance, Reporting & Inventory, Server & Service Management
 - **Export Functionality**: Enhanced dialog with scrollable script preview, copy to clipboard, and .ps1 file download.
 - **Security**: PowerShell injection prevention through input escaping, robust input validation, and comprehensive error handling.
 

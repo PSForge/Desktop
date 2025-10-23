@@ -4,6 +4,8 @@ import { TaskDetailForm } from "@/components/task-detail-form";
 import { ScriptPreviewDialog } from "@/components/script-preview-dialog";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
 import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
+import { exchangeOnlineTasks, ExchangeOnlineTask } from "@/lib/exchange-online-tasks";
+import { exchangeServerTasks, ExchangeServerTask } from "@/lib/exchange-server-tasks";
 import {
   FolderOpen,
   Network,
@@ -153,7 +155,7 @@ interface GUIBuilderTabProps {
 }
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
-  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
 
@@ -162,7 +164,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     setSelectedTask(null);
   };
 
-  const handleTaskSelect = (task: ADTask | MECMTask) => {
+  const handleTaskSelect = (task: ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask) => {
     setSelectedTask(task);
   };
 
@@ -180,6 +182,10 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     ? adTasks 
     : selectedCategory === 'mecm'
     ? mecmTasks
+    : selectedCategory === 'exchange-online'
+    ? exchangeOnlineTasks
+    : selectedCategory === 'exchange-server'
+    ? exchangeServerTasks
     : [];
 
   // If a task is selected, show the task detail form
@@ -239,7 +245,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           })}
         </div>
 
-        {(selectedCategory === 'active-directory' || selectedCategory === 'mecm') && categoryTasks.length > 0 && (
+        {(selectedCategory === 'active-directory' || selectedCategory === 'mecm' || selectedCategory === 'exchange-online' || selectedCategory === 'exchange-server') && categoryTasks.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">
               Available Tasks for {categories.find(c => c.id === selectedCategory)?.name}
@@ -274,7 +280,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           </div>
         )}
 
-        {selectedCategory && selectedCategory !== 'active-directory' && selectedCategory !== 'mecm' && (
+        {selectedCategory && selectedCategory !== 'active-directory' && selectedCategory !== 'mecm' && selectedCategory !== 'exchange-online' && selectedCategory !== 'exchange-server' && (
           <div className="mt-8 p-6 border rounded-lg bg-muted/50">
             <p className="text-center text-muted-foreground">
               Tasks for <span className="font-semibold text-foreground">

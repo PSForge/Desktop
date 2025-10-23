@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ScriptCommand } from "@shared/schema";
 import { Header } from "@/components/header";
@@ -9,7 +10,6 @@ import { FileCode, Sparkles } from "lucide-react";
 export default function ScriptBuilder() {
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-
 
   const handleSave = () => {
     localStorage.setItem('powershell-script', JSON.stringify({

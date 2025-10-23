@@ -18,7 +18,7 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Layout**: Tabbed interface with three main sections:
     - **Script Generator**: Direct code editor with command sidebar and real-time preview.
     - **AI Assistant**: Full-screen AI chat interface for natural language command help.
-    - **GUI Builder**: Category-based task interface for common configuration scripts with user-friendly forms, including 30 comprehensive Active Directory automation tasks and 13 MECM (Microsoft Endpoint Configuration Manager) tasks across Collections & Queries, Applications & Deployments, and Software Updates categories.
+    - **GUI Builder**: Category-based task interface for common configuration scripts with user-friendly forms, including comprehensive automation tasks for Active Directory (30), MECM (13), Exchange Online (20), Exchange Server (20), and Azure AD/Entra ID (30) across various enterprise management categories.
 - **UI/UX Decisions**: Dark mode default, responsive design for mobile/tablet/desktop, consistent spacing, Inter for UI typography, JetBrains Mono for code.
 
 ### Backend (Express.js)
@@ -32,11 +32,12 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Code Preview**: Syntax-highlighted PowerShell code output.
 - **Validation Panel**: Real-time error and warning display.
 - **AI Helper Bot**: OpenAI-powered assistant providing context-aware command suggestions and one-click command addition, with conversation history persistence and sanitized input.
-- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping. Supports 83 automation tasks across:
+- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping. Supports 113 automation tasks across:
   - **Active Directory** (30 tasks): User & Computer Management, Group Policy, Organization & Delegation, Security & Permissions, Replication & Sites, Reporting & Auditing
   - **MECM** (13 tasks): Collections & Queries, Applications & Deployments, Software Updates
   - **Exchange Online** (20 tasks): User Mailboxes & Licenses, Distribution & Groups, Transport Rules & Mail Flow, Message Trace & Reporting, Shared & Resource Mailboxes, Security & Compliance, Maintenance & Hygiene, Reporting & Inventory
   - **Exchange Server** (20 tasks): Mailboxes & Users, Distribution Groups & Contacts, Mail Flow & Transport Rules, Database & DAG Management, Maintenance & Hygiene, Security & Compliance, Reporting & Inventory, Server & Service Management
+  - **Azure AD / Entra ID** (30 tasks): User Lifecycle Management, Groups & Access Management, Reporting & Auditing, Device & Identity Management, Maintenance & Governance
 - **Export Functionality**: Enhanced dialog with scrollable script preview, copy to clipboard, and .ps1 file download.
 - **Security**: PowerShell injection prevention through input escaping, robust input validation, and comprehensive error handling.
 

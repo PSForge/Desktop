@@ -1,0 +1,221 @@
+Microsoft Entra ID (formerly Azure Active Directory) is another gold mine for repeatable, scriptable admin work that fits your PS Forge vision perfectly.
+
+Below is a curated list of repeat admin tasks for Azure AD that can be automated with PowerShell — grouped by functional area, and focused on what admins do over and over again (ideal for templating).
+
+☁️ Azure AD / Entra ID — Task Categories for PS Forge
+
+These tasks are primarily automated using the following modules:
+
+Microsoft Graph PowerShell SDK (recommended going forward)
+
+AzureAD PowerShell Module (legacy but still widely used)
+
+MSOnline PowerShell Module (some orgs still rely on it)
+
+👤 User Lifecycle Management
+
+Create new user account
+
+Inputs: UPN, DisplayName, Password, Location, License SKU.
+
+Options: Temporary password, force password reset.
+
+Bulk create users from CSV
+
+Great for onboarding waves (interns, seasonal staff, etc.).
+
+Assign / Remove Licenses
+
+Single or bulk assignment (SKU picker).
+
+Group-based licensing sync check.
+
+Update user attributes
+
+Job title, department, manager, usage location, etc.
+
+Enable / disable user account
+
+With logging & confirmation prompts.
+
+Assign roles to user
+
+e.g., Global Reader, Helpdesk Admin.
+
+Reset password / revoke refresh tokens
+
+Bulk move users to specific groups / roles
+
+Check MFA registration status
+
+Export MFA methods per user.
+
+Assign or remove authentication methods (MFA, FIDO2, etc.)
+
+🧑‍🤝‍🧑 Groups & Access Management
+
+Create security / M365 group
+
+Inputs: Display Name, Description, Owners, Members.
+
+Bulk add/remove members
+
+From CSV or user picker.
+
+Convert groups (security ↔ M365)
+
+Assign group owners
+
+Export group membership
+
+To CSV or HTML report.
+
+Dynamic group rule creation / update
+
+Department, location, device compliance status, etc.
+
+Group lifecycle policy automation
+
+Auto-expiration, renewal reminders.
+
+Nested group resolution report
+
+🔐 Conditional Access & Security
+
+Create or update Conditional Access policy
+
+Inputs: Name, Assignments, Conditions, Grant controls.
+
+Bulk enable / disable Conditional Access policies
+
+Report on users/groups affected by a policy
+
+MFA / Authentication methods enforcement
+
+Enable/disable security defaults or per-policy MFA.
+
+Block legacy authentication for users/groups
+
+Export CA policy summary and targeted users
+
+🧾 Reporting & Auditing
+
+Export sign-in logs
+
+Filter by user, app, IP, or date range.
+
+Export audit logs
+
+User creation, role changes, group membership updates.
+
+Inactive accounts report
+
+No sign-in in X days.
+
+License usage report
+
+Assigned vs available.
+
+Role assignment audit
+
+Privileged Role assignments, time-based roles (PIM).
+
+MFA registration & compliance report
+
+🖥️ Device & Identity Management (Entra ID Join / Hybrid)
+
+List all devices joined / registered
+
+Filter by join type (Azure AD Joined / Registered / Hybrid).
+
+Bulk disable stale devices
+
+Devices inactive for X days.
+
+Export device compliance & enrollment state
+
+Move devices to specific groups
+
+e.g., for Autopilot targeting.
+
+Assign Autopilot profile to device
+
+If integrated with Intune.
+
+Export device inventory by model / owner / OS
+
+⚡ Privileged Identity Management (PIM)
+
+List eligible / active role assignments
+
+Activate or deactivate PIM role
+
+With justification.
+
+Report users with privileged roles
+
+Schedule PIM access reviews
+
+🧰 Maintenance & Governance
+
+Review and remove guest users
+
+No sign-in X days, or expired invites.
+
+Bulk invite guest users
+
+From CSV, with message template.
+
+Remove unlicensed accounts
+
+Assign groups to applications (Enterprise Apps)
+
+Cleanup orphaned app registrations or service principals
+
+Assign RBAC roles to groups/users
+
+Export and rotate app secrets/certs nearing expiry
+
+🪄 Typical PS Forge Inputs & Automations
+Category	Task Example	Common Inputs	Automation Hooks
+User Lifecycle	Create users, bulk license assignment	UPN, Display Name, License SKU, Password	CSV import, bulk loops
+Groups	Bulk membership, dynamic rules	Group name, user list, rule expression	Rule builder UI, bulk user picker
+Conditional Access	Create or toggle policies	Policy name, target group, grant control	JSON templates + dropdown presets
+Security / MFA	MFA enforcement, disable legacy auth	Target scope, enforcement type	On-demand or scheduled
+Reporting	Audit logs, sign-in logs, inactive accounts	User filter, date range, export path	Scheduled reports, CSV/HTML output
+Device Management	Disable stale devices, export inventory	Days threshold, group, OS filter	Cleanup scripts
+Governance	Guest cleanup, orphaned app registration cleanup	Guest age threshold, App ID	Alerting and removal
+PIM	Role review and activation	Role ID, Justification	RBAC enforcement
+🚀 High-Value PS Forge Templates to Start With
+
+Bulk User Onboarding (with license assignment)
+
+Bulk Add/Remove Group Members from CSV
+
+MFA Registration Status Report
+
+Create or Update Conditional Access Policy (JSON-based)
+
+Inactive Account Report + Disable Option
+
+Export Sign-In Logs by Date Range
+
+Disable Stale Devices Older than X Days
+
+Bulk Invite Guest Users with Custom Message
+
+PIM Role Assignment Report
+
+App Secret Expiry Report & Alert
+
+🧠 Bonus: PS Forge UX Suggestions for Azure AD
+
+CSV templates: user onboarding, group membership, guest invitations.
+
+JSON policy templates: Conditional Access, dynamic group rules.
+
+Toggles: -WhatIf / Confirm actions by default for destructive ops.
+
+Scope pickers: Users, Groups, Roles, Devices.
+
+Report destinations: CSV, HTML, Teams Webhook notification.

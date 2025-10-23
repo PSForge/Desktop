@@ -2036,5 +2036,779 @@ Write-Host "  Exceeding depth threshold: $(($Results | Where-Object { $_.AlertFl
 Write-Host ""
 Write-Host "Note: Deep nesting can cause token bloat and authentication issues" -ForegroundColor Yellow`;
     }
+  },
+
+  // ========================================
+  // BULK ACTIONS CATEGORY
+  // ========================================
+  {
+    id: 'bulk-add-users-to-group',
+    name: 'Bulk Add Users to Security Group',
+    category: 'Bulk Actions',
+    description: 'Add multiple users to a security group from CSV file with username list',
+    parameters: [
+      { id: 'groupName', label: 'Security Group Name', type: 'text', required: true, placeholder: 'IT-Staff' },
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\users.csv', description: 'CSV with "Username" column' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const groupName = escapePowerShellString(params.groupName);
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk Add Users to Security Group
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$GroupName = "${groupName}"
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate inputs
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+try {
+    $Group = Get-ADGroup -Identity $GroupName -ErrorAction Stop
+    Write-Host "✓ Target Group: $($Group.Name)" -ForegroundColor Green
+} catch {
+    Write-Error "Group not found: $GroupName"
+    exit 1
+}
+
+# Import CSV
+$Users = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+$AlreadyMemberCount = 0
+
+Write-Host ""
+Write-Host "Processing $($Users.Count) users..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($User in $Users) {
+    if (-not $User.Username) {
+        Write-Host "⚠ Skipping row with missing Username" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify user exists
+        $ADUser = Get-ADUser -Identity $User.Username -ErrorAction Stop
+        
+        # Check if already a member
+        $IsMember = Get-ADGroupMember -Identity $GroupName -Recursive | Where-Object { $_.SamAccountName -eq $User.Username }
+        
+        if ($IsMember) {
+            Write-Host "ℹ $($User.Username): Already a member" -ForegroundColor Gray
+            $AlreadyMemberCount++
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($User.Username): Would be added (TEST MODE)" -ForegroundColor Cyan
+            $SuccessCount++
+        } else {
+            Add-ADGroupMember -Identity $GroupName -Members $User.Username -ErrorAction Stop
+            Write-Host "✓ $($User.Username): Added successfully" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Users.Count) users" -ForegroundColor Gray
+Write-Host "  Added: $SuccessCount" -ForegroundColor Green
+Write-Host "  Already Members: $AlreadyMemberCount" -ForegroundColor Gray
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'bulk-user-property-changes',
+    name: 'Bulk User Property Changes',
+    category: 'Bulk Actions',
+    description: 'Update user properties (department, title, manager, etc.) from CSV file',
+    parameters: [
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\user-updates.csv', description: 'CSV with Username and properties to update' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk User Property Changes
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate CSV exists
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+# Import CSV
+$Users = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+
+Write-Host ""
+Write-Host "Expected CSV columns: Username, Department, Title, Manager, Office, Phone, etc." -ForegroundColor Cyan
+Write-Host "Processing $($Users.Count) users..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($User in $Users) {
+    if (-not $User.Username) {
+        Write-Host "⚠ Skipping row with missing Username" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify user exists
+        $ADUser = Get-ADUser -Identity $User.Username -ErrorAction Stop
+        
+        # Build hashtable of properties to update
+        $PropertiesToUpdate = @{}
+        
+        if ($User.Department) { $PropertiesToUpdate['Department'] = $User.Department }
+        if ($User.Title) { $PropertiesToUpdate['Title'] = $User.Title }
+        if ($User.Manager) { $PropertiesToUpdate['Manager'] = $User.Manager }
+        if ($User.Office) { $PropertiesToUpdate['Office'] = $User.Office }
+        if ($User.Phone) { $PropertiesToUpdate['OfficePhone'] = $User.Phone }
+        if ($User.Description) { $PropertiesToUpdate['Description'] = $User.Description }
+        if ($User.Company) { $PropertiesToUpdate['Company'] = $User.Company }
+        
+        if ($PropertiesToUpdate.Count -eq 0) {
+            Write-Host "⚠ $($User.Username): No properties to update" -ForegroundColor Yellow
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($User.Username): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            foreach ($Key in $PropertiesToUpdate.Keys) {
+                Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
+            }
+            $SuccessCount++
+        } else {
+            Set-ADUser -Identity $User.Username @PropertiesToUpdate -ErrorAction Stop
+            Write-Host "✓ $($User.Username): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Users.Count) users" -ForegroundColor Gray
+Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'bulk-user-account-moves',
+    name: 'Bulk User Account Moves',
+    category: 'Bulk Actions',
+    description: 'Move multiple user accounts to different OUs from CSV file',
+    parameters: [
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\user-moves.csv', description: 'CSV with Username and TargetOU columns' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk User Account Moves
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate CSV exists
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+# Import CSV
+$Users = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+
+Write-Host ""
+Write-Host "Expected CSV columns: Username, TargetOU" -ForegroundColor Cyan
+Write-Host "Processing $($Users.Count) users..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($User in $Users) {
+    if (-not $User.Username -or -not $User.TargetOU) {
+        Write-Host "⚠ Skipping row with missing Username or TargetOU" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify user exists
+        $ADUser = Get-ADUser -Identity $User.Username -Properties DistinguishedName -ErrorAction Stop
+        
+        # Verify target OU exists
+        try {
+            $TargetOU = Get-ADOrganizationalUnit -Identity $User.TargetOU -ErrorAction Stop
+        } catch {
+            Write-Host "✗ $($User.Username): Target OU not found - $($User.TargetOU)" -ForegroundColor Red
+            $FailCount++
+            continue
+        }
+        
+        # Check if already in target OU
+        if ($ADUser.DistinguishedName -like "*$($User.TargetOU)") {
+            Write-Host "ℹ $($User.Username): Already in target OU" -ForegroundColor Gray
+            $SuccessCount++
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($User.Username): Would move to $($User.TargetOU) (TEST MODE)" -ForegroundColor Cyan
+            $SuccessCount++
+        } else {
+            Move-ADObject -Identity $ADUser.DistinguishedName -TargetPath $User.TargetOU -ErrorAction Stop
+            Write-Host "✓ $($User.Username): Moved to $($User.TargetOU)" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Users.Count) users" -ForegroundColor Gray
+Write-Host "  Moved: $SuccessCount" -ForegroundColor Green
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'bulk-add-computers-to-group',
+    name: 'Bulk Add Computers to Security Group',
+    category: 'Bulk Actions',
+    description: 'Add multiple computers to a security group from CSV file',
+    parameters: [
+      { id: 'groupName', label: 'Security Group Name', type: 'text', required: true, placeholder: 'Workstations-Group' },
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\computers.csv', description: 'CSV with "ComputerName" column' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const groupName = escapePowerShellString(params.groupName);
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk Add Computers to Security Group
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$GroupName = "${groupName}"
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate inputs
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+try {
+    $Group = Get-ADGroup -Identity $GroupName -ErrorAction Stop
+    Write-Host "✓ Target Group: $($Group.Name)" -ForegroundColor Green
+} catch {
+    Write-Error "Group not found: $GroupName"
+    exit 1
+}
+
+# Import CSV
+$Computers = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+$AlreadyMemberCount = 0
+
+Write-Host ""
+Write-Host "Processing $($Computers.Count) computers..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($Computer in $Computers) {
+    if (-not $Computer.ComputerName) {
+        Write-Host "⚠ Skipping row with missing ComputerName" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify computer exists
+        $ADComputer = Get-ADComputer -Identity $Computer.ComputerName -ErrorAction Stop
+        
+        # Check if already a member
+        $IsMember = Get-ADGroupMember -Identity $GroupName | Where-Object { $_.Name -eq $Computer.ComputerName }
+        
+        if ($IsMember) {
+            Write-Host "ℹ $($Computer.ComputerName): Already a member" -ForegroundColor Gray
+            $AlreadyMemberCount++
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($Computer.ComputerName): Would be added (TEST MODE)" -ForegroundColor Cyan
+            $SuccessCount++
+        } else {
+            Add-ADGroupMember -Identity $GroupName -Members $ADComputer -ErrorAction Stop
+            Write-Host "✓ $($Computer.ComputerName): Added successfully" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Computers.Count) computers" -ForegroundColor Gray
+Write-Host "  Added: $SuccessCount" -ForegroundColor Green
+Write-Host "  Already Members: $AlreadyMemberCount" -ForegroundColor Gray
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'bulk-computer-property-changes',
+    name: 'Bulk Computer Property Changes',
+    category: 'Bulk Actions',
+    description: 'Update computer properties (description, location, etc.) from CSV file',
+    parameters: [
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\computer-updates.csv', description: 'CSV with ComputerName and properties' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk Computer Property Changes
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate CSV exists
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+# Import CSV
+$Computers = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+
+Write-Host ""
+Write-Host "Expected CSV columns: ComputerName, Description, Location, ManagedBy, etc." -ForegroundColor Cyan
+Write-Host "Processing $($Computers.Count) computers..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($Computer in $Computers) {
+    if (-not $Computer.ComputerName) {
+        Write-Host "⚠ Skipping row with missing ComputerName" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify computer exists
+        $ADComputer = Get-ADComputer -Identity $Computer.ComputerName -ErrorAction Stop
+        
+        # Build hashtable of properties to update
+        $PropertiesToUpdate = @{}
+        
+        if ($Computer.Description) { $PropertiesToUpdate['Description'] = $Computer.Description }
+        if ($Computer.Location) { $PropertiesToUpdate['Location'] = $Computer.Location }
+        if ($Computer.ManagedBy) { $PropertiesToUpdate['ManagedBy'] = $Computer.ManagedBy }
+        
+        if ($PropertiesToUpdate.Count -eq 0) {
+            Write-Host "⚠ $($Computer.ComputerName): No properties to update" -ForegroundColor Yellow
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($Computer.ComputerName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            foreach ($Key in $PropertiesToUpdate.Keys) {
+                Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
+            }
+            $SuccessCount++
+        } else {
+            Set-ADComputer -Identity $Computer.ComputerName @PropertiesToUpdate -ErrorAction Stop
+            Write-Host "✓ $($Computer.ComputerName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Computers.Count) computers" -ForegroundColor Gray
+Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'bulk-computer-account-moves',
+    name: 'Bulk Computer Account Moves',
+    category: 'Bulk Actions',
+    description: 'Move multiple computer accounts to different OUs from CSV file',
+    parameters: [
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\computer-moves.csv', description: 'CSV with ComputerName and TargetOU columns' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk Computer Account Moves
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate CSV exists
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+# Import CSV
+$Computers = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+
+Write-Host ""
+Write-Host "Expected CSV columns: ComputerName, TargetOU" -ForegroundColor Cyan
+Write-Host "Processing $($Computers.Count) computers..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($Computer in $Computers) {
+    if (-not $Computer.ComputerName -or -not $Computer.TargetOU) {
+        Write-Host "⚠ Skipping row with missing ComputerName or TargetOU" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify computer exists
+        $ADComputer = Get-ADComputer -Identity $Computer.ComputerName -Properties DistinguishedName -ErrorAction Stop
+        
+        # Verify target OU exists
+        try {
+            $TargetOU = Get-ADOrganizationalUnit -Identity $Computer.TargetOU -ErrorAction Stop
+        } catch {
+            Write-Host "✗ $($Computer.ComputerName): Target OU not found - $($Computer.TargetOU)" -ForegroundColor Red
+            $FailCount++
+            continue
+        }
+        
+        # Check if already in target OU
+        if ($ADComputer.DistinguishedName -like "*$($Computer.TargetOU)") {
+            Write-Host "ℹ $($Computer.ComputerName): Already in target OU" -ForegroundColor Gray
+            $SuccessCount++
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($Computer.ComputerName): Would move to $($Computer.TargetOU) (TEST MODE)" -ForegroundColor Cyan
+            $SuccessCount++
+        } else {
+            Move-ADObject -Identity $ADComputer.DistinguishedName -TargetPath $Computer.TargetOU -ErrorAction Stop
+            Write-Host "✓ $($Computer.ComputerName): Moved to $($Computer.TargetOU)" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Computers.Count) computers" -ForegroundColor Gray
+Write-Host "  Moved: $SuccessCount" -ForegroundColor Green
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'bulk-contact-property-changes',
+    name: 'Bulk Contact Property Changes',
+    category: 'Bulk Actions',
+    description: 'Update contact properties (email, phone, company, etc.) from CSV file',
+    parameters: [
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\contact-updates.csv', description: 'CSV with ContactName and properties' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk Contact Property Changes
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate CSV exists
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+# Import CSV
+$Contacts = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+
+Write-Host ""
+Write-Host "Expected CSV columns: ContactName, Email, Phone, Company, Title, Department, etc." -ForegroundColor Cyan
+Write-Host "Processing $($Contacts.Count) contacts..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($Contact in $Contacts) {
+    if (-not $Contact.ContactName) {
+        Write-Host "⚠ Skipping row with missing ContactName" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify contact exists
+        $ADContact = Get-ADObject -Filter "Name -eq '$($Contact.ContactName)' -and objectClass -eq 'contact'" -ErrorAction Stop
+        
+        if (-not $ADContact) {
+            Write-Host "✗ $($Contact.ContactName): Contact not found" -ForegroundColor Red
+            $FailCount++
+            continue
+        }
+        
+        # Build hashtable of properties to update
+        $PropertiesToUpdate = @{}
+        
+        if ($Contact.Email) { $PropertiesToUpdate['mail'] = $Contact.Email }
+        if ($Contact.Phone) { $PropertiesToUpdate['telephoneNumber'] = $Contact.Phone }
+        if ($Contact.Company) { $PropertiesToUpdate['company'] = $Contact.Company }
+        if ($Contact.Title) { $PropertiesToUpdate['title'] = $Contact.Title }
+        if ($Contact.Department) { $PropertiesToUpdate['department'] = $Contact.Department }
+        if ($Contact.Description) { $PropertiesToUpdate['description'] = $Contact.Description }
+        
+        if ($PropertiesToUpdate.Count -eq 0) {
+            Write-Host "⚠ $($Contact.ContactName): No properties to update" -ForegroundColor Yellow
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($Contact.ContactName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            foreach ($Key in $PropertiesToUpdate.Keys) {
+                Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
+            }
+            $SuccessCount++
+        } else {
+            Set-ADObject -Identity $ADContact -Replace $PropertiesToUpdate -ErrorAction Stop
+            Write-Host "✓ $($Contact.ContactName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($Contact.ContactName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Contacts.Count) contacts" -ForegroundColor Gray
+Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'bulk-group-property-changes',
+    name: 'Bulk Security Group Property Changes',
+    category: 'Bulk Actions',
+    description: 'Update security group properties (description, managed by, etc.) from CSV file',
+    parameters: [
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\group-updates.csv', description: 'CSV with GroupName and properties' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Bulk Security Group Property Changes
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+$CsvPath = "${csvPath}"
+$TestMode = ${testMode}
+
+# Validate CSV exists
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found: $CsvPath"
+    exit 1
+}
+
+# Import CSV
+$Groups = Import-Csv -Path $CsvPath
+$SuccessCount = 0
+$FailCount = 0
+
+Write-Host ""
+Write-Host "Expected CSV columns: GroupName, Description, ManagedBy, etc." -ForegroundColor Cyan
+Write-Host "Processing $($Groups.Count) security groups..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($Group in $Groups) {
+    if (-not $Group.GroupName) {
+        Write-Host "⚠ Skipping row with missing GroupName" -ForegroundColor Yellow
+        $FailCount++
+        continue
+    }
+    
+    try {
+        # Verify group exists
+        $ADGroup = Get-ADGroup -Identity $Group.GroupName -ErrorAction Stop
+        
+        # Build hashtable of properties to update
+        $PropertiesToUpdate = @{}
+        
+        if ($Group.Description) { $PropertiesToUpdate['Description'] = $Group.Description }
+        if ($Group.ManagedBy) { $PropertiesToUpdate['ManagedBy'] = $Group.ManagedBy }
+        if ($Group.DisplayName) { $PropertiesToUpdate['DisplayName'] = $Group.DisplayName }
+        
+        if ($PropertiesToUpdate.Count -eq 0) {
+            Write-Host "⚠ $($Group.GroupName): No properties to update" -ForegroundColor Yellow
+            continue
+        }
+        
+        if ($TestMode) {
+            Write-Host "✓ $($Group.GroupName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            foreach ($Key in $PropertiesToUpdate.Keys) {
+                Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
+            }
+            $SuccessCount++
+        } else {
+            Set-ADGroup -Identity $Group.GroupName @PropertiesToUpdate -ErrorAction Stop
+            Write-Host "✓ $($Group.GroupName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            $SuccessCount++
+        }
+        
+    } catch {
+        Write-Host "✗ $($Group.GroupName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+}
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Processed: $($Groups.Count) groups" -ForegroundColor Gray
+Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
+}
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
   }
 ];

@@ -1,7 +1,7 @@
 import { Download, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
-import logoUrl from "@assets/Full Logo_1761042546255.png";
+import logoUrl from "@assets/Full Logo Transparent_1761225336537.png";
 
 interface HeaderProps {
   onExport: () => void;

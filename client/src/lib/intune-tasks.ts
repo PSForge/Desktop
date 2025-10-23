@@ -144,7 +144,7 @@ try {
     
     Write-Host "✓ Compliance report exported to: ${exportPath}" -ForegroundColor Green
     
-    Write-Host "`nCompliance Summary:" -ForegroundColor Yellow
+    Write-Host \"\`nCompliance Summary:" -ForegroundColor Yellow
     $ComplianceReport | Group-Object ComplianceState | Format-Table Name, Count
     
 } catch {

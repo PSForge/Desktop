@@ -296,7 +296,7 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
         }
     }
     
-    Write-Host "`n${action} Complete - Success: $SuccessCount, Failed: $FailCount" -ForegroundColor Cyan
+    Write-Host \"\`n${action} Complete - Success: $SuccessCount, Failed: $FailCount" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Operation failed: $_"
@@ -562,7 +562,7 @@ try {
     
     Write-Host "✓ Inventory exported to: ${exportPath}" -ForegroundColor Green
     
-    Write-Host "`nVMs by State:" -ForegroundColor Yellow
+    Write-Host \"\`nVMs by State:" -ForegroundColor Yellow
     $Inventory | Group-Object State | Format-Table Name, Count
     
 } catch {

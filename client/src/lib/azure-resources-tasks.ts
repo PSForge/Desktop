@@ -171,7 +171,7 @@ try {
         }
     }
     
-    Write-Host "`nTagging Complete - Success: $SuccessCount, Failed: $FailCount" -ForegroundColor Cyan
+    Write-Host \"\`nTagging Complete - Success: $SuccessCount, Failed: $FailCount" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Tagging operation failed: $_"
@@ -230,7 +230,7 @@ try {
     Write-Host "✓ Inventory exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total resources: $($Inventory.Count)" -ForegroundColor Cyan
     
-    Write-Host "`nResources by Type:" -ForegroundColor Yellow
+    Write-Host \"\`nResources by Type:" -ForegroundColor Yellow
     $Inventory | Group-Object ResourceType | Sort-Object Count -Descending | Select-Object -First 10 | Format-Table Name, Count
     
 } catch {
@@ -333,7 +333,7 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
         }
     }
     
-    Write-Host "`n${action} Complete - Success: $SuccessCount, Failed: $FailCount" -ForegroundColor Cyan
+    Write-Host \"\`n${action} Complete - Success: $SuccessCount, Failed: $FailCount" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Operation failed: $_"
@@ -412,7 +412,7 @@ try {
     Write-Host "✓ VM inventory exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total VMs: $($Inventory.Count)" -ForegroundColor Cyan
     
-    Write-Host "`nVMs by Status:" -ForegroundColor Yellow
+    Write-Host \"\`nVMs by Status:" -ForegroundColor Yellow
     $Inventory | Group-Object PowerState | Format-Table Name, Count
     
 } catch {
@@ -575,7 +575,7 @@ ${subnetConfigs.map(subnet => `        New-AzVirtualNetworkSubnetConfig -Name "$
     
     Write-Host "✓ Virtual Network created successfully" -ForegroundColor Green
     
-    Write-Host "`nVNet Details:" -ForegroundColor Cyan
+    Write-Host \"\`nVNet Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${vnetName}"
     Write-Host "  Address Space: ${addressSpace}"
     Write-Host "  Subnets: $($VNet.Subnets.Count)"
@@ -641,7 +641,7 @@ try {
     
     Write-Host "✓ NSG created successfully" -ForegroundColor Green
     
-    Write-Host "`nNSG Details:" -ForegroundColor Cyan
+    Write-Host \"\`nNSG Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${nsgName}"
     Write-Host "  Location: ${location}"
     Write-Host "  Resource ID: $($NSG.Id)"
@@ -726,7 +726,7 @@ try {
     
     Write-Host "✓ Storage Account created successfully" -ForegroundColor Green
     
-    Write-Host "`nStorage Account Details:" -ForegroundColor Cyan
+    Write-Host \"\`nStorage Account Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${storageName}"
     Write-Host "  SKU: ${skuName}"
     Write-Host "  Status: $($StorageAccount.ProvisioningState)"
@@ -807,7 +807,7 @@ try {
     
     Write-Host "✓ Role assigned successfully" -ForegroundColor Green
     
-    Write-Host "`nAssignment Details:" -ForegroundColor Cyan
+    Write-Host \"\`nAssignment Details:" -ForegroundColor Cyan
     Write-Host "  Principal: ${principalEmail}"
     Write-Host "  Role: ${roleName}"
     Write-Host "  Scope: $Scope"
@@ -863,7 +863,7 @@ try {
     
     Write-Host "✓ RBAC assignments exported to: ${exportPath}" -ForegroundColor Green
     
-    Write-Host "`nAssignments by Role:" -ForegroundColor Yellow
+    Write-Host \"\`nAssignments by Role:" -ForegroundColor Yellow
     $Report | Group-Object RoleDefinitionName | Sort-Object Count -Descending | Format-Table Name, Count
     
 } catch {
@@ -931,11 +931,11 @@ try {
     
     Write-Host "✓ Cost data exported to: ${exportPath}" -ForegroundColor Green
     
-    Write-Host "`nTop 10 Resource Groups by Cost:" -ForegroundColor Yellow
+    Write-Host \"\`nTop 10 Resource Groups by Cost:" -ForegroundColor Yellow
     $CostsByRG | Select-Object -First 10 | Format-Table ResourceGroup, TotalCost, Currency
     
     $GrandTotal = ($CostsByRG | Measure-Object -Property TotalCost -Sum).Sum
-    Write-Host "`nGrand Total: $([math]::Round($GrandTotal, 2))" -ForegroundColor Cyan
+    Write-Host \"\`nGrand Total: $([math]::Round($GrandTotal, 2))" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Failed to export cost data: $_"
@@ -1000,7 +1000,7 @@ try {
     
     Write-Host "✓ Policy assigned successfully" -ForegroundColor Green
     
-    Write-Host "`nPolicy Assignment Details:" -ForegroundColor Cyan
+    Write-Host \"\`nPolicy Assignment Details:" -ForegroundColor Cyan
     Write-Host "  Policy: ${policyName}"
     Write-Host "  Scope: $Scope"
     Write-Host "  Assignment ID: $($Assignment.ResourceId)"

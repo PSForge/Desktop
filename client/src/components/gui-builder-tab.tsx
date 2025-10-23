@@ -7,6 +7,17 @@ import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
 import { exchangeOnlineTasks, ExchangeOnlineTask } from "@/lib/exchange-online-tasks";
 import { exchangeServerTasks, ExchangeServerTask } from "@/lib/exchange-server-tasks";
 import { azureAdTasks, AzureAdTask } from "@/lib/azure-ad-tasks";
+import { azureResourceTasks, AzureResourceTask } from "@/lib/azure-resources-tasks";
+import { hyperVTasks, HyperVTask } from "@/lib/hyper-v-tasks";
+import { intuneTasks, IntuneTask } from "@/lib/intune-tasks";
+import { powerPlatformTasks, PowerPlatformTask } from "@/lib/power-platform-tasks";
+import { teamsTasks, TeamsTask } from "@/lib/teams-tasks";
+import { office365Tasks, Office365Task } from "@/lib/office365-tasks";
+import { oneDriveTasks, OneDriveTask } from "@/lib/onedrive-tasks";
+import { sharePointOnlineTasks, SharePointOnlineTask } from "@/lib/sharepoint-online-tasks";
+import { sharePointOnPremTasks, SharePointOnPremTask } from "@/lib/sharepoint-onprem-tasks";
+import { windows365Tasks, Windows365Task } from "@/lib/windows365-tasks";
+import { windowsServerTasks, WindowsServerTask } from "@/lib/windows-server-tasks";
 import {
   FolderOpen,
   Network,
@@ -24,7 +35,14 @@ import {
   HardDrive,
   MonitorPlay,
   Terminal,
-  ChevronRight
+  ChevronRight,
+  Package,
+  Smartphone,
+  Zap,
+  MessageSquare,
+  Grid3x3,
+  DatabaseZap,
+  Laptop
 } from "lucide-react";
 
 interface CategoryConfig {
@@ -114,11 +132,32 @@ const categories: CategoryConfig[] = [
     color: "text-cyan-500"
   },
   {
+    id: "azure-resources",
+    name: "Azure Resources",
+    icon: Package,
+    description: "Azure cloud infrastructure",
+    color: "text-blue-600"
+  },
+  {
     id: "sharepoint",
     name: "SharePoint",
     icon: Share2,
     description: "SharePoint site administration",
     color: "text-emerald-500"
+  },
+  {
+    id: "sharepoint-online",
+    name: "SharePoint Online",
+    icon: Share2,
+    description: "SharePoint Online management",
+    color: "text-teal-600"
+  },
+  {
+    id: "sharepoint-onprem",
+    name: "SharePoint On-Prem",
+    icon: DatabaseZap,
+    description: "On-premises SharePoint",
+    color: "text-emerald-700"
   },
   {
     id: "mecm",
@@ -142,6 +181,48 @@ const categories: CategoryConfig[] = [
     color: "text-fuchsia-500"
   },
   {
+    id: "intune",
+    name: "Intune",
+    icon: Smartphone,
+    description: "Device management",
+    color: "text-purple-600"
+  },
+  {
+    id: "power-platform",
+    name: "Power Platform",
+    icon: Zap,
+    description: "Power Apps & Automate",
+    color: "text-rose-500"
+  },
+  {
+    id: "teams",
+    name: "Microsoft Teams",
+    icon: MessageSquare,
+    description: "Teams collaboration",
+    color: "text-indigo-600"
+  },
+  {
+    id: "office365",
+    name: "Office 365",
+    icon: Grid3x3,
+    description: "Office 365 tenant",
+    color: "text-orange-600"
+  },
+  {
+    id: "onedrive",
+    name: "OneDrive",
+    icon: Cloud,
+    description: "OneDrive cloud storage",
+    color: "text-sky-600"
+  },
+  {
+    id: "windows365",
+    name: "Windows 365",
+    icon: Laptop,
+    description: "Cloud PC management",
+    color: "text-cyan-600"
+  },
+  {
     id: "windows-server",
     name: "Windows Server",
     icon: Terminal,
@@ -156,7 +237,7 @@ interface GUIBuilderTabProps {
 }
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
-  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
 
@@ -165,7 +246,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     setSelectedTask(null);
   };
 
-  const handleTaskSelect = (task: ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask) => {
+  const handleTaskSelect = (task: ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask) => {
     setSelectedTask(task);
   };
 
@@ -189,6 +270,28 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     ? exchangeServerTasks
     : selectedCategory === 'azure-ad'
     ? azureAdTasks
+    : selectedCategory === 'azure-resources'
+    ? azureResourceTasks
+    : selectedCategory === 'hyper-v'
+    ? hyperVTasks
+    : selectedCategory === 'intune'
+    ? intuneTasks
+    : selectedCategory === 'power-platform'
+    ? powerPlatformTasks
+    : selectedCategory === 'teams'
+    ? teamsTasks
+    : selectedCategory === 'office365'
+    ? office365Tasks
+    : selectedCategory === 'onedrive'
+    ? oneDriveTasks
+    : selectedCategory === 'sharepoint-online'
+    ? sharePointOnlineTasks
+    : selectedCategory === 'sharepoint-onprem'
+    ? sharePointOnPremTasks
+    : selectedCategory === 'windows365'
+    ? windows365Tasks
+    : selectedCategory === 'windows-server'
+    ? windowsServerTasks
     : [];
 
   // If a task is selected, show the task detail form
@@ -204,7 +307,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           open={scriptDialogOpen}
           onOpenChange={setScriptDialogOpen}
           script={generatedScript}
-          taskName={selectedTask.name}
+          taskName={(selectedTask as any).name || (selectedTask as any).title}
         />
       </>
     );
@@ -248,42 +351,45 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           })}
         </div>
 
-        {(selectedCategory === 'active-directory' || selectedCategory === 'mecm' || selectedCategory === 'exchange-online' || selectedCategory === 'exchange-server' || selectedCategory === 'azure-ad') && categoryTasks.length > 0 && (
+        {(selectedCategory === 'active-directory' || selectedCategory === 'mecm' || selectedCategory === 'exchange-online' || selectedCategory === 'exchange-server' || selectedCategory === 'azure-ad' || selectedCategory === 'azure-resources' || selectedCategory === 'hyper-v' || selectedCategory === 'intune' || selectedCategory === 'power-platform' || selectedCategory === 'teams' || selectedCategory === 'office365' || selectedCategory === 'onedrive' || selectedCategory === 'sharepoint-online' || selectedCategory === 'sharepoint-onprem' || selectedCategory === 'windows365' || selectedCategory === 'windows-server') && categoryTasks.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">
               Available Tasks for {categories.find(c => c.id === selectedCategory)?.name}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {categoryTasks.map((task) => (
-                <Card
-                  key={task.id}
-                  className="cursor-pointer hover-elevate active-elevate-2"
-                  onClick={() => handleTaskSelect(task)}
-                  data-testid={`task-card-${task.id}`}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-base mb-1">{task.name}</CardTitle>
-                        <CardDescription className="text-sm">
-                          {task.description}
-                        </CardDescription>
-                        <div className="mt-2">
-                          <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
-                            {task.category}
-                          </span>
+              {categoryTasks.map((task: any) => {
+                const taskName = task.name || task.title;
+                return (
+                  <Card
+                    key={task.id}
+                    className="cursor-pointer hover-elevate active-elevate-2"
+                    onClick={() => handleTaskSelect(task)}
+                    data-testid={`task-card-${task.id}`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-base mb-1">{taskName}</CardTitle>
+                          <CardDescription className="text-sm">
+                            {task.description}
+                          </CardDescription>
+                          <div className="mt-2">
+                            <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
+                              {task.category}
+                            </span>
+                          </div>
                         </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
+                    </CardHeader>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {selectedCategory && selectedCategory !== 'active-directory' && selectedCategory !== 'mecm' && selectedCategory !== 'exchange-online' && selectedCategory !== 'exchange-server' && selectedCategory !== 'azure-ad' && (
+        {selectedCategory && selectedCategory !== 'active-directory' && selectedCategory !== 'mecm' && selectedCategory !== 'exchange-online' && selectedCategory !== 'exchange-server' && selectedCategory !== 'azure-ad' && selectedCategory !== 'azure-resources' && selectedCategory !== 'hyper-v' && selectedCategory !== 'intune' && selectedCategory !== 'power-platform' && selectedCategory !== 'teams' && selectedCategory !== 'office365' && selectedCategory !== 'onedrive' && selectedCategory !== 'sharepoint-online' && selectedCategory !== 'sharepoint-onprem' && selectedCategory !== 'windows365' && selectedCategory !== 'windows-server' && (
           <div className="mt-8 p-6 border rounded-lg bg-muted/50">
             <p className="text-center text-muted-foreground">
               Tasks for <span className="font-semibold text-foreground">

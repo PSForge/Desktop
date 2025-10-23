@@ -1,25 +1,24 @@
-import { useState, useEffect, useMemo } from "react";
-import { Command, ScriptCommand, ValidationResult } from "@shared/schema";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Command, ValidationResult } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { CommandSidebar } from "@/components/command-sidebar";
-import { ParameterForm } from "@/components/parameter-form";
+import { ScriptEditor } from "@/components/script-editor";
 import { CodePreview } from "@/components/code-preview";
 import { ValidationPanel } from "@/components/validation-panel";
 import { ExportDialog } from "@/components/export-dialog";
-import { generatePowerShellScript } from "@/lib/script-generator";
 import { powershellCommands } from "@/lib/powershell-commands";
 
 interface ScriptGeneratorTabProps {
-  scriptCommands: ScriptCommand[];
-  setScriptCommands: (commands: ScriptCommand[]) => void;
+  script: string;
+  setScript: (script: string) => void;
   exportDialogOpen: boolean;
   setExportDialogOpen: (open: boolean) => void;
 }
 
 export function ScriptGeneratorTab({
-  scriptCommands,
-  setScriptCommands,
+  script,
+  setScript,
   exportDialogOpen,
   setExportDialogOpen
 }: ScriptGeneratorTabProps) {
@@ -28,10 +27,7 @@ export function ScriptGeneratorTab({
     errors: [],
   });
   const [lastValidatedCode, setLastValidatedCode] = useState<string>('');
-
-  const generatedCode = useMemo(() => {
-    return generatePowerShellScript(scriptCommands);
-  }, [scriptCommands]);
+  const [cursorPosition, setCursorPosition] = useState<number>(0);
 
   const validationMutation = useMutation({
     mutationFn: async (code: string) => {
@@ -57,7 +53,7 @@ export function ScriptGeneratorTab({
   });
 
   useEffect(() => {
-    if (!generatedCode.trim()) {
+    if (!script.trim()) {
       setValidationResult({
         isValid: true,
         errors: [],
@@ -66,61 +62,47 @@ export function ScriptGeneratorTab({
       return;
     }
 
-    if (generatedCode !== lastValidatedCode && !validationMutation.isPending) {
-      validationMutation.mutate(generatedCode);
+    if (script !== lastValidatedCode && !validationMutation.isPending) {
+      validationMutation.mutate(script);
     }
-  }, [generatedCode, lastValidatedCode]);
+  }, [script, lastValidatedCode]);
 
   const handleAddCommand = (command: Command) => {
-    const defaultParameters: Record<string, any> = {};
+    // Generate command syntax with parameters
+    let commandSyntax = `${command.name}`;
     
-    command.parameters.forEach(param => {
-      if (param.defaultValue !== undefined) {
-        defaultParameters[param.id] = param.defaultValue;
-      } else if (param.type === 'switch' || param.type === 'boolean') {
-        defaultParameters[param.id] = false;
-      } else if (param.type === 'array') {
-        defaultParameters[param.id] = [];
-      } else if (param.type === 'int') {
-        defaultParameters[param.id] = 0;
-      } else {
-        defaultParameters[param.id] = '';
-      }
-    });
+    // Add parameters
+    if (command.parameters.length > 0) {
+      const params = command.parameters.map(param => {
+        if (param.type === 'switch' || param.type === 'boolean') {
+          return `-${param.name}`;
+        } else if (param.required) {
+          return `-${param.name} <${param.name}>`;
+        } else {
+          return `-${param.name} [${param.name}]`;
+        }
+      }).join(' ');
+      commandSyntax += ` ${params}`;
+    }
 
-    const newCommand: ScriptCommand = {
-      id: crypto.randomUUID(),
-      commandId: command.id,
-      commandName: command.name,
-      parameters: defaultParameters,
-      order: scriptCommands.length,
-    };
-
-    setScriptCommands([...scriptCommands, newCommand]);
-  };
-
-  const handleUpdateCommand = (id: string, parameters: Record<string, any>) => {
-    setScriptCommands(scriptCommands.map(cmd =>
-      cmd.id === id ? { ...cmd, parameters } : cmd
-    ));
-  };
-
-  const handleRemoveCommand = (id: string) => {
-    setScriptCommands(scriptCommands.filter(cmd => cmd.id !== id));
-  };
-
-  const handleMoveCommand = (id: string, direction: 'up' | 'down') => {
-    const index = scriptCommands.findIndex(cmd => cmd.id === id);
-    if (index === -1) return;
-
-    const newCommands = [...scriptCommands];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-
-    if (targetIndex < 0 || targetIndex >= newCommands.length) return;
-
-    [newCommands[index], newCommands[targetIndex]] = [newCommands[targetIndex], newCommands[index]];
+    // Add newline before if there's content and cursor is not at start of a new line
+    let insertion = commandSyntax;
+    if (script.length > 0 && cursorPosition > 0 && script[cursorPosition - 1] !== '\n') {
+      insertion = '\n' + insertion;
+    }
     
-    setScriptCommands(newCommands.map((cmd, idx) => ({ ...cmd, order: idx })));
+    // Add newline after
+    insertion += '\n';
+
+    // Insert at cursor position
+    const before = script.substring(0, cursorPosition);
+    const after = script.substring(cursorPosition);
+    const newScript = before + insertion + after;
+    
+    setScript(newScript);
+    
+    // Update cursor position to end of inserted text
+    setCursorPosition(cursorPosition + insertion.length);
   };
 
   return (
@@ -130,16 +112,15 @@ export function ScriptGeneratorTab({
 
         <div className="flex-1 flex flex-col md:overflow-hidden min-w-0 min-h-0">
           <div className="md:flex-1 md:flex md:flex-col border-b md:overflow-auto md:min-h-0">
-            <ParameterForm
-              scriptCommands={scriptCommands}
-              onUpdateCommand={handleUpdateCommand}
-              onRemoveCommand={handleRemoveCommand}
-              onMoveCommand={handleMoveCommand}
+            <ScriptEditor
+              script={script}
+              onScriptChange={setScript}
+              onCursorPositionChange={setCursorPosition}
             />
           </div>
 
           <div className="h-48 sm:h-64 md:flex-1 border-b overflow-hidden md:min-h-0">
-            <CodePreview code={generatedCode} validationErrors={validationResult.errors || []} />
+            <CodePreview code={script} validationErrors={validationResult.errors || []} />
           </div>
 
           <div className="p-4 md:shrink-0">
@@ -154,7 +135,7 @@ export function ScriptGeneratorTab({
       <ExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        code={generatedCode}
+        code={script}
       />
     </>
   );

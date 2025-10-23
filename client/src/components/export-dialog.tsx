@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExportDialogProps {
@@ -87,10 +88,22 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
                 <p className="text-sm font-medium mb-1">Script Details</p>
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <p>Size: {new Blob([code]).size} bytes</p>
-                  <p>Lines: {code.split('\n').length}</p>
+                  <p>Lines: {(code || '').split('\n').length}</p>
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Script Preview</Label>
+            <ScrollArea className="h-64 rounded-md border bg-muted/30">
+              <pre className="p-4 text-xs font-mono" data-testid="text-script-preview">
+                <code>{code || '# No script content'}</code>
+              </pre>
+            </ScrollArea>
+            <p className="text-xs text-muted-foreground">
+              Review your script before exporting
+            </p>
           </div>
         </div>
 

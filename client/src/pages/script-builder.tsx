@@ -7,21 +7,23 @@ import { AIAssistantTab } from "@/components/ai-assistant-tab";
 import { GUIBuilderTab } from "@/components/gui-builder-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileCode, Sparkles, LayoutGrid } from "lucide-react";
+import { generatePowerShellScript } from "@/lib/script-generator";
 
 export default function ScriptBuilder() {
+  const [script, setScript] = useState<string>('');
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [selectedGuiCategory, setSelectedGuiCategory] = useState<string | null>(null);
 
   const handleSave = () => {
     localStorage.setItem('powershell-script', JSON.stringify({
-      commands: scriptCommands,
+      script,
       savedAt: new Date().toISOString(),
     }));
   };
 
   const handleExport = () => {
-    if (scriptCommands.length === 0) return;
+    if (!script.trim()) return;
     setExportDialogOpen(true);
   };
 
@@ -30,8 +32,14 @@ export default function ScriptBuilder() {
     if (saved) {
       try {
         const data = JSON.parse(saved);
-        if (data.commands) {
-          setScriptCommands(data.commands);
+        if (data.script) {
+          // New format: use script directly
+          setScript(data.script);
+        } else if (data.commands && Array.isArray(data.commands)) {
+          // Legacy support: convert old command-based format to script
+          const convertedScript = generatePowerShellScript(data.commands);
+          setScript(convertedScript);
+          setScriptCommands(data.commands); // Keep for AI assistant tab
         }
       } catch (err) {
         console.error('Failed to load saved script:', err);
@@ -44,7 +52,7 @@ export default function ScriptBuilder() {
       <Header
         onExport={handleExport}
         onSave={handleSave}
-        hasCommands={scriptCommands.length > 0}
+        hasCommands={script.trim().length > 0}
       />
 
       <Tabs defaultValue="script-generator" className="flex-1 flex flex-col md:overflow-hidden min-h-0">
@@ -67,23 +75,23 @@ export default function ScriptBuilder() {
           </div>
         </div>
 
-        <TabsContent value="script-generator" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0">
+        <TabsContent value="script-generator" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
           <ScriptGeneratorTab
-            scriptCommands={scriptCommands}
-            setScriptCommands={setScriptCommands}
+            script={script}
+            setScript={setScript}
             exportDialogOpen={exportDialogOpen}
             setExportDialogOpen={setExportDialogOpen}
           />
         </TabsContent>
 
-        <TabsContent value="ai-assistant" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0">
+        <TabsContent value="ai-assistant" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
           <AIAssistantTab
             scriptCommands={scriptCommands}
             setScriptCommands={setScriptCommands}
           />
         </TabsContent>
 
-        <TabsContent value="gui-builder" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0">
+        <TabsContent value="gui-builder" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
           <GUIBuilderTab 
             selectedCategory={selectedGuiCategory}
             onCategorySelect={setSelectedGuiCategory}

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { TaskDetailForm } from "@/components/task-detail-form";
+import { ScriptPreviewDialog } from "@/components/script-preview-dialog";
+import { adTasks, ADTask } from "@/lib/ad-tasks";
 import {
   FolderOpen,
   Network,
@@ -16,7 +19,8 @@ import {
   Server,
   HardDrive,
   MonitorPlay,
-  Terminal
+  Terminal,
+  ChevronRight
 } from "lucide-react";
 
 interface CategoryConfig {
@@ -148,9 +152,49 @@ interface GUIBuilderTabProps {
 }
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
+  const [selectedTask, setSelectedTask] = useState<ADTask | null>(null);
+  const [generatedScript, setGeneratedScript] = useState<string>('');
+  const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
+
   const handleCategoryClick = (categoryId: string) => {
     onCategorySelect(categoryId);
+    setSelectedTask(null);
   };
+
+  const handleTaskSelect = (task: ADTask) => {
+    setSelectedTask(task);
+  };
+
+  const handleBackToTasks = () => {
+    setSelectedTask(null);
+  };
+
+  const handleGenerateScript = (script: string) => {
+    setGeneratedScript(script);
+    setScriptDialogOpen(true);
+  };
+
+  // Get tasks for selected category
+  const categoryTasks = selectedCategory === 'active-directory' ? adTasks : [];
+
+  // If a task is selected, show the task detail form
+  if (selectedTask) {
+    return (
+      <>
+        <TaskDetailForm
+          task={selectedTask}
+          onBack={handleBackToTasks}
+          onGenerateScript={handleGenerateScript}
+        />
+        <ScriptPreviewDialog
+          open={scriptDialogOpen}
+          onOpenChange={setScriptDialogOpen}
+          script={generatedScript}
+          taskName={selectedTask.name}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -190,12 +234,47 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           })}
         </div>
 
-        {selectedCategory && (
+        {selectedCategory === 'active-directory' && categoryTasks.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">
+              Available Tasks for {categories.find(c => c.id === selectedCategory)?.name}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categoryTasks.map((task) => (
+                <Card
+                  key={task.id}
+                  className="cursor-pointer hover-elevate active-elevate-2"
+                  onClick={() => handleTaskSelect(task)}
+                  data-testid={`task-card-${task.id}`}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-base mb-1">{task.name}</CardTitle>
+                        <CardDescription className="text-sm">
+                          {task.description}
+                        </CardDescription>
+                        <div className="mt-2">
+                          <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
+                            {task.category}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {selectedCategory && selectedCategory !== 'active-directory' && (
           <div className="mt-8 p-6 border rounded-lg bg-muted/50">
             <p className="text-center text-muted-foreground">
-              Task selection for <span className="font-semibold text-foreground">
+              Tasks for <span className="font-semibold text-foreground">
                 {categories.find(c => c.id === selectedCategory)?.name}
-              </span> will be added here
+              </span> will be added soon
             </p>
           </div>
         )}

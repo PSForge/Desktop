@@ -30,7 +30,7 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
   - Removed `md:shrink-0` constraint from CodePreview for proper flex sizing
   - Desktop layout now properly fills viewport height without extra bottom spacing
 - **LATEST: Active Directory Tasks in GUI Builder** - Implemented complete task-based script generation:
-  - **6 Active Directory automation tasks** covering identity lifecycle, computer management, GPO, and security
+  - **22 comprehensive Active Directory automation tasks** covering all major AD administration areas
   - **Task selection UI** - Clickable task cards showing task name, category, and description
   - **Dynamic parameter forms** - Intelligently rendered forms based on task requirements (text, email, path, number, boolean, select, textarea)
   - **Secure script generation** - All user inputs are safely escaped to prevent PowerShell injection
@@ -38,13 +38,47 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
   - **Script preview dialog** - View generated PowerShell scripts before download
   - **Copy & Export** - Copy to clipboard and download as .ps1 files
   
-  **Available Active Directory Tasks:**
+  **Available Active Directory Tasks (22 total):**
+  
+  **Identity Lifecycle (5 tasks):**
   1. **New Hire Provisioning** - Create user with groups, home drive, manager assignment
   2. **User Offboarding** - Disable account, remove groups, move to disabled OU, archive home drive
   3. **Password Expiry Notification** - Find expiring passwords and send email notifications
-  4. **Cleanup Stale Computers** - Report/disable/quarantine/delete inactive computer accounts
-  5. **Backup All GPOs** - Timestamped GPO backups with retention policy
-  6. **Audit Privileged Groups** - Monitor Domain Admins, Enterprise Admins, etc. with change alerts
+  4. **Bulk User Import from CSV** - Import multiple users from HR CSV file
+  5. **Password Reset & Account Unlock** - Reset passwords and unlock locked accounts
+  
+  **Groups & Access (3 tasks):**
+  6. **Audit Privileged Groups** - Monitor Domain Admins, Enterprise Admins with change alerts
+  7. **Orphaned/Empty Groups Report** - Find and optionally delete empty security groups
+  8. **Nested Group Depth Audit** - Identify token bloat from deep group nesting
+  
+  **Computers & OUs (3 tasks):**
+  9. **Cleanup Stale Computers** - Report/disable/quarantine/delete inactive computer accounts
+  10. **Move Computers by Site** - Auto-place computers in OUs based on site assignments
+  11. **BitLocker Recovery Key Audit** - Export BitLocker recovery keys from AD
+  
+  **GPO & Configuration (2 tasks):**
+  12. **Backup All GPOs** - Timestamped GPO backups with retention policy
+  13. **GPO Drift Report** - Compare GPO backups and detect configuration drift
+  
+  **DNS / DHCP (1 task):**
+  14. **Report Stale DNS Records** - Find stale DNS records for cleanup
+  
+  **File/Print & Permissions (1 task):**
+  15. **NTFS Permissions Review** - Audit NTFS permissions and least privilege violations
+  
+  **Security & Compliance (2 tasks):**
+  16. **Audit Kerberoastable SPNs** - Find service accounts vulnerable to Kerberoasting
+  17. **Password Never Expires Audit** - Find accounts with password never expires flag
+  
+  **Reporting & Inventory (4 tasks):**
+  18. **Weekly AD Health Report** - Comprehensive health check (DCs, replication, DIT size)
+  19. **Find Account Lockout Source** - Hunt for lockout sources across DCs
+  20. **Replication Failure Watcher** - Monitor and alert on replication failures
+  21. **UPN & Email Suffix Consistency** - Report on UPN/email consistency issues
+  
+  **Migrations & Hygiene (1 task):**
+  22. **CSV-Driven Mass Moves/Renames** - Bulk move or rename AD objects from CSV
 - **Comprehensive Responsive Design** - Full mobile/tablet/desktop support with E2E testing:
   - **Single document scroll on mobile** (< 768px): No nested scrollbars, natural content flow
   - **Fixed layout on desktop** (≥ 768px): Internal component scrolls only (sidebar & parameters)

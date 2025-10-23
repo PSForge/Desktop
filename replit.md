@@ -14,9 +14,18 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 - **AI Helper Bot** - Integrated OpenAI-powered assistant with natural language command suggestions
 - **Updated Branding** - Rebranded to PSForge with new logo featuring anvil/forge icon
 - **Tabbed Interface** - Restructured app with three tabs:
-  - Script Generator: Visual command builder (original functionality)
+  - Script Generator: Direct code editor with command insertion (see major update below)
   - AI Assistant: Dedicated full-screen AI chat interface
   - GUI Builder: Category-based task interface for common configuration scripts with user-friendly forms
+- **MAJOR ARCHITECTURE CHANGE: Script Generator Transformation** - Completely redesigned from visual parameter builder to direct code editor:
+  - **New ScriptEditor Component** - Replaced parameter form interface with editable textarea for typing PowerShell directly
+  - **Cursor-Based Command Insertion** - Clicking commands from sidebar now inserts syntax at cursor position (not end of document)
+  - **Real-Time Line Count** - Dynamic badge showing current script line count
+  - **State Management Simplification** - Changed from `scriptCommands[]` array to single `script: string`
+  - **Legacy Save Support** - Automatically converts old command-based saves to script format using `generatePowerShellScript()`
+  - **Enhanced Export Dialog** - Added scrollable script preview section for reviewing content before download
+  - **Proper Cursor Tracking** - Cursor position updates after each insertion, enabling consecutive command stacking
+  - **Better UX** - Users can now freely type, edit, and insert commands at any position in the script
 - **Expanded Command Library** - Added 25+ new cmdlets including:
   - File System: New-Item, Move-Item, Rename-Item, Test-Path, Get-Content, Set-Content, Add-Content
   - Network: Invoke-WebRequest, Get-NetIPAddress, Get-NetAdapter, Test-NetConnection, Resolve-DnsName
@@ -100,7 +109,7 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 - **State Management**: React hooks with localStorage persistence
 - **Theme**: Dark mode by default with light mode toggle
 - **Layout**: Tabbed interface with three main sections
-  - Script Generator tab - Visual command builder with parameter forms and code preview
+  - Script Generator tab - Direct code editor with command sidebar and real-time preview
   - AI Assistant tab - Full-screen AI chat interface for natural language command help
   - GUI Builder tab - Category-based interface with 16 categories, each with custom icons and task selection
 - **Key Pages**:
@@ -112,12 +121,13 @@ PSForge is a professional web-based PowerShell script builder that allows IT tec
 - **API Routes**: Validation endpoints (to be implemented)
 
 ### Key Components
-1. **CommandSidebar** - Categorized PowerShell command library with search
-2. **ParameterForm** - Dynamic form for configuring command parameters
-3. **CodePreview** - Syntax-highlighted PowerShell code output
+1. **CommandSidebar** - Categorized PowerShell command library with search (inserts commands at cursor)
+2. **ScriptEditor** - Editable textarea for typing PowerShell directly with cursor position tracking
+3. **CodePreview** - Syntax-highlighted PowerShell code output (syncs with editor in real-time)
 4. **ValidationPanel** - Real-time error and warning display
 5. **Header** - Application navigation with export/save actions
 6. **ThemeToggle** - Dark/light mode switcher
+7. **ExportDialog** - Enhanced dialog with scrollable script preview before download
 7. **AIHelperBot** - OpenAI-powered assistant for command suggestions
    - Collapsible right-side panel (384px width)
    - Natural language query processing

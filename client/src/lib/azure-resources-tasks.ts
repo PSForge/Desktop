@@ -560,7 +560,7 @@ try {
     Write-Host "Creating Virtual Network: ${vnetName}" -ForegroundColor Cyan
     
     $SubnetConfigs = @(
-${subnetConfigs.map(subnet => `        New-AzVirtualNetworkSubnetConfig -Name "${subnet.name}" -AddressPrefix "${subnet.cidr}"`).join('\n')}
+${subnetConfigs.map((subnet: any) => `        New-AzVirtualNetworkSubnetConfig -Name "${subnet.name}" -AddressPrefix "${subnet.cidr}"`).join('\n')}
     )
     
     $VNetParams = @{

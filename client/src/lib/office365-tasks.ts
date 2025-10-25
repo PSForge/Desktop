@@ -1,7 +1,7 @@
 import { escapePowerShellString } from './powershell-utils';
 
 export interface Office365Parameter {
-  title: string;
+  name: string;
   label: string;
   type: 'text' | 'number' | 'select' | 'checkbox' | 'textarea';
   required: boolean;

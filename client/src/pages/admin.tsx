@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield } from "lucide-react";
+import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 
@@ -120,12 +120,24 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-            Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            PSForge platform analytics and user management
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
+                Admin Dashboard
+              </h1>
+              <p className="text-muted-foreground">
+                PSForge platform analytics and user management
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/account")}
+              data-testid="button-back-to-account"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Account Settings
+            </Button>
+          </div>
         </div>
 
         {analyticsLoading ? (

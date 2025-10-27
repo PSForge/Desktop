@@ -1,0 +1,12 @@
+# robots.txt for PSForge - PowerShell Script Builder
+
+# Allow all search engines to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow admin and account pages from being indexed
+Disallow: /admin
+Disallow: /account
+
+# Sitemap location
+Sitemap: https://psforge.app/sitemap.xml

@@ -1,10 +1,14 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -13,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { adminCreateUserSchema, type AdminCreateUserData } from "@shared/schema";
 import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
@@ -50,6 +55,17 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const createUserForm = useForm<AdminCreateUserData>({
+    resolver: zodResolver(adminCreateUserSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      name: "",
+      role: "free",
+    },
+  });
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "admin")) {
@@ -88,6 +104,34 @@ export default function AdminDashboard() {
       });
     },
   });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: AdminCreateUserData) => {
+      const response = await apiRequest("POST", "/api/admin/users", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      });
+      createUserForm.reset();
+      setShowCreateForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onCreateUserSubmit = (data: AdminCreateUserData) => {
+    createUserMutation.mutate(data);
+  };
 
   if (authLoading || !user || user.role !== "admin") {
     return null;
@@ -306,6 +350,139 @@ export default function AdminDashboard() {
             </div>
           </>
         ) : null}
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <CardTitle>Create New User</CardTitle>
+                <CardDescription>
+                  Add a new user account with a specific role
+                </CardDescription>
+              </div>
+              {!showCreateForm && (
+                <Button
+                  onClick={() => setShowCreateForm(true)}
+                  data-testid="button-show-create-user"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Create User
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          {showCreateForm && (
+            <CardContent>
+              <Form {...createUserForm}>
+                <form onSubmit={createUserForm.handleSubmit(onCreateUserSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={createUserForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="John Doe"
+                              {...field}
+                              data-testid="input-create-user-name"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={createUserForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="user@example.com"
+                              {...field}
+                              data-testid="input-create-user-email"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={createUserForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="At least 8 characters"
+                              {...field}
+                              data-testid="input-create-user-password"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={createUserForm.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Role</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-create-user-role">
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="free">Free</SelectItem>
+                              <SelectItem value="subscriber">Subscriber</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      type="submit" 
+                      disabled={createUserMutation.isPending}
+                      data-testid="button-submit-create-user"
+                    >
+                      {createUserMutation.isPending ? "Creating..." : "Create User"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateForm(false);
+                        createUserForm.reset();
+                      }}
+                      disabled={createUserMutation.isPending}
+                      data-testid="button-cancel-create-user"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          )}
+        </Card>
 
         <Card>
           <CardHeader>

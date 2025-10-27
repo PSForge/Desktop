@@ -174,27 +174,27 @@ export async function getAIHelperResponse(
       messages,
       temperature: 0.7,
       max_tokens: 1000,
+      response_format: { type: "json_object" },
     });
 
     const responseText = completion.choices[0]?.message?.content || "";
 
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          response: parsed.response || responseText,
-          suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
-        };
-      }
+      const parsed = JSON.parse(responseText);
+      return {
+        response: parsed.response || "I'm here to help with PowerShell commands!",
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+      };
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError);
+      console.error("Response text:", responseText);
+      
+      // Fallback: return a safe response
+      return {
+        response: "I'm having trouble formatting my response right now. Could you rephrase your question?",
+        suggestions: [],
+      };
     }
-
-    return {
-      response: responseText,
-      suggestions: [],
-    };
   } catch (error) {
     console.error("OpenAI API error:", error);
     throw new Error("Failed to get AI response");

@@ -437,10 +437,7 @@ export default function AdminDashboard() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Role</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-create-user-role">
                                 <SelectValue placeholder="Select role" />

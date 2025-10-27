@@ -123,14 +123,6 @@ const categories: CategoryConfig[] = [
     color: "text-pink-500"
   },
   {
-    id: "azure",
-    name: "Azure",
-    icon: Cloud,
-    description: "Azure cloud resources",
-    color: "text-sky-500",
-    isPremium: true
-  },
-  {
     id: "exchange-online",
     name: "Exchange Online",
     icon: Mail,
@@ -152,14 +144,6 @@ const categories: CategoryConfig[] = [
     icon: Package,
     description: "Azure cloud infrastructure",
     color: "text-blue-600",
-    isPremium: true
-  },
-  {
-    id: "sharepoint",
-    name: "SharePoint",
-    icon: Share2,
-    description: "SharePoint site administration",
-    color: "text-emerald-500",
     isPremium: true
   },
   {
@@ -415,7 +399,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           })}
         </div>
 
-        {(selectedCategory === 'active-directory' || selectedCategory === 'mecm' || selectedCategory === 'exchange-online' || selectedCategory === 'exchange-server' || selectedCategory === 'azure-ad' || selectedCategory === 'azure-resources' || selectedCategory === 'hyper-v' || selectedCategory === 'intune' || selectedCategory === 'power-platform' || selectedCategory === 'teams' || selectedCategory === 'office365' || selectedCategory === 'onedrive' || selectedCategory === 'sharepoint-online' || selectedCategory === 'sharepoint-onprem' || selectedCategory === 'windows365' || selectedCategory === 'windows-server') && categoryTasks.length > 0 && (
+        {selectedCategory && categoryTasks.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">
               Available Tasks for {categories.find(c => c.id === selectedCategory)?.name}
@@ -453,7 +437,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           </div>
         )}
 
-        {selectedCategory && selectedCategory !== 'active-directory' && selectedCategory !== 'mecm' && selectedCategory !== 'exchange-online' && selectedCategory !== 'exchange-server' && selectedCategory !== 'azure-ad' && selectedCategory !== 'azure-resources' && selectedCategory !== 'hyper-v' && selectedCategory !== 'intune' && selectedCategory !== 'power-platform' && selectedCategory !== 'teams' && selectedCategory !== 'office365' && selectedCategory !== 'onedrive' && selectedCategory !== 'sharepoint-online' && selectedCategory !== 'sharepoint-onprem' && selectedCategory !== 'windows365' && selectedCategory !== 'windows-server' && (
+        {selectedCategory && categoryTasks.length === 0 && (
           <div className="mt-8 p-6 border rounded-lg bg-muted/50">
             <p className="text-center text-muted-foreground">
               Tasks for <span className="font-semibold text-foreground">

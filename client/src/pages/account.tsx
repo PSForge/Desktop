@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth-context";
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function Account() {
-  const { user, subscription, logout } = useAuth();
+  const { user, subscription, logout, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -50,8 +50,25 @@ export default function Account() {
     setLocation("/");
   };
 
+  // Redirect to login if not authenticated (in useEffect to avoid side effects in render)
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setLocation("/login");
+    }
+  }, [isLoading, user, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading account...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    setLocation("/login");
     return null;
   }
 

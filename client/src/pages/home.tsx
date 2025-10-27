@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/lib/auth-context";
 import logoImage from "@assets/Full Logo Transparent_1761559782392.png";
 import {
   FileCode,
@@ -15,10 +16,13 @@ import {
   ArrowRight,
   Code2,
   Bot,
-  MousePointerClick
+  MousePointerClick,
+  User,
+  LogIn
 } from "lucide-react";
 
 export default function Home() {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -33,12 +37,37 @@ export default function Home() {
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
-            <Link href="/builder">
-              <Button size="sm" className="gap-2" data-testid="button-get-started">
-                Get Started
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            {user ? (
+              <>
+                <Link href="/account">
+                  <Button size="sm" variant="outline" className="gap-2" data-testid="button-account">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Account</span>
+                  </Button>
+                </Link>
+                <Link href="/builder">
+                  <Button size="sm" className="gap-2" data-testid="button-get-started">
+                    <ArrowRight className="h-4 w-4" />
+                    <span className="hidden sm:inline">Go to</span> Builder
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button size="sm" variant="ghost" className="gap-2" data-testid="button-login">
+                    <LogIn className="h-4 w-4" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button size="sm" className="gap-2" data-testid="button-signup">
+                    Sign Up
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

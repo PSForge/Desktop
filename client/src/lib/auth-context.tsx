@@ -36,6 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryKey: ["/auth/me"],
     retry: false,
     refetchOnWindowFocus: false,
+    meta: {
+      ignoreGlobalErrorHandler: true,
+    },
   });
 
   useEffect(() => {
@@ -43,6 +46,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsInitialized(true);
     }
   }, [isLoading]);
+
+  // Handle 401 errors gracefully - treat as anonymous/not authenticated
+  const isUnauthenticated = error && (error as any)?.message?.includes('401');
+  const user = isUnauthenticated ? null : (data?.user || null);
+  const subscription = isUnauthenticated ? null : (data?.subscription || null);
+  const featureAccess = isUnauthenticated ? null : (data?.featureAccess || null);
 
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
@@ -87,11 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value: AuthContextType = {
-    user: data?.user || null,
+    user,
     isLoading: !isInitialized || isLoading,
-    isAuthenticated: !!data?.user,
-    featureAccess: data?.featureAccess || null,
-    subscription: data?.subscription || null,
+    isAuthenticated: !!user,
+    featureAccess,
+    subscription,
     login,
     register,
     logout,

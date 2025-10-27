@@ -1,0 +1,235 @@
+Windows Security Management is one of the most critical and automatable domains for enterprise environments.
+
+It touches user rights, local security policies, defender & firewall, encryption, account restrictions, compliance auditing, and hardening baselines — exactly the kind of repetitive work PS Forge is designed to streamline.
+
+🛡️ Windows Security Management — Core Automatable Tasks
+👤 Account & Access Control
+
+Local account audit & management
+
+Enumerate local accounts, last logon, SID, group memberships.
+
+Disable or remove unauthorized accounts.
+
+Enforce password expiration or disable passwordless accounts.
+
+Local group membership management
+
+Add/remove users to/from Administrators, Remote Desktop Users, etc.
+
+Enforce baseline membership (remove drift).
+
+Configure User Rights Assignments
+
+e.g., “Log on locally,” “Access this computer from the network,” “Deny logon…”.
+
+Export/import baseline with secedit or ntrights.
+
+Enforce RDP access restrictions
+
+Limit RDP users/groups; enable Network Level Authentication (NLA); toggle RDP service.
+
+🧰 Windows Defender & Threat Protection
+
+Enable or disable Microsoft Defender Antivirus
+
+Check current protection status and policy conflicts.
+
+Configure real-time protection & scanning settings
+
+Exclusions, controlled folder access, behavior monitoring.
+
+Trigger quick/full scans (manual or scheduled)
+
+Query Defender threat history & protection logs
+
+Manage Defender signatures
+
+Trigger updates, check last update time, remediate stale signatures.
+
+Set tamper protection (where supported)
+
+🔥 Windows Firewall & Network Security
+
+Enforce baseline firewall profiles (Domain, Private, Public)
+
+Enable firewall, logging, default inbound/outbound rules.
+
+Create or remove firewall rules in bulk
+
+Inputs: Name, direction, protocol, ports, program, action.
+
+Export/import firewall policy baselines
+
+Audit open ports and unexpected listening processes
+
+Enable IPsec policies / ruleset if required
+
+🔐 BitLocker & Encryption
+
+Enable BitLocker on fixed or OS drives
+
+Inputs: encryption method, TPM usage, recovery key path/escrow.
+
+Check encryption status & compliance
+
+OS volume, fixed data drives, removable media.
+
+Backup BitLocker recovery keys to AD/Azure
+
+Suspend/resume BitLocker (e.g., for patching)
+
+Rotate recovery keys periodically
+
+🧾 Security Policy & Hardening
+
+Export Local Security Policy (INF template)
+
+For drift detection and auditing.
+
+Import & apply security templates (baseline)
+
+Harden account lockout, password length, auditing policy.
+
+Configure advanced audit policy categories
+
+e.g., Logon/Logoff, Object Access, Privilege Use.
+
+Disable legacy protocols & services
+
+SMBv1, LM/NTLMv1, LLMNR, WPAD, NetBIOS.
+
+Configure UAC & LSA Protection
+
+Baseline compliance checks
+
+Compare current machine state against CIS/organizational baseline.
+
+🧭 Credential Guard / Security Features
+
+Check and enable Credential Guard / Device Guard
+
+Enable Secure Boot & TPM checks
+
+Configure SmartScreen & Exploit Protection
+
+Check patch level & security update compliance
+
+🕵️ Security Event Monitoring & Alerting
+
+Monitor critical security event IDs
+
+4624 (logon), 4625 (failed logon), 4672 (admin logon), 1102 (log cleared), 4719 (policy change).
+
+Real-time alerting on suspicious logons
+
+e.g., RDP logons from external IPs.
+
+Detect local account creation / privilege escalation
+
+Security log rotation, backup & tamper detection
+
+🧼 Compliance & Hygiene
+
+Check for disabled/unpatched Defender or Firewall
+
+Audit user rights & group membership drift
+
+Enforce minimum password and lockout policy
+
+Enforce TLS 1.2+, disable legacy crypto
+
+Ensure BitLocker enabled for endpoints
+
+Schedule regular security posture checks
+
+🚀 High-Value PS Forge Script Templates
+Category	Task Example	Typical Inputs
+Accounts & Rights	Enforce local admin group membership baseline	Group name, allowed members, remove unauthorized
+Defender	Configure AV baseline + trigger scan/update	Exclusions, scan type, schedule
+Firewall	Apply firewall baseline, bulk rule import	JSON ruleset, profile toggles
+BitLocker	Enable encryption + backup keys	Recovery key path, encryption method, TPM use
+Policy	Export & apply security template	INF/JSON baseline
+Protocol Hardening	Disable SMBv1, LLMNR, WPAD, NTLMv1	Registry + service toggles
+Credential Guard	Enable CG/DG, verify Secure Boot & TPM	N/A
+Monitoring	Detect failed logons / tampering / privilege escalation	Event IDs, thresholds
+Compliance	Security posture report (Firewall, Defender, BitLocker, policy)	Scope (single or multiple hosts), export path
+Alerting	Teams/email alert on security event patterns	Event IDs, filters
+🧠 PowerShell & Tooling Surface
+
+Accounts & Rights
+
+net localgroup, Get-LocalUser, Get-LocalGroupMember, Add/Remove-LocalGroupMember
+
+secedit.exe, ntrights.exe (for rights assignments)
+
+Defender
+
+Get-MpComputerStatus, Set-MpPreference, Start-MpScan, Update-MpSignature
+
+Firewall & IPsec
+
+Get/Set-NetFirewallProfile, Get/New/Set-NetFirewallRule, Export/Import-NetFirewallRule
+
+BitLocker
+
+Get-BitLockerVolume, Enable-BitLocker, Suspend/Resume-BitLocker, Backup-BitLockerKeyProtector
+
+Security Policy
+
+secedit /export & secedit /configure
+
+auditpol.exe for advanced audit categories.
+
+Security Features
+
+bcdedit, Get-WmiObject Win32_Tpm, Get-ComputerInfo for Secure Boot/TPM.
+
+Events & Monitoring
+
+Get-WinEvent (Security log), wevtutil, event subscriptions or real-time monitoring via Register-ObjectEvent.
+
+Protocol Hardening
+
+Registry edits + Disable-WindowsOptionalFeature for SMBv1, etc.
+
+🪄 PS Forge UX Suggestions
+
+Scope selectors: Local or remote host, OU, or CSV list of endpoints.
+
+Baseline-first design: Export current security posture, compare to JSON baseline, then enforce if needed.
+
+Dry-run by default for policy, firewall, and protocol toggles.
+
+Pre-checks: Ensure backups (e.g., secedit export, firewall export) before applying changes.
+
+Alerting hooks: Built-in Teams/email webhook for critical security events.
+
+Compliance dashboards: CSV + HTML with red/yellow/green status.
+
+Scheduling support: Daily/weekly posture scan & event monitoring.
+
+RBAC-aware: Guardrails to avoid breaking critical services or domain join.
+
+📦 Suggested Repo Layout
+/Security.Automation/
+  /Accounts/      Enforce-LocalAdminBaseline.ps1, Audit-LocalAccounts.ps1
+  /Defender/      Set-DefenderBaseline.ps1, Trigger-DefenderScan.ps1, Update-DefenderSignatures.ps1
+  /Firewall/      Apply-FirewallBaseline.ps1, Import-FirewallRules.ps1
+  /BitLocker/     Enable-BitLockerWithKeyBackup.ps1, Rotate-BitLockerKeys.ps1
+  /Policy/        Export-SecurityBaseline.ps1, Apply-SecurityTemplate.ps1
+  /Hardening/     Disable-SMBv1.ps1, Harden-Protocols.ps1, Enable-CredentialGuard.ps1
+  /Monitoring/    Detect-FailedLogons.ps1, Alert-LogTampering.ps1, Monitor-PrivilegeEscalation.ps1
+  /Reporting/     Get-SecurityPostureReport.ps1, Compliance-Dashboard.ps1
+  /Common/        Invoke-StdLogger.psm1, HtmlReport.ps1, Baselines\SecurityBaseline.json
+
+
+✅ Why Windows Security Management is perfect for PS Forge:
+
+Highly repeatable across servers and workstations.
+
+Ideal for baselining and drift remediation.
+
+Excellent for scheduled compliance checks.
+
+Covers critical enterprise areas: Defender, Firewall, BitLocker, hardening, monitoring.

@@ -1,0 +1,252 @@
+Windows networking is packed with repeatable, scriptable jobs. Here’s a PS Forge–ready task list for Windows network configuration & diagnostics you can turn into generators. I grouped by area, listed typical inputs, and highlighted high-value templates plus the PowerShell surfaces you’ll lean on.
+
+🧭 Baseline & IP Configuration
+
+Set static IP / DNS
+
+Inputs: Adapter (name/Index), IPv4/IPv6 address, mask/prefix, gateway, DNS servers, DNS suffix.
+
+Options: Register in DNS; set search list; SkipIfCompliant idempotency.
+
+Switch to DHCP / renew leases
+
+Inputs: Adapter(s).
+
+Options: Flush DNS after renew.
+
+Bulk NIC configuration from CSV
+
+Inputs: CSV (Computer, Adapter, IP, Mask, GW, DNS…).
+
+Options: Test reachability post-change.
+
+Set per-adapter MTU / Jumbo frames
+
+Inputs: Adapter, MTU; optional ping-MTU discovery.
+
+Set/clear default route and static routes
+
+Inputs: Prefix, NextHop, Metric, Persistent flag.
+
+Bind/Unbind protocols (Client for MS Networks, IPv6, LLDP)
+
+Inputs: Adapter, protocol IDs.
+
+🌐 Name Resolution & DNS Client
+
+Configure DNS clients
+
+Inputs: Servers, suffix list, registration, negative cache lifetime.
+
+Flush & re-register DNS
+
+Test DNS resolution (per adapter / per server)
+
+Inputs: Hostname/FQDN, server override, qtype.
+
+🔥 Windows Firewall & IPsec
+
+Baseline firewall profiles (Domain/Private/Public)
+
+Inputs: Allowed apps/ports, logging path/size.
+
+Create/modify firewall rules in bulk
+
+Inputs: CSV (Name, Direction, Protocol, Ports, Program, Profile).
+
+Enable/disable IPsec rules or quick policies
+
+Inputs: Filters, proposals; report mode toggle.
+
+Export/Import firewall policy (snapshot & restore).
+
+📶 Wireless, VPN, Proxy
+
+Manage Wi-Fi profiles
+
+Add/remove profiles (XML), set auto-connect, export keys (secure).
+
+Create/Update VPN connections (IKEv2, SSTP, Always On VPN)
+
+Inputs: Name, server, tunnel type, split-tunnel, routes, EAP XML.
+
+Options: Device vs user tunnel, trusted network detection.
+
+Set system proxy / WinHTTP proxy
+
+Inputs: Proxy URL, bypass list, auto-detect; import from user → WinHTTP.
+
+🧩 NIC Features & Teaming
+
+Enable/disable NIC features
+
+RSS, RDMA, TCP Chimney (legacy), LSO, checksum offload, energy efficient Ethernet.
+
+VLAN ID on NIC (where supported)
+
+Inputs: VLAN ID, trunk/native options.
+
+NIC Teaming (LBFO) create/update (Server)
+
+Inputs: Team name, members, mode (Switch Independent/LACP), load distribution.
+
+🚦 QoS, SMB, and Advanced Stack
+
+Create DSCP/QoS policies
+
+Inputs: App path/port, DSCP, throttle rate.
+
+SMB client/server tuning
+
+Enable/disable multichannel; set SMB signing; report open shares/sessions.
+
+🧪 Connectivity Tests & Troubleshooting
+
+Connectivity health check suite
+
+Ping, TCP port test, name resolution, route trace, MTU probe.
+
+Inputs: Target host(s)/ports; adapter scope; output HTML.
+
+End-to-end port diagnostics
+
+Inputs: Host/Port; runs Test-NetConnection, tcpping fallback.
+
+ARP/Neighbor cache & NCSI checks
+
+Clear/display ARP/ND; verify internet connectivity state.
+
+Winsock/TCP stack reset (last resort)
+
+Controlled helper with pre-backup + reboot prompt.
+
+📦 Packet Capture & Tracing
+
+Start/Stop packet captures
+
+pktmon, netsh trace, or ETW New-NetEventSession.
+
+Inputs: Filters (adapter, port, IP), ring buffer, max size; auto-convert to pcapng.
+
+Upload/rotate trace logs
+
+Inputs: Path, retention days.
+
+🧾 Inventory & Reporting
+
+Network inventory report
+
+Adapters, IPs, gateways, DNS, routes, VLANs, features, drivers/firmware, link speed/duplex.
+
+Firewall rules report
+
+Enabled rules by profile; conflicts/open ports summary.
+
+Latency/packet loss trend
+
+Scheduled Test-Connection/Get-Counter collection → HTML chart.
+
+🧹 Hygiene & Recovery
+
+Remove orphan/hidden NICs (ghost adapters)
+
+Safe mode: list → confirm → remove.
+
+Reset NCSI & captive portal cache
+
+Clear old Wi-Fi/VPN profiles by age/pattern.
+
+🚀 High-Value PS Forge Templates (ready-to-build)
+
+Set-StaticIPAndDNS.ps1 — idempotent setter + rollback file; optional ping gateway test.
+
+SwitchToDHCPAndRenew.ps1 — per adapter or all; flush/reg DNS after renew.
+
+Bulk-NICConfigFromCsv.ps1 — multi-machine via WinRM/PSRemoting; success/fail CSV.
+
+Add-StaticRoutes.ps1 — from CSV; validate next hops and metrics.
+
+Set-FirewallBaseline.ps1 — import JSON of rules; diff mode; export snapshot.
+
+New-VpnConnectionPack.ps1 — builds user/device tunnel, routes, EAP XML import.
+
+Wifi-ProfileManager.ps1 — import/export XML, set priority, rotate keys.
+
+PktCapture-StartStop.ps1 — pktmon/netsh trace wrappers; filter presets; auto-pcapng.
+
+NetHealth-QuickDiag.ps1 — one-shot HTML: IP/DNS/route/latency/MTU/ports with red-amber-green.
+
+Tune-NicFeatures.ps1 — RSS/RDMA/LSO/RSC toggles per adapter; before/after report.
+
+Create-NicTeam.ps1 (Server) — team + VLANs; validates switch mode and persistence.
+
+QoS-PolicyBulk.ps1 — CSV to DSCP/throttle rules; app/port matching; rollback.
+
+Smb-ClientServerTuning.ps1 — multichannel/signing config; open shares/sessions export.
+
+Remove-GhostAdapters.ps1 — discovery → confirmation → removal; restore point note.
+
+Reset-NetworkStack.ps1 — staged: DNS flush → ARP clear → Winsock/TCP reset → reboot prompt.
+
+🧠 PowerShell & CLI Surfaces to wire in
+
+NetTCPIP / DnsClient / NetAdapter / NetRoute / NetConnectionProfile
+
+Get/Set-NetIPConfiguration, New/Set-NetIPAddress, Set-DnsClientServerAddress,
+Get/New/Set-NetRoute, Get/Set-NetAdapterAdvancedProperty, Set-NetIPInterface, Test-NetConnection.
+
+NetSecurity (Firewall/IPsec)
+
+Get/New/Set/Remove-NetFirewallRule, Set-NetFirewallProfile, Get/Set-NetIPsec*.
+
+VPN & Networking
+
+Add/Set-VpnConnection, Add-VpnConnectionRoute, Get/Set-WinHttpSettings (via netsh winhttp).
+
+Wireless
+
+netsh wlan add/export profile, Show profiles, connect/disconnect.
+
+Tracing / Capture
+
+pktmon start/stop/convert, netsh trace start/stop, New-NetEventSession, Add-NetEventPacketCaptureProvider.
+
+Diagnostics
+
+Resolve-DnsName, Test-Connection, Get-Counter, pathping, tracert, ipconfig /flushdns /registerdns.
+
+Resets: netsh winsock reset, netsh int ip reset.
+
+SMB & QoS
+
+Get/Set-SmbClientConfiguration, Get-SmbShare, New-NetQosPolicy, Remove-NetQosPolicy.
+
+Teaming (Server)
+
+New-NetLbfoTeam, Add-NetLbfoTeamMember, Set-NetLbfoTeamNic.
+
+🪄 PS Forge UX Suggestions
+
+Scope & safety: Adapter picker, machine/OU scope, CSV import; Dry-Run & Diff for firewall/route/QoS changes.
+
+Validation: Pre-flight reachability (gateway/pDNS), duplicate IP detection, rollback plans.
+
+Presets: “Server baseline”, “Client baseline”, “Datacenter NIC tuning”, “VPN standard”.
+
+Outputs: Always emit CSV + HTML with clear pass/fail and exact commands applied; optional Teams webhook.
+
+Idempotency: Skip if already compliant; keep a state file per host for rollback.
+
+Remoting: Built-in PSRemoting controls (throttle, jitter, retry) for bulk runs.
+
+📦 Suggested Repo Layout
+/WindowsNetworking.Automation/
+  /IP/            Set-StaticIPAndDNS.ps1, SwitchToDHCPAndRenew.ps1, Bulk-NICConfigFromCsv.ps1
+  /Routes/        Add-StaticRoutes.ps1, Export-Routes.ps1
+  /Firewall/      Set-FirewallBaseline.ps1, Export-FirewallPolicy.ps1
+  /VPN-WiFi/      New-VpnConnectionPack.ps1, Wifi-ProfileManager.ps1, Set-SystemProxy.ps1
+  /Diagnostics/   NetHealth-QuickDiag.ps1, PktCapture-StartStop.ps1, Trace-NetworkIssue.ps1
+  /Tuning/        Tune-NicFeatures.ps1, QoS-PolicyBulk.ps1, Smb-ClientServerTuning.ps1
+  /Teaming/       Create-NicTeam.ps1, Set-TeamVlan.ps1
+  /Hygiene/       Remove-GhostAdapters.ps1, Reset-NetworkStack.ps1
+  /Common/        Invoke-StdLogger.psm1, HtmlReport.ps1, RemotingHelpers.ps1

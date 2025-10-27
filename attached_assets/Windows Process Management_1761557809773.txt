@@ -1,0 +1,184 @@
+Windows Process Management is a sweet spot for PS Forge: tons of repeat, high-leverage tasks where safe automation and good guardrails matter. Here’s a curated task list, high-value templates, PowerShell surfaces, UX ideas, and a repo layout you can drop into your catalog.
+
+🔎 Core, Repeatable Admin Tasks (Windows Processes)
+Inventory & Discovery
+
+Enumerate processes (local/remote/bulk)
+
+Outputs: Name, PID, CPU %, RAM (WS/PM), Handles, Threads, StartTime, User, CommandLine, ParentPID, SessionId.
+
+Options: CSV/HTML; filter by name/user/CPU > threshold.
+
+Map processes ↔ services / ports
+
+Find which service hosts a PID; which PID owns TCP/UDP port; processes without binaries (zombies).
+
+List loaded modules (per process)
+
+Path, company, version; verify Authenticode signature & file hash.
+
+Start/Stop/Restart Control
+
+Start processes with policy
+
+Priority class, CPU affinity, working dir, arguments, window style, -RunAs.
+
+Safe termination ladder
+
+Try graceful close (GUI CloseMainWindow), then Stop-Process, finally -Force with timeout & rollback.
+
+Restart app with health probe
+
+Stop → start → probe (port/URL/event) with retries/backoff.
+
+Performance & Diagnostics
+
+Find hogs / leaks
+
+Detect processes exceeding CPU/RAM/handle/thread thresholds over a sampling window.
+
+Collect on-demand crash/triage dumps
+
+Per PID or name; full/minidump options; limit count/size.
+
+Auto-dump on exception/hang (IFEO/Procdump trigger)
+
+Register dump triggers for specific processes/services.
+
+Live counters & trend capture
+
+\Process(*)\% Processor Time, Working Set, Private Bytes, I/O, context switches → time series to CSV/HTML.
+
+Governance & Hardening
+
+Enforce single-instance for an app
+
+Kill extras or prevent second launch.
+
+Verify/process signing policy
+
+Quarantine unsigned or mismatched vendor processes (report vs enforce).
+
+Baseline process list for a server role
+
+Drift detection: alert on unexpected new processes.
+
+Scheduling & Resilience
+
+Rolling app restarts across servers
+
+Ordered nodes; drain hooks; health checks.
+
+Watchdog
+
+Keep a critical process running (auto-restart if exits or hung).
+
+Stuck UI/console detection
+
+Long-running w/o CPU + steady handles/IO → flag and dump/kill per policy.
+
+File Locks & Port Contention
+
+Identify which process holds a file/dir lock (optional Sysinternals Handle.exe)
+
+Identify which process holds a port → resolve and remediate (stop or restart culprit).
+
+🚀 High-Value PS Forge Templates (ready to build)
+
+Get-ProcessInventory.ps1
+Multi-host inventory (with CommandLine, user, ports, service mapping) → CSV/HTML.
+
+Stop-ProcessSafe.ps1
+Graceful → terminate → force with timeouts; optional pre-dump on failure.
+
+Restart-AppWithHealth.ps1
+Restart a process/service and verify with port/URL/event probes; retries/backoff.
+
+Find-ProcessHogs.ps1
+Sample CPU/RAM/handles over N seconds; output offenders; optional remediate (restart/kill).
+
+Collect-ProcessDump.ps1
+One-shot or rolling dumps (minidump/full) for PID/name; size/retention limits; ZIP results.
+
+Register-AppCrashDumps.ps1
+Configure IFEO or Procdump-as-a-service triggers for crash/hang; unregister helper.
+
+Enforce-ProcessPolicy.ps1
+Priority, CPU affinity, window mode; ensure compliant or fix; baseline JSON.
+
+Watchdog-Process.ps1
+Monitor process; auto-start if missing; optional “hung” heuristics; alert to Teams.
+
+Get-ProcessToServiceAndPortMap.ps1
+PID ↔ service ↔ listening ports report; highlight unexpected listeners.
+
+Detect-FileOrPortLock.ps1 (with Handle.exe optional)
+Show who holds a file/dir/port; optional guided kill/restart.
+
+Baseline-ProcessDrift.ps1
+Compare current processes against a signed baseline; flag/kill unknowns (report/enforce modes).
+
+Rolling-RestartProcessFarm.ps1
+Restart an app across a server list with drain & health verification.
+
+🧠 PowerShell & Tooling Surfaces to Wire In
+
+Core PowerShell & CIM
+
+Get-Process, Start-Process, Stop-Process, Wait-Process
+
+Get-CimInstance Win32_Process (CommandLine, ExecutablePath, ParentProcessId, CreationDate, SessionId)
+
+Invoke-Command / CIM sessions for remote/bulk
+
+Performance & Networking
+
+Get-Counter (\Process(*)\% Processor Time, Working Set - Private, Handle Count, Thread Count)
+
+Get-NetTCPConnection -State Listen/Established (with -OwningProcess)
+
+Services
+
+Get-CimInstance Win32_Service (map service ↔ PID), Get-Service
+
+Security / Signing
+
+Get-AuthenticodeSignature, Get-FileHash
+
+Crash Dumps & Triggers (optional tools)
+
+Sysinternals ProcDump: procdump.exe -ma -e -h -t…
+
+IFEO (Image File Execution Options) registry for silent dump triggers
+
+Locks (optional)
+
+Sysinternals Handle.exe to resolve file locks
+
+Events
+
+Get-WinEvent (Application Error 1000, WER 1001, Service Control Manager events)
+
+🪄 PS Forge UX Suggestions
+
+Scope pickers: Computer(s), process name filters (supports wildcards), or PID list; CSV import for fleets.
+
+Safety gates: Dry-run by default for terminations; confirmation for -Force; pre-dump before kill.
+
+Health probes: Built-in checks (port open, HTTP 200, event pattern) after restart.
+
+Baselines: JSON policy for allowed processes, priority/affinity, and signatures; diff view before enforcing.
+
+Rate limiting: Throttle & jitter when operating across many machines.
+
+Observability: Always emit CSV + concise HTML with “what changed” and links to logs; Teams webhook optional.
+
+Idempotency: Skip processes already compliant (priority/affinity), avoid duplicate watchdogs.
+
+📦 Suggested Repo Layout
+/Process.Automation/
+  /Inventory/   Get-ProcessInventory.ps1, Get-ProcessToServiceAndPortMap.ps1, Baseline-ProcessDrift.ps1
+  /Control/     Stop-ProcessSafe.ps1, Restart-AppWithHealth.ps1, Rolling-RestartProcessFarm.ps1
+  /Policy/      Enforce-ProcessPolicy.ps1, Register-AppCrashDumps.ps1
+  /Diagnostics/ Find-ProcessHogs.ps1, Collect-ProcessDump.ps1, Detect-FileOrPortLock.ps1
+  /Common/      Invoke-StdLogger.psm1, HtmlReport.ps1, Baselines\ProcessPolicy.json

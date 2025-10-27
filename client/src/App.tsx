@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import ScriptBuilder from "@/pages/script-builder";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import Account from "@/pages/account";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/builder" component={ScriptBuilder} />
+      <Route path="/account" component={Account} />
       <Route component={NotFound} />
     </Switch>
   );

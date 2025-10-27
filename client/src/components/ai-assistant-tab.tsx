@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { ScriptCommand } from "@shared/schema";
 import { AIHelperBot } from "@/components/ai-helper-bot";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { useAuth } from "@/lib/auth-context";
 import { powershellCommands } from "@/lib/powershell-commands";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sparkles, Lock, CheckCircle } from "lucide-react";
 
 interface AIAssistantTabProps {
   scriptCommands: ScriptCommand[];
@@ -8,6 +14,9 @@ interface AIAssistantTabProps {
 }
 
 export function AIAssistantTab({ scriptCommands, setScriptCommands }: AIAssistantTabProps) {
+  const { featureAccess } = useAuth();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  
   const handleAddCommandFromBot = (commandId: string, suggestedParameters?: Record<string, string>) => {
     const command = powershellCommands.find(cmd => cmd.id === commandId);
     if (!command) return;
@@ -64,6 +73,83 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands }: AIAssistan
 
     setScriptCommands([...scriptCommands, newCommand]);
   };
+
+  if (!featureAccess?.hasAIAccess) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <Card className="max-w-2xl w-full">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <Sparkles className="h-16 w-16 text-primary" />
+                <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1">
+                  <Lock className="h-6 w-6 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+            <CardTitle className="text-2xl">AI Assistant is a Pro Feature</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Upgrade to PSForge Pro to unlock AI-powered PowerShell assistance with natural language command suggestions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Natural Language Processing</p>
+                  <p className="text-sm text-muted-foreground">
+                    Describe what you want in plain English, get PowerShell commands instantly
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Smart Parameter Suggestions</p>
+                  <p className="text-sm text-muted-foreground">
+                    AI automatically fills in command parameters based on your requirements
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Context-Aware Recommendations</p>
+                  <p className="text-sm text-muted-foreground">
+                    Get relevant command suggestions based on your current script
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-muted/50 rounded-md p-4 text-center">
+              <p className="text-2xl font-bold">$5/month</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Plus access to all 16 enterprise IT platform categories
+              </p>
+            </div>
+
+            <Button 
+              onClick={() => setShowUpgradeModal(true)}
+              className="w-full"
+              size="lg"
+              data-testid="button-upgrade-ai"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Upgrade to Pro
+            </Button>
+          </CardContent>
+        </Card>
+
+        <UpgradeModal 
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          feature="AI Assistant"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex overflow-hidden">

@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { TaskDetailForm } from "@/components/task-detail-form";
 import { ScriptPreviewDialog } from "@/components/script-preview-dialog";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { useAuth } from "@/lib/auth-context";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
 import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
 import { exchangeOnlineTasks, ExchangeOnlineTask } from "@/lib/exchange-online-tasks";
@@ -49,7 +52,8 @@ import {
   MessageSquare,
   Grid3x3,
   DatabaseZap,
-  Laptop
+  Laptop,
+  Lock
 } from "lucide-react";
 
 interface CategoryConfig {
@@ -58,6 +62,7 @@ interface CategoryConfig {
   icon: React.ElementType;
   description: string;
   color: string;
+  isPremium?: boolean;
 }
 
 const categories: CategoryConfig[] = [
@@ -122,119 +127,136 @@ const categories: CategoryConfig[] = [
     name: "Azure",
     icon: Cloud,
     description: "Azure cloud resources",
-    color: "text-sky-500"
+    color: "text-sky-500",
+    isPremium: true
   },
   {
     id: "exchange-online",
     name: "Exchange Online",
     icon: Mail,
     description: "Office 365 mailbox management",
-    color: "text-teal-500"
+    color: "text-teal-500",
+    isPremium: true
   },
   {
     id: "azure-ad",
     name: "Azure AD",
     icon: CloudCog,
     description: "Azure Active Directory",
-    color: "text-cyan-500"
+    color: "text-cyan-500",
+    isPremium: true
   },
   {
     id: "azure-resources",
     name: "Azure Resources",
     icon: Package,
     description: "Azure cloud infrastructure",
-    color: "text-blue-600"
+    color: "text-blue-600",
+    isPremium: true
   },
   {
     id: "sharepoint",
     name: "SharePoint",
     icon: Share2,
     description: "SharePoint site administration",
-    color: "text-emerald-500"
+    color: "text-emerald-500",
+    isPremium: true
   },
   {
     id: "sharepoint-online",
     name: "SharePoint Online",
     icon: Share2,
     description: "SharePoint Online management",
-    color: "text-teal-600"
+    color: "text-teal-600",
+    isPremium: true
   },
   {
     id: "sharepoint-onprem",
     name: "SharePoint On-Prem",
     icon: DatabaseZap,
     description: "On-premises SharePoint",
-    color: "text-emerald-700"
+    color: "text-emerald-700",
+    isPremium: true
   },
   {
     id: "mecm",
     name: "MECM",
     icon: Server,
     description: "Configuration Manager",
-    color: "text-violet-500"
+    color: "text-violet-500",
+    isPremium: true
   },
   {
     id: "exchange-server",
     name: "Exchange Server",
     icon: HardDrive,
     description: "On-premises Exchange",
-    color: "text-amber-500"
+    color: "text-amber-500",
+    isPremium: true
   },
   {
     id: "hyper-v",
     name: "Hyper-V",
     icon: MonitorPlay,
     description: "Virtual machine management",
-    color: "text-fuchsia-500"
+    color: "text-fuchsia-500",
+    isPremium: true
   },
   {
     id: "intune",
     name: "Intune",
     icon: Smartphone,
     description: "Device management",
-    color: "text-purple-600"
+    color: "text-purple-600",
+    isPremium: true
   },
   {
     id: "power-platform",
     name: "Power Platform",
     icon: Zap,
     description: "Power Apps & Automate",
-    color: "text-rose-500"
+    color: "text-rose-500",
+    isPremium: true
   },
   {
     id: "teams",
     name: "Microsoft Teams",
     icon: MessageSquare,
     description: "Teams collaboration",
-    color: "text-indigo-600"
+    color: "text-indigo-600",
+    isPremium: true
   },
   {
     id: "office365",
     name: "Office 365",
     icon: Grid3x3,
     description: "Office 365 tenant",
-    color: "text-orange-600"
+    color: "text-orange-600",
+    isPremium: true
   },
   {
     id: "onedrive",
     name: "OneDrive",
     icon: Cloud,
     description: "OneDrive cloud storage",
-    color: "text-sky-600"
+    color: "text-sky-600",
+    isPremium: true
   },
   {
     id: "windows365",
     name: "Windows 365",
     icon: Laptop,
     description: "Cloud PC management",
-    color: "text-cyan-600"
+    color: "text-cyan-600",
+    isPremium: true
   },
   {
     id: "windows-server",
     name: "Windows Server",
     icon: Terminal,
     description: "Server configuration and features",
-    color: "text-lime-500"
+    color: "text-lime-500",
+    isPremium: true
   }
 ];
 
@@ -244,11 +266,19 @@ interface GUIBuilderTabProps {
 }
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
+  const { featureAccess } = useAuth();
   const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<string>('');
 
-  const handleCategoryClick = (categoryId: string) => {
+  const handleCategoryClick = (categoryId: string, category: CategoryConfig) => {
+    if (category.isPremium && !featureAccess?.hasPremiumCategories) {
+      setUpgradeFeature(category.name);
+      setShowUpgradeModal(true);
+      return;
+    }
     onCategorySelect(categoryId);
     setSelectedTask(null);
   };
@@ -348,21 +378,34 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           {categories.map((category) => {
             const Icon = category.icon;
             const isSelected = selectedCategory === category.id;
+            const isLocked = category.isPremium && !featureAccess?.hasPremiumCategories;
 
             return (
               <Card
                 key={category.id}
                 className={`cursor-pointer transition-all hover-elevate active-elevate-2 ${
                   isSelected ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => handleCategoryClick(category.id)}
+                } ${isLocked ? 'opacity-75' : ''}`}
+                onClick={() => handleCategoryClick(category.id, category)}
                 data-testid={`category-card-${category.id}`}
               >
                 <CardHeader className="flex flex-col items-center text-center space-y-2 p-6">
-                  <div className={`${category.color} mb-2`}>
-                    <Icon className="h-12 w-12" />
+                  <div className="relative">
+                    <div className={`${category.color} mb-2`}>
+                      <Icon className="h-12 w-12" />
+                    </div>
+                    {isLocked && (
+                      <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-1">
+                        <Lock className="h-4 w-4" />
+                      </div>
+                    )}
                   </div>
-                  <CardTitle className="text-base">{category.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base">{category.name}</CardTitle>
+                    {category.isPremium && (
+                      <Badge variant="secondary" className="text-xs">Pro</Badge>
+                    )}
+                  </div>
                   <CardDescription className="text-xs">
                     {category.description}
                   </CardDescription>
@@ -420,6 +463,12 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           </div>
         )}
       </div>
+
+      <UpgradeModal 
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature={upgradeFeature}
+      />
     </div>
   );
 }

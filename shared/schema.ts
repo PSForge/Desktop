@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+export const userRoles = ["free", "subscriber", "admin"] as const;
+export type UserRole = typeof userRoles[number];
+
+export const subscriptionStatuses = ["active", "trialing", "past_due", "canceled", "unpaid", "incomplete"] as const;
+export type SubscriptionStatus = typeof subscriptionStatuses[number];
+
 export const parameterTypes = ["string", "int", "boolean", "switch", "array", "path", "select"] as const;
 export type ParameterType = typeof parameterTypes[number];
 
@@ -86,3 +92,121 @@ export type ValidationResult = z.infer<typeof validationResultSchema>;
 export type InsertScriptCommand = z.infer<typeof insertScriptCommandSchema>;
 export type InsertScript = z.infer<typeof insertScriptSchema>;
 export type InsertValidationRequest = z.infer<typeof insertValidationRequestSchema>;
+
+// User & Authentication Schemas
+export const userSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  passwordHash: z.string().nullable(),
+  name: z.string(),
+  role: z.enum(userRoles),
+  stripeCustomerId: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+export const sessionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  expiresAt: z.string(),
+  userAgent: z.string().nullable(),
+  ipAddress: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+export const insertUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1, "Name is required"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Subscription Schemas
+export const subscriptionPlanSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  priceCents: z.number(),
+  interval: z.enum(["month", "year"]),
+  features: z.array(z.string()),
+  stripeProductId: z.string().nullable(),
+  stripePriceId: z.string().nullable(),
+});
+
+export const userSubscriptionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  planId: z.string(),
+  stripeSubscriptionId: z.string().nullable(),
+  status: z.enum(subscriptionStatuses),
+  currentPeriodStart: z.string(),
+  currentPeriodEnd: z.string(),
+  cancelAt: z.string().nullable(),
+  canceledAt: z.string().nullable(),
+  trialEnd: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const subscriptionEventSchema = z.object({
+  id: z.string(),
+  userSubscriptionId: z.string(),
+  type: z.string(),
+  payload: z.record(z.any()),
+  occurredAt: z.string(),
+});
+
+// Analytics & Metrics Schemas
+export const usageMetricSchema = z.object({
+  id: z.string(),
+  userId: z.string().nullable(),
+  metricType: z.string(),
+  value: z.number(),
+  metadata: z.record(z.any()).nullable(),
+  recordedAt: z.string(),
+});
+
+export const analyticsOverviewSchema = z.object({
+  totalUsers: z.number(),
+  activeSubscribers: z.number(),
+  freeUsers: z.number(),
+  monthlyRecurringRevenue: z.number(),
+  totalRevenue: z.number(),
+  churnRate: z.number().nullable(),
+  newSignupsThisMonth: z.number(),
+  cancellationsThisMonth: z.number(),
+});
+
+// Feature Access Schema
+export const featureAccessSchema = z.object({
+  hasAIAccess: z.boolean(),
+  hasPremiumCategories: z.boolean(),
+  accessibleCategories: z.array(z.string()),
+  restrictedCategories: z.array(z.string()),
+});
+
+// Type exports
+export type User = z.infer<typeof userSchema>;
+export type Session = z.infer<typeof sessionSchema>;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginCredentials = z.infer<typeof loginSchema>;
+export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
+export type UserSubscription = z.infer<typeof userSubscriptionSchema>;
+export type SubscriptionEvent = z.infer<typeof subscriptionEventSchema>;
+export type UsageMetric = z.infer<typeof usageMetricSchema>;
+export type AnalyticsOverview = z.infer<typeof analyticsOverviewSchema>;
+export type FeatureAccess = z.infer<typeof featureAccessSchema>;
+
+// Basic categories accessible to free users
+export const freeTierCategories = [
+  "File System",
+  "Network",
+  "Services",
+  "Process Management",
+  "Event Logs",
+  "Active Directory",
+  "Registry",
+  "Security",
+] as const;

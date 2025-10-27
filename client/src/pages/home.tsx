@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import logoImage from "@assets/Full Logo Transparent_1761559782392.png";
 import {
   FileCode,
   Sparkles,
@@ -23,13 +24,13 @@ export default function Home() {
       {/* Header */}
       <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Terminal className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold text-foreground">PSForge</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">PowerShell Script Builder</p>
-            </div>
-          </div>
+          <Link href="/">
+            <img 
+              src={logoImage} 
+              alt="PSForge Logo" 
+              className="h-10 sm:h-12 w-auto cursor-pointer"
+            />
+          </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <Link href="/builder">

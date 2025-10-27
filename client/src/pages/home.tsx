@@ -8,6 +8,7 @@ import logoTransparent from "@assets/Full Logo Transparent_1761565796152.png";
 import logoLight from "@assets/Full Logo_1761565796152.png";
 import iconLogo from "@assets/Icon_1761565796152.png";
 import iconTransparent from "@assets/Icon transparent_1761566958254.png";
+import logoFullTransparent from "@assets/Full Logo Transparent_1761567685412.png";
 import {
   Sparkles,
   Terminal,
@@ -70,9 +71,9 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/">
             <img 
-              src={iconTransparent} 
-              alt="PSForge Icon" 
-              className="h-10 w-auto cursor-pointer"
+              src={logoFullTransparent} 
+              alt="PSForge Logo" 
+              className="h-12 w-auto cursor-pointer"
             />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">

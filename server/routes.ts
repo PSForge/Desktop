@@ -669,6 +669,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid role" });
       }
 
+      // Prevent admins from changing their own role
+      if (req.user?.id === userId) {
+        return res.status(403).json({ error: "Cannot change your own role" });
+      }
+
       const user = await storage.getUserById(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });

@@ -121,8 +121,18 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
   - Password: admin123
   - Auto-created on server startup
   - Full access to all features and admin dashboard
-- **Admin Dashboard** (planned): User analytics, subscription metrics, MRR tracking
-- **User Management** (planned): View all users, manage roles, subscription controls
+- **Admin Dashboard** (/admin route):
+  - **Analytics Overview**: Total users, active subscribers, monthly recurring revenue (MRR), churn rate
+  - **Growth Trends**: 30-day signups, new subscriptions, cancellations
+  - **User Breakdown**: Distribution by role (free, subscriber, admin) with percentages
+  - **Recent Activity**: Detailed metrics for new signups, subscriptions, and cancellations
+  - Access restricted to admin role only via requireAdmin middleware
+- **User Management**:
+  - View all users with email, name, role, and join date
+  - Inline role editing with dropdown selection (free, subscriber, admin)
+  - Real-time updates with optimistic UI
+  - Stripe customer identification badges
+  - Accessible from admin dashboard at /admin
 
 ## Recent Changes (October 27, 2025)
 - Implemented complete subscription system with Stripe integration
@@ -131,3 +141,6 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - Created upgrade modal and account management page
 - Fixed authentication state handling for anonymous and logged-in users
 - Updated homepage with auth-aware navigation
+- Built admin dashboard with analytics and user management
+- Added admin endpoints for analytics and role management
+- Fixed AI Assistant JSON parsing bug with OpenAI response_format

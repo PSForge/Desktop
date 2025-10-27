@@ -345,7 +345,11 @@ export default function AdminDashboard() {
                           Stripe Customer
                         </Badge>
                       )}
-                      {editingUserId === userData.id ? (
+                      {userData.id === user?.id ? (
+                        <Badge variant="outline" className="text-xs">
+                          Your Account
+                        </Badge>
+                      ) : editingUserId === userData.id ? (
                         <div className="flex items-center gap-2">
                           <Select
                             defaultValue={userData.role}

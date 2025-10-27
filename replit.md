@@ -18,7 +18,7 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Layout**: Tabbed interface with three main sections:
     - **Script Generator**: Direct code editor with command sidebar and real-time preview.
     - **AI Assistant**: Full-screen AI chat interface for natural language command help.
-    - **GUI Builder**: Category-based task interface for common configuration scripts with user-friendly forms, supporting 532 automation tasks across 16 enterprise IT platforms including Active Directory, Azure AD/Entra ID, Azure Resources, MECM, Exchange Online/Server, Hyper-V, Intune, Microsoft Teams, Office 365, OneDrive, Power Platform, SharePoint Online/On-Premises, Windows 365, and Windows Server.
+    - **GUI Builder**: Category-based task interface for common configuration scripts with user-friendly forms, supporting 623 automation tasks across 16 enterprise IT platforms (Active Directory, Azure AD/Entra ID, Azure Resources, MECM, Exchange Online/Server, Hyper-V, Intune, Microsoft Teams, Office 365, OneDrive, Power Platform, SharePoint Online/On-Premises, Windows 365, Windows Server) and 7 Windows management categories (Event Logs, File System, Networking, Process Management, Registry, Security Management, Services).
 - **UI/UX Decisions**: Dark mode default, responsive design for mobile/tablet/desktop, consistent spacing, Inter for UI typography, JetBrains Mono for code.
 
 ### Backend (Express.js)
@@ -32,7 +32,18 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Code Preview**: Syntax-highlighted PowerShell code output.
 - **Validation Panel**: Real-time error and warning display.
 - **AI Helper Bot**: OpenAI-powered assistant providing context-aware command suggestions and one-click command addition, with conversation history persistence and sanitized input.
-- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping. Supports **532 automation tasks** across **16 enterprise IT platforms**:
+- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping. Supports **623 automation tasks** across **16 enterprise IT platforms** and **7 Windows management categories**:
+  
+  **Windows Management Categories** (91 tasks):
+  - **Event Logs** (12 tasks): Event Query & Filtering, Export & Archiving, Maintenance & Retention, Security Monitoring
+  - **File System** (14 tasks): File Operations, Share Management, Permissions & Security, Cleanup & Maintenance, Reporting & Auditing
+  - **Networking** (15 tasks): IP Configuration, DNS Configuration, Firewall Management, Diagnostics & Testing, Advanced NIC Config
+  - **Process Management** (11 tasks): Process Inventory, Process Control, Performance Monitoring, Startup & Boot, Diagnostics & Troubleshooting
+  - **Registry** (10 tasks): Registry Operations, Backup & Export, Search & Query, Security & Permissions
+  - **Security Management** (15 tasks): Account Security, Windows Defender, BitLocker & Encryption, Security Policy, Security Monitoring, Patch Management
+  - **Services** (14 tasks): Service Inventory, Service Control, Startup Configuration, Service Accounts, Service Dependencies, Recovery & Failover, Service Health, Security Hardening, Backup & Documentation
+  
+  **Enterprise IT Platforms** (532 tasks):
   - **Active Directory** (30 tasks): User & Computer Management, Group Policy, Organization & Delegation, Security & Permissions, Replication & Sites, Reporting & Auditing
   - **Azure AD / Entra ID** (30 tasks): User Lifecycle Management, Groups & Access Management, Reporting & Auditing, Device & Identity Management, Maintenance & Governance
   - **Azure Resources** (30 tasks): Resource Management, Networking, Compute, Storage, Monitoring, Policy & Governance

@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "wouter";
 import { ScriptCommand } from "@shared/schema";
 import { Header } from "@/components/header";
 import { ScriptGeneratorTab } from "@/components/script-generator-tab";
@@ -10,10 +11,21 @@ import { FileCode, Sparkles, LayoutGrid } from "lucide-react";
 import { generatePowerShellScript } from "@/lib/script-generator";
 
 export default function ScriptBuilder() {
+  const [location] = useLocation();
   const [script, setScript] = useState<string>('');
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [selectedGuiCategory, setSelectedGuiCategory] = useState<string | null>(null);
+
+  // Get tab from URL query parameter
+  const defaultTab = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'ai-assistant' || tab === 'gui-builder') {
+      return tab;
+    }
+    return 'script-generator';
+  }, [location]);
 
   const handleSave = () => {
     localStorage.setItem('powershell-script', JSON.stringify({
@@ -55,7 +67,7 @@ export default function ScriptBuilder() {
         hasCommands={script.trim().length > 0}
       />
 
-      <Tabs defaultValue="script-generator" className="flex-1 flex flex-col md:overflow-hidden min-h-0">
+      <Tabs defaultValue={defaultTab} className="flex-1 flex flex-col md:overflow-hidden min-h-0">
         <div className="border-b px-3 sm:px-6">
           <div className="flex flex-row gap-2 h-10 sm:h-12 overflow-x-auto">
             <TabsList className="h-full inline-flex">

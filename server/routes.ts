@@ -10,6 +10,7 @@ import {
   insertValidationRequestSchema,
   insertUserSchema,
   loginSchema,
+  changePasswordSchema,
   type ValidationResult,
   type SubscriptionStatus
 } from "@shared/schema";
@@ -181,6 +182,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Get user error:", error);
       return res.status(500).json({
         error: "Internal server error"
+      });
+    }
+  });
+
+  app.post("/auth/change-password", requireAuth, async (req, res) => {
+    try {
+      const parsed = changePasswordSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid password change data",
+          details: parsed.error.errors
+        });
+      }
+
+      const { currentPassword, newPassword } = parsed.data;
+      const user = req.user!;
+
+      // Verify current password
+      if (!user.passwordHash) {
+        return res.status(400).json({
+          error: "User account has no password set"
+        });
+      }
+
+      const isValidCurrent = await verifyPassword(currentPassword, user.passwordHash);
+      if (!isValidCurrent) {
+        return res.status(401).json({
+          error: "Current password is incorrect"
+        });
+      }
+
+      // Hash and update new password
+      const newPasswordHash = await hashPassword(newPassword);
+      await storage.updateUser(user.id, { passwordHash: newPasswordHash });
+
+      return res.json({
+        message: "Password changed successfully"
+      });
+    } catch (error) {
+      console.error("Change password error:", error);
+      return res.status(500).json({
+        error: "Internal server error during password change"
       });
     }
   });

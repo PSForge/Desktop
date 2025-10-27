@@ -103,10 +103,8 @@ export default function Login() {
               </Button>
               <div className="text-sm text-center text-muted-foreground">
                 Don't have an account?{" "}
-                <Link href="/signup">
-                  <a className="text-primary hover:underline" data-testid="link-signup">
-                    Sign up
-                  </a>
+                <Link href="/signup" className="text-primary hover:underline" data-testid="link-signup">
+                  Sign up
                 </Link>
               </div>
             </CardFooter>
@@ -114,10 +112,8 @@ export default function Login() {
         </Card>
 
         <div className="text-center text-sm text-muted-foreground">
-          <Link href="/">
-            <a className="hover:underline" data-testid="link-home">
-              Back to home
-            </a>
+          <Link href="/" className="hover:underline" data-testid="link-home">
+            Back to home
           </Link>
         </div>
       </div>

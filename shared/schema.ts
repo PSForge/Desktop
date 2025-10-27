@@ -124,6 +124,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your new password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 // Subscription Schemas
 export const subscriptionPlanSchema = z.object({
   id: z.string(),
@@ -192,6 +201,7 @@ export type User = z.infer<typeof userSchema>;
 export type Session = z.infer<typeof sessionSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
+export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
 export type UserSubscription = z.infer<typeof userSubscriptionSchema>;
 export type SubscriptionEvent = z.infer<typeof subscriptionEventSchema>;

@@ -151,3 +151,15 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
   - Clear subscription benefits and feature comparison
   - Multiple CTAs strategically placed for signup conversion
   - Responsive design with dark/light mode logo adaptation
+- **Password Change Feature:**
+  - Added secure password change form on account page
+  - Backend endpoint validates current password before allowing change
+  - Uses bcrypt for password hashing
+  - Requires minimum 8 characters for new password
+  - Form validation ensures new password and confirmation match
+  - Success/error feedback with toast notifications
+  - Form automatically resets after successful password change
+  - Fully tested end-to-end with admin account
+- **Fixed React Link Component Issues:**
+  - Corrected nested anchor tag warnings in login and signup pages
+  - Link components now properly render without nesting

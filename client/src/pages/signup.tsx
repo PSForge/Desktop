@@ -149,10 +149,8 @@ export default function Signup() {
               </Button>
               <div className="text-sm text-center text-muted-foreground">
                 Already have an account?{" "}
-                <Link href="/login">
-                  <a className="text-primary hover:underline" data-testid="link-login">
-                    Log in
-                  </a>
+                <Link href="/login" className="text-primary hover:underline" data-testid="link-login">
+                  Log in
                 </Link>
               </div>
             </CardFooter>
@@ -160,10 +158,8 @@ export default function Signup() {
         </Card>
 
         <div className="text-center text-sm text-muted-foreground">
-          <Link href="/">
-            <a className="hover:underline" data-testid="link-home">
-              Back to home
-            </a>
+          <Link href="/" className="hover:underline" data-testid="link-home">
+            Back to home
           </Link>
         </div>
       </div>

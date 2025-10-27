@@ -10,6 +10,7 @@ import ScriptBuilder from "@/pages/script-builder";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Account from "@/pages/account";
+import AdminDashboard from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/builder" component={ScriptBuilder} />
       <Route path="/account" component={Account} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

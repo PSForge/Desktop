@@ -609,6 +609,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin routes
+  app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+    try {
+      const analytics = await storage.getAnalyticsOverview();
+      const allUsers = await storage.getAllUsers();
+      const allSubscriptions = await storage.getAllSubscriptions();
+
+      // Calculate growth trends
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const recentSignups = allUsers.filter(u => new Date(u.createdAt) >= thirtyDaysAgo);
+      const recentSubscriptions = allSubscriptions.filter(s => 
+        new Date(s.createdAt) >= thirtyDaysAgo && s.status === "active"
+      );
+
+      return res.json({
+        overview: analytics,
+        trends: {
+          signupsLast30Days: recentSignups.length,
+          subscriptionsLast30Days: recentSubscriptions.length,
+        }
+      });
+    } catch (error) {
+      console.error("Admin analytics error:", error);
+      return res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      
+      // Don't expose password hashes
+      const sanitizedUsers = users.map(u => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        stripeCustomerId: u.stripeCustomerId,
+        createdAt: u.createdAt,
+      }));
+
+      return res.json(sanitizedUsers);
+    } catch (error) {
+      console.error("Admin users fetch error:", error);
+      return res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:userId/role", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body;
+
+      if (!["free", "subscriber", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, { role });
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update user" });
+      }
+
+      return res.json({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+      });
+    } catch (error) {
+      console.error("Admin role update error:", error);
+      return res.status(500).json({ error: "Failed to update user role" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

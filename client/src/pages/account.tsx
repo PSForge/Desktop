@@ -17,7 +17,8 @@ import {
   Shield,
   Settings,
   LogOut,
-  Sparkles
+  Sparkles,
+  BarChart3
 } from "lucide-react";
 
 export default function Account() {
@@ -83,13 +84,25 @@ export default function Account() {
             <h1 className="text-3xl font-bold" data-testid="text-page-title">Account Settings</h1>
             <p className="text-muted-foreground mt-1">Manage your account and subscription</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setLocation("/builder")}
-            data-testid="button-back-to-builder"
-          >
-            Back to Builder
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="default"
+                onClick={() => setLocation("/admin")}
+                data-testid="button-admin-dashboard"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Admin Dashboard
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/builder")}
+              data-testid="button-back-to-builder"
+            >
+              Back to Builder
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6">

@@ -11,6 +11,7 @@ import {
   insertUserSchema,
   loginSchema,
   changePasswordSchema,
+  adminCreateUserSchema,
   type ValidationResult,
   type SubscriptionStatus
 } from "@shared/schema";
@@ -701,6 +702,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Admin users fetch error:", error);
       return res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const parsed = adminCreateUserSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid user data",
+          details: parsed.error.errors
+        });
+      }
+
+      const { email, password, name, role } = parsed.data;
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({
+          error: "User with this email already exists"
+        });
+      }
+
+      // Hash the password
+      const passwordHash = await hashPassword(password);
+
+      // Create the user with the specified role
+      const newUser = await storage.createUser({
+        email,
+        passwordHash,
+        name,
+        role,
+        stripeCustomerId: null,
+      });
+
+      return res.status(201).json({
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role,
+        createdAt: newUser.createdAt,
+      });
+    } catch (error) {
+      console.error("Admin user creation error:", error);
+      return res.status(500).json({ error: "Failed to create user" });
     }
   });
 

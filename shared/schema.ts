@@ -133,6 +133,13 @@ export const changePasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+export const adminCreateUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1, "Name is required"),
+  role: z.enum(userRoles, { errorMap: () => ({ message: "Invalid role" }) }),
+});
+
 // Subscription Schemas
 export const subscriptionPlanSchema = z.object({
   id: z.string(),
@@ -202,6 +209,7 @@ export type Session = z.infer<typeof sessionSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+export type AdminCreateUserData = z.infer<typeof adminCreateUserSchema>;
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
 export type UserSubscription = z.infer<typeof userSubscriptionSchema>;
 export type SubscriptionEvent = z.infer<typeof subscriptionEventSchema>;

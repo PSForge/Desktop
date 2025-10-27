@@ -872,7 +872,7 @@ try {
   },
 
   {
-    id: 'hyperv-create-vswitch',
+    id: 'hyperv-new-vswitch',
     title: 'Create Virtual Switch',
     description: 'Create external, internal, or private virtual switch',
     category: 'Networking',

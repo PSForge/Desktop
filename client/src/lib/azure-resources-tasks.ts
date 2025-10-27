@@ -1470,7 +1470,7 @@ try {
 
   // ==================== Additional Policy & Governance ====================
   {
-    id: 'azure-assign-policy',
+    id: 'azure-set-policy',
     title: 'Assign Azure Policy',
     description: 'Assign a built-in or custom policy to resource group or subscription',
     category: 'Policy & Governance',
@@ -1713,7 +1713,7 @@ try {
 
   // ==================== Additional Virtual Machines ====================
   {
-    id: 'azure-resize-vm',
+    id: 'azure-change-vm-size',
     title: 'Resize Virtual Machine',
     description: 'Change VM size to scale compute resources',
     category: 'Virtual Machines',

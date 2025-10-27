@@ -28,7 +28,7 @@ export default function Home() {
             <img 
               src={logoImage} 
               alt="PSForge Logo" 
-              className="h-10 sm:h-12 w-auto cursor-pointer"
+              className="h-14 sm:h-16 w-auto cursor-pointer"
             />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">

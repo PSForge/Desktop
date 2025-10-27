@@ -214,7 +214,7 @@ export class MemStorage implements IStorage {
   }
 
   async getUserSubscription(userId: string): Promise<UserSubscription | undefined> {
-    const validStatuses: SubscriptionStatus[] = ["active", "trialing", "past_due"];
+    const validStatuses: SubscriptionStatus[] = ["active", "past_due"];
     const subscriptions = Array.from(this.userSubscriptions.values())
       .filter(sub => sub.userId === userId && validStatuses.includes(sub.status))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -259,7 +259,7 @@ export class MemStorage implements IStorage {
 
   async getActiveSubscriptions(): Promise<UserSubscription[]> {
     return Array.from(this.userSubscriptions.values())
-      .filter(sub => sub.status === "active" || sub.status === "trialing");
+      .filter(sub => sub.status === "active");
   }
 
   async createSubscriptionEvent(event: Omit<SubscriptionEvent, "id">): Promise<SubscriptionEvent> {
@@ -285,7 +285,7 @@ export class MemStorage implements IStorage {
   async getAnalyticsOverview(): Promise<AnalyticsOverview> {
     const users = Array.from(this.users.values());
     const subscriptions = Array.from(this.userSubscriptions.values());
-    const activeSubscriptions = subscriptions.filter(sub => sub.status === "active" || sub.status === "trialing");
+    const activeSubscriptions = subscriptions.filter(sub => sub.status === "active");
     
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

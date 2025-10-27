@@ -122,16 +122,23 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
   - Auto-created on server startup
   - Full access to all features and admin dashboard
 - **Admin Dashboard** (/admin route):
+  - **Navigation**: "Account Settings" button to navigate back to user account page
   - **Analytics Overview**: Total users, active subscribers, monthly recurring revenue (MRR), churn rate
   - **Growth Trends**: 30-day signups, new subscriptions, cancellations
   - **User Breakdown**: Distribution by role (free, subscriber, admin) with percentages
   - **Recent Activity**: Detailed metrics for new signups, subscriptions, and cancellations
   - Access restricted to admin role only via requireAdmin middleware
 - **User Management**:
-  - View all users with email, name, role, and join date
-  - Inline role editing with dropdown selection (free, subscriber, admin)
-  - Real-time updates with optimistic UI
-  - Stripe customer identification badges
+  - **Create Users**: Form-based user creation with configurable roles
+    - Backend endpoint: POST /api/admin/users with email uniqueness validation
+    - Fields: email, password (min 8 chars), name, role (free/subscriber/admin)
+    - Automatic password hashing with bcrypt
+    - Real-time analytics and user list updates
+    - Toast feedback for success/error states
+  - **View Users**: All users displayed with email, name, role, and join date
+  - **Edit Roles**: Inline role editing with dropdown selection
+  - **Real-time Updates**: Optimistic UI with cache invalidation
+  - **Stripe Integration**: Customer identification badges for subscribers
   - Accessible from admin dashboard at /admin
 
 ## Recent Changes (October 27, 2025)
@@ -163,3 +170,10 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Fixed React Link Component Issues:**
   - Corrected nested anchor tag warnings in login and signup pages
   - Link components now properly render without nesting
+- **Admin User Creation Feature:**
+  - Added user creation form on admin dashboard with role selection
+  - Backend endpoint (POST /api/admin/users) validates email uniqueness and hashes passwords
+  - Admins can create users with any role (free, subscriber, admin) directly from dashboard
+  - Form includes proper validation, error handling, and success feedback
+  - Real-time analytics and user list updates after user creation
+  - Navigation buttons added between admin dashboard and account page

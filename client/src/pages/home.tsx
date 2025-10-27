@@ -70,14 +70,9 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/">
             <img 
-              src={logoLight} 
-              alt="PSForge Logo" 
-              className="h-12 w-auto cursor-pointer dark:hidden"
-            />
-            <img 
-              src={logoTransparent} 
-              alt="PSForge Logo" 
-              className="h-12 w-auto cursor-pointer hidden dark:block"
+              src={iconTransparent} 
+              alt="PSForge Icon" 
+              className="h-10 w-auto cursor-pointer"
             />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -494,7 +489,7 @@ export default function Home() {
             <CardContent className="p-8 sm:p-12 text-center">
               <div className="flex justify-center mb-6">
                 <img 
-                  src={iconLogo} 
+                  src={iconTransparent} 
                   alt="PSForge Icon" 
                   className="h-16 w-auto"
                 />
@@ -542,7 +537,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img 
-                src={iconLogo} 
+                src={iconTransparent} 
                 alt="PSForge Icon" 
                 className="h-8 w-auto"
               />

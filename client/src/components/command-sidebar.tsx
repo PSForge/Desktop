@@ -14,7 +14,7 @@ interface CommandSidebarProps {
 export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<CommandCategory>>(
-    new Set(commandCategories)
+    new Set()
   );
 
   const filteredCommands = useMemo(() => {

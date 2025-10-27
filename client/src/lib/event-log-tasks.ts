@@ -130,7 +130,7 @@ foreach ($LogName in $Logs) {
             $Log.LogMode = 'AutoBackup'
         }
         $Log.SaveChanges()
-        Write-Host "✓ $LogName`: $($MaxSize/1MB)MB, $Mode" -ForegroundColor Green
+        Write-Host "✓ $LogName\`: $($MaxSize/1MB)MB, $Mode" -ForegroundColor Green
     }
 }`;
     }

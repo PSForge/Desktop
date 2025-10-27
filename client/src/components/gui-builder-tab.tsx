@@ -18,6 +18,13 @@ import { sharePointOnlineTasks, SharePointOnlineTask } from "@/lib/sharepoint-on
 import { sharePointOnPremTasks, SharePointOnPremTask } from "@/lib/sharepoint-onprem-tasks";
 import { windows365Tasks, Windows365Task } from "@/lib/windows365-tasks";
 import { windowsServerTasks, WindowsServerTask } from "@/lib/windows-server-tasks";
+import { eventLogTasks, EventLogTask } from "@/lib/event-log-tasks";
+import { fileSystemTasks, FileSystemTask } from "@/lib/file-system-tasks";
+import { networkingTasks, NetworkingTask } from "@/lib/networking-tasks";
+import { processManagementTasks, ProcessManagementTask } from "@/lib/process-management-tasks";
+import { registryTasks, RegistryTask } from "@/lib/registry-tasks";
+import { securityManagementTasks, SecurityManagementTask } from "@/lib/security-management-tasks";
+import { servicesTasks, ServicesTask } from "@/lib/services-tasks";
 import {
   FolderOpen,
   Network,
@@ -237,7 +244,7 @@ interface GUIBuilderTabProps {
 }
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
-  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
 
@@ -246,7 +253,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     setSelectedTask(null);
   };
 
-  const handleTaskSelect = (task: ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask) => {
+  const handleTaskSelect = (task: ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask) => {
     setSelectedTask(task);
   };
 
@@ -292,6 +299,20 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     ? windows365Tasks
     : selectedCategory === 'windows-server'
     ? windowsServerTasks
+    : selectedCategory === 'event-logs'
+    ? eventLogTasks
+    : selectedCategory === 'file-system'
+    ? fileSystemTasks
+    : selectedCategory === 'network'
+    ? networkingTasks
+    : selectedCategory === 'process-management'
+    ? processManagementTasks
+    : selectedCategory === 'registry'
+    ? registryTasks
+    : selectedCategory === 'security'
+    ? securityManagementTasks
+    : selectedCategory === 'services'
+    ? servicesTasks
     : [];
 
   // If a task is selected, show the task detail form

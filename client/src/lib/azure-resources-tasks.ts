@@ -2038,7 +2038,9 @@ try {
     Write-Error "Failed to create action group: $_"
 }`;
     }
-  }
+  },
+
+  {id:'azure-export-tags',title:'Export Resource Tags Report',description:'List all resources with their tags',category:'Resource Management',parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Azure\\\\ResourceTags.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-AzAccount\ntry{Write-Host "Collecting resources with tags..." -ForegroundColor Cyan;$Resources=Get-AzResource|Select Name,ResourceType,ResourceGroupName,@{N='Tags';E={($_.Tags.GetEnumerator()|%{"$($_.Key)=$($_.Value)"})-join'; '}};$Resources|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "✓ Tags exported: $($Resources.Count) resources" -ForegroundColor Green}catch{Write-Error $_}`;}}
 ];
 
 export const azureResourceCategories = [

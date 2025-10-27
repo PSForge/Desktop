@@ -1739,7 +1739,9 @@ try {
     Write-Error "Failed to migrate storage: $_"
 }`;
     }
-  }
+  },
+
+  {id:'hyperv-export-config',title:'Export VM Configuration',description:'Backup VM settings to XML',category:'Reporting',parameters:[{name:'vmName',label:'VM Name',type:'text',required:true},{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\VMConfigs'}],scriptTemplate:p=>`try{$VM=Get-VM -Name "${escapePowerShellString(p.vmName)}";$VM|Export-VM -Path "${escapePowerShellString(p.exportPath)}";Write-Host "✓ VM config exported" -ForegroundColor Green}catch{Write-Error $_}`}
 ];
 
 export const hyperVCategories = [

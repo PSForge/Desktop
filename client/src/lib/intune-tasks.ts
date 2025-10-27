@@ -1703,7 +1703,9 @@ try {
     Write-Error "Failed to export device health: $_"
 }`;
     }
-  }
+  },
+
+  {id:'intune-export-inventory',title:'Export Device Inventory',description:'Complete device hardware report',category:'Reporting',parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Intune\\\\Inventory.csv'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All"\ntry{$Devices=Get-MgDeviceManagementManagedDevice|Select DisplayName,SerialNumber,Model,Manufacturer,OSVersion,LastSyncDateTime;$Devices|Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation;Write-Host "✓ Inventory exported: $($Devices.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`}
 ];
 
 export const intuneCategories = [

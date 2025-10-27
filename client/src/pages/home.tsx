@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import logoTransparent from "@assets/Full Logo Transparent_1761565796152.png";
 import logoLight from "@assets/Full Logo_1761565796152.png";
 import iconLogo from "@assets/Icon_1761565796152.png";
+import iconTransparent from "@assets/Icon transparent_1761566958254.png";
 import {
   Sparkles,
   Terminal,
@@ -126,7 +127,7 @@ export default function Home() {
             {/* Logo showcase */}
             <div className="flex justify-center mb-8">
               <img 
-                src={iconLogo} 
+                src={iconTransparent} 
                 alt="PSForge Icon" 
                 className="h-24 sm:h-32 w-auto animate-in fade-in duration-1000"
               />

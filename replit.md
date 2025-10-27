@@ -32,23 +32,23 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Code Preview**: Syntax-highlighted PowerShell code output.
 - **Validation Panel**: Real-time error and warning display.
 - **AI Helper Bot**: OpenAI-powered assistant providing context-aware command suggestions and one-click command addition, with conversation history persistence and sanitized input.
-- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping. Supports **183 automation tasks** across **16 enterprise IT platforms**:
+- **GUI Builder**: Task-based script generation with dynamic parameter forms supporting various input types, required field validation, and secure PowerShell script generation with input escaping. Supports **509 automation tasks** across **16 enterprise IT platforms**:
   - **Active Directory** (30 tasks): User & Computer Management, Group Policy, Organization & Delegation, Security & Permissions, Replication & Sites, Reporting & Auditing
   - **Azure AD / Entra ID** (30 tasks): User Lifecycle Management, Groups & Access Management, Reporting & Auditing, Device & Identity Management, Maintenance & Governance
-  - **Azure Resources** (15 tasks): Resource Management, Networking, Compute, Storage, Monitoring
+  - **Azure Resources** (29 tasks): Resource Management, Networking, Compute, Storage, Monitoring, Policy & Governance
   - **Exchange Online** (20 tasks): User Mailboxes & Licenses, Distribution & Groups, Transport Rules & Mail Flow, Message Trace & Reporting, Shared & Resource Mailboxes, Security & Compliance, Maintenance & Hygiene, Reporting & Inventory
   - **Exchange Server** (20 tasks): Mailboxes & Users, Distribution Groups & Contacts, Mail Flow & Transport Rules, Database & DAG Management, Maintenance & Hygiene, Security & Compliance, Reporting & Inventory, Server & Service Management
-  - **Hyper-V** (10 tasks): VM Lifecycle, Networking, Storage & Backup, Performance & Monitoring
-  - **Intune** (5 tasks): Device Management, Compliance & Reporting, Updates
+  - **Hyper-V** (29 tasks): VM Lifecycle, Networking, Storage & Backup, Performance & Monitoring, Replication, Security
+  - **Intune** (29 tasks): Device Management, Compliance & Reporting, Updates, Applications, Configuration, Security
   - **MECM** (13 tasks): Collections & Queries, Applications & Deployments, Software Updates
-  - **Microsoft Teams** (5 tasks): Teams Management, User Management, Policies, Reporting
-  - **Office 365** (5 tasks): Licensing, Security, Tenant Management, Reporting
-  - **OneDrive** (5 tasks): User Management, Security & Compliance, Reporting
-  - **Power Platform** (5 tasks): Environment Management, App Management, Data Management
-  - **SharePoint Online** (5 tasks): Site Management, Permissions, Content Management
-  - **SharePoint On-Premises** (5 tasks): Farm Management, Site Collections, Service Applications
-  - **Windows 365** (5 tasks): Cloud PC Management, Provisioning, Monitoring
-  - **Windows Server** (5 tasks): Roles & Features, Active Directory Integration, Monitoring, Security
+  - **Microsoft Teams** (30 tasks): Teams Management, User Management, Policies, Reporting, Meetings, Voice, Compliance
+  - **Office 365** (31 tasks): Licensing, Security, Tenant Management, Reporting, Administration, Compliance
+  - **OneDrive** (30 tasks): User Management, Security & Compliance, Reporting, Sharing, Storage, Administration
+  - **Power Platform** (30 tasks): Environment Management, Apps & Flows, Connectors, Governance, Data Management
+  - **SharePoint Online** (29 tasks): Site Management, Permissions, Content Management, Security, Storage, Sharing
+  - **SharePoint On-Premises** (30 tasks): Farm Management, Site Collections, Service Applications, Content, Security
+  - **Windows 365** (29 tasks): Cloud PC Management, Provisioning, Monitoring, User Assignment, Policies
+  - **Windows Server** (30 tasks): Roles & Features, Active Directory Integration, Monitoring, Security, Services
 - **Export Functionality**: Enhanced dialog with scrollable script preview, copy to clipboard, and .ps1 file download.
 - **Security**: PowerShell injection prevention through input escaping, robust input validation, and comprehensive error handling.
 

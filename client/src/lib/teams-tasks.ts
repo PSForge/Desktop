@@ -16,6 +16,7 @@ export interface TeamsTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: TeamsParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

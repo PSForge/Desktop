@@ -21,6 +21,7 @@ export interface ExchangeOnlineTask {
   name: string;
   category: string;
   description: string;
+  instructions?: string;
   parameters: ExchangeOnlineTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;

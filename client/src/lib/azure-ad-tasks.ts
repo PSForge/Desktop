@@ -16,6 +16,7 @@ export interface AzureAdTask {
   name: string;
   category: string;
   description: string;
+  instructions?: string;
   parameters: AzureAdTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;

@@ -16,6 +16,7 @@ export interface OneDriveTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: OneDriveParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

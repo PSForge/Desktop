@@ -16,6 +16,7 @@ export interface SharePointOnlineTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: SharePointOnlineParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

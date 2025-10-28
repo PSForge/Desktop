@@ -21,6 +21,7 @@ export interface ADTask {
   name: string;
   category: string;
   description: string;
+  instructions?: string;
   parameters: ADTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;

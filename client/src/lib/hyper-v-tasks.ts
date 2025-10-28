@@ -16,6 +16,7 @@ export interface HyperVTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: HyperVParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

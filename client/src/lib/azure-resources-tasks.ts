@@ -16,6 +16,7 @@ export interface AzureResourceTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: AzureResourceParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

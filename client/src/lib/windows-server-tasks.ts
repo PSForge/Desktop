@@ -16,6 +16,7 @@ export interface WindowsServerTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: WindowsServerParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

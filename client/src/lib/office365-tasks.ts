@@ -16,6 +16,7 @@ export interface Office365Task {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: Office365Parameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

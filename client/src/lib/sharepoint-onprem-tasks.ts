@@ -16,6 +16,7 @@ export interface SharePointOnPremTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: SharePointOnPremParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

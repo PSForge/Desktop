@@ -16,6 +16,7 @@ export interface Windows365Task {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: Windows365Parameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

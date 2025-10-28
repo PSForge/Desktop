@@ -16,6 +16,7 @@ export interface NetworkingTask {
   name: string;
   category: string;
   description: string;
+  instructions?: string;
   parameters: NetworkingTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;

@@ -16,6 +16,7 @@ export interface RegistryTask {
   name: string;
   category: string;
   description: string;
+  instructions?: string;
   parameters: RegistryTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;

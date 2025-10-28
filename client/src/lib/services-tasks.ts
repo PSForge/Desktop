@@ -16,6 +16,7 @@ export interface ServicesTask {
   name: string;
   category: string;
   description: string;
+  instructions?: string;
   parameters: ServicesTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;

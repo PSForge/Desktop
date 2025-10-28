@@ -16,6 +16,7 @@ export interface ProcessManagementTask {
   name: string;
   category: string;
   description: string;
+  instructions?: string;
   parameters: ProcessManagementTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;

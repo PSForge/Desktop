@@ -16,6 +16,7 @@ export interface IntuneTask {
   title: string;
   description: string;
   category: string;
+  instructions?: string;
   parameters: IntuneParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
 }

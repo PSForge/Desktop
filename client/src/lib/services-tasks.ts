@@ -28,6 +28,35 @@ export const servicesTasks: ServicesTask[] = [
     name: 'Get Service Status Report',
     category: 'Service Inventory',
     description: 'List Windows services with status, startup type, and account',
+    instructions: `**How This Task Works:**
+- Generates comprehensive report of all Windows services
+- Shows current status, startup configuration, and service account
+- Can filter by running or stopped status
+- Exports to CSV for analysis
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required for basic info)
+- WMI access for startup mode and account details
+
+**What You Need to Provide:**
+- Status filter: All, Running, or Stopped services
+- Optional: CSV export path for saving report
+
+**What the Script Does:**
+1. Retrieves services based on status filter
+2. Queries WMI for detailed startup and account information
+3. Creates structured report with name, display name, status, startup type, and account
+4. Displays formatted table in console
+5. Optionally exports to CSV file
+
+**Important Notes:**
+- Service names are case-insensitive
+- Report includes both automatic and manual services
+- Typical use: inventory, documentation, troubleshooting
+- CSV export useful for Excel analysis
+- Shows actual service account (LocalSystem, NetworkService, custom accounts)
+- Use this before making service configuration changes`,
     parameters: [
       { id: 'status', label: 'Filter by Status', type: 'select', required: false, options: ['All', 'Running', 'Stopped'], defaultValue: 'All' },
       { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
@@ -73,6 +102,36 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     name: 'Start Windows Service',
     category: 'Service Control',
     description: 'Start a stopped Windows service',
+    instructions: `**How This Task Works:**
+- Starts a single Windows service by name
+- Verifies service exists before attempting start
+- Checks if already running to avoid errors
+- Waits and confirms successful startup
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must be enabled (not disabled)
+- Service dependencies must be running
+
+**What You Need to Provide:**
+- Service name (not display name, e.g., "Spooler" not "Print Spooler")
+
+**What the Script Does:**
+1. Validates service exists on system
+2. Checks current service status
+3. Skips if already running
+4. Starts the service
+5. Waits 2 seconds and verifies startup success
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Use exact service name (case-insensitive)
+- Find service names with "Get Service Status Report" task
+- Service may fail to start if dependencies are stopped
+- Typical use: restart failed services, enable disabled features
+- Some services require specific accounts or permissions
+- Check Event Viewer if service fails to start`,
     parameters: [
       { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
     ],
@@ -109,6 +168,37 @@ if ($Service) {
     name: 'Stop Windows Service',
     category: 'Service Control',
     description: 'Stop a running Windows service',
+    instructions: `**How This Task Works:**
+- Stops a single Windows service by name
+- Can optionally force stop dependent services
+- Verifies service exists before attempting stop
+- Confirms successful shutdown
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must be running
+- Consider impact on dependent services
+
+**What You Need to Provide:**
+- Service name (not display name)
+- Force option: stops dependent services if enabled
+
+**What the Script Does:**
+1. Validates service exists on system
+2. Checks current service status
+3. Skips if already stopped
+4. Stops the service (with or without dependencies)
+5. Waits 2 seconds and verifies stop success
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Force option stops ALL dependent services (use with caution)
+- Typical use: troubleshooting, maintenance, service conflicts
+- Some system services may restart automatically
+- Stopping critical services can impact system stability
+- Check dependencies before stopping with "Get Service Dependencies" task
+- Services set to Automatic may restart on next boot`,
     parameters: [
       { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' },
       { id: 'force', label: 'Force Stop (Kill Dependent Services)', type: 'boolean', required: false, defaultValue: false }
@@ -153,6 +243,36 @@ if ($Service) {
     name: 'Restart Windows Service',
     category: 'Service Control',
     description: 'Restart a Windows service (stop and start)',
+    instructions: `**How This Task Works:**
+- Restarts service by stopping and starting it
+- Forces restart even if service is already stopped
+- Waits and verifies service returns to running state
+- Essential for applying configuration changes
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must be enabled (not disabled)
+- Service dependencies must be running
+
+**What You Need to Provide:**
+- Service name (not display name)
+
+**What the Script Does:**
+1. Validates service exists on system
+2. Stops the service if running
+3. Starts the service again
+4. Waits 3 seconds for stabilization
+5. Verifies service is running
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Always forces restart (even dependent services)
+- Typical use: apply config changes, resolve hung services
+- Brief service interruption expected (3-5 seconds)
+- Some services may take longer to restart
+- Check Event Viewer if restart fails
+- Configuration changes often require restart to take effect`,
     parameters: [
       { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
     ],
@@ -192,6 +312,36 @@ if ($Service) {
     name: 'Set Service Startup Type',
     category: 'Startup Configuration',
     description: 'Change service startup type (Automatic, Manual, Disabled)',
+    instructions: `**How This Task Works:**
+- Changes when and how a service starts
+- Configures service to start automatically, manually, or never
+- Does not affect currently running services
+- Essential for service optimization and security
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must exist on system
+
+**What You Need to Provide:**
+- Service name (not display name)
+- Startup type: Automatic, Manual, or Disabled
+
+**What the Script Does:**
+1. Validates service exists on system
+2. Changes startup type configuration
+3. Verifies new startup type is applied
+4. Reports current startup mode
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Automatic: starts at boot automatically
+- Manual: starts only when triggered by user/application
+- Disabled: prevents service from starting at all
+- Change does NOT stop/start running services
+- Typical use: optimize boot time, disable unused services, security hardening
+- Some services are critical and should not be disabled
+- Use "Get Stopped Auto Services" task to find services that should be running`,
     parameters: [
       { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' },
       { id: 'startupType', label: 'Startup Type', type: 'select', required: true, options: ['Automatic', 'Manual', 'Disabled'], defaultValue: 'Manual' }
@@ -226,6 +376,39 @@ if ($Service) {
     name: 'Set Service Logon Account',
     category: 'Service Accounts',
     description: 'Change the account a service runs under',
+    instructions: `**How This Task Works:**
+- Changes the security context a service runs under
+- Supports built-in accounts or custom domain/local accounts
+- Critical for service permissions and security
+- Requires service restart to take effect
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must exist on system
+- Custom account must have "Log on as a service" right
+
+**What You Need to Provide:**
+- Service name (not display name)
+- Account type: LocalSystem, NetworkService, LocalService, or Custom
+- If Custom: account name (DOMAIN\\User) and password
+
+**What the Script Does:**
+1. Validates service exists on system
+2. Configures service to run under specified account
+3. Sets password if custom account selected
+4. Verifies account change applied
+5. Displays current service account
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- LocalSystem: most privileges, use for system services only
+- NetworkService: network access with computer account credentials
+- LocalService: limited privileges, no network access
+- Custom: specific user account with custom permissions
+- Service MUST BE RESTARTED after account change
+- Custom accounts need "Log on as a service" right in Local Security Policy
+- Typical use: security hardening, grant specific permissions, domain service accounts`,
     parameters: [
       { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'MyService' },
       { id: 'account', label: 'Account', type: 'select', required: true, options: ['LocalSystem', 'NetworkService', 'LocalService', 'Custom'], defaultValue: 'NetworkService' },
@@ -283,6 +466,35 @@ if ($Service) {
     name: 'Get Service Dependencies',
     category: 'Service Dependencies',
     description: 'List services that depend on or are required by a service',
+    instructions: `**How This Task Works:**
+- Shows bidirectional service dependency relationships
+- Lists services this service requires to function
+- Lists services that require this service to function
+- Essential before stopping or modifying services
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+- Service must exist on system
+
+**What You Need to Provide:**
+- Service name (not display name)
+
+**What the Script Does:**
+1. Validates service exists on system
+2. Retrieves services this service depends on (required for startup)
+3. Retrieves services that depend on this service (will be affected if stopped)
+4. Displays both dependency lists with status
+5. Reports if no dependencies exist
+
+**Important Notes:**
+- Dependencies are critical for service operation
+- Stopping a service may stop dependent services too
+- Starting a service requires its dependencies to be running
+- Typical use: troubleshooting startup failures, planning maintenance
+- Use before bulk service operations
+- Circular dependencies can exist in complex systems
+- Some services have hidden dependencies not shown here`,
     parameters: [
       { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
     ],
@@ -326,6 +538,40 @@ if ($Service) {
     name: 'Set Service Recovery Options',
     category: 'Recovery & Failover',
     description: 'Configure service failure recovery actions',
+    instructions: `**How This Task Works:**
+- Configures automatic actions when service fails
+- Sets different actions for first, second, and subsequent failures
+- Enables service self-healing and high availability
+- Uses Windows Service Control Manager (SCM) recovery features
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must exist on system
+- sc.exe utility (built into Windows)
+
+**What You Need to Provide:**
+- Service name (not display name)
+- First failure action: Restart, Reboot, or None
+- Second failure action: Restart, Reboot, or None
+- Subsequent failures action: Restart, Reboot, or None
+
+**What the Script Does:**
+1. Validates service exists on system
+2. Configures recovery actions using sc.exe
+3. Sets 60-second delay before restart actions
+4. Sets 24-hour reset period for failure counter
+5. Reports configured recovery actions
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Restart: automatically restarts service after 60 seconds
+- Reboot: restarts entire computer (use with extreme caution)
+- None: no automatic action taken
+- Typical use: critical service high availability, unattended servers
+- Failure counter resets after 24 hours without failures
+- Consider impact of Reboot action on production systems
+- Does not prevent failures, only responds to them`,
     parameters: [
       { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'MyService' },
       { id: 'firstFailure', label: 'First Failure Action', type: 'select', required: true, options: ['Restart', 'Reboot', 'None'], defaultValue: 'Restart' },
@@ -365,6 +611,38 @@ if ($Service) {
     name: 'Bulk Start Services (by Pattern)',
     category: 'Service Control',
     description: 'Start multiple services matching a name pattern',
+    instructions: `**How This Task Works:**
+- Starts multiple services using wildcard pattern matching
+- Filters to only stopped services
+- Test mode allows preview before actual execution
+- Efficient for managing service groups
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Services must exist and be enabled
+- Service dependencies must be running
+
+**What You Need to Provide:**
+- Service name pattern with wildcards (e.g., "Windows*", "*Update*")
+- Test mode: true to preview, false to execute
+
+**What the Script Does:**
+1. Finds stopped services matching pattern
+2. Displays list of matching services
+3. In test mode: shows services without starting
+4. In execution mode: starts each service individually
+5. Reports success/failure for each service
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Test mode enabled by default for safety
+- Wildcard patterns: * matches any characters
+- Typical use: start application service groups, post-maintenance startup
+- Services start sequentially, not simultaneously
+- Individual failures reported but don't stop bulk operation
+- Disable test mode to actually start services
+- Review pattern matches in test mode first`,
     parameters: [
       { id: 'pattern', label: 'Service Name Pattern', type: 'text', required: true, placeholder: 'Windows*' },
       { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
@@ -411,6 +689,38 @@ if ($Services) {
     name: 'Bulk Stop Services (by Pattern)',
     category: 'Service Control',
     description: 'Stop multiple services matching a name pattern',
+    instructions: `**How This Task Works:**
+- Stops multiple services using wildcard pattern matching
+- Filters to only running services
+- Test mode allows preview before actual execution
+- Forces stop to handle dependent services
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Services must exist on system
+- Consider impact on dependent services
+
+**What You Need to Provide:**
+- Service name pattern with wildcards (e.g., "Windows*", "*SQL*")
+- Test mode: true to preview, false to execute
+
+**What the Script Does:**
+1. Finds running services matching pattern
+2. Displays list of matching services
+3. In test mode: shows services without stopping
+4. In execution mode: force stops each service individually
+5. Reports success/failure for each service
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Test mode enabled by default for safety
+- Force stops ALL matching services and dependencies
+- Typical use: shut down application service groups, maintenance prep
+- Services stop sequentially, not simultaneously
+- Individual failures reported but don't stop bulk operation
+- REVIEW pattern matches in test mode before disabling test mode
+- Stopping critical services can impact system stability`,
     parameters: [
       { id: 'pattern', label: 'Service Name Pattern', type: 'text', required: true, placeholder: 'Windows*' },
       { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
@@ -457,6 +767,35 @@ if ($Services) {
     name: 'Export Service Configuration',
     category: 'Backup & Documentation',
     description: 'Export service configuration for backup or documentation',
+    instructions: `**How This Task Works:**
+- Exports complete service configuration to CSV file
+- Captures all service details for documentation or backup
+- Useful for disaster recovery and compliance
+- Can be imported into Excel for analysis
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+- Write permissions on export destination
+- WMI access for service details
+
+**What You Need to Provide:**
+- Export file path with .csv extension
+
+**What the Script Does:**
+1. Queries WMI for all services on system
+2. Retrieves name, display name, state, startup mode, account, path, and description
+3. Exports to CSV file with headers
+4. Reports total service count
+
+**Important Notes:**
+- No administrator privileges required
+- Exports ALL services on system
+- CSV format compatible with Excel, documentation tools
+- Typical use: documentation, compliance audits, disaster recovery planning
+- Compare exports before/after changes to track configuration drift
+- Includes service executable paths and descriptions
+- Service account names visible (passwords not included)`,
     parameters: [
       { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: true, placeholder: 'C:\\Backups\\Services.csv' }
     ],
@@ -485,6 +824,36 @@ Write-Host "  Total services: $($Services.Count)" -ForegroundColor Gray`;
     name: 'Get Stopped Automatic Services',
     category: 'Service Health',
     description: 'Report services set to Automatic that are currently stopped',
+    instructions: `**How This Task Works:**
+- Identifies services that should be running but aren't
+- Checks for automatic services in stopped state
+- Essential health check for system reliability
+- No parameters required - fully automated
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+- WMI access for service details
+
+**What You Need to Provide:**
+- Nothing - fully automated scan
+
+**What the Script Does:**
+1. Queries WMI for all services on system
+2. Filters to services with Automatic startup type
+3. Identifies services not in Running state
+4. Displays table of stopped automatic services
+5. Reports count of issues found
+
+**Important Notes:**
+- No administrator privileges required
+- Services set to Automatic should always be running
+- Stopped automatic services may indicate problems
+- Typical use: health monitoring, troubleshooting, compliance checks
+- Run after system startup to verify all services started
+- Some services fail to start due to missing dependencies
+- Check Event Viewer for service failure reasons
+- Use "Start Service" task to manually start stopped services`,
     parameters: [],
     scriptTemplate: () => {
       return `# Get Stopped Automatic Services
@@ -514,6 +883,37 @@ if ($StoppedAuto) {
     name: 'Disable Unnecessary Services (Security Hardening)',
     category: 'Security Hardening',
     description: 'Disable common unnecessary services for security hardening',
+    instructions: `**How This Task Works:**
+- Disables commonly unnecessary services for security
+- Reduces attack surface by stopping unused services
+- Test mode shows what would be disabled before executing
+- Based on security hardening best practices
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Understanding of impact on system functionality
+- Backup or documentation of current state recommended
+
+**What You Need to Provide:**
+- Test mode: true to preview, false to execute
+
+**What the Script Does:**
+1. Defines list of commonly disabled services (RemoteRegistry, RemoteAccess, SSDP, UPnP, Error Reporting, Search)
+2. Checks each service status and startup mode
+3. In test mode: shows which services would be disabled
+4. In execution mode: disables and stops each service
+5. Reports action taken for each service
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Test mode enabled by default for safety
+- Services disabled: RemoteRegistry, RemoteAccess, SSDP Discovery, UPnP, Windows Error Reporting, Windows Search
+- Typical use: security hardening, reduce attack surface, compliance
+- Disabling services may impact some features
+- Windows Search disable affects file search performance
+- REVIEW list before disabling test mode
+- Can re-enable services if needed with "Set Service Startup" task`,
     parameters: [
       { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
     ],
@@ -569,6 +969,37 @@ Write-Host "✓ Security hardening complete" -ForegroundColor Green`}`;
     name: 'Monitor Service Failures (Event Log)',
     category: 'Service Health',
     description: 'Report service crash/failure events from System event log',
+    instructions: `**How This Task Works:**
+- Scans Windows System Event Log for service crash events
+- Identifies unexpected service terminations
+- Reports service failures within specified timeframe
+- Essential for monitoring service health and reliability
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required for reading logs)
+- Windows Event Log service must be running
+- Event log access permissions
+
+**What You Need to Provide:**
+- Hours back to search (default: 24 hours)
+
+**What the Script Does:**
+1. Calculates search timeframe from current time
+2. Queries System Event Log for service crash events (Event IDs 7034, 7031)
+3. Event ID 7034: service crashed unexpectedly
+4. Event ID 7031: service terminated unexpectedly
+5. Displays each failure event with timestamp and message
+
+**Important Notes:**
+- No administrator privileges required
+- Event ID 7034: service process terminated unexpectedly
+- Event ID 7031: service terminated and needs to restart
+- Typical use: proactive monitoring, troubleshooting, root cause analysis
+- Check results regularly for early warning of service issues
+- Events persist based on Event Log retention settings
+- Use with "Set Service Recovery" task to auto-restart failed services
+- Review Event Viewer Application log for additional service details`,
     parameters: [
       { id: 'hours', label: 'Hours Back', type: 'number', required: false, defaultValue: 24 }
     ],

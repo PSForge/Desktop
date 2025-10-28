@@ -430,6 +430,36 @@ try {
     name: 'Bulk Create Collections from CSV',
     category: 'Collections & Queries',
     description: 'Create multiple collections from CSV file with names, limiting collections, and queries',
+    instructions: `**How This Task Works:**
+This script automates mass collection creation from CSV for efficient MECM environment setup and standardization.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Collection creation permissions
+- CSV file with Name, Limiting, Query columns
+
+**What You Need to Provide:**
+- CSV file path with collection definitions
+- Optional: Target folder path for organization
+- Test mode for preview (recommended first run)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates CSV file exists and reads collection definitions
+3. For each collection: checks if exists, creates with limiting collection
+4. Adds query membership rule for dynamic membership
+5. Configures daily refresh schedule
+6. Optional: Moves collections to specified folder
+7. Reports success/failure statistics
+
+**Important Notes:**
+- CSV must have columns: Name, Limiting, Query
+- ALWAYS test first with preview mode enabled
+- Essential for standardized environment builds
+- Use for multi-tenant or templated deployments
+- Validate WQL queries before bulk import
+- Can create dozens/hundreds of collections quickly
+- Backup existing collections before bulk operations`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Scripts\\collections.csv', description: 'CSV with Name, Limiting, Query columns' },
       { id: 'folderPath', label: 'Target Folder Path (Optional)', type: 'text', required: false, placeholder: 'Device Collections\\Automated' },
@@ -540,6 +570,37 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Create Application from Installer',
     category: 'Applications & Deployments',
     description: 'Create a new application with install/uninstall commands and detection rules',
+    instructions: `**How This Task Works:**
+This script creates MECM applications with deployment types, install/uninstall commands, and detection logic for software distribution.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Application management permissions
+- Network-accessible source content path
+
+**What You Need to Provide:**
+- Application name and version
+- Source content UNC path (must be accessible by MECM)
+- Installer type (MSI, EXE, or Script)
+- Install and uninstall commands
+- Detection method (MSI product code, file path, registry, or custom script)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates application doesn't already exist
+3. Creates new application object with version
+4. Adds deployment type with install/uninstall commands
+5. Configures detection method based on selected type
+6. Reports next steps for content distribution
+
+**Important Notes:**
+- Source path must be UNC path accessible from MECM server
+- MSI detection extracts product code from install command
+- File/Registry detection uses PowerShell script validation
+- After creation: distribute content and create deployment
+- Test install/uninstall commands before production
+- Essential foundation for software distribution
+- Detection rules critical for accurate installation reporting`,
     parameters: [
       { id: 'appName', label: 'Application Name', type: 'text', required: true, placeholder: '7-Zip 23.01' },
       { id: 'sourcePath', label: 'Source Content Path', type: 'path', required: true, placeholder: '\\\\server\\sources$\\7-Zip\\23.01' },
@@ -652,6 +713,42 @@ ${detectionValue}
     name: 'Create Deployment to Collection',
     category: 'Applications & Deployments',
     description: 'Deploy an application or package to one or more collections',
+    instructions: `**How This Task Works:**
+This script creates application deployments to collections for software distribution with configurable timing, notifications, and enforcement.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Application deployment permissions
+- Application must exist with content ALREADY DISTRIBUTED to distribution points
+- CRITICAL: Deployment will fail if content not distributed first
+
+**What You Need to Provide:**
+- Application/package name
+- Target collection(s) - comma-separated for multiple
+- Deployment action (Install/Uninstall)
+- Purpose (Available for self-service, Required for enforced)
+- Deadline hours (only used when Purpose=Required; 0=no deadline)
+- User notification preferences
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates application exists
+3. For each collection: validates exists, checks for existing deployment
+4. Creates deployment with specified action and purpose
+5. If Purpose=Required AND deadline>0: sets enforcement deadline
+6. Sets user notification preferences
+7. Reports success/failure for each collection
+
+**Important Notes:**
+- MUST distribute application content to DPs BEFORE running this script
+- Deployment will be created but fail if content not distributed
+- Available deployments appear in Software Center for self-service
+- Required deployments enforce installation/uninstall automatically
+- Deadline ONLY applies when Purpose=Required (ignored for Available)
+- Setting deadline=0 creates Required deployment with no enforcement time
+- Can deploy to multiple collections simultaneously
+- Check existing deployments to avoid duplicates
+- Essential for software distribution workflows`,
     parameters: [
       { id: 'appName', label: 'Application/Package Name', type: 'text', required: true, placeholder: '7-Zip 23.01' },
       { id: 'collectionNames', label: 'Target Collections (comma-separated)', type: 'textarea', required: true, placeholder: 'Pilot-Workstations, IT-Department' },
@@ -765,6 +862,42 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Phased Deployment (Pilot → Broad)',
     category: 'Applications & Deployments',
     description: 'Create a phased deployment starting with pilot collection then expanding to broad collection',
+    instructions: `**How This Task Works:**
+This script creates staged deployments with pilot testing before broad rollout for risk mitigation and controlled software distribution.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Application deployment permissions
+- Pilot and broad collections configured
+- Application with content ALREADY DISTRIBUTED to distribution points
+- CRITICAL: Phased deployment will fail if content not distributed first
+
+**What You Need to Provide:**
+- Application name
+- Pilot collection (small test group)
+- Broad collection (production users)
+- Pilot duration in days (evaluation period)
+- Success threshold percentage (e.g., 95%)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates application and both collections exist
+3. Creates Required deployment to pilot collection immediately
+4. Monitors pilot success rate during pilot duration
+5. After pilot duration: checks if success threshold met
+6. If successful: creates Required deployment to broad collection
+7. Reports phased deployment status and next steps
+
+**Important Notes:**
+- MUST distribute application content to DPs BEFORE running this script
+- Both pilot and broad deployments require prior content distribution
+- Pilot deployment is immediate and Required
+- Broad deployment waits for pilot duration + success check
+- Success threshold based on installation success rate
+- Essential for risk mitigation in production deployments
+- Allows rollback before broad impact
+- Monitor pilot results during pilot duration
+- Typical pilot duration: 3-14 days depending on urgency`,
     parameters: [
       { id: 'appName', label: 'Application Name', type: 'text', required: true, placeholder: 'Microsoft Edge 119' },
       { id: 'pilotCollection', label: 'Pilot Collection', type: 'text', required: true, placeholder: 'Pilot-Workstations' },

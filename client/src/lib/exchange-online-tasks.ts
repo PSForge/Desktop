@@ -1442,5 +1442,68 @@ try {
     exit 1
 }`;
     }
+  },
+
+  {
+    id: 'export-distribution-list-members',
+    name: 'Export Distribution List Members',
+    category: 'Reporting & Inventory',
+    description: 'Export all members of distribution lists and groups to CSV',
+    parameters: [
+      { id: 'groupIdentity', label: 'Distribution List Identity (Optional - leave blank for all)', type: 'email', required: false, placeholder: 'sales@contoso.com' },
+      { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\DistributionListMembers.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const groupIdentity = params.groupIdentity ? escapePowerShellString(params.groupIdentity) : '';
+      const outputPath = escapePowerShellString(params.outputPath);
+
+      return `# Export Distribution List Members
+# Generated: ${new Date().toISOString()}
+
+# Connect to Exchange Online
+# Run: Connect-ExchangeOnline -UserPrincipalName admin@contoso.com
+
+${groupIdentity ? `$GroupIdentity = "${groupIdentity}"` : ''}
+$OutputPath = "${outputPath}"
+$Results = @()
+
+try {
+    ${groupIdentity ? `
+    # Export specific group
+    $Group = Get-DistributionGroup -Identity $GroupIdentity
+    $Groups = @($Group)
+    ` : `
+    # Export all groups
+    $Groups = Get-DistributionGroup -ResultSize Unlimited
+    `}
+    
+    Write-Host "Processing $($Groups.Count) distribution lists..." -ForegroundColor Cyan
+    
+    foreach ($Group in $Groups) {
+        $Members = Get-DistributionGroupMember -Identity $Group.PrimarySmtpAddress
+        
+        foreach ($Member in $Members) {
+            $Results += [PSCustomObject]@{
+                GroupName = $Group.DisplayName
+                GroupEmail = $Group.PrimarySmtpAddress
+                MemberName = $Member.DisplayName
+                MemberEmail = $Member.PrimarySmtpAddress
+                MemberType = $Member.RecipientTypeDetails
+            }
+        }
+    }
+    
+    $Results | Export-Csv -Path $OutputPath -NoTypeInformation
+    Write-Host ""
+    Write-Host "✓ Distribution list members exported!" -ForegroundColor Green
+    Write-Host "  Groups Processed: $($Groups.Count)" -ForegroundColor Gray
+    Write-Host "  Total Members: $($Results.Count)" -ForegroundColor Gray
+    Write-Host "  Output: $OutputPath" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to export distribution list members: $_"
+    exit 1
+}`;
+    }
   }
 ];

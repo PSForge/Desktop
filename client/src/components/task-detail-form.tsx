@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowLeft, Code, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Code, AlertCircle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TaskDetailFormProps {
@@ -195,6 +196,17 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
               </span>
             </div>
           </CardHeader>
+
+          {task.instructions && (
+            <div className="px-6 pb-4">
+              <Alert className="bg-accent/20 border-accent" data-testid="alert-task-instructions">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="mt-2 text-sm leading-relaxed whitespace-pre-line">
+                  {task.instructions}
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">

@@ -36,6 +36,35 @@ export const mecmTasks: MECMTask[] = [
     name: 'Create Device Collection (Query-based)',
     category: 'Collections & Queries',
     description: 'Create a new device collection with WQL query rules and automatic refresh schedule',
+    instructions: `**How This Task Works:**
+This script creates dynamic device collections in MECM using WQL queries for automated device grouping based on criteria.
+
+**Prerequisites:**
+- MECM Console installed with ConfigurationManager PowerShell module
+- SMS Provider access
+- Collection creation permissions
+
+**What You Need to Provide:**
+- Collection name
+- Limiting collection (scope boundary)
+- WQL query for membership criteria
+- Optional: Folder path, incremental updates, refresh schedule
+
+**What the Script Does:**
+1. Imports ConfigurationManager module
+2. Connects to MECM site
+3. Creates device collection with limiting collection
+4. Adds query membership rule
+5. Configures refresh schedule and incremental updates
+6. Optional: Moves collection to specific folder
+
+**Important Notes:**
+- Limiting collection defines maximum scope
+- WQL query determines automatic membership
+- Incremental updates provide real-time membership changes
+- Refresh schedule updates full membership evaluation
+- Essential for automated device management at scale
+- Test WQL queries before deployment`,
     parameters: [
       { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'Windows 11 Devices' },
       { id: 'limitingCollection', label: 'Limiting Collection', type: 'text', required: true, placeholder: 'All Systems', defaultValue: 'All Systems' },
@@ -143,6 +172,34 @@ ${folderPath ? `
     name: 'Bulk Add Devices to Collection',
     category: 'Collections & Queries',
     description: 'Add multiple devices to a collection using direct membership from CSV file',
+    instructions: `**How This Task Works:**
+This script adds multiple devices to MECM collections at scale using CSV import for efficient bulk membership management.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Collection management permissions
+- CSV file with DeviceName column
+
+**What You Need to Provide:**
+- Target collection name
+- CSV file path with device names
+- Test mode for preview (recommended first run)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates collection exists
+3. Imports CSV with device names
+4. For each device: finds in MECM, checks existing membership
+5. Adds direct membership rules (or previews in test mode)
+6. Reports success/failure/already-member statistics
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- Direct membership overrides query-based rules
+- Skips devices already in collection
+- Large batches (500+) may take significant time
+- CSV must have "DeviceName" column header
+- Essential for pilot deployments and targeted groups`,
     parameters: [
       { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'Pilot-Workstations' },
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Scripts\\devices.csv', description: 'CSV with "DeviceName" column' },
@@ -248,6 +305,36 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Create Pilot Collection (N% Sampling)',
     category: 'Collections & Queries',
     description: 'Create a pilot collection with random sampling from a source collection',
+    instructions: `**How This Task Works:**
+This script creates pilot collections using random sampling for safe staged deployments and testing before broad rollouts.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Collection creation permissions
+- Source collection with devices
+
+**What You Need to Provide:**
+- Source collection name
+- Pilot collection name
+- Sample percentage (e.g., 10% for 10 of 100 devices)
+- Option to exclude VIPs/Servers
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates source collection exists
+3. Retrieves all devices from source
+4. Optional: Filters out VIP/Server devices
+5. Calculates sample size based on percentage
+6. Randomly selects devices for pilot
+7. Creates pilot collection with direct membership
+
+**Important Notes:**
+- Random sampling ensures representative pilot group
+- Excludes VIP/Server devices by default for safety
+- Essential for phased deployments
+- Pilot percentage typically 5-15%
+- Use for application/update testing before production
+- Can re-run to create different pilot groups`,
     parameters: [
       { id: 'sourceCollection', label: 'Source Collection', type: 'text', required: true, placeholder: 'All Workstations' },
       { id: 'pilotName', label: 'Pilot Collection Name', type: 'text', required: true, placeholder: 'Pilot - Workstations' },

@@ -27,6 +27,30 @@ export const teamsTasks: TeamsTask[] = [
     title: 'Export Teams List',
     description: 'Export list of all Microsoft Teams to CSV',
     category: 'Team Management',
+    instructions: `**How This Task Works:**
+This script exports a complete inventory of all Microsoft Teams in your organization for documentation and governance.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Team.ReadBasic.All permission
+- Connected to Microsoft Graph
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves all Teams in organization
+3. Extracts name, ID, visibility, and description
+4. Exports comprehensive report to CSV
+
+**Important Notes:**
+- Essential for Teams governance and inventory
+- Shows Public vs Private teams
+- Critical for compliance audits
+- Use for identifying unused or duplicate teams
+- Large organizations (100+ teams) may take time
+- Export includes all teams regardless of membership`,
     parameters: [
       {
         name: 'exportPath',
@@ -76,6 +100,32 @@ try {
     title: 'Export Team Members',
     description: 'Export members of a specific team to CSV',
     category: 'Team Management',
+    instructions: `**How This Task Works:**
+This script exports membership roster for a specific Team including roles (Owner vs Member) for access reviews and documentation.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- TeamMember.Read.All permission
+- Connected to Microsoft Graph
+
+**What You Need to Provide:**
+- Team name
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Finds team by display name
+3. Retrieves all team members
+4. Extracts member details and roles
+5. Exports membership report to CSV
+
+**Important Notes:**
+- Critical for access governance and reviews
+- Shows member vs owner roles
+- Essential for team audit documentation
+- Includes UPN for easy identification
+- Use for SOC 2 and compliance audits
+- Export limited to one team at a time`,
     parameters: [
       {
         name: 'teamName',
@@ -139,6 +189,32 @@ try {
     title: 'Export Team Channels',
     description: 'Export channels from a specific team to CSV',
     category: 'Channel Management',
+    instructions: `**How This Task Works:**
+This script exports all channels from a specific Team for documentation, showing channel structure and membership types.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Channel.ReadBasic.All permission
+- Connected to Microsoft Graph
+
+**What You Need to Provide:**
+- Team name
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Finds team by display name
+3. Retrieves all channels
+4. Extracts channel details and membership type
+5. Exports channel report to CSV
+
+**Important Notes:**
+- Shows Standard vs Private channels
+- Essential for Teams structure documentation
+- Use to identify unused channels
+- MembershipType determines access control
+- Private channels have restricted membership
+- General channel always included (cannot be deleted)`,
     parameters: [
       {
         name: 'teamName',
@@ -202,6 +278,30 @@ try {
     title: 'Export Guest Users in Teams',
     description: 'Export list of all guest users across all teams to CSV',
     category: 'Reporting',
+    instructions: `**How This Task Works:**
+This script exports all guest users in your organization for security audits, external access governance, and compliance.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- User.Read.All and TeamMember.Read.All permissions
+- Connected to Microsoft Graph
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves all guest users (userType = Guest)
+3. Extracts guest details and creation date
+4. Exports guest user report to CSV
+
+**Important Notes:**
+- Critical for security and compliance audits
+- Shows all external collaborators
+- Essential for guest access governance
+- Identifies when guests were added
+- Use for access reviews and cleanup
+- Helps enforce least privilege access`,
     parameters: [
       {
         name: 'exportPath',
@@ -251,6 +351,31 @@ try {
     title: 'Export Teams Policies',
     description: 'Export Teams messaging and meeting policies to CSV',
     category: 'Policy Management',
+    instructions: `**How This Task Works:**
+This script exports Teams policies for governance, documentation, and ensuring consistent policy enforcement across organization.
+
+**Prerequisites:**
+- Microsoft Teams PowerShell module installed
+- Teams Administrator role
+- Must manually connect to Teams first: Connect-MicrosoftTeams
+
+**What You Need to Provide:**
+- CSV export file path
+- Prior connection to Microsoft Teams
+
+**What the Script Does:**
+1. Retrieves messaging policies from connected Teams session
+2. Extracts policy identity and description
+3. Exports policy report to CSV
+
+**Important Notes:**
+- You must connect to Teams BEFORE running this script
+- Essential for Teams governance documentation
+- Shows all configured messaging policies
+- Use for policy standardization
+- Critical for compliance audits
+- Expand script to include meeting/calling policies
+- Helps identify policy conflicts`,
     parameters: [
       {
         name: 'exportPath',

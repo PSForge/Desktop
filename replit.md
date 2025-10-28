@@ -4,15 +4,15 @@
 PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 8 basic Windows management categories, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 623 automation tasks across 16 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
 ## Recent Changes (October 28, 2025)
-**MAJOR MILESTONE: 43.0% Complete (266/618 tasks)**
-- Completed comprehensive instructions for Process Management category - all 11 tasks documented
-- Added instructions to all process-related tasks: process inventory, CPU/memory monitoring, process control, startup programs, process trees, hung processes, priority/affinity settings, and handle monitoring
-- **Newly Completed Category:** Process Management (11)
-- **Total Fully Complete Categories: 16 of 23**
-  - Active Directory (30), Azure AD/Entra ID (25), Azure Resources (31), Exchange Online (20), Hyper-V (29), Intune (29), Microsoft Teams (30), Office 365 (5), OneDrive (5), Power Platform (5), Process Management (11), Security Management (15), SharePoint Online (5), SharePoint On-Premises (5), Windows 365 (5), Windows Server (5)
+**MAJOR MILESTONE: 44.7% Complete (276/618 tasks)**
+- Completed comprehensive instructions for Registry category - all 10 tasks documented
+- Added instructions to all registry tasks: read/write/delete values, export/import .reg files, registry search, hive backups, key comparison, subkey listing, and ACL permissions
+- **Newly Completed Category:** Registry (10)
+- **Total Fully Complete Categories: 17 of 23**
+  - Active Directory (30), Azure AD/Entra ID (25), Azure Resources (31), Exchange Online (20), Hyper-V (29), Intune (29), Microsoft Teams (30), Office 365 (5), OneDrive (5), Power Platform (5), Process Management (11), Registry (10), Security Management (15), SharePoint Online (5), SharePoint On-Premises (5), Windows 365 (5), Windows Server (5)
 - **Partially Complete Categories: 1**
   - MECM (11/60)
-- **Remaining Work:** 352 tasks across 7 categories
+- **Remaining Work:** 342 tasks across 6 categories
 - All instructions follow Markdown formatting standards with hyphenated bullets for "How This Task Works" and numbered bullets for "What the Script Does"
 
 ## User Preferences

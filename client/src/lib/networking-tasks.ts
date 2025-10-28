@@ -861,6 +861,36 @@ Write-Host "Scan complete" -ForegroundColor Gray`;
     name: 'Disable IPv6 on Adapters',
     category: 'IP Configuration',
     description: 'Disable IPv6 protocol on network adapters',
+    instructions: `**How This Task Works:**
+- Disables IPv6 protocol on specified adapters
+- Can target single adapter or all active adapters
+- Unbinds IPv6 from network interface
+- Essential for environments that don't use IPv6
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Network adapter(s) must exist
+- Be aware of Microsoft service dependencies
+
+**What You Need to Provide:**
+- Adapter name (optional - leave blank to disable on all active adapters)
+
+**What the Script Does:**
+1. Identifies target adapter(s) (specific or all active)
+2. Disables IPv6 binding on each adapter
+3. Displays confirmation for each adapter
+4. Shows warning about Microsoft service dependencies
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Some Microsoft services require IPv6 (DirectAccess, Windows Defender ATP)
+- Typical use: compliance requirements, troubleshooting, security hardening
+- Does not remove IPv6, only disables binding
+- Changes take effect immediately (no reboot required)
+- To re-enable: Enable-NetAdapterBinding -ComponentID ms_tcpip6
+- May affect Microsoft 365/Azure connectivity
+- Consider firewall rules instead of full disable`,
     parameters: [
       { id: 'adapterName', label: 'Adapter Name (blank for all)', type: 'text', required: false, placeholder: 'Ethernet' }
     ],

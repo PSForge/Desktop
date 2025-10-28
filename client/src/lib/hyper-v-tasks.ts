@@ -2581,8 +2581,139 @@ try {
     }
   },
 
-  {id:'hyperv-export-config',title:'Export VM Configuration',description:'Backup VM settings to XML',category:'Reporting',parameters:[{name:'vmName',label:'VM Name',type:'text',required:true},{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\VMConfigs'}],scriptTemplate:p=>`try{$VM=Get-VM -Name "${escapePowerShellString(p.vmName)}";$VM|Export-VM -Path "${escapePowerShellString(p.exportPath)}";Write-Host "✓ VM config exported" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'hyperv-configure-replication',title:'Configure VM Replication',description:'Setup Hyper-V Replica for disaster recovery',category:'High Availability',parameters:[{name:'vmName',label:'VM Name',type:'text',required:true},{name:'replicaServer',label:'Replica Server',type:'text',required:true,placeholder:'HV-REPLICA01'},{name:'replicationFrequency',label:'Replication Frequency (seconds)',type:'select',required:true,options:[{value:'30',label:'30 seconds'},{value:'300',label:'5 minutes'},{value:'900',label:'15 minutes'}],defaultValue:'300'}],scriptTemplate:p=>{const vmName=escapePowerShellString(p.vmName);const replicaServer=escapePowerShellString(p.replicaServer);const freq=p.replicationFrequency||'300';return `try{Write-Host "Configuring replication for ${vmName}" -ForegroundColor Cyan;Enable-VMReplication -VMName "${vmName}" -ReplicaServerName "${replicaServer}" -ReplicaServerPort 80 -AuthenticationType Kerberos -ReplicationFrequencySec ${freq};Start-VMInitialReplication -VMName "${vmName}";Write-Host "✓ Replication configured" -ForegroundColor Green}catch{Write-Error $_}`;}}
+  {
+    id: 'hyperv-export-config',
+    name: 'Export VM Configuration',
+    category: 'Reporting',
+    description: 'Backup VM settings to XML',
+    instructions: `**How This Task Works:**
+- Exports complete VM configuration to XML format
+- Includes VM settings, hardware config, network adapters
+- Creates backup for disaster recovery or migration
+- Can be imported to recreate VM
+
+**Prerequisites:**
+- Hyper-V PowerShell module installed
+- Hyper-V Administrator permissions
+- PowerShell 3.0 or later
+- Write permissions on export location
+- Sufficient disk space for export
+
+**What You Need to Provide:**
+- VM name to export
+- Export path (directory for configuration files)
+
+**What the Script Does:**
+1. Retrieves specified VM object
+2. Exports VM configuration to specified path
+3. Creates XML configuration files
+4. Displays success confirmation
+
+**Important Notes:**
+- REQUIRES HYPER-V ADMINISTRATOR PERMISSIONS
+- Export includes VM configuration only (not VHD files)
+- Creates directory structure under export path
+- Typical use: VM backup, migration preparation, disaster recovery
+- Exported config can be imported with Import-VM
+- Does NOT export virtual hard disks (VHDs/VHDXs)
+- Use for configuration backup, not full VM backup
+- Consider regular exports for critical VMs`,
+    parameters: [
+      { id: 'vmName', label: 'VM Name', type: 'text', required: true, placeholder: 'ProductionVM01' },
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\VMConfigs' }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Export VM Configuration
+# Generated: ${new Date().toISOString()}
+
+try {
+    $VM = Get-VM -Name "${vmName}"
+    
+    $VM | Export-VM -Path "${exportPath}"
+    
+    Write-Host "✓ VM config exported" -ForegroundColor Green
+} catch {
+    Write-Error $_
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-configure-replication',
+    name: 'Configure VM Replication',
+    category: 'High Availability',
+    description: 'Setup Hyper-V Replica for disaster recovery',
+    instructions: `**How This Task Works:**
+- Configures Hyper-V Replica for VM disaster recovery
+- Enables continuous replication to replica server
+- Provides RPO (Recovery Point Objective) options
+- Starts initial replication automatically
+
+**Prerequisites:**
+- Hyper-V PowerShell module installed
+- Hyper-V Administrator permissions on both servers
+- PowerShell 3.0 or later
+- Replica server configured to accept replication
+- Network connectivity between hosts
+- Firewall rules allowing replication traffic
+
+**What You Need to Provide:**
+- VM name to replicate
+- Replica server name
+- Replication frequency (30 sec, 5 min, or 15 min)
+
+**What the Script Does:**
+1. Enables VM replication to specified replica server
+2. Configures replication port (80) and authentication (Kerberos)
+3. Sets replication frequency
+4. Starts initial replication
+5. Displays confirmation
+
+**Important Notes:**
+- REQUIRES HYPER-V ADMINISTRATOR PERMISSIONS on both servers
+- Replica server must be configured to accept replication first
+- 30-second frequency requires Windows Server 2012 R2 or later
+- Initial replication can take time depending on VM size
+- Replication port 80 (HTTP) or 443 (HTTPS) must be accessible
+- Kerberos authentication requires domain membership
+- Typical use: disaster recovery, business continuity
+- Monitor replication health regularly`,
+    parameters: [
+      { id: 'vmName', label: 'VM Name', type: 'text', required: true, placeholder: 'ProductionVM01' },
+      { id: 'replicaServer', label: 'Replica Server', type: 'text', required: true, placeholder: 'HV-REPLICA01' },
+      { 
+        id: 'replicationFrequency', 
+        label: 'Replication Frequency', 
+        type: 'select', 
+        required: true,
+        options: ['30', '300', '900'],
+        defaultValue: '300'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const replicaServer = escapePowerShellString(params.replicaServer);
+      const freq = params.replicationFrequency || '300';
+      
+      return `# Configure VM Replication
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring replication for ${vmName}" -ForegroundColor Cyan
+    
+    Enable-VMReplication -VMName "${vmName}" -ReplicaServerName "${replicaServer}" -ReplicaServerPort 80 -AuthenticationType Kerberos -ReplicationFrequencySec ${freq}
+    
+    Start-VMInitialReplication -VMName "${vmName}"
+    
+    Write-Host "✓ Replication configured" -ForegroundColor Green
+} catch {
+    Write-Error $_
+}`;
+    }
+  }
 ];
 
 export const hyperVCategories = [

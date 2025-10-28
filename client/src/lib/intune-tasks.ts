@@ -2514,8 +2514,126 @@ try {
     }
   },
 
-  {id:'intune-export-inventory',title:'Export Device Inventory',description:'Complete device hardware report',category:'Reporting',parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Intune\\\\Inventory.csv'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All"\ntry{$Devices=Get-MgDeviceManagementManagedDevice|Select DisplayName,SerialNumber,Model,Manufacturer,OSVersion,LastSyncDateTime;$Devices|Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation;Write-Host "✓ Inventory exported: $($Devices.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'intune-export-noncompliant',title:'Export Non-Compliant Devices Report',description:'List all devices failing compliance policies',category:'Compliance',parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Intune\\\\NonCompliant.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All"\ntry{Write-Host "Collecting non-compliant devices..." -ForegroundColor Cyan;$Devices=Get-MgDeviceManagementManagedDevice -Filter "complianceState eq 'noncompliant'"|Select DeviceName,UserPrincipalName,OperatingSystem,ComplianceState,LastSyncDateTime;$Devices|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "✓ Non-compliant devices exported: $($Devices.Count)" -ForegroundColor Green}catch{Write-Error $_}`;}}
+  {
+    id: 'intune-export-inventory',
+    name: 'Export Device Inventory',
+    category: 'Reporting',
+    description: 'Complete device hardware report',
+    instructions: `**How This Task Works:**
+- Exports complete hardware inventory for all Intune-managed devices
+- Includes device name, serial number, model, manufacturer
+- Shows OS version and last sync time
+- Essential for asset management and reporting
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or Intune Administrator role
+- PowerShell 5.1 or later
+- DeviceManagementManagedDevices.Read.All permission
+- Write permissions on export location
+
+**What You Need to Provide:**
+- Export path for CSV file
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with required permissions
+2. Retrieves all managed devices
+3. Selects hardware inventory properties
+4. Exports to CSV file
+5. Displays device count
+
+**Important Notes:**
+- REQUIRES INTUNE ADMINISTRATOR OR GLOBAL ADMINISTRATOR ROLE
+- May take time with large device counts
+- Includes only Intune-enrolled devices
+- Typical use: asset tracking, hardware audits, compliance reporting
+- Refresh inventory by forcing device sync first
+- Serial numbers useful for warranty tracking
+- Consider scheduling regular exports for trending`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Intune\\Inventory.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Export Device Inventory
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All"
+
+try {
+    $Devices = Get-MgDeviceManagementManagedDevice | Select DisplayName, SerialNumber, Model, Manufacturer, OSVersion, LastSyncDateTime
+    
+    $Devices | Export-Csv "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Inventory exported: $($Devices.Count) devices" -ForegroundColor Green
+} catch {
+    Write-Error $_
+}`;
+    }
+  },
+
+  {
+    id: 'intune-export-noncompliant',
+    name: 'Export Non-Compliant Devices Report',
+    category: 'Compliance',
+    description: 'List all devices failing compliance policies',
+    instructions: `**How This Task Works:**
+- Exports all devices currently failing compliance policies
+- Shows device name, user, OS, compliance state
+- Includes last sync time for staleness checking
+- Critical for security and compliance monitoring
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or Intune Administrator role
+- PowerShell 5.1 or later
+- DeviceManagementManagedDevices.Read.All permission
+- Write permissions on export location
+
+**What You Need to Provide:**
+- Export path for CSV file
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with required permissions
+2. Filters devices with non-compliant status
+3. Retrieves device details and user assignments
+4. Exports to CSV file
+5. Displays non-compliant device count
+
+**Important Notes:**
+- REQUIRES INTUNE ADMINISTRATOR OR GLOBAL ADMINISTRATOR ROLE
+- Only shows currently non-compliant devices
+- Compliance state updates after device check-in
+- Typical use: security audits, compliance remediation, user notifications
+- Review compliance policies if many devices fail
+- Follow up with device owners for remediation
+- May indicate policy configuration issues if count is high
+- Check LastSyncDateTime for stale devices`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Intune\\NonCompliant.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Export Non-Compliant Devices Report
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All"
+
+try {
+    Write-Host "Collecting non-compliant devices..." -ForegroundColor Cyan
+    
+    $Devices = Get-MgDeviceManagementManagedDevice -Filter "complianceState eq 'noncompliant'" | Select DeviceName, UserPrincipalName, OperatingSystem, ComplianceState, LastSyncDateTime
+    
+    $Devices | Export-Csv "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Non-compliant devices exported: $($Devices.Count)" -ForegroundColor Green
+} catch {
+    Write-Error $_
+}`;
+    }
+  }
 ];
 
 export const intuneCategories = [

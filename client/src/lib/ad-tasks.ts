@@ -594,6 +594,35 @@ try {
     name: 'Audit Privileged Groups',
     category: 'Security & Compliance',
     description: 'Monitor changes to privileged groups and generate diff report',
+    instructions: `**How This Task Works:**
+This script implements continuous monitoring of privileged Active Directory security groups by maintaining baselines and detecting membership changes over time.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to monitored groups
+- Write access to baseline storage location
+- SMTP server access (if using email alerts)
+
+**What You Need to Provide:**
+- List of privileged groups to monitor (e.g., Domain Admins, Enterprise Admins)
+- Baseline storage directory path
+- Optional: Email address and SMTP server for change alerts
+
+**What the Script Does:**
+1. Creates baseline directory if it doesn't exist
+2. For each monitored group, retrieves current membership (recursive)
+3. Compares current members against stored baseline
+4. Identifies and reports added or removed members
+5. Updates baseline with current membership state
+6. Sends email alert if changes detected (optional)
+
+**Important Notes:**
+- First run creates initial baselines - no changes will be detected
+- Uses recursive membership to catch nested group changes
+- Schedule this regularly (hourly/daily) for continuous monitoring
+- Baselines are stored as XML files for easy review
+- Critical for SOX compliance and security auditing
+- Consider running before/after change windows`,
     parameters: [
       { id: 'groups', label: 'Groups to Monitor (comma-separated)', type: 'textarea', required: true, defaultValue: 'Domain Admins,Enterprise Admins,Schema Admins', placeholder: 'Domain Admins,Enterprise Admins' },
       { id: 'baselinePath', label: 'Baseline Storage Path', type: 'path', required: true, placeholder: 'C:\\ADBaselines' },
@@ -713,6 +742,35 @@ Write-Host "Privileged groups audit completed!" -ForegroundColor Green`;
     name: 'GPO Drift Report',
     category: 'GPO & Configuration',
     description: 'Compare GPO backups and detect configuration drift',
+    instructions: `**How This Task Works:**
+This script compares the two most recent GPO backup sets to detect configuration changes and policy drift in your Active Directory environment.
+
+**Prerequisites:**
+- Group Policy PowerShell module installed
+- At least 2 GPO backup sets in the backup directory
+- Read access to backup location
+- Write access for report output (optional)
+
+**What You Need to Provide:**
+- GPO backup directory path
+- Optional: HTML report output path
+- Optional: Email address and SMTP server for drift alerts
+
+**What the Script Does:**
+1. Identifies the two most recent backup sets by timestamp
+2. Compares each GPO's XML report between backups
+3. Calculates SHA256 hash to detect any configuration changes
+4. Lists all GPOs with detected drift
+5. Generates detailed HTML diff report
+6. Sends email alert if drift detected (optional)
+
+**Important Notes:**
+- Requires regular GPO backups to be effective
+- Detects any policy changes between backup points
+- Useful for change management and compliance
+- HTML report shows side-by-side configuration differences
+- Schedule after backup jobs complete
+- Zero drift indicates stable GPO environment`,
     parameters: [
       { id: 'backupPath', label: 'Backup Path', type: 'path', required: true, placeholder: 'C:\\GPOBackups' },
       { id: 'reportPath', label: 'Report Output Path', type: 'path', required: false, placeholder: 'C:\\Reports\\GPODrift.html' },
@@ -840,6 +898,34 @@ if ($DriftDetected.Count -gt 0) {
     name: 'Weekly AD Health Report',
     category: 'Reporting & Inventory',
     description: 'Comprehensive AD health check including DCs, replication, DIT size, and SYSVOL',
+    instructions: `**How This Task Works:**
+This script performs a comprehensive health assessment of your Active Directory environment, checking domain controllers, replication status, and overall infrastructure health.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or read-only domain controller access
+- Network connectivity to all domain controllers
+
+**What You Need to Provide:**
+- Optional: HTML report output path
+- Optional: Email address for automated delivery
+- Optional: SMTP server for email
+
+**What the Script Does:**
+1. Enumerates all domain controllers in the forest
+2. Tests network connectivity (ping) to each DC
+3. Checks replication partner status and last success times
+4. Analyzes domain controller health indicators
+5. Generates formatted HTML report with color coding
+6. Emails report to administrators (if configured)
+
+**Important Notes:**
+- Schedule weekly for proactive monitoring
+- Red flags indicate immediate attention needed
+- Replication failures over 24 hours are flagged as warnings
+- Report includes DC operating systems and IP addresses
+- Useful for capacity planning and upgrade decisions
+- Keep historical reports for trend analysis`,
     parameters: [
       { id: 'reportPath', label: 'Report Output Path', type: 'path', required: false, placeholder: 'C:\\Reports\\ADHealth.html' },
       { id: 'emailTo', label: 'Email Report To (optional)', type: 'email', required: false, placeholder: 'admins@company.com' },
@@ -967,6 +1053,32 @@ Write-Host "✓ Report emailed to $EmailTo" -ForegroundColor Green
     name: 'Find Account Lockout Source',
     category: 'Reporting & Inventory',
     description: 'Hunt for the source of account lockouts across domain controllers',
+    instructions: `**How This Task Works:**
+This script investigates account lockout events across all domain controllers to identify the source computer causing repeated lockouts, essential for troubleshooting user access issues.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or permission to read Security event logs on DCs
+- Network connectivity to all domain controllers
+
+**What You Need to Provide:**
+- Username experiencing lockouts
+- Time window to search (hours back from now)
+
+**What the Script Does:**
+1. Queries all domain controllers for lockout events (Event ID 4740)
+2. Filters events for the specified user and time range
+3. Extracts source computer name from each lockout event
+4. Identifies the most recent/frequent lockout source
+5. Provides remediation recommendations
+
+**Important Notes:**
+- Lockouts typically caused by: saved credentials, scheduled tasks, services, mobile devices
+- Source computer shown is where bad password originated
+- Check Credential Manager on source computer first
+- Mobile devices often cache old passwords
+- Service accounts particularly prone to lockouts
+- May need to check multiple time windows if intermittent`,
     parameters: [
       { id: 'username', label: 'Username', type: 'text', required: true, placeholder: 'jdoe' },
       { id: 'hoursBack', label: 'Hours to Search Back', type: 'number', required: false, defaultValue: 24, placeholder: '24' }
@@ -1063,6 +1175,33 @@ if ($LockoutEvents.Count -gt 0) {
     name: 'Audit Kerberoastable SPNs',
     category: 'Security & Compliance',
     description: 'Find service accounts with SPNs vulnerable to Kerberoasting attacks',
+    instructions: `**How This Task Works:**
+This script identifies service accounts with Service Principal Names (SPNs) that are vulnerable to Kerberoasting attacks, a critical security assessment for Active Directory environments.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to Active Directory user objects
+- Understanding of Kerberos encryption types
+
+**What You Need to Provide:**
+- Optional: Specific OU to scan (e.g., Service Accounts OU)
+- Optional: CSV report output path
+- Option to flag RC4-only accounts (high risk)
+
+**What the Script Does:**
+1. Queries AD for all user accounts with SPNs registered
+2. Checks encryption type support (AES vs RC4-only)
+3. Calculates password age for each service account
+4. Assigns risk level (High/Medium/Low) based on configuration
+5. Generates detailed security report with recommendations
+
+**Important Notes:**
+- RC4-only accounts are HIGH RISK - enable AES immediately
+- Service accounts with old passwords increase risk
+- Recommend using Group Managed Service Accounts (gMSA)
+- Schedule quarterly audits for ongoing security
+- High-risk findings require immediate remediation
+- Critical for compliance and penetration test preparation`,
     parameters: [
       { id: 'searchBase', label: 'Search Base (optional)', type: 'text', required: false, placeholder: 'OU=Service Accounts,DC=company,DC=com' },
       { id: 'reportPath', label: 'Report Output Path', type: 'path', required: false, placeholder: 'C:\\Reports\\KerberoastableAccounts.csv' },
@@ -1152,6 +1291,35 @@ Write-Host "  - Use Group Managed Service Accounts (gMSA) when possible" -Foregr
     name: 'Report Stale DNS Records',
     category: 'DNS / DHCP',
     description: 'Find and report stale DNS records for cleanup',
+    instructions: `**How This Task Works:**
+This script identifies stale DNS A records in your Windows DNS zones by checking record age and computer availability, helping maintain clean DNS infrastructure.
+
+**Prerequisites:**
+- DNS Server PowerShell module installed
+- DNS Administrator or read access to DNS server
+- Network connectivity to test computer availability
+
+**What You Need to Provide:**
+- DNS server hostname or IP
+- DNS zone name to scan
+- Days threshold to consider records stale (default: 90)
+- Optional: CSV report output path
+
+**What the Script Does:**
+1. Queries DNS server for all A records in specified zone
+2. Checks timestamp age for dynamic records
+3. Tests network connectivity (ping) for each aged record
+4. Identifies offline computers with stale timestamps
+5. Exports detailed report with recommendations
+6. Provides summary statistics
+
+**Important Notes:**
+- Report-only script - no DNS records are modified or deleted
+- Only checks dynamic DNS records with timestamps
+- Static records (no timestamp) are not evaluated
+- Offline test uses single ping - may have false positives
+- Review report carefully before manual cleanup
+- Stale records can cause name resolution conflicts`,
     parameters: [
       { id: 'dnsServer', label: 'DNS Server', type: 'text', required: true, placeholder: 'dc01.company.com' },
       { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'company.com' },
@@ -1237,6 +1405,34 @@ Write-Host "Review the report before taking action" -ForegroundColor Gray`;
     name: 'Move Computers by Site',
     category: 'Computers & OUs',
     description: 'Automatically place computers into correct OUs based on site or subnet',
+    instructions: `**How This Task Works:**
+This script automates computer object organization by moving computers into designated OUs based on their Active Directory site assignment, maintaining proper structure.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or delegated move permissions
+- AD Sites and Services properly configured
+- Target OUs must already exist
+
+**What You Need to Provide:**
+- Site-to-OU mapping in JSON format
+- Preview mode option for safety (recommended first run)
+
+**What the Script Does:**
+1. Parses JSON site-to-OU mapping configuration
+2. Queries all computer objects with site information
+3. Matches each computer's site to target OU
+4. Moves computers to correct OU (or previews changes)
+5. Provides detailed move/skip statistics
+6. Alerts on unmapped sites
+
+**Important Notes:**
+- Always run in preview mode first to verify mappings
+- Computers without site assignments are skipped
+- JSON format must be valid (use online validator if unsure)
+- Useful after mergers or OU restructuring
+- Schedule regularly to maintain organization
+- Site assignments based on subnet configuration`,
     parameters: [
       { id: 'siteMapping', label: 'Site-to-OU Mapping (JSON format)', type: 'textarea', required: true, placeholder: '{"Default-Site": "OU=Computers,DC=company,DC=com", "Branch-Site": "OU=Branch,DC=company,DC=com"}' },
       { id: 'whatIf', label: 'Preview Only (No Changes)', type: 'boolean', required: false, defaultValue: true }
@@ -1334,6 +1530,37 @@ Write-Host "  Skipped: $Skipped computers" -ForegroundColor Gray`;
     name: 'Bulk User Import from CSV',
     category: 'Identity Lifecycle',
     description: 'Import and create multiple users from HR CSV file',
+    instructions: `**How This Task Works:**
+This script processes HR CSV files to bulk-create user accounts in Active Directory, streamlining new hire onboarding for large batches.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or delegated user creation permissions
+- CSV file with required columns: FirstName, LastName, Email, Department
+- Default OU must exist
+
+**What You Need to Provide:**
+- CSV file path from HR system
+- Default organizational unit for new users
+- Optional: Default password (or script generates random)
+- Optional: Enable welcome email sending
+
+**What the Script Does:**
+1. Imports CSV file and validates format
+2. For each row, generates username and UPN
+3. Creates user account with provided attributes
+4. Sets password (default or random per user)
+5. Enables account and configures email
+6. Sends welcome email if enabled
+7. Logs success/failure for each user
+
+**Important Notes:**
+- CSV must include: FirstName, LastName, Email at minimum
+- Usernames auto-generated (first initial + last name)
+- Duplicate usernames are detected and skipped
+- Default password applies to all users if specified
+- Random passwords are displayed once only - save securely
+- Test with small CSV first to validate format`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\HR\\NewHires.csv' },
       { id: 'defaultOU', label: 'Default OU', type: 'text', required: true, placeholder: 'OU=Users,DC=company,DC=com' },
@@ -1416,6 +1643,35 @@ Write-Host "  Failed: $Failed users" -ForegroundColor Red`;
     name: 'Password Reset & Account Unlock',
     category: 'Identity Lifecycle',
     description: 'Reset user password and unlock account',
+    instructions: `**How This Task Works:**
+This script provides quick password reset and account unlock functionality, essential for helpdesk operations and resolving urgent user access issues.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or delegated password reset permissions
+- Account operators group membership (minimum)
+
+**What You Need to Provide:**
+- Username requiring password reset
+- Optional: New password (or script generates secure random)
+- Option to unlock account if locked
+- Option to require password change at next logon
+
+**What the Script Does:**
+1. Verifies user account exists in Active Directory
+2. Generates secure random password if none provided
+3. Resets user password immediately
+4. Unlocks account if lockout detected (optional)
+5. Sets password change requirement (optional)
+6. Displays new password for helpdesk communication
+
+**Important Notes:**
+- Generated password shown only once - communicate to user immediately
+- Always require password change at next logon for security
+- Account unlocks may take minutes to replicate across DCs
+- User may need to wait 15 minutes before retry after unlock
+- Password complexity requirements still apply
+- Check for lockout source before repeated resets`,
     parameters: [
       { id: 'username', label: 'Username', type: 'text', required: true, placeholder: 'jdoe' },
       { id: 'newPassword', label: 'New Password (or leave empty for random)', type: 'text', required: false },
@@ -1483,6 +1739,34 @@ try {
     name: 'Orphaned/Empty Groups Report',
     category: 'Groups & Access',
     description: 'Find and report empty groups and groups with no members',
+    instructions: `**How This Task Works:**
+This script identifies empty security and distribution groups in Active Directory, helping maintain a clean group structure and reduce security audit findings.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to group objects
+- Delete permissions if cleanup enabled
+
+**What You Need to Provide:**
+- Optional: Specific OU to scan for groups
+- Optional: CSV report output path
+- Option to delete empty groups (use with caution)
+
+**What the Script Does:**
+1. Scans all groups in specified scope
+2. Checks membership count for each group
+3. Identifies groups with zero members
+4. Reports group name, description, and creation date
+5. Optionally deletes empty groups (if enabled)
+6. Exports detailed CSV report
+
+**Important Notes:**
+- Always run report-only mode first before deletion
+- Some empty groups may be intentional (placeholder, template)
+- Deletion is permanent - cannot be easily reversed
+- Check with application owners before deleting
+- Groups used by applications may appear empty but serve a purpose
+- Consider age - newly created groups may be awaiting population`,
     parameters: [
       { id: 'searchBase', label: 'Search Base (optional)', type: 'text', required: false, placeholder: 'OU=Groups,DC=company,DC=com' },
       { id: 'reportPath', label: 'Report Path', type: 'path', required: false, placeholder: 'C:\\Reports\\OrphanedGroups.csv' },
@@ -1548,6 +1832,33 @@ Write-Host "  Empty groups found: $($EmptyGroups.Count)" -ForegroundColor Yellow
     name: 'BitLocker Recovery Key Audit',
     category: 'Computers & OUs',
     description: 'Check and export BitLocker recovery keys from AD',
+    instructions: `**How This Task Works:**
+This script audits BitLocker recovery keys stored in Active Directory, essential for disaster recovery planning and compliance verification.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to computer objects and recovery info
+- BitLocker Group Policy configured to backup to AD
+
+**What You Need to Provide:**
+- Optional: Specific OU to scan for computers
+- Optional: Secure export path for recovery keys
+
+**What the Script Does:**
+1. Enumerates all computer objects in scope
+2. Searches for BitLocker recovery key objects
+3. Extracts recovery passwords for each computer
+4. Identifies computers without backup keys
+5. Generates comprehensive CSV report
+6. Provides statistics on key coverage
+
+**Important Notes:**
+- Export file contains sensitive recovery passwords - secure immediately
+- Store export in encrypted location with restricted access
+- Missing keys may indicate: BitLocker not enabled, backup policy not configured
+- Recovery keys are device-specific, not user-specific
+- Critical for disaster recovery scenarios
+- Validate export regularly to ensure backup policy working`,
     parameters: [
       { id: 'searchBase', label: 'Search Base (optional)', type: 'text', required: false, placeholder: 'OU=Computers,DC=company,DC=com' },
       { id: 'exportPath', label: 'Export Path', type: 'path', required: false, placeholder: 'C:\\Secure\\BitLockerKeys.csv' }
@@ -1618,6 +1929,33 @@ Write-Host "⚠ WARNING: Handle this file securely - it contains recovery keys!"
     name: 'Password Never Expires Audit',
     category: 'Security & Compliance',
     description: 'Find accounts with password never expires flag set',
+    instructions: `**How This Task Works:**
+This script identifies user accounts configured with the "Password Never Expires" flag, a critical security audit for compliance and vulnerability assessment.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to user objects in Active Directory
+- Understanding of password policy requirements
+
+**What You Need to Provide:**
+- Optional: Specific OU to scan
+- Optional: CSV report output path
+- Option to include disabled accounts in scan
+
+**What the Script Does:**
+1. Queries all user accounts with PasswordNeverExpires flag set
+2. Checks if accounts are in privileged groups (Domain Admins, etc.)
+3. Calculates password age and last logon date
+4. Assigns risk level (High for privileged, Medium for standard)
+5. Generates detailed audit report with recommendations
+
+**Important Notes:**
+- HIGH RISK: Privileged accounts with non-expiring passwords
+- Service accounts may legitimately require this setting
+- Consider using Group Managed Service Accounts (gMSA) instead
+- This setting violates most compliance frameworks (PCI, HIPAA, SOC2)
+- Review and remediate high-risk findings immediately
+- Schedule regular quarterly audits`,
     parameters: [
       { id: 'searchBase', label: 'Search Base (optional)', type: 'text', required: false, placeholder: 'DC=company,DC=com' },
       { id: 'reportPath', label: 'Report Path', type: 'path', required: false, placeholder: 'C:\\Reports\\PasswordNeverExpires.csv' },
@@ -1698,6 +2036,34 @@ Write-Host "Recommendation: Review and disable PasswordNeverExpires for non-serv
     name: 'Replication Failure Watcher',
     category: 'Reporting & Inventory',
     description: 'Monitor and alert on AD replication failures',
+    instructions: `**How This Task Works:**
+This script monitors Active Directory replication health across all domain controllers, detecting failures and alerting administrators before issues impact users.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or replication monitoring permissions
+- Network connectivity to all domain controllers
+
+**What You Need to Provide:**
+- Optional: HTML report output path
+- Optional: Email address for failure alerts
+- Optional: SMTP server for email notifications
+
+**What the Script Does:**
+1. Queries all domain controllers in the domain
+2. Checks replication partner metadata for each DC
+3. Identifies replication failures and delays
+4. Calculates time since last successful replication
+5. Generates HTML report with color-coded status
+6. Sends email alerts if failures detected
+
+**Important Notes:**
+- Replication failures over 15 minutes require investigation
+- Common causes: network issues, NTDS corruption, DNS problems
+- Check DC event logs for specific error details
+- Urgent: Failures over 24 hours indicate serious issues
+- Schedule hourly for proactive monitoring
+- Critical for multi-site AD environments`,
     parameters: [
       { id: 'reportPath', label: 'Report Path', type: 'path', required: false, placeholder: 'C:\\Reports\\ReplFailures.html' },
       { id: 'alertEmail', label: 'Alert Email', type: 'email', required: false, placeholder: 'admins@company.com' },
@@ -1809,6 +2175,34 @@ Write-Host "Summary: $($Failures.Count) replication failure(s) found" -Foregroun
     name: 'UPN & Email Suffix Consistency',
     category: 'Reporting & Inventory',
     description: 'Report on UPN and email address consistency',
+    instructions: `**How This Task Works:**
+This script audits user principal names (UPNs) and email addresses to ensure consistency across your organization, critical for Office 365/Azure AD synchronization and user experience.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to user objects
+- Knowledge of expected domain suffix
+
+**What You Need to Provide:**
+- Expected domain suffix (e.g., company.com)
+- Optional: Specific OU to scan
+- Optional: CSV report output path
+
+**What the Script Does:**
+1. Queries all enabled user accounts
+2. Compares UPN suffix to expected domain
+3. Compares email suffix to expected domain
+4. Checks if UPN matches email address
+5. Identifies missing email addresses
+6. Reports all inconsistencies with details
+
+**Important Notes:**
+- UPN should match primary email for best Office 365 experience
+- Inconsistent UPNs cause Azure AD Connect sync issues
+- Missing email addresses block cloud service provisioning
+- Run before Office 365/Azure AD migration
+- Especially important for merged/acquired companies
+- May reveal stale accounts needing cleanup`,
     parameters: [
       { id: 'searchBase', label: 'Search Base (optional)', type: 'text', required: false, placeholder: 'DC=company,DC=com' },
       { id: 'expectedDomain', label: 'Expected Domain', type: 'text', required: true, placeholder: 'company.com' },
@@ -1898,6 +2292,34 @@ Write-Host "  Inconsistent: $($Inconsistent.Count)" -ForegroundColor Yellow`;
     name: 'NTFS Permissions Review',
     category: 'File/Print & Permissions',
     description: 'Audit NTFS permissions and detect least privilege violations',
+    instructions: `**How This Task Works:**
+This script performs a comprehensive NTFS permissions audit on file shares and folders, identifying security violations and excessive permissions that violate least privilege principles.
+
+**Prerequisites:**
+- Local admin or backup operator rights on target server
+- Network access to file server/share
+- Understanding of NTFS permissions model
+
+**What You Need to Provide:**
+- Target file server path or UNC share path
+- Optional: CSV report output path
+- Option to flag "Everyone" group permissions
+
+**What the Script Does:**
+1. Recursively scans all folders under target path
+2. Retrieves ACL (Access Control List) for each folder
+3. Identifies "Everyone" or "Authenticated Users" permissions
+4. Flags broken inheritance (security risk)
+5. Reports Full Control grants (excessive permissions)
+6. Generates detailed permissions audit report
+
+**Important Notes:**
+- "Everyone" group permissions are major security risk
+- Full Control should be granted sparingly
+- Broken inheritance can indicate tampering or misconfiguration
+- Large share scans may take considerable time
+- Schedule during off-hours for network-intensive scans
+- Critical for compliance audits (PCI, HIPAA, SOC2)`,
     parameters: [
       { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: '\\\\server\\shares' },
       { id: 'reportPath', label: 'Report Path', type: 'path', required: false, placeholder: 'C:\\Reports\\NTFSPermissions.csv' },
@@ -1993,6 +2415,34 @@ Write-Host "  Permission issues found: $($Results.Count)" -ForegroundColor Yello
     name: 'CSV-Driven Mass Moves/Renames',
     category: 'Migrations & Hygiene',
     description: 'Move or rename AD objects in bulk from CSV file',
+    instructions: `**How This Task Works:**
+This script processes CSV files to perform bulk moves and renames of Active Directory objects (users, computers, groups), essential for reorganizations, migrations, and cleanup projects.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or delegated move/rename permissions
+- Properly formatted CSV file with required columns
+
+**What You Need to Provide:**
+- CSV file path with Identity, TargetOU, and optional NewName columns
+- Object type (User, Computer, or Group)
+- Preview mode option (recommended for first run)
+
+**What the Script Does:**
+1. Imports CSV file with move/rename instructions
+2. Validates each object exists in Active Directory
+3. Moves objects to new OU if TargetOU specified
+4. Renames objects if NewName specified
+5. Reports success/failure for each operation
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS run in preview mode first (WhatIf=true)
+- CSV format: Identity, TargetOU, NewName (NewName is optional)
+- Identity can be SamAccountName, DN, or GUID
+- Moves and renames can be done simultaneously
+- Failed operations do not roll back successful ones
+- Keep backup of CSV file for audit trail`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Migrations\\Moves.csv' },
       { id: 'objectType', label: 'Object Type', type: 'select', required: true, options: ['User', 'Computer', 'Group'], defaultValue: 'User' },
@@ -2093,6 +2543,34 @@ Write-Host "  Failed: $Failed objects" -ForegroundColor Red`;
     name: 'Nested Group Depth Audit',
     category: 'Groups & Access',
     description: 'Audit nested group depth to identify token bloat issues',
+    instructions: `**How This Task Works:**
+This script analyzes group nesting depth to identify potential Kerberos token bloat issues, which can cause authentication failures and performance problems in Active Directory environments.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to group objects
+- Understanding of Kerberos token limits
+
+**What You Need to Provide:**
+- Optional: Specific OU to scan for groups
+- Maximum acceptable nesting depth (default: 5 levels)
+- Optional: CSV report output path
+
+**What the Script Does:**
+1. Scans all security groups in specified scope
+2. Recursively calculates nesting depth for each group
+3. Detects circular group memberships
+4. Flags groups exceeding maximum depth threshold
+5. Identifies potential token bloat scenarios
+6. Generates detailed audit report
+
+**Important Notes:**
+- Kerberos tokens have size limits (typically 48KB max)
+- Deep nesting (>5 levels) can cause token bloat
+- Token bloat symptoms: authentication failures, "MaxTokenSize" errors
+- Circular memberships indicate serious configuration issue
+- Excessive nesting impacts login performance
+- Recommend restructuring groups exceeding 5 levels deep`,
     parameters: [
       { id: 'searchBase', label: 'Search Base (optional)', type: 'text', required: false, placeholder: 'DC=company,DC=com' },
       { id: 'maxDepth', label: 'Alert if Depth Exceeds', type: 'number', required: false, defaultValue: 5, placeholder: '5' },
@@ -2189,6 +2667,34 @@ Write-Host "Note: Deep nesting can cause token bloat and authentication issues" 
     name: 'Bulk Add Users to Security Group',
     category: 'Bulk Actions',
     description: 'Add multiple users to a security group from CSV file with username list',
+    instructions: `**How This Task Works:**
+This script adds multiple users to a security group in bulk from a CSV file, streamlining access management for projects, departments, and resource permissions.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Group management permissions for target group
+- CSV file with Username column
+
+**What You Need to Provide:**
+- Security group name (existing group)
+- CSV file path containing usernames
+- Test mode option for preview
+
+**What the Script Does:**
+1. Validates target group exists
+2. Imports CSV file with username list
+3. Verifies each user exists in AD
+4. Checks if user already member (skips duplicates)
+5. Adds users to group (or previews in test mode)
+6. Reports success/failure for each operation
+
+**Important Notes:**
+- ALWAYS run in test mode first to preview changes
+- CSV requires "Username" column header
+- Users already in group are automatically skipped
+- Changes take effect immediately (no rollback)
+- Group membership replication can take 15+ minutes
+- Maximum recommended batch size: 5,000 users`,
     parameters: [
       { id: 'groupName', label: 'Security Group Name', type: 'text', required: true, placeholder: 'IT-Staff' },
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\users.csv', description: 'CSV with "Username" column' },
@@ -2288,6 +2794,32 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Bulk User Property Changes',
     category: 'Bulk Actions',
     description: 'Update user properties (department, title, manager, etc.) from CSV file',
+    instructions: `**How This Task Works:**
+This script updates user account properties in bulk from a CSV file, perfect for organizational changes, HR updates, and data quality projects.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- User modification permissions
+- CSV file with Username and property columns
+
+**What You Need to Provide:**
+- CSV file with Username and properties to update
+- Test mode option for preview
+
+**What the Script Does:**
+1. Imports CSV with user data
+2. Validates each user exists
+3. Updates properties: Department, Title, Manager, Office, Phone, Description, Company
+4. Reports changes per user
+5. Provides success/failure summary
+
+**Important Notes:**
+- CSV columns: Username (required), plus any properties to update
+- Only non-empty CSV columns are updated
+- Test mode shows what would change without applying
+- Manager field requires valid username or DN
+- Changes replicate to all DCs within 15 minutes
+- Keep CSV backup for audit trail`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\user-updates.csv', description: 'CSV with Username and properties to update' },
       { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
@@ -2385,6 +2917,33 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Bulk User Account Moves',
     category: 'Bulk Actions',
     description: 'Move multiple user accounts to different OUs from CSV file',
+    instructions: `**How This Task Works:**
+This script moves user accounts between organizational units in bulk from a CSV file, essential for reorganizations, migrations, and AD cleanup projects.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Move permissions for source and target OUs
+- CSV file with Username and TargetOU columns
+
+**What You Need to Provide:**
+- CSV file path with move instructions
+- Test mode option (recommended first run)
+
+**What the Script Does:**
+1. Imports CSV file with Username and TargetOU
+2. Validates each user and target OU exist
+3. Moves user accounts to specified OUs
+4. Skips users already in correct OU
+5. Reports success/failure per operation
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first - moves are immediate
+- CSV format: Username, TargetOU (full DN required)
+- TargetOU example: "OU=Sales,OU=Users,DC=company,DC=com"
+- Group Policy inheritance may change after move
+- Moves trigger AD replication immediately
+- Users already in target OU are skipped`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\user-moves.csv', description: 'CSV with Username and TargetOU columns' },
       { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
@@ -2479,6 +3038,34 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Bulk Add Computers to Security Group',
     category: 'Bulk Actions',
     description: 'Add multiple computers to a security group from CSV file',
+    instructions: `**How This Task Works:**
+This script adds multiple computer accounts to a security group in bulk, useful for Group Policy application, resource access, and workstation management.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Group management permissions
+- CSV file with ComputerName column
+
+**What You Need to Provide:**
+- Security group name (existing group)
+- CSV file path with computer names
+- Test mode option for preview
+
+**What the Script Does:**
+1. Validates target group exists
+2. Imports CSV with computer names
+3. Verifies each computer exists in AD
+4. Checks if already member (skips duplicates)
+5. Adds computers to group
+6. Reports success/failure summary
+
+**Important Notes:**
+- Test mode recommended for first run
+- CSV requires "ComputerName" column header
+- Computer names without "$" suffix work fine
+- Changes apply to Group Policy immediately
+- Group membership replicates within 15 minutes
+- Maximum recommended: 5,000 computers per batch`,
     parameters: [
       { id: 'groupName', label: 'Security Group Name', type: 'text', required: true, placeholder: 'Workstations-Group' },
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\computers.csv', description: 'CSV with "ComputerName" column' },
@@ -2578,6 +3165,32 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Bulk Computer Property Changes',
     category: 'Bulk Actions',
     description: 'Update computer properties (description, location, etc.) from CSV file',
+    instructions: `**How This Task Works:**
+This script updates computer account properties in bulk from CSV, perfect for asset management, inventory updates, and documentation projects.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Computer object modification permissions
+- CSV with ComputerName and property columns
+
+**What You Need to Provide:**
+- CSV file with ComputerName and properties to update
+- Test mode option for preview
+
+**What the Script Does:**
+1. Imports CSV with computer data
+2. Validates each computer exists
+3. Updates properties: Description, Location, ManagedBy
+4. Reports changes per computer
+5. Provides success/failure summary
+
+**Important Notes:**
+- CSV columns: ComputerName (required), plus properties to update
+- Only non-empty CSV columns are updated
+- Test mode shows changes without applying
+- ManagedBy requires valid user DN or username
+- Changes replicate within 15 minutes
+- Useful for CMDB/asset management integration`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\computer-updates.csv', description: 'CSV with ComputerName and properties' },
       { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
@@ -2671,6 +3284,33 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Bulk Computer Account Moves',
     category: 'Bulk Actions',
     description: 'Move multiple computer accounts to different OUs from CSV file',
+    instructions: `**How This Task Works:**
+This script moves computer accounts between OUs in bulk, essential for Group Policy reorganization, site consolidation, and infrastructure changes.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Move permissions for source and target OUs
+- CSV with ComputerName and TargetOU columns
+
+**What You Need to Provide:**
+- CSV file path with move instructions
+- Test mode option (recommended)
+
+**What the Script Does:**
+1. Imports CSV with ComputerName and TargetOU
+2. Validates each computer and OU exist
+3. Moves computers to specified OUs
+4. Skips computers already in target OU
+5. Reports success/failure per operation
+6. Provides summary statistics
+
+**Important Notes:**
+- Test mode strongly recommended first
+- CSV format: ComputerName, TargetOU (full DN)
+- TargetOU example: "OU=Workstations,OU=Computers,DC=company,DC=com"
+- Group Policy inheritance changes after move
+- Computers may need gpupdate /force
+- Moves replicate immediately`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\computer-moves.csv', description: 'CSV with ComputerName and TargetOU columns' },
       { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
@@ -2765,6 +3405,32 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Bulk Contact Property Changes',
     category: 'Bulk Actions',
     description: 'Update contact properties (email, phone, company, etc.) from CSV file',
+    instructions: `**How This Task Works:**
+This script updates contact object properties in bulk from CSV, useful for maintaining external partner information, vendor contacts, and global address list entries.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Contact object modification permissions
+- CSV with ContactName and property columns
+
+**What You Need to Provide:**
+- CSV file with ContactName and properties to update
+- Test mode option for preview
+
+**What the Script Does:**
+1. Imports CSV with contact data
+2. Validates each contact exists
+3. Updates properties: Email, Phone, Company, Title, Department, Description
+4. Reports changes per contact
+5. Provides success/failure summary
+
+**Important Notes:**
+- CSV columns: ContactName (required), plus properties to update
+- Only non-empty CSV columns are updated
+- Test mode shows changes without applying
+- Contacts appear in Global Address List
+- Changes replicate within 15 minutes
+- Useful for partner/vendor directory management`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\contact-updates.csv', description: 'CSV with ContactName and properties' },
       { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
@@ -2867,6 +3533,32 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     name: 'Bulk Security Group Property Changes',
     category: 'Bulk Actions',
     description: 'Update security group properties (description, managed by, etc.) from CSV file',
+    instructions: `**How This Task Works:**
+This script updates security group properties in bulk from CSV, perfect for documentation cleanup, ownership assignment, and group management hygiene.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Group modification permissions
+- CSV with GroupName and property columns
+
+**What You Need to Provide:**
+- CSV file with GroupName and properties to update
+- Test mode option for preview
+
+**What the Script Does:**
+1. Imports CSV with group data
+2. Validates each group exists
+3. Updates properties: Description, ManagedBy, DisplayName
+4. Reports changes per group
+5. Provides success/failure summary
+
+**Important Notes:**
+- CSV columns: GroupName (required), plus properties to update
+- Only non-empty CSV columns are updated
+- Test mode shows changes without applying
+- ManagedBy requires valid user DN or username
+- Descriptions improve group discoverability
+- Changes replicate within 15 minutes`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Users\\admin\\group-updates.csv', description: 'CSV with GroupName and properties' },
       { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }

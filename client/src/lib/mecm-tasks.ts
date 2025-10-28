@@ -2170,18 +2170,598 @@ try {
   // ========================================
   // OPERATING SYSTEM DEPLOYMENT CATEGORY
   // ========================================
-  {id:'create-boot-image',name:'Create Custom Boot Image',category:'Operating System Deployment',description:'Create and customize WinPE boot image with drivers and components',parameters:[{id:'name',label:'Boot Image Name',type:'text',required:true,placeholder:'Custom WinPE x64'},{id:'sourcePath',label:'WIM Source Path',type:'path',required:true,placeholder:'C:\\Program Files\\Microsoft Configuration Manager\\OSD\\boot\\x64\\boot.wim'},{id:'enableCommandSupport',label:'Enable Command Support (F8)',type:'boolean',required:false,defaultValue:true}],scriptTemplate:p=>{const n=escapePowerShellString(p.name),s=escapePowerShellString(p.sourcePath),e=toPowerShellBoolean(p.enableCommandSupport??true);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Boot=New-CMBootImage -Name "${n}" -Path "${s}" -Index 1;if(${e}){Set-CMBootImage -Name "${n}" -EnableCommandSupport \\$true;Write-Host "✓ Command support enabled" -ForegroundColor Green};Write-Host "✓ Boot image created: ${n}" -ForegroundColor Green;Write-Host "Next: Distribute to DPs" -ForegroundColor Cyan}catch{Write-Error "Failed: $_"}`;}},
-  {id:'import-driver-package',name:'Import Driver Package',category:'Operating System Deployment',description:'Import and categorize device drivers into MECM for OS deployment',parameters:[{id:'packageName',label:'Driver Package Name',type:'text',required:true,placeholder:'Dell Latitude 7490 Drivers'},{id:'sourcePath',label:'Driver Source Path',type:'path',required:true,placeholder:'\\\\server\\drivers$\\Dell\\Latitude7490'},{id:'category',label:'Driver Category',type:'text',required:false,placeholder:'Laptops'}],scriptTemplate:p=>{const n=escapePowerShellString(p.packageName),s=escapePowerShellString(p.sourcePath),c=p.category?escapePowerShellString(p.category):'';return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{Write-Host "Importing drivers from: ${s}" -ForegroundColor Cyan;$Drivers=Import-CMDriver -Path "${s}" -ImportFolder${c?` -DriverCategory "${c}"`:''};Write-Host "✓ Imported: $($Drivers.Count) drivers" -ForegroundColor Green;$Pkg=New-CMDriverPackage -Name "${n}" -Path "\\\\$($env:COMPUTERNAME)\\SMS_$SiteCode\\Drivers\\${n}";foreach($Drv in $Drivers){Add-CMDriverToDriverPackage -DriverId $Drv.CI_ID -DriverPackageName "${n}"};Write-Host "✓ Driver package created: ${n}" -ForegroundColor Green}catch{Write-Error "Failed: $_"}`;}},
-  {id:'create-task-sequence',name:'Create OS Deployment Task Sequence',category:'Operating System Deployment',description:'Create a new operating system deployment task sequence',parameters:[{id:'name',label:'Task Sequence Name',type:'text',required:true,placeholder:'Deploy Windows 11 22H2'},{id:'osImage',label:'OS Image Package',type:'text',required:true,placeholder:'Windows 11 22H2 x64'},{id:'bootImage',label:'Boot Image',type:'text',required:true,placeholder:'Boot Image (x64)'},{id:'productKey',label:'Product Key (optional)',type:'text',required:false,placeholder:'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX'}],scriptTemplate:p=>{const n=escapePowerShellString(p.name),o=escapePowerShellString(p.osImage),b=escapePowerShellString(p.bootImage),k=p.productKey?escapePowerShellString(p.productKey):'';return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$OS=Get-CMOperatingSystemImage -Name "${o}";$Boot=Get-CMBootImage -Name "${b}";$TS=New-CMTaskSequence -Name "${n}" -BootImagePackageId $Boot.PackageID -OperatingSystemImagePackageId $OS.PackageID -InstallOperatingSystemImage${k?` -ProductKey "${k}"`:''} -JoinDomain WorkGroup -WorkgroupName "WORKGROUP";Write-Host "✓ Task sequence created: ${n}" -ForegroundColor Green;Write-Host "Next: Customize steps and deploy" -ForegroundColor Cyan}catch{Write-Error "Failed: $_"}`;}},
-  {id:'deploy-task-sequence',name:'Deploy Task Sequence to Collection',category:'Operating System Deployment',description:'Deploy OS task sequence with PXE and media options',parameters:[{id:'tsName',label:'Task Sequence Name',type:'text',required:true,placeholder:'Deploy Windows 11 22H2'},{id:'collectionName',label:'Target Collection',type:'text',required:true,placeholder:'OSD-Staging'},{id:'enablePXE',label:'Enable PXE',type:'boolean',required:false,defaultValue:true},{id:'enableMedia',label:'Enable Task Sequence Media',type:'boolean',required:false,defaultValue:true}],scriptTemplate:p=>{const t=escapePowerShellString(p.tsName),c=escapePowerShellString(p.collectionName),px=toPowerShellBoolean(p.enablePXE??true),m=toPowerShellBoolean(p.enableMedia??true);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{New-CMTaskSequenceDeployment -TaskSequenceName "${t}" -CollectionName "${c}" -DeployPurpose Available -AvailableDateTime (Get-Date) -MakeAvailableTo ClientsMediaAndPxe -ShowTaskSequenceProgress \\$true${px?` -AllowUsersRunIndependently \\$true`:``}${m?` -AllowUseUnprotectedDP \\$true`:``};Write-Host "✓ Task sequence deployed: ${t}" -ForegroundColor Green;Write-Host "  Collection: ${c}" -ForegroundColor Gray}catch{Write-Error "Failed: $_"}`;}},
+  {
+    id: 'create-boot-image',
+    name: 'Create Custom Boot Image',
+    category: 'Operating System Deployment',
+    description: 'Create and customize WinPE boot image',
+    instructions: `**How This Task Works:**
+- Creates custom Windows PE boot image for OS deployment
+- Enables F8 command support for troubleshooting
+- Base for PXE boot and task sequence media
+- Essential for OS deployment infrastructure
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Boot image creation permissions
+- Access to WIM source file
+
+**What You Need to Provide:**
+- Boot image name
+- WIM source path (default MECM boot.wim location)
+- Enable command support option (F8 key)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Creates boot image from WIM source
+4. Optionally enables F8 command support for troubleshooting
+5. Displays creation confirmation
+
+**Important Notes:**
+- Default WIM located in MECM installation directory
+- F8 command support useful for troubleshooting deployments
+- After creation, distribute to distribution points
+- Add drivers if needed for hardware support
+- Typical use: OS deployment, bare-metal provisioning, recovery tasks
+- Update boot images when adding new hardware support
+- Separate x86 and x64 boot images required for mixed environments`,
+    parameters: [
+      { id: 'name', label: 'Boot Image Name', type: 'text', required: true, placeholder: 'Custom WinPE x64' },
+      { id: 'sourcePath', label: 'WIM Source Path', type: 'path', required: true, placeholder: 'C:\\Program Files\\Microsoft Configuration Manager\\OSD\\boot\\x64\\boot.wim' },
+      { id: 'enableCommandSupport', label: 'Enable Command Support (F8)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.name);
+      const s = escapePowerShellString(params.sourcePath);
+      const e = toPowerShellBoolean(params.enableCommandSupport ?? true);
+      
+      return `# Create Custom Boot Image
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    $Boot = New-CMBootImage -Name "${n}" -Path "${s}" -Index 1
+    
+    if (${e}) {
+        Set-CMBootImage -Name "${n}" -EnableCommandSupport $true
+        Write-Host "✓ Command support enabled" -ForegroundColor Green
+    }
+    
+    Write-Host "✓ Boot image created: ${n}" -ForegroundColor Green
+    Write-Host "Next: Distribute to DPs" -ForegroundColor Cyan
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'import-driver-package',
+    name: 'Import Driver Package',
+    category: 'Operating System Deployment',
+    description: 'Import and categorize device drivers',
+    instructions: `**How This Task Works:**
+- Imports device drivers from source folder
+- Categorizes drivers for easier management
+- Creates driver package for deployment
+- Adds all imported drivers to package
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Driver import permissions
+- Network access to driver source files
+
+**What You Need to Provide:**
+- Driver package name
+- Driver source path (network location with driver files)
+- Driver category (optional, for organization)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Imports all drivers from source path
+4. Optionally assigns category
+5. Creates driver package
+6. Adds all imported drivers to package
+7. Displays driver count and package name
+
+**Important Notes:**
+- Source path should contain extracted driver files
+- Import scans recursively through folders
+- Category helps organize drivers (e.g., by manufacturer or model)
+- Typical use: prepare drivers for OS deployment, support new hardware models
+- After creation, distribute package to distribution points
+- Add driver package to boot images or task sequences as needed
+- Consider separate packages per manufacturer or device type`,
+    parameters: [
+      { id: 'packageName', label: 'Driver Package Name', type: 'text', required: true, placeholder: 'Dell Latitude 7490 Drivers' },
+      { id: 'sourcePath', label: 'Driver Source Path', type: 'path', required: true, placeholder: '\\\\server\\drivers$\\Dell\\Latitude7490' },
+      { id: 'category', label: 'Driver Category', type: 'text', required: false, placeholder: 'Laptops' }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.packageName);
+      const s = escapePowerShellString(params.sourcePath);
+      const c = params.category ? escapePowerShellString(params.category) : '';
+      
+      return `# Import Driver Package
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    Write-Host "Importing drivers from: ${s}" -ForegroundColor Cyan
+    
+    $Drivers = Import-CMDriver -Path "${s}" -ImportFolder${c ? ` -DriverCategory "${c}"` : ''}
+    
+    Write-Host "✓ Imported: $($Drivers.Count) drivers" -ForegroundColor Green
+    
+    $Pkg = New-CMDriverPackage -Name "${n}" -Path "\\\\$($env:COMPUTERNAME)\\SMS_$SiteCode\\Drivers\\${n}"
+    
+    foreach ($Drv in $Drivers) {
+        Add-CMDriverToDriverPackage -DriverId $Drv.CI_ID -DriverPackageName "${n}"
+    }
+    
+    Write-Host "✓ Driver package created: ${n}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'create-task-sequence',
+    name: 'Create OS Deployment Task Sequence',
+    category: 'Operating System Deployment',
+    description: 'Create operating system deployment task sequence',
+    instructions: `**How This Task Works:**
+- Creates automated OS deployment task sequence
+- Links OS image and boot image
+- Configures basic installation steps
+- Foundation for customized deployment automation
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Task sequence creation permissions
+- Existing OS image package
+- Existing boot image
+
+**What You Need to Provide:**
+- Task sequence name
+- OS image package name
+- Boot image name
+- Product key (optional, for volume licensing)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Retrieves specified OS image and boot image
+4. Creates task sequence with linked images
+5. Optionally includes product key
+6. Configures workgroup join (default)
+7. Displays creation confirmation
+
+**Important Notes:**
+- Default joins workgroup (not domain) - customize after creation
+- Product key optional for volume licensing scenarios
+- Typical use: automated OS deployment, bare-metal provisioning, refresh scenarios
+- After creation, customize task sequence steps as needed
+- Add applications, drivers, settings before deployment
+- Test in pilot collection before production
+- Distribute referenced content to distribution points`,
+    parameters: [
+      { id: 'name', label: 'Task Sequence Name', type: 'text', required: true, placeholder: 'Deploy Windows 11 22H2' },
+      { id: 'osImage', label: 'OS Image Package', type: 'text', required: true, placeholder: 'Windows 11 22H2 x64' },
+      { id: 'bootImage', label: 'Boot Image', type: 'text', required: true, placeholder: 'Boot Image (x64)' },
+      { id: 'productKey', label: 'Product Key (optional)', type: 'text', required: false, placeholder: 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX' }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.name);
+      const o = escapePowerShellString(params.osImage);
+      const b = escapePowerShellString(params.bootImage);
+      const k = params.productKey ? escapePowerShellString(params.productKey) : '';
+      
+      return `# Create OS Deployment Task Sequence
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    $OS = Get-CMOperatingSystemImage -Name "${o}"
+    $Boot = Get-CMBootImage -Name "${b}"
+    
+    $TS = New-CMTaskSequence -Name "${n}" -BootImagePackageId $Boot.PackageID -OperatingSystemImagePackageId $OS.PackageID -InstallOperatingSystemImage${k ? ` -ProductKey "${k}"` : ''} -JoinDomain WorkGroup -WorkgroupName "WORKGROUP"
+    
+    Write-Host "✓ Task sequence created: ${n}" -ForegroundColor Green
+    Write-Host "Next: Customize steps and deploy" -ForegroundColor Cyan
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'deploy-task-sequence',
+    name: 'Deploy Task Sequence to Collection',
+    category: 'Operating System Deployment',
+    description: 'Deploy OS task sequence with PXE and media options',
+    instructions: `**How This Task Works:**
+- Deploys task sequence to target collection
+- Enables PXE boot and media availability
+- Configures deployment as Available (user-initiated)
+- Makes OS deployment accessible to devices
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Deployment creation permissions
+- Existing task sequence
+- Target collection created
+- Content distributed to DPs
+
+**What You Need to Provide:**
+- Task sequence name
+- Target collection name
+- Enable PXE option
+- Enable media option
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Creates task sequence deployment to collection
+4. Sets deployment purpose as Available
+5. Configures PXE and media availability
+6. Shows task sequence progress during deployment
+7. Displays confirmation
+
+**Important Notes:**
+- Available deployment requires user initiation (not automatic)
+- PXE enables network boot deployment
+- Media enables USB/DVD deployment
+- Typical use: OS deployment, computer refresh, bare-metal provisioning
+- Ensure all content distributed before deployment
+- Test with pilot collection first
+- Monitor deployment status after creation
+- Consider maintenance windows for production servers`,
+    parameters: [
+      { id: 'tsName', label: 'Task Sequence Name', type: 'text', required: true, placeholder: 'Deploy Windows 11 22H2' },
+      { id: 'collectionName', label: 'Target Collection', type: 'text', required: true, placeholder: 'OSD-Staging' },
+      { id: 'enablePXE', label: 'Enable PXE', type: 'boolean', required: false, defaultValue: true },
+      { id: 'enableMedia', label: 'Enable Task Sequence Media', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const t = escapePowerShellString(params.tsName);
+      const c = escapePowerShellString(params.collectionName);
+      const px = toPowerShellBoolean(params.enablePXE ?? true);
+      const m = toPowerShellBoolean(params.enableMedia ?? true);
+      
+      return `# Deploy Task Sequence to Collection
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    New-CMTaskSequenceDeployment -TaskSequenceName "${t}" -CollectionName "${c}" -DeployPurpose Available -AvailableDateTime (Get-Date) -MakeAvailableTo ClientsMediaAndPxe -ShowTaskSequenceProgress $true${px ? ` -AllowUsersRunIndependently $true` : ``}${m ? ` -AllowUseUnprotectedDP $true` : ``}
+    
+    Write-Host "✓ Task sequence deployed: ${t}" -ForegroundColor Green
+    Write-Host "  Collection: ${c}" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
 
   // ========================================
   // REPORTING & INVENTORY CATEGORY
   // ========================================
-  {id:'export-hardware-inventory',name:'Export Hardware Inventory Report',category:'Reporting & Inventory',description:'Export detailed hardware inventory for collection devices',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'},{id:'exportPath',label:'Export Path',type:'path',required:true,placeholder:'C:\\Reports\\HardwareInventory.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Devices=Get-CMDevice -CollectionName "${c}";$Report=$Devices|ForEach{$Sys=Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_COMPUTER_SYSTEM -Filter "ResourceID='$($_.ResourceID)'"|Select -First 1;$Disk=Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_DISK -Filter "ResourceID='$($_.ResourceID)'"|Measure-Object -Property Size -Sum|Select -ExpandProperty Sum;[PSCustomObject]@{Name=$_.Name;Manufacturer=$Sys.Manufacturer;Model=$Sys.Model;RAM=$_.RAMSize;DiskGB=[Math]::Round($Disk/1024,2);LastInventory=$_.LastHardwareScan}};$Report|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Report: ${e}" -ForegroundColor Green`;}},
-  {id:'export-software-inventory',name:'Export Software Inventory Report',category:'Reporting & Inventory',description:'Export installed software inventory for devices in collection',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Systems'},{id:'exportPath',label:'Export Path',type:'path',required:true,placeholder:'C:\\Reports\\SoftwareInventory.csv'},{id:'productFilter',label:'Product Name Filter (optional)',type:'text',required:false,placeholder:'Microsoft'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath),f=p.productFilter?escapePowerShellString(p.productFilter):'';return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Devices=Get-CMDevice -CollectionName "${c}";$Report=@();foreach($Dev in $Devices){$Apps=Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_ADD_REMOVE_PROGRAMS -Filter "ResourceID='$($Dev.ResourceID)'"${f?` |Where-Object{$_.DisplayName -like '*${f}*'}`:``};foreach($App in $Apps){$Report+=[PSCustomObject]@{Computer=$Dev.Name;Software=$App.DisplayName;Version=$App.Version;Publisher=$App.Publisher}}};$Report|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Report: ${e} ($($Report.Count) items)" -ForegroundColor Green`;}},
-  {id:'run-custom-query',name:'Run Custom WQL Query',category:'Reporting & Inventory',description:'Execute custom WQL query and export results',parameters:[{id:'queryName',label:'Query Name',type:'text',required:true,placeholder:'Find Devices with Low Disk Space'},{id:'wqlQuery',label:'WQL Query',type:'textarea',required:true,placeholder:'SELECT Name, Size, FreeSpace FROM SMS_G_System_LOGICAL_DISK WHERE DriveType=3 AND FreeSpace < 10000'},{id:'exportPath',label:'Export Path',type:'path',required:true,placeholder:'C:\\Reports\\QueryResults.csv'}],scriptTemplate:p=>{const n=escapePowerShellString(p.queryName),q=escapePowerShellString(p.wqlQuery),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{Write-Host "Executing query: ${n}" -ForegroundColor Cyan;$Results=Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Query "${q}";Write-Host "✓ Found: $($Results.Count) results" -ForegroundColor Green;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Exported: ${e}" -ForegroundColor Green}catch{Write-Error "Query failed: $_"}`;}},
-  {id:'collection-membership-report',name:'Collection Membership Report',category:'Reporting & Inventory',description:'Generate detailed membership report showing devices across multiple collections',parameters:[{id:'collections',label:'Collections (comma-separated)',type:'textarea',required:true,placeholder:'Pilot-Group,Production-Group'},{id:'exportPath',label:'Export Path',type:'path',required:true,placeholder:'C:\\Reports\\CollectionMembership.csv'}],scriptTemplate:p=>{const c=p.collections?buildPowerShellArray(p.collections):'',e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Collections=${c};$Report=@();foreach($Coll in $Collections){$Members=Get-CMDevice -CollectionName $Coll;foreach($Dev in $Members){$Report+=[PSCustomObject]@{Collection=$Coll;Device=$Dev.Name;User=$Dev.UserName;LastLogon=$Dev.LastLogonUser;ClientVersion=$Dev.ClientVersion}}};$Report|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Report: ${e}" -ForegroundColor Green;Write-Host "  Total members: $($Report.Count)" -ForegroundColor Gray`;}},
+  {
+    id: 'export-hardware-inventory',
+    name: 'Export Hardware Inventory Report',
+    category: 'Reporting & Inventory',
+    description: 'Export detailed hardware inventory for collection devices',
+    instructions: `**How This Task Works:**
+- Exports comprehensive hardware inventory data
+- Queries MECM database for device details
+- Includes manufacturer, model, RAM, disk space
+- Generates CSV report for analysis
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Read permissions on device inventory
+- Hardware inventory enabled and collected
+
+**What You Need to Provide:**
+- Collection name
+- Export path for CSV file
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Retrieves all devices from collection
+4. Queries hardware inventory for each device
+5. Collects manufacturer, model, RAM, disk, last inventory scan
+6. Builds comprehensive report
+7. Exports to CSV file
+
+**Important Notes:**
+- Hardware inventory must be enabled and scanned
+- Large collections may take time to process
+- Report includes only successfully inventoried devices
+- Typical use: hardware audits, lifecycle planning, capacity reporting
+- Disk space calculated from total disk sizes
+- RAM displayed in MB
+- Review last inventory date for data freshness`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\HardwareInventory.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const c = escapePowerShellString(params.collectionName);
+      const e = escapePowerShellString(params.exportPath);
+      
+      return `# Export Hardware Inventory Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Devices = Get-CMDevice -CollectionName "${c}"
+
+$Report = $Devices | ForEach {
+    $Sys = Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_COMPUTER_SYSTEM -Filter "ResourceID='$($_.ResourceID)'" | Select -First 1
+    $Disk = Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_DISK -Filter "ResourceID='$($_.ResourceID)'" | Measure-Object -Property Size -Sum | Select -ExpandProperty Sum
+    
+    [PSCustomObject]@{
+        Name          = $_.Name
+        Manufacturer  = $Sys.Manufacturer
+        Model         = $Sys.Model
+        RAM           = $_.RAMSize
+        DiskGB        = [Math]::Round($Disk/1024, 2)
+        LastInventory = $_.LastHardwareScan
+    }
+}
+
+$Report | Export-Csv "${e}" -NoTypeInformation
+Write-Host "✓ Report: ${e}" -ForegroundColor Green`;
+    }
+  },
+
+  {
+    id: 'export-software-inventory',
+    name: 'Export Software Inventory Report',
+    category: 'Reporting & Inventory',
+    description: 'Export installed software inventory',
+    instructions: `**How This Task Works:**
+- Exports installed software across devices
+- Queries Add/Remove Programs inventory data
+- Optional product name filtering
+- Generates detailed software inventory CSV
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Read permissions on software inventory
+- Software inventory enabled and collected
+
+**What You Need to Provide:**
+- Collection name
+- Export path for CSV file
+- Product name filter (optional)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Retrieves devices from collection
+4. Queries installed software for each device
+5. Optionally filters by product name
+6. Collects software name, version, publisher per device
+7. Exports detailed report to CSV
+
+**Important Notes:**
+- Software inventory must be enabled
+- Large collections generate large reports
+- Filter reduces report size and processing time
+- Typical use: software audits, license compliance, vulnerability tracking
+- Report shows per-computer installations
+- Multiple versions of same software appear as separate entries
+- Data accuracy depends on inventory scan frequency`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Systems' },
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\SoftwareInventory.csv' },
+      { id: 'productFilter', label: 'Product Name Filter (optional)', type: 'text', required: false, placeholder: 'Microsoft' }
+    ],
+    scriptTemplate: (params) => {
+      const c = escapePowerShellString(params.collectionName);
+      const e = escapePowerShellString(params.exportPath);
+      const f = params.productFilter ? escapePowerShellString(params.productFilter) : '';
+      
+      return `# Export Software Inventory Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Devices = Get-CMDevice -CollectionName "${c}"
+$Report = @()
+
+foreach ($Dev in $Devices) {
+    $Apps = Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_ADD_REMOVE_PROGRAMS -Filter "ResourceID='$($Dev.ResourceID)'"${f ? ` | Where-Object { $_.DisplayName -like '*${f}*' }` : ``}
+    
+    foreach ($App in $Apps) {
+        $Report += [PSCustomObject]@{
+            Computer  = $Dev.Name
+            Software  = $App.DisplayName
+            Version   = $App.Version
+            Publisher = $App.Publisher
+        }
+    }
+}
+
+$Report | Export-Csv "${e}" -NoTypeInformation
+Write-Host "✓ Report: ${e} ($($Report.Count) items)" -ForegroundColor Green`;
+    }
+  },
+
+  {
+    id: 'run-custom-query',
+    name: 'Run Custom WQL Query',
+    category: 'Reporting & Inventory',
+    description: 'Execute custom WQL query and export results',
+    instructions: `**How This Task Works:**
+- Executes custom WQL (WMI Query Language) queries
+- Queries MECM database directly
+- Flexible reporting for any data class
+- Exports results to CSV for analysis
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Read permissions on queried classes
+- Understanding of WQL syntax and MECM schema
+
+**What You Need to Provide:**
+- Query name (descriptive identifier)
+- WQL query statement
+- Export path for results
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Executes custom WQL query against MECM database
+4. Displays result count
+5. Exports all results to CSV
+6. Shows export confirmation
+
+**Important Notes:**
+- WQL query must be syntactically correct
+- Query performance depends on complexity and data volume
+- Typical use: custom reports, troubleshooting, compliance checks, advanced auditing
+- Example queries: disk space, missing updates, specific configurations
+- Test queries with small datasets first
+- Review MECM schema documentation for available classes
+- Use proper filtering to limit result set size`,
+    parameters: [
+      { id: 'queryName', label: 'Query Name', type: 'text', required: true, placeholder: 'Find Devices with Low Disk Space' },
+      { id: 'wqlQuery', label: 'WQL Query', type: 'textarea', required: true, placeholder: 'SELECT Name, Size, FreeSpace FROM SMS_G_System_LOGICAL_DISK WHERE DriveType=3 AND FreeSpace < 10000' },
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\QueryResults.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.queryName);
+      const q = escapePowerShellString(params.wqlQuery);
+      const e = escapePowerShellString(params.exportPath);
+      
+      return `# Run Custom WQL Query
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    Write-Host "Executing query: ${n}" -ForegroundColor Cyan
+    
+    $Results = Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Query "${q}"
+    
+    Write-Host "✓ Found: $($Results.Count) results" -ForegroundColor Green
+    
+    $Results | Export-Csv "${e}" -NoTypeInformation
+    Write-Host "✓ Exported: ${e}" -ForegroundColor Green
+} catch {
+    Write-Error "Query failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'collection-membership-report',
+    name: 'Collection Membership Report',
+    category: 'Reporting & Inventory',
+    description: 'Generate collection membership report',
+    instructions: `**How This Task Works:**
+- Generates comprehensive collection membership report
+- Shows all devices across multiple collections
+- Includes user, logon, and client version data
+- Useful for collection auditing and overlap analysis
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Read permissions on collections
+- Collections must exist
+
+**What You Need to Provide:**
+- Collection names (comma-separated list)
+- Export path for CSV report
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Processes each collection in the list
+4. Retrieves all member devices
+5. Collects device, user, last logon, client version
+6. Combines all collection data into single report
+7. Exports to CSV with totals
+
+**Important Notes:**
+- Report shows which devices belong to which collections
+- Useful for identifying collection overlap
+- Typical use: collection audits, deployment planning, client health tracking
+- Large collections may take time to process
+- Device can appear multiple times if in multiple collections
+- Client version helps identify outdated clients
+- Last logon user shows recent activity`,
+    parameters: [
+      { id: 'collections', label: 'Collections (comma-separated)', type: 'textarea', required: true, placeholder: 'Pilot-Group,Production-Group' },
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\CollectionMembership.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const c = params.collections ? buildPowerShellArray(params.collections) : '';
+      const e = escapePowerShellString(params.exportPath);
+      
+      return `# Collection Membership Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Collections = ${c}
+$Report = @()
+
+foreach ($Coll in $Collections) {
+    $Members = Get-CMDevice -CollectionName $Coll
+    
+    foreach ($Dev in $Members) {
+        $Report += [PSCustomObject]@{
+            Collection    = $Coll
+            Device        = $Dev.Name
+            User          = $Dev.UserName
+            LastLogon     = $Dev.LastLogonUser
+            ClientVersion = $Dev.ClientVersion
+        }
+    }
+}
+
+$Report | Export-Csv "${e}" -NoTypeInformation
+Write-Host "✓ Report: ${e}" -ForegroundColor Green
+Write-Host "  Total members: $($Report.Count)" -ForegroundColor Gray`;
+    }
+  },
 
   // ========================================
   // SITE CONFIGURATION & MAINTENANCE CATEGORY

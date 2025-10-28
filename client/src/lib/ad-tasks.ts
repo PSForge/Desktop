@@ -12,7 +12,7 @@ export interface ADTaskParameter {
   placeholder?: string;
   required: boolean;
   description?: string;
-  options?: string[];
+  options?: string[] | { value: string; label: string }[];
   defaultValue?: any;
 }
 

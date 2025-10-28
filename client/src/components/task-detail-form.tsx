@@ -95,9 +95,16 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
                 <SelectValue placeholder={`Select ${param.label}`} />
               </SelectTrigger>
               <SelectContent>
-                {param.options?.map(option => (
-                  <SelectItem key={option} value={option}>{option}</SelectItem>
-                ))}
+                {param.options?.map(option => {
+                  // Support both string options and {value, label} objects
+                  const optionValue = typeof option === 'string' ? option : option.value;
+                  const optionLabel = typeof option === 'string' ? option : option.label;
+                  return (
+                    <SelectItem key={optionValue} value={optionValue}>
+                      {optionLabel}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             {param.description && (

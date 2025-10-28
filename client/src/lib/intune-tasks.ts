@@ -468,6 +468,34 @@ try {
     title: 'Wipe Managed Device',
     description: 'Perform a full or selective wipe on a managed device',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script initiates complete device wipes (factory reset) for lost devices or repurposed hardware while optionally preserving enrollment.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Device name to wipe
+- Whether to keep enrollment data (checkbox)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for device by exact name match
+3. Validates device exists in Intune
+4. Initiates full wipe with specified enrollment option
+5. Reports wipe status with device details
+
+**Important Notes:**
+- Wipe removes ALL data (factory reset) - extremely destructive
+- Different from Retire (which keeps personal data)
+- Use for lost devices, security breaches, or hardware repurposing
+- Keep Enrollment option allows faster re-provisioning
+- Wipe cannot be canceled once initiated
+- Device will revert to out-of-box state
+- User data is completely erased
+- Essential for security incident response`,
     parameters: [
       {
         name: 'deviceName',
@@ -526,6 +554,33 @@ try {
     title: 'Sync Device with Intune',
     description: 'Force immediate synchronization of a device with Intune',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script forces immediate device check-in to apply pending policies, apps, and configuration updates without waiting for normal sync intervals.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Device name to sync
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for device by exact name match
+3. Validates device exists in Intune
+4. Initiates immediate device sync
+5. Reports last sync timestamp
+
+**Important Notes:**
+- Forces immediate policy/app/config application
+- Use for troubleshooting or urgent deployments
+- Normal sync interval is 8 hours for Windows, 24 hours for mobile
+- Sync completes within 5-10 minutes typically
+- Device must be online and connected
+- Essential for validating policy changes
+- Reduces waiting time for urgent updates
+- Check Intune portal for sync completion status`,
     parameters: [
       {
         name: 'deviceName',
@@ -570,6 +625,34 @@ try {
     title: 'Rename Managed Device',
     description: 'Change the name of an Intune-managed device',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script remotely renames Intune-managed devices for improved asset tracking and organizational clarity without requiring local access.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Current device name
+- New device name
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for device by current name
+3. Validates device exists in Intune
+4. Initiates remote rename action
+5. Reports old and new names
+
+**Important Notes:**
+- Rename applies during next device sync
+- Device must sync to complete rename (may take hours)
+- Windows devices support rename; some mobile platforms may not
+- Use standardized naming conventions (e.g., DEPT-USER-01)
+- Improves asset management and troubleshooting
+- Rename visible in Intune portal immediately
+- Actual device hostname changes after sync
+- Force sync after rename for faster application`,
     parameters: [
       {
         name: 'currentName',
@@ -628,6 +711,33 @@ try {
     title: 'Create Device Configuration Profile',
     description: 'Create a Windows 10 device configuration profile',
     category: 'Configuration Profiles',
+    instructions: `**How This Task Works:**
+This script creates Windows 10/11 configuration profiles to enforce security settings and device restrictions across managed devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Profile name
+- Whether to enable Windows Firewall (checkbox, default enabled)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates Windows 10 general configuration profile
+3. Configures firewall enforcement settings
+4. Sets defender policies (block end user access disabled)
+5. Returns created profile ID for assignment
+
+**Important Notes:**
+- Profile not applied until assigned to groups
+- Example shows firewall enforcement; extend for other settings
+- Use for security baselines and device restrictions
+- Test profiles with pilot groups first
+- Monitor compliance after deployment
+- Typical settings: BitLocker, Windows Update, security features
+- Must assign profile after creation to take effect`,
     parameters: [
       {
         name: 'profileName',
@@ -682,6 +792,34 @@ try {
     title: 'Assign Configuration Profile to Group',
     description: 'Assign a device configuration profile to an Azure AD group',
     category: 'Configuration Profiles',
+    instructions: `**How This Task Works:**
+This script assigns configuration profiles to Azure AD groups, controlling which devices receive specific security and management policies.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All and Group.Read.All permissions
+
+**What You Need to Provide:**
+- Configuration profile name to assign
+- Azure AD group name for targeting
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration and group permissions
+2. Searches for configuration profile by name
+3. Searches for Azure AD group by name
+4. Creates profile assignment targeting the group
+5. Reports assignment success
+
+**Important Notes:**
+- Profile applies to all devices in target group
+- Changes take effect during next device sync (8-24 hours)
+- Use device groups, not user groups for device config
+- Essential step after creating configuration profiles
+- Test with pilot groups before broad deployment
+- Monitor compliance in Intune portal
+- Force device sync for immediate application
+- Assignments cumulative if multiple groups targeted`,
     parameters: [
       {
         name: 'profileName',
@@ -752,6 +890,35 @@ try {
     title: 'Create Compliance Policy',
     description: 'Create a Windows 10 device compliance policy',
     category: 'Compliance',
+    instructions: `**How This Task Works:**
+This script creates Windows 10/11 compliance policies to enforce minimum security standards and control conditional access.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Minimum OS version (e.g., 10.0.19041 for Windows 10 20H1)
+- Whether to require BitLocker encryption (checkbox, default enabled)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates Windows 10 compliance policy
+3. Sets minimum OS version requirement
+4. Configures BitLocker, Secure Boot, and Code Integrity requirements
+5. Returns created policy ID for assignment
+
+**Important Notes:**
+- Policy not enforced until assigned to groups
+- Non-compliant devices flagged in Intune portal
+- Essential for conditional access integration
+- Typical requirements: OS version, encryption, firewall, antivirus
+- Test with pilot groups before broad deployment
+- Compliance checked during device sync intervals
+- Combine with conditional access for access control
+- Must assign policy after creation to take effect`,
     parameters: [
       {
         name: 'policyName',
@@ -819,6 +986,33 @@ try {
     title: 'List Non-Compliant Devices',
     description: 'Generate report of devices not meeting compliance policies',
     category: 'Compliance',
+    instructions: `**How This Task Works:**
+This script generates comprehensive reports of non-compliant devices for security remediation and conditional access troubleshooting.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementManagedDevices.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path for compliance report
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device read permissions
+2. Filters devices by complianceState = 'noncompliant'
+3. Extracts device name, user, OS details, and last sync time
+4. Exports non-compliant devices to CSV
+5. Reports total count of non-compliant devices
+
+**Important Notes:**
+- Essential for conditional access troubleshooting
+- Identifies security risks requiring immediate attention
+- Use to notify users of compliance issues
+- Common issues: outdated OS, missing encryption, disabled firewall
+- Run daily during compliance rollout
+- Coordinate with helpdesk for user remediation
+- Review reasons in Intune portal for specific violations
+- Non-compliance may block access to corporate resources`,
     parameters: [
       {
         name: 'exportPath',
@@ -871,6 +1065,35 @@ try {
     title: 'Create App Protection Policy',
     description: 'Create a mobile app protection policy for iOS or Android',
     category: 'App Management',
+    instructions: `**How This Task Works:**
+This script creates mobile application management (MAM) policies to protect corporate data in mobile apps without requiring full device enrollment.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Platform (iOS or Android)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app write permissions
+2. Creates platform-specific app protection policy (iOS or Android)
+3. Configures data protection settings (backup blocked, save-as blocked)
+4. Sets access checks (offline 12h, online 30min)
+5. Configures wipe after 90 days offline
+6. Returns created policy ID for app assignment
+
+**Important Notes:**
+- Essential for BYOD scenarios (no device enrollment required)
+- Protects corporate data in managed apps only
+- Blocks data transfer to unmanaged apps
+- Must assign policy to apps and users after creation
+- Common managed apps: Outlook, Teams, OneDrive, SharePoint
+- Test with pilot users before broad deployment
+- Coordinate with app deployment strategy
+- Works without full MDM enrollment`,
     parameters: [
       {
         name: 'policyName',
@@ -936,6 +1159,36 @@ try {
     title: 'Deploy Win32 App',
     description: 'Upload and deploy a Win32 application package',
     category: 'App Management',
+    instructions: `**How This Task Works:**
+This script creates Win32 app entries in Intune for deploying traditional desktop applications (.exe/.msi) to managed devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All permission
+- App packaged as .intunewin file (using IntuneWinAppUtil.exe)
+
+**What You Need to Provide:**
+- App display name
+- Publisher name
+- Path to .intunewin packaged file
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app write permissions
+2. Validates .intunewin file exists
+3. Creates Win32 app entry in Intune
+4. Returns app ID for manual content upload
+5. Notes that file upload must be completed in portal
+
+**Important Notes:**
+- Must package app as .intunewin before running (use IntuneWinAppUtil.exe)
+- Script creates app entry but content upload requires Intune portal
+- Complete workflow: package → create entry → upload content → configure detection → assign
+- Essential for deploying custom/legacy apps
+- Use for apps not available in Microsoft Store
+- Must configure install/uninstall commands in portal
+- Must configure detection rules in portal after creation
+- Assign to groups after upload completes`,
     parameters: [
       {
         name: 'appName',
@@ -1011,6 +1264,35 @@ try {
     title: 'Create Autopilot Deployment Profile',
     description: 'Create Windows Autopilot deployment profile',
     category: 'Autopilot',
+    instructions: `**How This Task Works:**
+This script creates Windows Autopilot deployment profiles to automate device provisioning and streamline out-of-box experience (OOBE).
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementServiceConfig.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Profile name
+- Whether to skip privacy settings during OOBE (checkbox, default enabled)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with service config permissions
+2. Creates Azure AD Autopilot deployment profile
+3. Configures device naming template (PC-%SERIAL%)
+4. Sets OOBE settings (hide privacy, EULA, skip keyboard selection)
+5. Configures shared device mode with standard users
+6. Returns created profile ID for device assignment
+
+**Important Notes:**
+- Essential for zero-touch device deployment
+- Streamlines OOBE for faster provisioning
+- Must assign profile to Autopilot device groups
+- Device name uses serial number automatically
+- Combine with Autopilot device registration
+- Test with pilot devices before production rollout
+- Typical setup: register devices → create profile → assign profile → ship devices
+- Users experience streamlined setup on first boot`,
     parameters: [
       {
         name: 'profileName',
@@ -1075,6 +1357,35 @@ try {
     title: 'Import Autopilot Devices from CSV',
     description: 'Bulk import Windows Autopilot device hardware hashes from CSV',
     category: 'Autopilot',
+    instructions: `**How This Task Works:**
+This script bulk imports Windows Autopilot device registrations from CSV files containing hardware hashes collected from devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementServiceConfig.ReadWrite.All permission
+- CSV file with SerialNumber and HardwareHash columns
+
+**What You Need to Provide:**
+- CSV file path with device information
+- Optional group tag for device categorization
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with service config permissions
+2. Validates CSV file exists
+3. Imports device serial numbers and hardware hashes
+4. Optionally applies group tag for categorization
+5. Reports success/failure count for each device
+6. Provides import summary
+
+**Important Notes:**
+- CSV must contain SerialNumber and HardwareHash columns
+- Get hardware hash using Get-WindowsAutopilotInfo.ps1 on each device
+- Essential for bulk Autopilot device registration
+- Group tags enable automatic profile assignment
+- Typical workflow: collect hashes → import CSV → assign profiles
+- Import can take several minutes for large batches
+- Verify imports in Autopilot device list after completion`,
     parameters: [
       {
         name: 'csvPath',
@@ -1146,6 +1457,32 @@ try {
     title: 'Delete Autopilot Device',
     description: 'Remove a device from Windows Autopilot',
     category: 'Autopilot',
+    instructions: `**How This Task Works:**
+This script removes device registrations from Windows Autopilot for decommissioned or incorrectly registered devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementServiceConfig.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Device serial number
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with service config permissions
+2. Searches for Autopilot device by serial number
+3. Validates device exists in Autopilot
+4. Removes device registration
+5. Reports deletion success with serial number
+
+**Important Notes:**
+- Use for decommissioned hardware or incorrect registrations
+- Device can be re-registered after deletion
+- Does NOT delete from Intune (use retire/wipe separately)
+- Only removes Autopilot registration, not device management
+- Essential for device lifecycle management
+- Verify deletion in Autopilot device list
+- Re-registration requires collecting hardware hash again`,
     parameters: [
       {
         name: 'serialNumber',
@@ -1189,6 +1526,33 @@ try {
     title: 'Export Windows Update Compliance',
     description: 'Export report of Windows update compliance status',
     category: 'Updates',
+    instructions: `**How This Task Works:**
+This script generates Windows update compliance reports showing device OS versions, sync status, and compliance state for patch management tracking.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementManagedDevices.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path for update compliance report
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device read permissions
+2. Filters to Windows devices only
+3. Extracts device name, user, OS version, last sync, compliance
+4. Exports update compliance data to CSV
+5. Reports total Windows device count
+
+**Important Notes:**
+- Essential for patch management and security compliance
+- Shows OS version for update ring compliance validation
+- Use to identify devices needing updates
+- Compliance reflects update ring policy adherence
+- Run weekly for patch management tracking
+- Coordinate with security team for vulnerability management
+- Compare OS versions against security baselines
+- Non-compliant devices may have pending updates`,
     parameters: [
       {
         name: 'exportPath',
@@ -1239,6 +1603,37 @@ try {
     title: 'Upload PowerShell Script',
     description: 'Upload and deploy a PowerShell script to managed devices',
     category: 'Scripts & Remediation',
+    instructions: `**How This Task Works:**
+This script uploads PowerShell scripts to Intune for automated deployment and execution on managed Windows devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+- PowerShell script file (.ps1)
+
+**What You Need to Provide:**
+- Script display name
+- Path to PowerShell script file
+- Whether to run in 32-bit PowerShell (checkbox)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Validates script file exists locally
+3. Reads and Base64-encodes script content
+4. Uploads script to Intune with specified settings
+5. Configures execution as SYSTEM account
+6. Returns script ID for device group assignment
+
+**Important Notes:**
+- Script runs as SYSTEM account (elevated privileges)
+- Must assign to device groups after upload
+- Essential for configuration remediation and automation
+- Use for settings that can't be configured via policies
+- Test scripts locally before deploying
+- 32-bit option for compatibility with legacy components
+- Scripts run during device sync intervals
+- Monitor execution status in Intune portal`,
     parameters: [
       {
         name: 'scriptName',
@@ -1311,6 +1706,35 @@ try {
     title: 'Send Notification to Devices',
     description: 'Send a company portal notification to managed devices',
     category: 'Communication',
+    instructions: `**How This Task Works:**
+This script sends Company Portal notifications to managed devices for important communications and maintenance alerts.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All and Group.Read.All permissions
+
+**What You Need to Provide:**
+- Notification title
+- Message content
+- Target Azure AD group name
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device and group permissions
+2. Searches for target Azure AD group
+3. Creates notification message template with title and content
+4. Configures notification for en-US locale
+5. Reports notification sent to target group
+
+**Important Notes:**
+- Notifications appear in Company Portal app
+- Essential for user communications about updates/maintenance
+- Use for urgent messages (restart required, policy changes)
+- Users must have Company Portal installed
+- Notifications may take 5-10 minutes to deliver
+- Coordinate with helpdesk for expected user questions
+- Typical use: update reminders, maintenance windows, policy changes
+- Test with pilot group first`,
     parameters: [
       {
         name: 'notificationTitle',
@@ -1383,6 +1807,33 @@ try {
     title: 'Export Device Enrollment Report',
     description: 'Export detailed enrollment data for all managed devices',
     category: 'Reporting',
+    instructions: `**How This Task Works:**
+This script generates comprehensive device enrollment reports with hardware details, user assignments, and enrollment timestamps for asset management.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementManagedDevices.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path for enrollment report
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device read permissions
+2. Retrieves all managed devices from Intune
+3. Extracts enrollment date, user, OS, hardware details, serial numbers
+4. Exports complete device inventory to CSV
+5. Reports total enrolled device count
+
+**Important Notes:**
+- Essential for asset management and inventory tracking
+- Shows enrollment dates for lifecycle analysis
+- Use for hardware warranty tracking (serial numbers, model)
+- Includes manufacturer and model for procurement planning
+- Run monthly for inventory reconciliation
+- Coordinate with asset management team
+- Last sync time helps identify stale devices
+- Supports compliance auditing and reporting`,
     parameters: [
       {
         name: 'exportPath',
@@ -1438,6 +1889,33 @@ try {
     title: 'Reset Device Passcode',
     description: 'Remotely reset the passcode on a managed mobile device',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script remotely resets device passcodes on managed mobile devices for users locked out of their iOS/Android devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Mobile device name
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for mobile device by name
+3. Validates device exists in Intune
+4. Initiates passcode reset action
+5. Reports reset initiated status
+
+**Important Notes:**
+- Primarily for iOS and Android mobile devices
+- User prompted to set new passcode after reset
+- Essential for helpdesk self-service support
+- Use when user forgets device passcode
+- May not work on Windows devices
+- Reset takes effect after device checks in
+- User must complete new passcode setup
+- Coordinate with user before initiating reset`,
     parameters: [
       {
         name: 'deviceName',
@@ -1482,6 +1960,33 @@ try {
     title: 'Locate Lost Device',
     description: 'Request GPS location of a managed mobile device',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script requests GPS location from managed mobile devices to help locate lost or stolen iOS/Android devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Mobile device name to locate
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for mobile device by name
+3. Validates device exists in Intune
+4. Sends location request to device
+5. Instructs to check Intune portal for location results
+
+**Important Notes:**
+- Primarily for iOS and Android mobile devices
+- Device must be powered on and connected
+- Location appears in Intune portal device details
+- Essential for lost device recovery
+- Use within hours of device loss for best results
+- Coordinate with security team for stolen devices
+- Location accuracy depends on device GPS capability
+- Battery must have sufficient charge for GPS`,
     parameters: [
       {
         name: 'deviceName',
@@ -1526,6 +2031,35 @@ try {
     title: 'Enable Lost Mode (iOS)',
     description: 'Enable lost mode on a managed iOS device with custom message',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script enables iOS Lost Mode to lock device and display custom contact message for lost/stolen device recovery.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- iOS device name
+- Lock screen message with contact instructions
+- Optional contact phone number
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for iOS device by name
+3. Validates device exists in Intune
+4. Enables Lost Mode with custom message and phone number
+5. Reports Lost Mode enabled with configured message
+
+**Important Notes:**
+- iOS devices only (not Android/Windows)
+- Device locks and displays message on lock screen
+- Essential for lost device recovery and data protection
+- Message should include IT contact information
+- Device tracks location while in Lost Mode
+- User cannot access device while locked
+- Disable Lost Mode after device recovery
+- Combine with locate device action for recovery`,
     parameters: [
       {
         name: 'deviceName',
@@ -1593,6 +2127,33 @@ try {
     title: 'Export Policy Assignments',
     description: 'Export comprehensive report of all policy and profile assignments',
     category: 'Reporting',
+    instructions: `**How This Task Works:**
+This script generates comprehensive reports of all configuration policy assignments for governance, auditing, and troubleshooting.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementConfiguration.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path for policy assignments
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration read permissions
+2. Retrieves all device configuration policies
+3. Extracts policy assignments for each configuration
+4. Captures policy name, type, assignment ID, target type
+5. Exports complete assignment inventory to CSV
+
+**Important Notes:**
+- Essential for policy governance and compliance auditing
+- Shows which groups receive which policies
+- Use to identify orphaned or duplicate assignments
+- Helps troubleshoot policy application issues
+- Run quarterly for assignment review
+- Coordinate with governance team
+- Identifies configuration coverage gaps
+- Supports change management documentation`,
     parameters: [
       {
         name: 'exportPath',
@@ -1646,6 +2207,35 @@ try {
     title: 'Bulk Assign Apps to Groups',
     description: 'Assign multiple applications to multiple groups in one operation',
     category: 'App Management',
+    instructions: `**How This Task Works:**
+This script performs bulk app assignments to multiple groups simultaneously for efficient large-scale app deployment management.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All and Group.Read.All permissions
+
+**What You Need to Provide:**
+- App names (one per line in textarea)
+- Group names (one per line in textarea)
+- Assignment intent (Required, Available, or Uninstall)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app and group permissions
+2. Parses app and group names from input
+3. Looks up each app and group in Intune/Azure AD
+4. Creates assignments for each app-group combination
+5. Reports success/failure count for each assignment
+
+**Important Notes:**
+- Essential for large-scale app deployment campaigns
+- Saves time compared to manual assignment in portal
+- Each app assigned to ALL specified groups
+- Required: forces installation, Available: self-service in Company Portal
+- Use Uninstall to remove apps from devices
+- Test with pilot groups before broad deployment
+- Monitor assignment status in Intune portal
+- Typical use: onboarding new departments, mass app rollouts`,
     parameters: [
       {
         name: 'appNames',
@@ -1753,6 +2343,35 @@ ${groupNamesInput.split('\\n').filter((line: string) => line.trim()).map((name: 
     title: 'Create Conditional Access Policy',
     description: 'Create a conditional access policy requiring device compliance',
     category: 'Security',
+    instructions: `**How This Task Works:**
+This script creates conditional access policies to enforce device compliance requirements for accessing corporate resources.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Conditional Access Administrator or Security Administrator role
+- Policy.ReadWrite.ConditionalAccess permission
+
+**What You Need to Provide:**
+- Policy name
+- Whether to require device compliance (checkbox, default enabled)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with conditional access permissions
+2. Creates new conditional access policy
+3. Configures to apply to All applications and All users
+4. Sets grant control to require compliant device
+5. Creates policy in DISABLED state for review
+6. Returns policy ID
+
+**Important Notes:**
+- Policy created in DISABLED state for safety - enable manually after review
+- Essential for zero-trust security architecture
+- Blocks non-compliant devices from accessing resources
+- Coordinate with compliance policies before deployment
+- Test with pilot users before enabling for all users
+- Consider excluding break-glass accounts
+- Monitor sign-in logs for policy impact
+- Must manually enable policy in Azure portal after validation`,
     parameters: [
       {
         name: 'policyName',
@@ -1819,6 +2438,33 @@ try {
     title: 'Export Device Health Report',
     description: 'Export comprehensive device health status including battery, storage, and performance',
     category: 'Reporting',
+    instructions: `**How This Task Works:**
+This script generates comprehensive device health reports with hardware status for proactive device lifecycle and maintenance management.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementManagedDevices.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path for device health report
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device read permissions
+2. Retrieves all managed devices
+3. Extracts device health indicators (available from Intune)
+4. Exports device health inventory to CSV
+5. Reports total device count
+
+**Important Notes:**
+- Essential for proactive device lifecycle management
+- Use to identify devices needing hardware replacement
+- Health data availability varies by device platform
+- Windows devices provide more detailed health data
+- Run monthly for device health trending
+- Coordinate with procurement for replacement planning
+- Identify devices with low battery health or storage issues
+- Supports warranty and refresh cycle planning`,
     parameters: [
       {
         name: 'exportPath',

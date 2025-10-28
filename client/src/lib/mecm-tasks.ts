@@ -1543,18 +1543,629 @@ try {
   // ========================================
   // CLIENT MANAGEMENT & HEALTH CATEGORY
   // ========================================
-  {id:'force-policy-refresh',name:'Force Client Policy Refresh',category:'Client Management & Health',description:'Force immediate policy refresh on targeted devices',parameters:[{id:'devices',label:'Device Names (comma-separated)',type:'textarea',required:true,placeholder:'PC001,PC002,PC003'}],scriptTemplate:p=>{const d=p.devices?buildPowerShellArray(p.devices):'';return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Devices=${d};foreach($Dev in $Devices){try{Invoke-CMClientAction -DeviceName $Dev -ActionType ClientNotificationRequestMachinePolicyNow;Write-Host "✓ $Dev: Policy refresh triggered" -ForegroundColor Green}catch{Write-Host "✗ $Dev: Failed" -ForegroundColor Red}}`;}},
-  {id:'repair-client',name:'Repair MECM Client',category:'Client Management & Health',description:'Reinstall/repair Configuration Manager client on devices',parameters:[{id:'computerName',label:'Computer Name',type:'text',required:true,placeholder:'PC001'},{id:'siteCode',label:'Site Code',type:'text',required:true,placeholder:'PS1'},{id:'mpServer',label:'Management Point',type:'text',required:true,placeholder:'mecm.contoso.com'}],scriptTemplate:p=>{const c=escapePowerShellString(p.computerName),s=escapePowerShellString(p.siteCode),m=escapePowerShellString(p.mpServer);return `$Computer="${c}";$Site="${s}";$MP="${m}";try{Write-Host "Uninstalling client..." -ForegroundColor Cyan;Invoke-Command -ComputerName $Computer -ScriptBlock{Start-Process "C:\\Windows\\ccmsetup\\ccmsetup.exe" -ArgumentList "/uninstall" -Wait};Start-Sleep -Seconds 30;Write-Host "Installing client..." -ForegroundColor Cyan;Invoke-Command -ComputerName $Computer -ScriptBlock{param($s,$m);Start-Process "\\\\$m\\SMS_$s\\Client\\ccmsetup.exe" -ArgumentList "SMSSITECODE=$s","MP=$m","/forceinstall" -Wait} -ArgumentList $Site,$MP;Write-Host "✓ Client repair completed" -ForegroundColor Green}catch{Write-Error "Failed: $_"}`;}},
-  {id:'client-health-check',name:'Export Client Health Dashboard',category:'Client Management & Health',description:'Generate comprehensive client health report with installation, online, and error status',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Systems'},{id:'exportPath',label:'Export Path',type:'path',required:true,placeholder:'C:\\Reports\\ClientHealth.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Collection="${c}";$Export="${e}";$Devices=Get-CMDevice -CollectionName $Collection;$Report=$Devices|ForEach{$LastHB=(Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_R_System -Filter "Name='$($_.Name)'"|Select -First 1).LastLogonTimestamp;[PSCustomObject]@{Name=$_.Name;Client=$_.IsClient;Online=$_.IsActive;LastHeartbeat=$LastHB;Version=$_.ClientVersion}};$Report|Export-Csv $Export -NoTypeInformation;Write-Host "✓ Report: $Export" -ForegroundColor Green`;}},
-  {id:'clear-client-cache',name:'Clear Client Cache',category:'Client Management & Health',description:'Clear Configuration Manager client cache on devices to free disk space',parameters:[{id:'devices',label:'Device Names (comma-separated)',type:'textarea',required:true,placeholder:'PC001,PC002'},{id:'ageThresholdDays',label:'Delete Items Older Than (days)',type:'number',required:false,defaultValue:30}],scriptTemplate:p=>{const d=p.devices?buildPowerShellArray(p.devices):'',a=p.ageThresholdDays||30;return `$Devices=${d};$AgeDays=${a};foreach($Dev in $Devices){try{Invoke-Command -ComputerName $Dev -ScriptBlock{param($days);$Cache=New-Object -ComObject UIResource.UIResourceMgr;$Items=$Cache.GetCacheInfo().GetCacheElements();$Cutoff=(Get-Date).AddDays(-$days);foreach($Item in $Items){if($Item.LastReferenceTime -lt $Cutoff){$Cache.GetCacheInfo().DeleteCacheElement($Item.CacheElementID)}}};Write-Host "✓ $Dev: Cache cleared" -ForegroundColor Green}catch{Write-Host "✗ $Dev: Failed" -ForegroundColor Red}}`;}},
-  {id:'remote-client-actions',name:'Remote Client Actions',category:'Client Management & Health',description:'Execute remote actions on client devices (restart, wake, lock, etc.)',parameters:[{id:'devices',label:'Device Names (comma-separated)',type:'textarea',required:true,placeholder:'PC001,PC002'},{id:'action',label:'Action',type:'select',required:true,defaultValue:'Restart',options:['Restart','Shutdown','WakeUp','Lock','Logoff']}],scriptTemplate:p=>{const d=p.devices?buildPowerShellArray(p.devices):'',a=escapePowerShellString(p.action||'Restart');return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Devices=${d};$Action="${a}";$ActionMap=@{Restart='ClientNotificationRequestMachineRestart';WakeUp='ClientNotificationSendWakeupPacket';Lock='Undefined';Shutdown='Undefined';Logoff='Undefined'};foreach($Dev in $Devices){try{if($ActionMap[$Action] -ne 'Undefined'){Invoke-CMClientAction -DeviceName $Dev -ActionType $ActionMap[$Action];Write-Host "✓ $Dev: $Action triggered" -ForegroundColor Green}else{Invoke-Command -ComputerName $Dev -ScriptBlock{param($a);if($a -eq 'Lock'){rundll32.exe user32.dll,LockWorkStation}elseif($a -eq 'Shutdown'){Stop-Computer -Force}elseif($a -eq 'Logoff'){shutdown /l}} -ArgumentList $Action;Write-Host "✓ $Dev: $Action completed" -ForegroundColor Green}}catch{Write-Host "✗ $Dev: Failed" -ForegroundColor Red}}`;}},
+  {
+    id: 'force-policy-refresh',
+    name: 'Force Client Policy Refresh',
+    category: 'Client Management & Health',
+    description: 'Force immediate policy refresh on targeted devices',
+    instructions: `**How This Task Works:**
+- Triggers instant MECM client policy download and application
+- Forces client to contact management point immediately
+- Updates machine and user policies
+- Bypasses normal policy polling schedule
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Fast channel client notifications enabled
+- Target devices online and responsive
+
+**What You Need to Provide:**
+- Device names (comma-separated list)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Loops through each device
+4. Sends client notification action for immediate policy refresh
+5. Displays success or failure per device
+
+**Important Notes:**
+- REQUIRES CLIENT TO BE ONLINE
+- Useful after deploying new policies or applications
+- Typical use: force policy after collection membership changes, troubleshoot policy issues
+- Devices must have fast channel enabled (default)
+- Alternative to waiting for policy polling cycle (default: every 60 minutes)
+- Failed devices may be offline or have firewall blocking client notifications`,
+    parameters: [
+      { id: 'devices', label: 'Device Names (comma-separated)', type: 'textarea', required: true, placeholder: 'PC001,PC002,PC003' }
+    ],
+    scriptTemplate: (params) => {
+      const d = params.devices ? buildPowerShellArray(params.devices) : '';
+      
+      return `# Force Client Policy Refresh
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Devices = ${d}
+
+foreach ($Dev in $Devices) {
+    try {
+        Invoke-CMClientAction -DeviceName $Dev -ActionType ClientNotificationRequestMachinePolicyNow
+        Write-Host "✓ $Dev: Policy refresh triggered" -ForegroundColor Green
+    } catch {
+        Write-Host "✗ $Dev: Failed" -ForegroundColor Red
+    }
+}`;
+    }
+  },
+
+  {
+    id: 'repair-client',
+    name: 'Repair MECM Client',
+    category: 'Client Management & Health',
+    description: 'Reinstall/repair Configuration Manager client on devices',
+    instructions: `**How This Task Works:**
+- Uninstalls existing MECM client
+- Reinstalls fresh client from management point
+- Fixes corrupted client installations
+- Resolves client communication issues
+
+**Prerequisites:**
+- PowerShell Remoting enabled on target device
+- Administrator credentials for target computer
+- Network access to management point
+- Access to client installation source files
+- WinRM service running on target
+
+**What You Need to Provide:**
+- Computer name
+- Site code
+- Management point server name
+
+**What the Script Does:**
+1. Uninstalls existing Configuration Manager client using ccmsetup.exe /uninstall
+2. Waits 30 seconds for uninstall to complete
+3. Reinstalls client from management point with site code and MP parameters
+4. Forces installation even if client exists
+5. Displays completion status
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR ACCESS to target computer
+- REQUIRES POWERSHELL REMOTING enabled
+- Client will be offline during reinstall (30+ seconds)
+- May lose pending client actions during reinstall
+- Typical use: fix corrupted clients, resolve certificate issues, fix WMI corruption
+- Device will check in after successful installation
+- Consider running hardware inventory scan after repair`,
+    parameters: [
+      { id: 'computerName', label: 'Computer Name', type: 'text', required: true, placeholder: 'PC001' },
+      { id: 'siteCode', label: 'Site Code', type: 'text', required: true, placeholder: 'PS1' },
+      { id: 'mpServer', label: 'Management Point', type: 'text', required: true, placeholder: 'mecm.contoso.com' }
+    ],
+    scriptTemplate: (params) => {
+      const c = escapePowerShellString(params.computerName);
+      const s = escapePowerShellString(params.siteCode);
+      const m = escapePowerShellString(params.mpServer);
+      
+      return `# Repair MECM Client
+# Generated: ${new Date().toISOString()}
+
+$Computer = "${c}"
+$Site = "${s}"
+$MP = "${m}"
+
+try {
+    Write-Host "Uninstalling client..." -ForegroundColor Cyan
+    
+    Invoke-Command -ComputerName $Computer -ScriptBlock {
+        Start-Process "C:\\Windows\\ccmsetup\\ccmsetup.exe" -ArgumentList "/uninstall" -Wait
+    }
+    
+    Start-Sleep -Seconds 30
+    
+    Write-Host "Installing client..." -ForegroundColor Cyan
+    
+    Invoke-Command -ComputerName $Computer -ScriptBlock {
+        param($s, $m)
+        Start-Process "\\\\$m\\SMS_$s\\Client\\ccmsetup.exe" -ArgumentList "SMSSITECODE=$s", "MP=$m", "/forceinstall" -Wait
+    } -ArgumentList $Site, $MP
+    
+    Write-Host "✓ Client repair completed" -ForegroundColor Green
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'client-health-check',
+    name: 'Export Client Health Dashboard',
+    category: 'Client Management & Health',
+    description: 'Generate comprehensive client health report',
+    instructions: `**How This Task Works:**
+- Exports client health status for all devices in collection
+- Shows client installation status, online state, heartbeat
+- Displays client version for inventory tracking
+- Essential for identifying client health issues
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Read permissions on collections
+- WMI access to site database
+
+**What You Need to Provide:**
+- Collection name
+- Export path for CSV file
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Retrieves all devices from specified collection
+4. Queries WMI for last heartbeat timestamp
+5. Builds report with client status, online state, version
+6. Exports to CSV file
+
+**Important Notes:**
+- Large collections may take time to process
+- Typical use: identify offline clients, find outdated client versions, troubleshoot client issues
+- LastHeartbeat indicates last successful communication
+- IsClient=False indicates missing client installation
+- IsActive indicates current online status
+- Client version useful for upgrade planning
+- Consider scheduling regular exports for trending`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Systems' },
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\ClientHealth.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const c = escapePowerShellString(params.collectionName);
+      const e = escapePowerShellString(params.exportPath);
+      
+      return `# Export Client Health Dashboard
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Collection = "${c}"
+$Export = "${e}"
+
+$Devices = Get-CMDevice -CollectionName $Collection
+
+$Report = $Devices | ForEach {
+    $LastHB = (Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_R_System -Filter "Name='$($_.Name)'" | Select -First 1).LastLogonTimestamp
+    
+    [PSCustomObject]@{
+        Name          = $_.Name
+        Client        = $_.IsClient
+        Online        = $_.IsActive
+        LastHeartbeat = $LastHB
+        Version       = $_.ClientVersion
+    }
+}
+
+$Report | Export-Csv $Export -NoTypeInformation
+
+Write-Host "✓ Report: $Export" -ForegroundColor Green`;
+    }
+  },
+
+  {
+    id: 'clear-client-cache',
+    name: 'Clear Client Cache',
+    category: 'Client Management & Health',
+    description: 'Clear Configuration Manager client cache',
+    instructions: `**How This Task Works:**
+- Clears MECM client cache to free disk space
+- Deletes cached content older than threshold
+- Removes old application installers and updates
+- Preserves recently used content
+
+**Prerequisites:**
+- PowerShell Remoting enabled on target devices
+- Administrator credentials
+- WinRM service running on targets
+- Network connectivity to devices
+
+**What You Need to Provide:**
+- Device names (comma-separated list)
+- Age threshold in days (optional, default 30)
+
+**What the Script Does:**
+1. Loops through each device
+2. Connects via PowerShell Remoting
+3. Creates UIResource COM object to access cache
+4. Retrieves all cached items
+5. Deletes items older than threshold
+6. Displays success or failure per device
+
+**Important Notes:**
+- REQUIRES POWERSHELL REMOTING and ADMINISTRATOR ACCESS
+- Content deleted if last referenced older than threshold
+- Active/recently used content preserved
+- Typical use: free disk space, remove old cached content, prepare for new deployments
+- Cache default location: C:\\Windows\\ccmcache
+- Failed devices may be offline or deny remote access
+- Consider increasing threshold for critical devices`,
+    parameters: [
+      { id: 'devices', label: 'Device Names (comma-separated)', type: 'textarea', required: true, placeholder: 'PC001,PC002' },
+      { id: 'ageThresholdDays', label: 'Delete Items Older Than (days)', type: 'number', required: false, defaultValue: 30 }
+    ],
+    scriptTemplate: (params) => {
+      const d = params.devices ? buildPowerShellArray(params.devices) : '';
+      const a = params.ageThresholdDays || 30;
+      
+      return `# Clear Client Cache
+# Generated: ${new Date().toISOString()}
+
+$Devices = ${d}
+$AgeDays = ${a}
+
+foreach ($Dev in $Devices) {
+    try {
+        Invoke-Command -ComputerName $Dev -ScriptBlock {
+            param($days)
+            
+            $Cache = New-Object -ComObject UIResource.UIResourceMgr
+            $Items = $Cache.GetCacheInfo().GetCacheElements()
+            $Cutoff = (Get-Date).AddDays(-$days)
+            
+            foreach ($Item in $Items) {
+                if ($Item.LastReferenceTime -lt $Cutoff) {
+                    $Cache.GetCacheInfo().DeleteCacheElement($Item.CacheElementID)
+                }
+            }
+        } -ArgumentList $AgeDays
+        
+        Write-Host "✓ $Dev: Cache cleared" -ForegroundColor Green
+    } catch {
+        Write-Host "✗ $Dev: Failed" -ForegroundColor Red
+    }
+}`;
+    }
+  },
+
+  {
+    id: 'remote-client-actions',
+    name: 'Remote Client Actions',
+    category: 'Client Management & Health',
+    description: 'Execute remote actions on client devices',
+    instructions: `**How This Task Works:**
+- Executes remote management actions on MECM clients
+- Supports restart, shutdown, wake, lock, logoff
+- Uses client notifications or PowerShell Remoting
+- Enables mass device management operations
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- For Restart/WakeUp: Fast channel client notifications enabled
+- For Lock/Shutdown/Logoff: PowerShell Remoting enabled
+- Target devices online
+
+**What You Need to Provide:**
+- Device names (comma-separated list)
+- Action to perform (Restart, Shutdown, WakeUp, Lock, Logoff)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Maps selected action to appropriate method
+4. For Restart/WakeUp: uses MECM client notification
+5. For Lock/Shutdown/Logoff: uses PowerShell Remoting
+6. Displays success or failure per device
+
+**Important Notes:**
+- Restart and WakeUp use MECM client notifications (fast channel required)
+- Lock, Shutdown, Logoff use PowerShell Remoting (requires WinRM)
+- Typical use: emergency restarts, scheduled shutdowns, Wake-on-LAN for maintenance
+- Restart is graceful (allows save prompts)
+- Shutdown is forced (no save prompts)
+- WakeUp requires WOL-capable hardware and network configuration
+- Lock immediately locks workstation
+- Logoff logs off current user`,
+    parameters: [
+      { id: 'devices', label: 'Device Names (comma-separated)', type: 'textarea', required: true, placeholder: 'PC001,PC002' },
+      { 
+        id: 'action', 
+        label: 'Action', 
+        type: 'select', 
+        required: true,
+        options: ['Restart', 'Shutdown', 'WakeUp', 'Lock', 'Logoff'],
+        defaultValue: 'Restart'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const d = params.devices ? buildPowerShellArray(params.devices) : '';
+      const a = escapePowerShellString(params.action || 'Restart');
+      
+      return `# Remote Client Actions
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Devices = ${d}
+$Action = "${a}"
+
+$ActionMap = @{
+    Restart  = 'ClientNotificationRequestMachineRestart'
+    WakeUp   = 'ClientNotificationSendWakeupPacket'
+    Lock     = 'Undefined'
+    Shutdown = 'Undefined'
+    Logoff   = 'Undefined'
+}
+
+foreach ($Dev in $Devices) {
+    try {
+        if ($ActionMap[$Action] -ne 'Undefined') {
+            Invoke-CMClientAction -DeviceName $Dev -ActionType $ActionMap[$Action]
+            Write-Host "✓ $Dev: $Action triggered" -ForegroundColor Green
+        } else {
+            Invoke-Command -ComputerName $Dev -ScriptBlock {
+                param($a)
+                if ($a -eq 'Lock') {
+                    rundll32.exe user32.dll,LockWorkStation
+                } elseif ($a -eq 'Shutdown') {
+                    Stop-Computer -Force
+                } elseif ($a -eq 'Logoff') {
+                    shutdown /l
+                }
+            } -ArgumentList $Action
+            Write-Host "✓ $Dev: $Action completed" -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "✗ $Dev: Failed" -ForegroundColor Red
+    }
+}`;
+    }
+  },
 
   // ========================================
   // PACKAGES & PROGRAMS CATEGORY
   // ========================================
-  {id:'create-package',name:'Create Package from Source',category:'Packages & Programs',description:'Create a legacy package with program for software distribution',parameters:[{id:'packageName',label:'Package Name',type:'text',required:true,placeholder:'Adobe Reader DC'},{id:'sourcePath',label:'Source Path',type:'path',required:true,placeholder:'\\\\server\\sources$\\AdobeReader'},{id:'programName',label:'Program Name',type:'text',required:true,placeholder:'Install'},{id:'commandLine',label:'Command Line',type:'text',required:true,placeholder:'setup.exe /sAll /rs /msi EULA_ACCEPT=YES'}],scriptTemplate:p=>{const n=escapePowerShellString(p.packageName),s=escapePowerShellString(p.sourcePath),pn=escapePowerShellString(p.programName),c=escapePowerShellString(p.commandLine);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Pkg=New-CMPackage -Name "${n}" -Path "${s}" -Description "[AUTO] Created by PSForge";Write-Host "✓ Package created: ${n}" -ForegroundColor Green;$Prog=New-CMProgram -PackageName "${n}" -StandardProgramName "${pn}" -CommandLine "${c}" -RunType Normal -ProgramRunType WhetherOrNotUserIsLoggedOn;Write-Host "✓ Program created: ${pn}" -ForegroundColor Green}catch{Write-Error "Failed: $_"}`;}},
-  {id:'distribute-content',name:'Distribute Content to DPs',category:'Packages & Programs',description:'Distribute package/application content to distribution point groups',parameters:[{id:'contentName',label:'Package/Application Name',type:'text',required:true,placeholder:'7-Zip 23.01'},{id:'dpGroup',label:'Distribution Point Group',type:'text',required:true,placeholder:'All DPs'},{id:'contentType',label:'Content Type',type:'select',required:true,defaultValue:'Package',options:['Package','Application','BootImage','DriverPackage']}],scriptTemplate:p=>{const n=escapePowerShellString(p.contentName),g=escapePowerShellString(p.dpGroup),t=escapePowerShellString(p.contentType||'Package');return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Name="${n}";$DPGroup="${g}";$Type="${t}";try{switch($Type){'Package'{Start-CMContentDistribution -PackageName $Name -DistributionPointGroupName $DPGroup}'Application'{Start-CMContentDistribution -ApplicationName $Name -DistributionPointGroupName $DPGroup}'BootImage'{Start-CMContentDistribution -BootImageName $Name -DistributionPointGroupName $DPGroup}'DriverPackage'{Start-CMContentDistribution -DriverPackageName $Name -DistributionPointGroupName $DPGroup}};Write-Host "✓ Distribution started to: $DPGroup" -ForegroundColor Green}catch{Write-Error "Failed: $_"}`;}},
-  {id:'monitor-content-distribution',name:'Monitor Content Distribution Status',category:'Packages & Programs',description:'Check distribution status of content across all distribution points',parameters:[{id:'contentName',label:'Package/Application Name',type:'text',required:true,placeholder:'Windows 11 22H2'},{id:'exportPath',label:'Export Path (optional)',type:'path',required:false,placeholder:'C:\\Reports\\DistStatus.csv'}],scriptTemplate:p=>{const n=escapePowerShellString(p.contentName),e=p.exportPath?escapePowerShellString(p.exportPath):'';return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Name="${n}";try{$Status=Get-CMDistributionStatus -Name $Name;$Report=$Status|ForEach{[PSCustomObject]@{DP=$_.ServerNALPath;Status=$_.LastStatusMessage;Targeted=$_.Targeted;Installed=$_.Installed;Failed=$_.Failed;InProgress=$_.InProgress}};$Report|Format-Table -AutoSize;${e?`$Report|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Report: ${e}" -ForegroundColor Green`:''}}catch{Write-Error "Failed: $_"}`;}},
+  {
+    id: 'create-package',
+    name: 'Create Package from Source',
+    category: 'Packages & Programs',
+    description: 'Create a legacy package with program for software distribution',
+    instructions: `**How This Task Works:**
+- Creates legacy MECM package from source files
+- Adds program with command-line installer
+- Supports silent installations for software deployment
+- Alternative to modern applications for older software
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Package creation permissions
+- Network access to source files location
+
+**What You Need to Provide:**
+- Package name
+- Source path (network share containing installer files)
+- Program name
+- Command line for silent installation
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Creates new package pointing to source path
+4. Creates program with specified command line
+5. Configures program to run whether user logged on or not
+6. Displays creation confirmation
+
+**Important Notes:**
+- Source path must be accessible to site server and distribution points
+- Use UNC paths (\\\\server\\share) not local paths
+- Command line should support silent/unattended installation
+- Typical use: deploy legacy software, custom installers, scripts
+- After creation, distribute to distribution points
+- Then deploy to collections as needed
+- Consider using applications instead for modern software`,
+    parameters: [
+      { id: 'packageName', label: 'Package Name', type: 'text', required: true, placeholder: 'Adobe Reader DC' },
+      { id: 'sourcePath', label: 'Source Path', type: 'path', required: true, placeholder: '\\\\server\\sources$\\AdobeReader' },
+      { id: 'programName', label: 'Program Name', type: 'text', required: true, placeholder: 'Install' },
+      { id: 'commandLine', label: 'Command Line', type: 'text', required: true, placeholder: 'setup.exe /sAll /rs /msi EULA_ACCEPT=YES' }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.packageName);
+      const s = escapePowerShellString(params.sourcePath);
+      const pn = escapePowerShellString(params.programName);
+      const c = escapePowerShellString(params.commandLine);
+      
+      return `# Create Package from Source
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    $Pkg = New-CMPackage -Name "${n}" -Path "${s}" -Description "[AUTO] Created by PSForge"
+    Write-Host "✓ Package created: ${n}" -ForegroundColor Green
+    
+    $Prog = New-CMProgram -PackageName "${n}" -StandardProgramName "${pn}" -CommandLine "${c}" -RunType Normal -ProgramRunType WhetherOrNotUserIsLoggedOn
+    Write-Host "✓ Program created: ${pn}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'distribute-content',
+    name: 'Distribute Content to DPs',
+    category: 'Packages & Programs',
+    description: 'Distribute package/application content to distribution point groups',
+    instructions: `**How This Task Works:**
+- Distributes content to distribution point groups
+- Supports packages, applications, boot images, driver packages
+- Makes content available for client downloads
+- Essential step after creating or updating content
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Content distribution permissions
+- Distribution point groups configured
+
+**What You Need to Provide:**
+- Package/Application name
+- Distribution point group name
+- Content type (Package, Application, BootImage, or DriverPackage)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Determines content type
+4. Initiates distribution to specified DP group
+5. Displays confirmation
+
+**Important Notes:**
+- Distribution is asynchronous (continues in background)
+- Large content may take time to distribute
+- Monitor distribution status separately
+- Typical use: make new software available, update existing content, prepare for deployments
+- Content must exist before distribution
+- Distribution point group must be configured
+- Check DP health before large distributions`,
+    parameters: [
+      { id: 'contentName', label: 'Package/Application Name', type: 'text', required: true, placeholder: '7-Zip 23.01' },
+      { id: 'dpGroup', label: 'Distribution Point Group', type: 'text', required: true, placeholder: 'All DPs' },
+      { 
+        id: 'contentType', 
+        label: 'Content Type', 
+        type: 'select', 
+        required: true,
+        options: ['Package', 'Application', 'BootImage', 'DriverPackage'],
+        defaultValue: 'Package'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.contentName);
+      const g = escapePowerShellString(params.dpGroup);
+      const t = escapePowerShellString(params.contentType || 'Package');
+      
+      return `# Distribute Content to DPs
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Name = "${n}"
+$DPGroup = "${g}"
+$Type = "${t}"
+
+try {
+    switch ($Type) {
+        'Package' {
+            Start-CMContentDistribution -PackageName $Name -DistributionPointGroupName $DPGroup
+        }
+        'Application' {
+            Start-CMContentDistribution -ApplicationName $Name -DistributionPointGroupName $DPGroup
+        }
+        'BootImage' {
+            Start-CMContentDistribution -BootImageName $Name -DistributionPointGroupName $DPGroup
+        }
+        'DriverPackage' {
+            Start-CMContentDistribution -DriverPackageName $Name -DistributionPointGroupName $DPGroup
+        }
+    }
+    
+    Write-Host "✓ Distribution started to: $DPGroup" -ForegroundColor Green
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'monitor-content-distribution',
+    name: 'Monitor Content Distribution Status',
+    category: 'Packages & Programs',
+    description: 'Check distribution status of content across all distribution points',
+    instructions: `**How This Task Works:**
+- Monitors content distribution progress across DPs
+- Shows targeted, installed, failed, in-progress counts
+- Displays distribution status messages
+- Optional CSV export for reporting
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- SMS Provider access
+- Read permissions on distribution points
+
+**What You Need to Provide:**
+- Package/Application name
+- Export path (optional)
+
+**What the Script Does:**
+1. Imports Configuration Manager module
+2. Connects to MECM site
+3. Queries distribution status for specified content
+4. Builds report showing DP-level status
+5. Displays table output
+6. Optionally exports to CSV
+
+**Important Notes:**
+- Shows real-time distribution status
+- Targeted = DPs that should have content
+- Installed = successfully distributed
+- Failed = distribution errors
+- InProgress = currently distributing
+- Typical use: verify distribution completion, troubleshoot failed distributions, audit content availability
+- Large packages may show InProgress for extended time
+- Check failed DPs for disk space or connectivity issues`,
+    parameters: [
+      { id: 'contentName', label: 'Package/Application Name', type: 'text', required: true, placeholder: 'Windows 11 22H2' },
+      { id: 'exportPath', label: 'Export Path (optional)', type: 'path', required: false, placeholder: 'C:\\Reports\\DistStatus.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.contentName);
+      const e = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Monitor Content Distribution Status
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Name = "${n}"
+
+try {
+    $Status = Get-CMDistributionStatus -Name $Name
+    
+    $Report = $Status | ForEach {
+        [PSCustomObject]@{
+            DP         = $_.ServerNALPath
+            Status     = $_.LastStatusMessage
+            Targeted   = $_.Targeted
+            Installed  = $_.Installed
+            Failed     = $_.Failed
+            InProgress = $_.InProgress
+        }
+    }
+    
+    $Report | Format-Table -AutoSize
+    ${e ? `
+    $Report | Export-Csv "${e}" -NoTypeInformation
+    Write-Host "✓ Report: ${e}" -ForegroundColor Green` : ''}
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    }
+  },
 
   // ========================================
   // OPERATING SYSTEM DEPLOYMENT CATEGORY

@@ -31,6 +31,36 @@ export const azureAdTasks: AzureAdTask[] = [
     name: 'Create New User Account',
     category: 'User Lifecycle',
     description: 'Create a new Azure AD user with license assignment and password settings',
+    instructions: `**How This Task Works:**
+This script creates a new user account in Azure AD/Entra ID with automatic license assignment, essential for onboarding employees in cloud-first organizations.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or User Administrator role
+- Available licenses if assignment required
+- Internet connectivity
+
+**What You Need to Provide:**
+- User Principal Name (email format)
+- Display Name (full name)
+- Usage Location (2-letter country code for licensing)
+- Password meeting complexity requirements
+- Optional: License SKU, Job Title, Department
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Creates password profile with specified settings
+3. Creates user account in Azure AD
+4. Assigns specified license if provided
+5. Configures user properties (title, department)
+6. Reports success with user ID
+
+**Important Notes:**
+- Password must meet Azure AD complexity requirements (uppercase, lowercase, numbers, symbols)
+- UsageLocation required for license assignment (e.g., US, GB, CA)
+- Force password change recommended for security
+- License SKU examples: ENTERPRISEPACK (E3), SPE_E5 (E5)
+- User created immediately, may take 5-10 minutes to appear in all services`,
     parameters: [
       { id: 'upn', label: 'User Principal Name', type: 'text', required: true, placeholder: 'john.doe@contoso.com' },
       { id: 'displayName', label: 'Display Name', type: 'text', required: true, placeholder: 'John Doe' },
@@ -128,6 +158,35 @@ Disconnect-MgGraph`;
     name: 'Bulk Create Users from CSV',
     category: 'User Lifecycle',
     description: 'Create multiple users from a CSV file with optional license assignment',
+    instructions: `**How This Task Works:**
+This script creates multiple Azure AD user accounts in bulk from a CSV file, perfect for new hire batches, mergers, or organizational expansion.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or User Administrator role
+- CSV file with required columns
+- Sufficient available licenses
+
+**What You Need to Provide:**
+- CSV file path with user data
+- Force password change option
+- Test mode for preview
+
+**What the Script Does:**
+1. Imports CSV file with user information
+2. Validates CSV format and required columns
+3. Creates each user account sequentially
+4. Assigns licenses if specified in CSV
+5. Reports success/failure for each user
+6. Provides summary statistics
+
+**Important Notes:**
+- CSV columns required: UPN, DisplayName, UsageLocation, Password
+- CSV columns optional: LicenseSku, JobTitle, Department
+- ALWAYS run in test mode first to preview
+- Passwords in CSV must meet complexity requirements
+- Processing large batches (100+) may take time
+- Failed users do not roll back successful creations`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Scripts\\users.csv', description: 'CSV with UPN, DisplayName, UsageLocation, LicenseSku, Password, JobTitle, Department columns' },
       { id: 'forcePasswordChange', label: 'Force Password Change at Next Sign-In', type: 'boolean', required: false, defaultValue: true },
@@ -246,6 +305,35 @@ Disconnect-MgGraph`;
     name: 'Assign or Remove User Licenses',
     category: 'User Lifecycle',
     description: 'Assign or remove licenses for a single user or multiple users',
+    instructions: `**How This Task Works:**
+This script manages Microsoft 365/Azure AD license assignments for individual users, essential for provisioning or deprovisioning cloud services.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or License Administrator role
+- Available licenses for assignment
+- User's usage location set (for assignment)
+
+**What You Need to Provide:**
+- User Principal Name
+- Operation (Assign or Remove)
+- License SKU part number
+- Usage Location (if assigning and not already set)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Validates user exists and SKU is available
+3. Sets usage location if provided (assignment only)
+4. Assigns or removes specified license
+5. Reports success or failure
+
+**Important Notes:**
+- Usage location required for license assignment (e.g., US, GB, CA)
+- SKU examples: ENTERPRISEPACK (E3), SPE_E5 (E5), POWER_BI_STANDARD
+- Run Get-MgSubscribedSku to see available licenses
+- License assignment may take 5-10 minutes to propagate
+- Removing license immediately disables associated services
+- Cannot assign if no licenses available in tenant`,
     parameters: [
       { id: 'upn', label: 'User Principal Name', type: 'text', required: true, placeholder: 'john.doe@contoso.com' },
       { id: 'operation', label: 'Operation', type: 'select', required: true, options: ['Assign', 'Remove'], defaultValue: 'Assign' },
@@ -315,6 +403,33 @@ Disconnect-MgGraph`;
     name: 'Update User Attributes',
     category: 'User Lifecycle',
     description: 'Update user profile attributes like job title, department, manager, phone number',
+    instructions: `**How This Task Works:**
+This script updates user profile information in Azure AD, keeping organizational data current for directory services, Teams, and Outlook.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or User Administrator role
+- Valid user account to update
+
+**What You Need to Provide:**
+- User Principal Name (target user)
+- Optional: Job Title, Department, Office Location, Mobile Phone, Manager UPN
+- At least one attribute to update required
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Validates user exists
+3. Updates specified user attributes
+4. Sets manager relationship if provided
+5. Reports which attributes were changed
+
+**Important Notes:**
+- Only non-empty fields are updated
+- Changes sync to Exchange Online, Teams, SharePoint
+- Manager UPN must be valid existing user
+- Phone format: +1-555-123-4567 (international format recommended)
+- Updates appear immediately in Azure AD
+- Directory sync to on-prem may take 30+ minutes if hybrid`,
     parameters: [
       { id: 'upn', label: 'User Principal Name', type: 'text', required: true, placeholder: 'john.doe@contoso.com' },
       { id: 'jobTitle', label: 'Job Title', type: 'text', required: false, placeholder: 'Senior Sales Manager' },
@@ -393,6 +508,33 @@ Disconnect-MgGraph`;
     name: 'Enable or Disable User Account',
     category: 'User Lifecycle',
     description: 'Enable or disable user account with optional logging and confirmation',
+    instructions: `**How This Task Works:**
+This script enables or disables Azure AD user accounts with optional session revocation, essential for offboarding, security incidents, or temporary access suspension.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or User Administrator role
+- Valid user account to modify
+
+**What You Need to Provide:**
+- User Principal Name
+- Operation (Enable or Disable)
+- Option to revoke refresh tokens (disable only)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves current account status
+3. Updates account enabled/disabled state
+4. Optionally revokes all refresh tokens (forces re-authentication)
+5. Reports status change
+
+**Important Notes:**
+- Disabled users cannot sign in to any Microsoft services
+- Revoking tokens forces sign-out on all devices immediately
+- Account changes take effect within minutes
+- Licenses remain assigned when disabled
+- Enabling account does not reset password
+- Useful for security incidents or temporary suspensions`,
     parameters: [
       { id: 'upn', label: 'User Principal Name', type: 'text', required: true, placeholder: 'john.doe@contoso.com' },
       { id: 'operation', label: 'Operation', type: 'select', required: true, options: ['Enable', 'Disable'], defaultValue: 'Disable' },
@@ -451,6 +593,35 @@ Disconnect-MgGraph`;
     name: 'Reset User Password',
     category: 'User Lifecycle',
     description: 'Reset user password with optional token revocation for security',
+    instructions: `**How This Task Works:**
+This script resets Azure AD user passwords with security options, critical for helpdesk support, security incidents, and account recovery scenarios.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or Helpdesk Administrator role
+- Strong password meeting complexity requirements
+
+**What You Need to Provide:**
+- User Principal Name
+- New password (must meet complexity requirements)
+- Force password change at next sign-in option
+- Revoke refresh tokens option (recommended)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Validates user exists
+3. Resets password with new value
+4. Optionally forces password change at next sign-in
+5. Optionally revokes all refresh tokens (security best practice)
+6. Reports completion
+
+**Important Notes:**
+- Password must meet Azure AD complexity: uppercase, lowercase, numbers, symbols
+- Revoking tokens forces immediate sign-out on all devices
+- Force password change recommended for security
+- User receives no email notification (communicate manually)
+- Changes take effect immediately
+- For compromised accounts, always revoke tokens`,
     parameters: [
       { id: 'upn', label: 'User Principal Name', type: 'text', required: true, placeholder: 'john.doe@contoso.com' },
       { id: 'newPassword', label: 'New Password', type: 'text', required: true, placeholder: 'NewP@ssw0rd123!', description: 'Strong password meeting Azure AD requirements' },
@@ -520,6 +691,33 @@ Disconnect-MgGraph`;
     name: 'Check MFA Registration Status',
     category: 'User Lifecycle',
     description: 'Check MFA registration status and authentication methods for users',
+    instructions: `**How This Task Works:**
+This script audits Multi-Factor Authentication (MFA) registration status across users, essential for security compliance and identifying users requiring MFA enrollment.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Reader or Security Reader role minimum
+- Authentication.Read.All permission
+
+**What You Need to Provide:**
+- Optional: Specific User Principal Name (or leave blank for all users)
+- Optional: CSV export path for reporting
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves user authentication methods
+3. Checks MFA registration status (registered if 2+ methods)
+4. Lists authentication methods per user
+5. Provides summary statistics
+6. Exports to CSV if requested
+
+**Important Notes:**
+- Registered = 2 or more authentication methods configured
+- Common methods: Phone, Authenticator App, FIDO2 keys, Email
+- Checking all users in large tenants may take time
+- Critical for Zero Trust and compliance audits
+- Schedule monthly for ongoing monitoring
+- Users with only password are "Not Registered"`,
     parameters: [
       { id: 'upn', label: 'User Principal Name (Optional)', type: 'text', required: false, placeholder: 'john.doe@contoso.com', description: 'Leave blank to check all users' },
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: false, placeholder: 'C:\\Reports\\MFA-Status.csv', description: 'Optional: Export results to CSV' }
@@ -613,6 +811,34 @@ Disconnect-MgGraph`;
     name: 'Create Security or M365 Group',
     category: 'Groups & Access',
     description: 'Create a new security group or Microsoft 365 group with owners and members',
+    instructions: `**How This Task Works:**
+This script creates security groups or Microsoft 365 groups in Azure AD, fundamental for managing access permissions and team collaboration.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator or Groups Administrator role
+- Understanding of group types and purposes
+
+**What You Need to Provide:**
+- Group Display Name
+- Group Type (Security or Microsoft 365)
+- Optional: Description, Owner UPN, Mail Nickname
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Configures group parameters based on type
+3. Auto-generates mail nickname if not provided
+4. Creates the group in Azure AD
+5. Adds owner if specified
+6. Reports group ID and details
+
+**Important Notes:**
+- Security groups: Used for access control, cannot have email
+- M365 groups: Include Teams, email, SharePoint site
+- Mail nickname becomes part of group email address
+- Owner can manage group membership
+- Group creation is immediate
+- M365 groups provision additional resources automatically`,
     parameters: [
       { id: 'displayName', label: 'Group Display Name', type: 'text', required: true, placeholder: 'Sales Team' },
       { id: 'groupType', label: 'Group Type', type: 'select', required: true, options: ['Security', 'Microsoft365'], defaultValue: 'Security' },
@@ -693,6 +919,35 @@ Disconnect-MgGraph`;
     name: 'Bulk Add/Remove Group Members',
     category: 'Groups & Access',
     description: 'Add or remove multiple members from a group using a CSV file',
+    instructions: `**How This Task Works:**
+This script manages group memberships in bulk from CSV files, streamlining access management for projects, departments, and resource permissions.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Groups Administrator or Group owner permissions
+- CSV file with UPN column
+
+**What You Need to Provide:**
+- Group Display Name or Group ID
+- CSV file path with user UPNs
+- Operation (Add or Remove members)
+- Test mode option for preview
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Locates group by name or ID
+3. Imports CSV file with user list
+4. Validates each user exists
+5. Adds or removes members based on operation
+6. Reports success/failure per user
+
+**Important Notes:**
+- ALWAYS test first with preview mode
+- CSV requires "UPN" column header
+- Group can be specified by display name or GUID
+- Changes take effect immediately
+- Large membership changes (500+) may take time
+- Removing members does not delete user accounts`,
     parameters: [
       { id: 'groupName', label: 'Group Display Name or ID', type: 'text', required: true, placeholder: 'Sales Team' },
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Scripts\\members.csv', description: 'CSV with UPN column' },
@@ -800,6 +1055,32 @@ Disconnect-MgGraph`;
     name: 'Assign Group Owners',
     category: 'Groups & Access',
     description: 'Add one or more owners to an Azure AD group',
+    instructions: `**How This Task Works:**
+This script assigns ownership of Azure AD groups, enabling delegated group management without requiring elevated permissions.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Groups Administrator role or Group owner permissions
+- Valid user to assign as owner
+
+**What You Need to Provide:**
+- Group Display Name or Group ID
+- Owner User Principal Name
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Locates group by name or ID
+3. Validates owner user exists
+4. Assigns user as group owner
+5. Reports success
+
+**Important Notes:**
+- Group owners can manage members and settings
+- Multiple owners recommended for redundancy
+- Owners don't automatically become members
+- Useful for delegating team management
+- Can assign multiple owners by running script multiple times
+- Owners can delete the group (be selective)`,
     parameters: [
       { id: 'groupName', label: 'Group Display Name or ID', type: 'text', required: true, placeholder: 'Sales Team' },
       { id: 'ownerUpn', label: 'Owner UPN', type: 'text', required: true, placeholder: 'owner@contoso.com' }
@@ -858,6 +1139,33 @@ Disconnect-MgGraph`;
     name: 'Export Group Membership to CSV',
     category: 'Groups & Access',
     description: 'Export all members of a group to a CSV file',
+    instructions: `**How This Task Works:**
+This script exports group membership rosters to CSV for auditing, reporting, and access reviews.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Group Reader or Groups Administrator role
+- Write access to export location
+
+**What You Need to Provide:**
+- Group Display Name or Group ID
+- CSV export file path
+- Option to include nested groups
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Locates group by name or ID
+3. Retrieves all group members
+4. Extracts user details (DisplayName, UPN, JobTitle, Department)
+5. Exports to CSV file with member count
+
+**Important Notes:**
+- CSV includes DisplayName, UPN, JobTitle, Department, Type
+- Nested groups shown as members (type: Group)
+- Large groups may take time to export
+- Useful for compliance audits and access reviews
+- Export for documentation before making changes
+- Includes both users and nested groups`,
     parameters: [
       { id: 'groupName', label: 'Group Display Name or ID', type: 'text', required: true, placeholder: 'Sales Team' },
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\group-members.csv' },
@@ -943,6 +1251,34 @@ Disconnect-MgGraph`;
     name: 'Create Dynamic Group with Membership Rule',
     category: 'Groups & Access',
     description: 'Create a dynamic security group with automatic membership based on user attributes',
+    instructions: `**How This Task Works:**
+This script creates dynamic groups that automatically manage membership based on user attributes, eliminating manual maintenance.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Groups Administrator role
+- Azure AD Premium P1 license required
+- Understanding of dynamic rule syntax
+
+**What You Need to Provide:**
+- Group Display Name
+- Membership Rule (dynamic query syntax)
+- Optional: Description, Mail Nickname
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Configures dynamic group parameters
+3. Sets membership rule for auto-evaluation
+4. Creates group with dynamic membership enabled
+5. Azure AD begins evaluating rule automatically
+
+**Important Notes:**
+- Requires Azure AD Premium P1 licenses
+- Rule examples: (user.department -eq "Sales"), (user.city -eq "Seattle")
+- Membership updates automatically as user attributes change
+- Initial processing takes several minutes to hours
+- Cannot manually add/remove members (rule-driven only)
+- Test rules carefully before deployment`,
     parameters: [
       { id: 'displayName', label: 'Group Display Name', type: 'text', required: true, placeholder: 'All Sales Users' },
       { id: 'description', label: 'Description', type: 'text', required: false, placeholder: 'All users in Sales department' },
@@ -1008,6 +1344,32 @@ Disconnect-MgGraph`;
     name: 'Export All Groups Inventory',
     category: 'Groups & Access',
     description: 'Export all Azure AD groups to a CSV file with details',
+    instructions: `**How This Task Works:**
+This script exports complete Azure AD group inventory for documentation, auditing, and governance reporting.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Group Reader or Groups Administrator role
+- Write access to export location
+
+**What You Need to Provide:**
+- CSV export file path
+- Optional: Filter by group type (All, Security, M365, Dynamic)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all groups (or filtered by type)
+3. Collects group details and membership counts
+4. Categorizes by type (Security, M365, Dynamic)
+5. Exports comprehensive inventory to CSV
+
+**Important Notes:**
+- CSV includes DisplayName, Type, MemberCount, Owners, Description
+- Large tenants (1000+ groups) may take time
+- Essential for governance and compliance audits
+- Schedule monthly for ongoing documentation
+- Filter by type to focus on specific group categories
+- Use for identifying orphaned or misconfigured groups`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\all-groups.csv' },
       { id: 'groupType', label: 'Filter by Type (Optional)', type: 'select', required: false, options: ['All', 'Security', 'Microsoft365', 'Dynamic'], defaultValue: 'All' }
@@ -1089,6 +1451,34 @@ Disconnect-MgGraph`;
     name: 'Export Sign-In Logs',
     category: 'Reporting & Auditing',
     description: 'Export Azure AD sign-in logs filtered by date range, user, or application',
+    instructions: `**How This Task Works:**
+This script exports Azure AD sign-in logs for security monitoring, troubleshooting access issues, and compliance auditing.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Reader or Security Reader role
+- Azure AD Premium P1 license (for extended log retention)
+
+**What You Need to Provide:**
+- CSV export file path
+- Days to look back (default: 7)
+- Optional: Filter by specific user UPN
+- Max records to retrieve
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves sign-in logs based on date range and filters
+3. Extracts details: user, app, IP, location, device, status
+4. Formats success/failure information
+5. Exports comprehensive log to CSV
+
+**Important Notes:**
+- Free tier: 7-day retention; Premium P1: 30-day retention
+- Large queries (1000+ records) may take time
+- Includes IP addresses, locations, device details for forensics
+- Essential for security incident investigations
+- Failed sign-ins show error codes and failure reasons
+- Schedule regular exports for compliance documentation`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\signin-logs.csv' },
       { id: 'daysBack', label: 'Days to Look Back', type: 'number', required: false, placeholder: '7', defaultValue: 7, description: 'Number of days of history to export' },
@@ -1166,6 +1556,34 @@ Disconnect-MgGraph`;
     name: 'Export Audit Logs',
     category: 'Reporting & Auditing',
     description: 'Export Azure AD audit logs for user changes, group modifications, and administrative actions',
+    instructions: `**How This Task Works:**
+This script exports Azure AD audit logs tracking all administrative changes and directory modifications for compliance and security monitoring.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Reader or Security Reader role
+- Azure AD Premium P1 license (for extended log retention)
+
+**What You Need to Provide:**
+- CSV export file path
+- Days to look back (default: 7)
+- Optional: Filter by category (User/Group/App/Role Management)
+- Max records to retrieve
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves audit logs based on filters
+3. Extracts activity details, initiator, targets
+4. Categorizes by operation type
+5. Exports audit trail to CSV
+
+**Important Notes:**
+- Tracks all changes to users, groups, apps, roles
+- Shows who made changes and when
+- Essential for compliance audits (SOX, HIPAA, GDPR)
+- Free tier: 7-day retention; Premium: 30-day retention
+- Filter by category to focus on specific operations
+- Required for security incident forensics`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\audit-logs.csv' },
       { id: 'daysBack', label: 'Days to Look Back', type: 'number', required: false, placeholder: '7', defaultValue: 7 },
@@ -1240,6 +1658,35 @@ Disconnect-MgGraph`;
     name: 'Inactive Accounts Report',
     category: 'Reporting & Auditing',
     description: 'Generate a report of user accounts with no sign-in activity for X days, with optional disable action',
+    instructions: `**How This Task Works:**
+This script identifies stale user accounts with no sign-in activity, critical for security hygiene and license optimization.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- User Administrator role (for disable action)
+- Azure AD Premium P1 (for sign-in activity data)
+
+**What You Need to Provide:**
+- Inactive days threshold (e.g., 90 days)
+- CSV export file path
+- Option to disable inactive accounts (WARNING: destructive)
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all users with sign-in activity data
+3. Identifies accounts inactive beyond threshold
+4. Calculates days since last sign-in
+5. Optionally disables inactive accounts
+6. Exports report to CSV
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- Common thresholds: 60 days (aggressive), 90 days (standard)
+- Inactive accounts are security risks (credential stuffing targets)
+- Disabling accounts is reversible (safer than deletion)
+- Includes "never signed in" accounts by age
+- Essential for license optimization and security`,
     parameters: [
       { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: true, placeholder: '90', defaultValue: 90 },
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\inactive-accounts.csv' },
@@ -1346,6 +1793,32 @@ Disconnect-MgGraph`;
     name: 'License Usage Report',
     category: 'Reporting & Auditing',
     description: 'Generate a report showing assigned vs available licenses for all SKUs',
+    instructions: `**How This Task Works:**
+This script generates license utilization reports for cost optimization and capacity planning across all Microsoft 365 subscriptions.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Reader or Billing Administrator role
+- Organization.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all subscribed license SKUs
+3. Calculates total, assigned, and available licenses
+4. Computes utilization percentages
+5. Flags low/critical license availability
+6. Exports detailed report to CSV
+
+**Important Notes:**
+- Essential for license procurement planning
+- Identifies underutilized licenses for cost savings
+- Warns when licenses are running low (≤5 remaining)
+- Critical alert when no licenses available
+- Common SKUs: ENTERPRISEPACK (E3), SPE_E5 (E5)
+- Schedule monthly for ongoing monitoring`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\license-usage.csv' }
     ],
@@ -1423,6 +1896,34 @@ Disconnect-MgGraph`;
     name: 'MFA Compliance Report',
     category: 'Reporting & Auditing',
     description: 'Generate comprehensive MFA registration and compliance report for all users',
+    instructions: `**How This Task Works:**
+This script generates comprehensive MFA compliance reports for security audits, demonstrating organizational Zero Trust posture.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Security Reader or Global Reader role
+- UserAuthenticationMethod.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path
+- Option to include/exclude guest users
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all users (members or including guests)
+3. Checks authentication methods for each user
+4. Determines MFA compliance status (2+ methods = compliant)
+5. Lists registered MFA methods per user
+6. Calculates compliance percentage
+7. Exports detailed report to CSV
+
+**Important Notes:**
+- Compliant = 2 or more authentication methods registered
+- Critical for Zero Trust and Conditional Access policies
+- Essential for SOC 2, ISO 27001 compliance
+- Schedule quarterly for audit documentation
+- Non-compliant users are high-risk for account compromise
+- Guest users may have lower compliance expectations`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\mfa-compliance.csv' },
       { id: 'includeGuests', label: 'Include Guest Users', type: 'boolean', required: false, defaultValue: false }
@@ -1520,6 +2021,34 @@ Disconnect-MgGraph`;
     name: 'List All Devices',
     category: 'Device Management',
     description: 'List all devices registered in Azure AD with filtering options',
+    instructions: `**How This Task Works:**
+This script inventories all devices registered in Azure AD with detailed filtering for device management and compliance monitoring.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Reader or Intune Administrator role
+- Device.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path
+- Optional: Filter by join type (Azure AD joined, registered, hybrid)
+- Optional: Filter by OS (Windows, iOS, Android, macOS)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all registered devices
+3. Categorizes by join type and OS
+4. Tracks last sign-in activity
+5. Reports compliance and management status
+6. Exports inventory to CSV
+
+**Important Notes:**
+- Join types: Azure AD Joined (corporate), Registered (BYOD), Hybrid (on-prem synced)
+- IsManaged = Intune/MDM enrolled
+- IsCompliant = Meets compliance policies
+- Essential for endpoint security visibility
+- Stale devices (no sign-in) are security risks
+- Use for license reconciliation and asset tracking`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\devices.csv' },
       { id: 'filterType', label: 'Filter by Join Type', type: 'select', required: false, options: ['All', 'AzureADJoined', 'AzureADRegistered', 'HybridAzureADJoined'], defaultValue: 'All' },
@@ -1612,6 +2141,35 @@ Disconnect-MgGraph`;
     name: 'Disable Stale Devices',
     category: 'Device Management',
     description: 'Disable or delete devices with no activity for X days',
+    instructions: `**How This Task Works:**
+This script identifies and remediates stale device registrations, reducing attack surface and maintaining clean device inventory.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Cloud Device Administrator role
+- Device.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Inactive days threshold (e.g., 90 days)
+- Action (Disable or Delete)
+- Optional: CSV export path for reporting
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all devices with sign-in data
+3. Identifies devices inactive beyond threshold
+4. Disables or deletes stale devices
+5. Exports report of affected devices
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- Disable is safer than Delete (reversible)
+- Stale devices are security risks (orphaned credentials)
+- Common threshold: 90 days (adjust per policy)
+- Includes devices that never signed in
+- Critical for Conditional Access and Zero Trust hygiene`,
     parameters: [
       { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: true, placeholder: '90', defaultValue: 90 },
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['Disable', 'Delete'], defaultValue: 'Disable' },
@@ -1722,6 +2280,32 @@ Disconnect-MgGraph`;
     name: 'Export Device Compliance Status',
     category: 'Device Management',
     description: 'Export compliance status for all managed devices',
+    instructions: `**How This Task Works:**
+This script generates device compliance reports essential for security posture assessment and Conditional Access policy enforcement.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Intune Administrator or Security Reader role
+- Device.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all devices with compliance data
+3. Categorizes by compliance status (Compliant, Non-Compliant, Unknown, Not Managed)
+4. Reports management status (Intune/MDM enrollment)
+5. Provides statistics by compliance state
+6. Exports comprehensive report to CSV
+
+**Important Notes:**
+- Compliant = Device meets all Intune compliance policies
+- Non-Compliant = Device fails one or more policies
+- Unknown = Managed but compliance not yet evaluated
+- Not Managed = No MDM enrollment (BYOD, unmanaged)
+- Critical for Conditional Access and Zero Trust
+- Non-compliant devices may be blocked by policies`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\device-compliance.csv' }
     ],
@@ -1812,6 +2396,32 @@ Disconnect-MgGraph`;
     name: 'Export Device Inventory by Model/Owner/OS',
     category: 'Device Management',
     description: 'Detailed device inventory report with hardware and owner information',
+    instructions: `**How This Task Works:**
+This script generates comprehensive device inventory reports with hardware details and ownership for asset management and procurement planning.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Intune Administrator or Global Reader role
+- Device.Read.All and User.Read.All permissions
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all devices with hardware details
+3. Extracts manufacturer, model, OS information
+4. Identifies registered device owners
+5. Tracks last sign-in activity
+6. Exports detailed inventory to CSV
+
+**Important Notes:**
+- Includes manufacturer, model, OS version for each device
+- Shows device owner (for BYOD/personal device tracking)
+- Essential for hardware lifecycle management
+- Use for warranty tracking and refresh planning
+- Summary by OS for license reconciliation
+- Large tenants (1000+ devices) may take time`,
     parameters: [
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\device-inventory.csv' }
     ],
@@ -1901,6 +2511,35 @@ Disconnect-MgGraph`;
     name: 'Review and Remove Guest Users',
     category: 'Maintenance & Governance',
     description: 'Find and optionally remove inactive or expired guest user accounts',
+    instructions: `**How This Task Works:**
+This script identifies and cleans up inactive guest accounts, reducing security risks from external user access and maintaining clean B2B collaboration.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Guest Inviter or User Administrator role
+- User.ReadWrite.All and AuditLog.Read.All permissions
+
+**What You Need to Provide:**
+- Inactive days threshold (e.g., 90 days)
+- CSV export file path
+- Option to remove inactive guests (WARNING: destructive)
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all guest users (B2B)
+3. Identifies inactive guests beyond threshold
+4. Calculates days since last sign-in
+5. Optionally removes inactive guests
+6. Exports report to CSV
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- Guest users = External collaborators (B2B)
+- Inactive guests are security risks (orphaned access)
+- Removal is permanent (user must be re-invited)
+- Consider business relationships before removal
+- Essential for external access governance`,
     parameters: [
       { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: true, placeholder: '90', defaultValue: 90 },
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\inactive-guests.csv' },
@@ -2001,6 +2640,35 @@ Disconnect-MgGraph`;
     name: 'Bulk Invite Guest Users',
     category: 'Maintenance & Governance',
     description: 'Send guest invitations to multiple external users from a CSV file',
+    instructions: `**How This Task Works:**
+This script automates B2B guest user invitations at scale, streamlining external collaboration for projects, vendors, and partners.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Guest Inviter or User Administrator role
+- User.Invite.All permission
+
+**What You Need to Provide:**
+- CSV file with Email and DisplayName columns
+- Optional: Custom invitation message
+- Redirect URL (default: https://myapps.microsoft.com)
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Imports CSV file with guest details
+3. Creates guest user invitations
+4. Sends customized email invitations
+5. Reports success/failure per guest
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- CSV requires "Email" and "DisplayName" columns
+- Guests receive email with redemption link
+- Custom message personalizes invitation
+- Redirect URL shown after guest accepts
+- Invited guests can access shared resources immediately`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Scripts\\guests.csv', description: 'CSV with Email, DisplayName columns' },
       { id: 'inviteMessage', label: 'Custom Invitation Message (Optional)', type: 'textarea', required: false, placeholder: 'You have been invited to collaborate with our organization.' },
@@ -2095,6 +2763,35 @@ Disconnect-MgGraph`;
     name: 'Remove Unlicensed Accounts',
     category: 'Maintenance & Governance',
     description: 'Find and optionally disable/delete user accounts with no assigned licenses',
+    instructions: `**How This Task Works:**
+This script identifies unlicensed user accounts for cleanup, optimizing directory hygiene and preventing unnecessary user clutter.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- User Administrator role
+- User.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Action (Report, Disable, or Delete)
+- CSV export file path
+- Option to exclude guest users
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Retrieves all users and checks license assignments
+3. Identifies accounts with no licenses assigned
+4. Reports, disables, or deletes unlicensed accounts
+5. Exports detailed report to CSV
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- Unlicensed accounts may be test accounts, contractors, or orphaned
+- Disable is safer than Delete (reversible)
+- Guest users typically unlicensed (exclude them)
+- Service accounts may be unlicensed (review before removal)
+- Essential for license optimization and cost savings`,
     parameters: [
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['Report', 'Disable', 'Delete'], defaultValue: 'Report' },
       { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\unlicensed-accounts.csv' },

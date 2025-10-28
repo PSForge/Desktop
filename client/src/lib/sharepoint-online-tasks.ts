@@ -27,6 +27,34 @@ export const sharePointOnlineTasks: SharePointOnlineTask[] = [
     title: 'Export Site Collection Inventory',
     description: 'Export list of all SharePoint Online site collections to CSV',
     category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Exports comprehensive inventory of all SharePoint Online site collections
+- Enables governance, storage management, and compliance tracking
+- Provides detailed site metadata for capacity planning
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Retrieves all site collections in tenant
+2. Collects title, URL, owner, storage usage, quota, and template
+3. Exports detailed site inventory to CSV
+4. Reports total site collection count
+
+**Important Notes:**
+- Essential for SharePoint governance and capacity planning
+- Shows classic and modern sites
+- Use for storage quota management and optimization
+- Run monthly for site inventory updates
+- Identify orphaned sites after employee departures
+- Track storage consumption for cost forecasting
+- Typical use: annual audits, capacity planning
+- Delete unused sites to free up storage`,
     parameters: [
       {
         name: 'exportPath',
@@ -76,6 +104,35 @@ try {
     title: 'Export Site Permissions',
     description: 'Export permissions for a specific SharePoint Online site to CSV',
     category: 'Permissions',
+    instructions: `**How This Task Works:**
+- Exports detailed site permission assignments
+- Supports security audit and access review compliance
+- Shows all groups and their member assignments
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- SharePoint site URL
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Retrieves all site groups and members
+3. Exports group-user mappings to CSV
+4. Reports permission structure
+
+**Important Notes:**
+- Essential for security audits and access reviews
+- Shows all site groups and their members
+- Use for quarterly access reviews
+- Identify users with excessive permissions
+- Run during security audits or employee departures
+- Implement principle of least privilege
+- Typical use: compliance reviews, security audits
+- Revoke access for departed employees immediately`,
     parameters: [
       {
         name: 'siteUrl',
@@ -134,6 +191,34 @@ try {
     title: 'Export Storage Report',
     description: 'Export storage usage report for all SharePoint Online sites to CSV',
     category: 'Storage',
+    instructions: `**How This Task Works:**
+- Exports storage consumption metrics with quota utilization
+- Calculates percentage used for each site collection
+- Enables capacity planning and cost optimization
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Retrieves all site collections
+2. Calculates storage used, quota, and percentage
+3. Exports storage report to CSV
+4. Shows quota utilization trends
+
+**Important Notes:**
+- Essential for capacity planning and cost management
+- Identifies sites nearing quota limits
+- Use for proactive quota management
+- Run monthly for storage trend analysis
+- Plan for storage growth before hitting limits
+- Typical use: capacity planning, budget forecasting
+- Increase quotas before users are blocked
+- Archive or delete old content to reduce costs`,
     parameters: [
       {
         name: 'exportPath',
@@ -183,6 +268,34 @@ try {
     title: 'Export External Users',
     description: 'Export list of all external users with SharePoint access to CSV',
     category: 'Security',
+    instructions: `**How This Task Works:**
+- Exports all external guest users with SharePoint access
+- Supports security compliance and external collaboration governance
+- Identifies all guest accounts for access reviews
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Retrieves all external users in tenant
+2. Collects display name, email, accepted status, and creation date
+3. Exports external user inventory to CSV
+4. Reports total external user count
+
+**Important Notes:**
+- Essential for security compliance and guest access management
+- Shows all external collaborators with SharePoint access
+- Use for quarterly external access reviews
+- Identify inactive external accounts for removal
+- Required for GDPR and compliance audits
+- Typical use: security reviews, compliance reporting
+- Revoke access for ended partnerships immediately
+- Monitor external access to sensitive content`,
     parameters: [
       {
         name: 'exportPath',
@@ -230,6 +343,35 @@ try {
     title: 'Export Sharing Links Report',
     description: 'Export all sharing links from a SharePoint site to CSV',
     category: 'Sharing',
+    instructions: `**How This Task Works:**
+- Exports all sharing links created for site documents
+- Audits external sharing for data loss prevention compliance
+- Identifies anonymous and organization-wide links
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- SharePoint site URL
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Scans all documents in default library
+3. Retrieves sharing links for each file
+4. Exports link inventory to CSV
+
+**Important Notes:**
+- Essential for security audits and DLP compliance
+- Shows anonymous and organization-wide links
+- Use for quarterly sharing audits
+- Identify overshared sensitive content
+- Typical use: security reviews, compliance audits
+- Revoke unnecessary sharing links
+- Block anonymous sharing for sensitive sites
+- Monitor for data exfiltration risks`,
     parameters: [
       {
         name: 'siteUrl',

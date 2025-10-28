@@ -27,6 +27,34 @@ export const windows365Tasks: Windows365Task[] = [
     title: 'Export Cloud PC Inventory',
     description: 'Export list of all Windows 365 Cloud PCs to CSV',
     category: 'Cloud PC Management',
+    instructions: `**How This Task Works:**
+- Exports comprehensive Windows 365 Cloud PC inventory
+- Supports license management and user provisioning tracking
+- Shows all Cloud PCs and their assignment status
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- CloudPC.Read.All permission
+- Windows 365 Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves all Cloud PCs in tenant
+3. Collects user, status, image, and device details
+4. Exports Cloud PC inventory to CSV
+
+**Important Notes:**
+- Essential for Cloud PC license management
+- Shows all provisioned Cloud PCs and assignments
+- Use for user provisioning tracking
+- Run monthly for license utilization audits
+- Identify unassigned or failed Cloud PCs
+- Typical use: license optimization, capacity planning
+- Deprovision unused Cloud PCs to reduce costs
+- Monitor provisioning success rates`,
     parameters: [
       {
         name: 'exportPath',
@@ -77,6 +105,34 @@ try {
     title: 'Export Provisioning Policies',
     description: 'Export Windows 365 provisioning policies to CSV',
     category: 'Provisioning',
+    instructions: `**How This Task Works:**
+- Exports Cloud PC provisioning policy inventory
+- Supports standardization and configuration management
+- Shows all policies and their configurations
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- CloudPC.Read.All permission
+- Windows 365 Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves all provisioning policies
+3. Collects policy name, description, and image type
+4. Exports policy inventory to CSV
+
+**Important Notes:**
+- Essential for Cloud PC standardization
+- Shows all provisioning policies and configurations
+- Use for policy governance and management
+- Run quarterly for policy reviews
+- Consolidate duplicate policies
+- Typical use: policy audits, standardization
+- Align policies with department requirements
+- Document policy assignments to user groups`,
     parameters: [
       {
         name: 'exportPath',
@@ -125,6 +181,34 @@ try {
     title: 'Export User Settings Policies',
     description: 'Export Windows 365 user settings policies to CSV',
     category: 'User Settings',
+    instructions: `**How This Task Works:**
+- Exports user self-service settings
+- Supports Cloud PC governance and support model documentation
+- Shows self-service capabilities enabled for users
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- CloudPC.Read.All permission
+- Windows 365 Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves all user settings policies
+3. Collects policy name and self-service options
+4. Exports user settings inventory to CSV
+
+**Important Notes:**
+- Essential for Cloud PC user experience governance
+- Shows self-service capabilities enabled for users
+- Use for support model documentation
+- Run quarterly for policy reviews
+- Balance user autonomy with IT control
+- Typical use: support planning, user empowerment
+- Enable self-service to reduce helpdesk load
+- Restrict sensitive operations to IT only`,
     parameters: [
       {
         name: 'exportPath',
@@ -172,6 +256,34 @@ try {
     title: 'Export Gallery Images',
     description: 'Export Windows 365 gallery images to CSV',
     category: 'Images',
+    instructions: `**How This Task Works:**
+- Exports available gallery image inventory
+- Supports Cloud PC image selection and standardization planning
+- Shows all Windows images available from Azure
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- CloudPC.Read.All permission
+- Windows 365 Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves all gallery images
+3. Collects image name, publisher, offer, and SKU
+4. Exports gallery image catalog to CSV
+
+**Important Notes:**
+- Essential for Cloud PC image management
+- Shows all available Windows images from Azure
+- Use for image selection and planning
+- Run when planning new deployments
+- Identify latest OS versions
+- Typical use: deployment planning, standardization
+- Use Windows 11 for new deployments
+- Match image to user requirements`,
     parameters: [
       {
         name: 'exportPath',
@@ -221,6 +333,34 @@ try {
     title: 'Export Connection Quality Report',
     description: 'Export Cloud PC connection quality metrics to CSV',
     category: 'Monitoring',
+    instructions: `**How This Task Works:**
+- Exports Cloud PC connection quality metrics
+- Supports user experience monitoring and troubleshooting
+- Shows connectivity and health status for all Cloud PCs
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- CloudPC.Read.All permission
+- Windows 365 Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves all Cloud PCs with connection data
+3. Collects user, status, and last action results
+4. Exports connection quality report to CSV
+
+**Important Notes:**
+- Essential for user experience monitoring
+- Shows Cloud PC connectivity and health status
+- Use for proactive troubleshooting
+- Run weekly for connection quality tracking
+- Identify users with connectivity issues
+- Typical use: helpdesk troubleshooting, monitoring
+- Investigate failed connections immediately
+- Monitor for network performance degradation`,
     parameters: [
       {
         name: 'exportPath',

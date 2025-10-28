@@ -27,6 +27,34 @@ export const sharePointOnPremTasks: SharePointOnPremTask[] = [
     title: 'Export Web Applications',
     description: 'Export list of all SharePoint web applications to CSV',
     category: 'Farm Management',
+    instructions: `**How This Task Works:**
+- Exports SharePoint farm web application inventory
+- Supports farm documentation and capacity planning
+- Shows all web apps with configuration details
+
+**Prerequisites:**
+- SharePoint Management Shell on SharePoint server
+- Farm Administrator permissions
+- Direct server access required
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Loads SharePoint PowerShell snap-in
+2. Retrieves all web applications in farm
+3. Collects name, URL, app pool, and database count
+4. Exports web application inventory to CSV
+
+**Important Notes:**
+- Essential for farm architecture documentation
+- Shows all web applications and their configurations
+- Use for farm health monitoring
+- Run monthly for configuration tracking
+- Required before farm migrations or upgrades
+- Typical use: farm documentation, capacity planning
+- Each web application consumes IIS resources
+- Consolidate web applications when possible`,
     parameters: [
       {
         name: 'exportPath',
@@ -74,6 +102,34 @@ try {
     title: 'Export Site Collections',
     description: 'Export list of all site collections to CSV',
     category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Exports comprehensive site collection inventory
+- Enables governance and storage management across farm
+- Provides detailed site metadata for planning
+
+**Prerequisites:**
+- SharePoint Management Shell on SharePoint server
+- Farm Administrator permissions
+- Direct server access required
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Loads SharePoint PowerShell snap-in
+2. Retrieves all site collections in farm
+3. Collects URL, owner, database, quota, and storage
+4. Exports site collection inventory to CSV
+
+**Important Notes:**
+- Essential for farm governance and capacity planning
+- Shows all site collections across web applications
+- Use for storage quota management
+- Run monthly for site inventory updates
+- Identify orphaned sites for cleanup
+- Typical use: farm audits, capacity planning
+- Plan database growth based on usage
+- Balance site collections across databases`,
     parameters: [
       {
         name: 'exportPath',
@@ -122,6 +178,36 @@ try {
     title: 'Backup Site Collection',
     description: 'Create a backup of a SharePoint site collection',
     category: 'Backup & Recovery',
+    instructions: `**How This Task Works:**
+- Creates full backup of individual site collection
+- Supports disaster recovery and migration scenarios
+- Generates portable .bak file for restoration
+
+**Prerequisites:**
+- SharePoint Management Shell on SharePoint server
+- Farm Administrator or site collection admin permissions
+- Sufficient disk space for backup file
+- Write access to backup location
+
+**What You Need to Provide:**
+- Site collection URL
+- Backup file path (.bak)
+
+**What the Script Does:**
+1. Loads SharePoint PowerShell snap-in
+2. Creates full site collection backup
+3. Saves to specified .bak file
+4. Reports backup success
+
+**Important Notes:**
+- Essential for disaster recovery planning
+- Creates portable .bak file for migrations
+- Use before major site changes
+- Backup size matches site storage usage
+- Run before content migrations
+- Typical use: pre-upgrade backups, site migrations
+- Test restore process regularly
+- Store backups on separate storage`,
     parameters: [
       {
         name: 'siteUrl',
@@ -168,6 +254,34 @@ try {
     title: 'Export Content Databases',
     description: 'Export list of all content databases to CSV',
     category: 'Database Management',
+    instructions: `**How This Task Works:**
+- Exports content database inventory
+- Supports SQL Server capacity planning and farm health monitoring
+- Shows database size and site collection counts
+
+**Prerequisites:**
+- SharePoint Management Shell on SharePoint server
+- Farm Administrator permissions
+- SQL Server database access
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Loads SharePoint PowerShell snap-in
+2. Retrieves all content databases
+3. Collects name, web app, SQL server, site count, and size
+4. Exports database inventory to CSV
+
+**Important Notes:**
+- Essential for SQL Server capacity planning
+- Shows database size and site collection count
+- Use for database growth monitoring
+- Run monthly for capacity trend analysis
+- Plan SQL Server storage expansion
+- Typical use: capacity planning, farm health checks
+- Keep databases under 200GB for best performance
+- Split large databases for manageability`,
     parameters: [
       {
         name: 'exportPath',
@@ -216,6 +330,34 @@ try {
     title: 'Export Service Applications',
     description: 'Export list of all service applications to CSV',
     category: 'Service Applications',
+    instructions: `**How This Task Works:**
+- Exports service application inventory
+- Supports farm architecture documentation and service governance
+- Shows all farm services and their configurations
+
+**Prerequisites:**
+- SharePoint Management Shell on SharePoint server
+- Farm Administrator permissions
+- Direct server access required
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Loads SharePoint PowerShell snap-in
+2. Retrieves all service applications
+3. Collects name, type, status, and application pool
+4. Exports service application inventory to CSV
+
+**Important Notes:**
+- Essential for farm service architecture documentation
+- Shows Search, Managed Metadata, User Profile services
+- Use for farm health monitoring
+- Run monthly for service tracking
+- Monitor service application pool health
+- Typical use: farm documentation, troubleshooting
+- Each service consumes server resources
+- Stop unused services to improve performance`,
     parameters: [
       {
         name: 'exportPath',

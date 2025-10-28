@@ -27,6 +27,35 @@ export const windowsServerTasks: WindowsServerTask[] = [
     title: 'Export Server Inventory',
     description: 'Export comprehensive server inventory from multiple servers to CSV',
     category: 'Server Management',
+    instructions: `**How This Task Works:**
+- Exports hardware and OS inventory from multiple Windows Servers
+- Supports asset management and capacity planning
+- Shows detailed hardware and software configuration
+
+**Prerequisites:**
+- PowerShell remoting enabled on target servers
+- Administrator credentials for target servers
+- WMI access to target servers
+
+**What You Need to Provide:**
+- Server names (one per line)
+- CSV export file path
+
+**What the Script Does:**
+1. Queries each server via WMI
+2. Collects OS, manufacturer, model, memory, and domain
+3. Exports server inventory to CSV
+4. Reports collection failures
+
+**Important Notes:**
+- Essential for server asset management
+- Shows hardware specs and OS versions
+- Use for capacity planning and refresh cycles
+- Run quarterly for inventory updates
+- Identify servers needing upgrades
+- Typical use: asset audits, capacity planning
+- Plan hardware refresh based on age
+- Consolidate underutilized servers`,
     parameters: [
       {
         name: 'serverNames',
@@ -93,6 +122,35 @@ try {
     title: 'Export Installed Roles and Features',
     description: 'Export installed Windows Server roles and features to CSV',
     category: 'Roles & Features',
+    instructions: `**How This Task Works:**
+- Exports installed roles and features from Windows Server
+- Supports configuration documentation and compliance verification
+- Shows all installed server roles and optional features
+
+**Prerequisites:**
+- PowerShell remoting enabled on target server
+- Administrator credentials for target server
+- Server Manager PowerShell module
+
+**What You Need to Provide:**
+- Server name
+- CSV export file path
+
+**What the Script Does:**
+1. Queries installed Windows features
+2. Filters to installed features only
+3. Collects name, type, and install state
+4. Exports feature inventory to CSV
+
+**Important Notes:**
+- Essential for server configuration documentation
+- Shows all installed roles and features
+- Use for compliance verification
+- Run after server configuration changes
+- Document server roles for disaster recovery
+- Typical use: configuration audits, DR planning
+- Match installed roles to server purpose
+- Remove unnecessary features for security`,
     parameters: [
       {
         name: 'serverName',
@@ -149,6 +207,37 @@ try {
     title: 'Export Event Logs',
     description: 'Export recent event logs from a Windows Server to CSV',
     category: 'Event Logs',
+    instructions: `**How This Task Works:**
+- Exports recent event log entries
+- Supports troubleshooting, security monitoring, and compliance auditing
+- Shows errors, warnings, and informational events
+
+**Prerequisites:**
+- PowerShell remoting enabled on target server
+- Administrator credentials for target server
+- Event log access permissions
+
+**What You Need to Provide:**
+- Server name
+- Log name (System/Application/Security)
+- Time window in hours
+- CSV export file path
+
+**What the Script Does:**
+1. Queries specified event log remotely
+2. Filters events by time window
+3. Limits to 1000 most recent events
+4. Exports event details to CSV
+
+**Important Notes:**
+- Essential for troubleshooting and security monitoring
+- Shows errors, warnings, and critical events
+- Use for incident investigation
+- Run during troubleshooting or security incidents
+- Security log requires special permissions
+- Typical use: troubleshooting, security audits
+- Investigate errors and warnings immediately
+- Monitor for security events regularly`,
     parameters: [
       {
         name: 'serverName',
@@ -234,6 +323,35 @@ try {
     title: 'Export Services Status',
     description: 'Export Windows services status from a server to CSV',
     category: 'Services',
+    instructions: `**How This Task Works:**
+- Exports Windows service inventory with status
+- Supports service monitoring and configuration documentation
+- Shows all services and their startup configurations
+
+**Prerequisites:**
+- PowerShell remoting enabled on target server
+- Administrator credentials for target server
+- Service control manager access
+
+**What You Need to Provide:**
+- Server name
+- CSV export file path
+
+**What the Script Does:**
+1. Queries all Windows services remotely
+2. Collects service name, display name, status, and startup type
+3. Exports service inventory to CSV
+4. Reports total service count
+
+**Important Notes:**
+- Essential for service health monitoring
+- Shows all Windows services and their states
+- Use for troubleshooting service failures
+- Run during server health checks
+- Identify stopped automatic services
+- Typical use: health monitoring, troubleshooting
+- Investigate stopped automatic services immediately
+- Document critical service dependencies`,
     parameters: [
       {
         name: 'serverName',
@@ -290,6 +408,35 @@ try {
     title: 'Export Disk Usage',
     description: 'Export disk usage information from a server to CSV',
     category: 'Storage',
+    instructions: `**How This Task Works:**
+- Exports disk space usage metrics
+- Supports capacity planning and proactive storage management
+- Shows all local drives with size and free space
+
+**Prerequisites:**
+- PowerShell remoting enabled on target server (or local execution)
+- Administrator credentials for target server
+- WMI access to target server
+
+**What You Need to Provide:**
+- Server name
+- CSV export file path
+
+**What the Script Does:**
+1. Queries local disk drives via WMI
+2. Calculates size, free space, and percentage free
+3. Exports disk usage report to CSV
+4. Shows all fixed local disks
+
+**Important Notes:**
+- Essential for capacity planning and storage monitoring
+- Shows all local disk drives and space usage
+- Use for proactive storage management
+- Run weekly for storage trend analysis
+- Plan storage expansion before running out
+- Typical use: capacity planning, monitoring
+- Alert when free space drops below 15%
+- Clean up or expand before critical levels`,
     parameters: [
       {
         name: 'serverName',

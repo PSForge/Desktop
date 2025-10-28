@@ -1232,16 +1232,631 @@ try {
 Disconnect-MgGraph`;
     }
   },
-  {id:'od-access-requests',title:'Enable Access Requests',description:'Allow users to request access',category:'Sharing & Permissions',parameters:[{name:'enable',label:'Enable Requests',type:'checkbox',required:false,defaultValue:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOTenant -PreventExternalUsersFromResharing \\$${!(p.enable!==false)};Write-Host "✓ Access requests: ${p.enable!==false}" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-legacy-auth-block',title:'Block Legacy Authentication',description:'Disable legacy auth protocols',category:'Sync & Client',parameters:[{name:'block',label:'Block Legacy Auth',type:'checkbox',required:false,defaultValue:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOTenant -LegacyAuthProtocolsEnabled \\$${!(p.block!==false)};Write-Host "✓ Legacy auth blocked: ${p.block!==false}" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-idle-timeout',title:'Set Idle Session Timeout',description:'Auto-logout inactive sessions',category:'Sync & Client',parameters:[{name:'minutes',label:'Timeout (minutes)',type:'number',required:true,defaultValue:60}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOBrowserIdleSignOut -Enabled $true -WarnAfter (New-TimeSpan -Minutes $((${p.minutes})-5)) -SignOutAfter (New-TimeSpan -Minutes ${p.minutes});Write-Host "✓ Idle timeout: ${p.minutes} min" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-unmanaged-device-policy',title:'Configure Unmanaged Device Policy',description:'Control access from unmanaged devices',category:'Sync & Client',parameters:[{name:'action',label:'Action',type:'select',required:true,options:[{value:'AllowFullAccess',label:'Allow Full'},{value:'AllowLimitedAccess',label:'Limited'},{value:'BlockAccess',label:'Block'}]}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOTenant -ConditionalAccessPolicy ${p.action};Write-Host "✓ Unmanaged device policy: ${p.action}" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-bulk-delete-sites',title:'Bulk Delete OneDrive Sites',description:'Remove OneDrive sites from CSV list',category:'Storage Management',parameters:[{name:'csvPath',label:'CSV Path',type:'text',required:true,placeholder:'C:\\\\Sites.csv'}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{$Sites=Import-Csv "${escapePowerShellString(p.csvPath)}";foreach($Site in $Sites){Remove-SPOSite -Identity $Site.Url -Confirm:$false};Write-Host "✓ Deleted $($Sites.Count) sites" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-bulk-set-quota',title:'Bulk Set Storage Quotas',description:'Apply quotas to multiple OneDrives from CSV',category:'Storage Management',parameters:[{name:'csvPath',label:'CSV Path',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{$Users=Import-Csv "${escapePowerShellString(p.csvPath)}";foreach($User in $Users){Set-SPOSite -Identity (Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '$($User.Email)'").Url -StorageQuota ($User.QuotaGB*1024)};Write-Host "✓ Set $($Users.Count) quotas" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-permission-inheritance',title:'Break Permission Inheritance',description:'Stop inheriting permissions from parent',category:'Sharing & Permissions',parameters:[{name:'userEmail',label:'User Email',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{$Site=Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '${escapePowerShellString(p.userEmail)}'";Write-Host "✓ Permissions can be customized for $($Site.Url)" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-activity-report',title:'Export Activity Report',description:'User activity metrics for OneDrive',category:'Reporting',parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true},{name:'days',label:'Days',type:'number',required:false,defaultValue:7}],scriptTemplate:p=>`Connect-MgGraph -Scopes "Reports.Read.All"\ntry{$Report=Get-MgReportOneDriveActivityUserDetail -Period "D${p.days}";$Report|Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation;Write-Host "✓ Activity report exported (${p.days} days)" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-file-types-block',title:'Block Specific File Types',description:'Prevent upload of certain file extensions',category:'Storage Management',parameters:[{name:'extensions',label:'Blocked Extensions',type:'text',required:true,placeholder:'.exe,.bat,.cmd'}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOTenant -ExcludedFileExtensionsForSyncApp "${escapePowerShellString(p.extensions)}";Write-Host "✓ Blocked file types: ${p.extensions}" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'od-restore-deleted',title:'Restore Deleted OneDrive',description:'Recover recently deleted OneDrive site',category:'Storage Management',parameters:[{name:'siteUrl',label:'Site URL',type:'text',required:true,placeholder:'https://tenant-my.sharepoint.com/personal/user_domain_com'}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Restore-SPODeletedSite -Identity "${escapePowerShellString(p.siteUrl)}";Write-Host "✓ OneDrive restored" -ForegroundColor Green}catch{Write-Error $_}`}
+  {
+    id: 'od-access-requests',
+    title: 'Enable Access Requests',
+    description: 'Allow users to request access',
+    category: 'Sharing & Permissions',
+    instructions: `**How This Task Works:**
+- Enables users to request access to shared OneDrive files
+- Owners receive email notifications for access requests
+- Allows controlled, auditable sharing expansion
+- Alternative to automatic access grants
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- Must configure tenant-wide sharing settings
+
+**What You Need to Provide:**
+- Enable or disable access requests (checkbox)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Configures tenant-wide sharing settings
+3. Enables or disables access request capability
+4. Reports successful configuration change
+
+**Important Notes:**
+- Applies to all OneDrive sites tenant-wide
+- Users can request access to files they cannot open
+- Owners must manually approve/deny requests
+- Typical use: controlled collaboration, security compliance
+- Does not automatically grant access
+- Requests expire after 180 days if not acted upon
+- Consider training users on request approval process
+- Requires email notifications to be enabled`,
+    parameters: [
+      { name: 'enable', label: 'Enable Requests', type: 'checkbox', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const enable = params.enable !== false;
+      
+      return `# Configure Access Requests
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    # Configure tenant-wide OneDrive access request settings
+    if (${enable ? '$true' : '$false'}) {
+        Set-SPOTenant -ODBAccessRequests On
+        Write-Host "✓ Access requests enabled for all OneDrive sites" -ForegroundColor Green
+        Write-Host "  Users can request access to shared OneDrive files" -ForegroundColor Gray
+    } else {
+        Set-SPOTenant -ODBAccessRequests Off
+        Write-Host "✓ Access requests disabled for all OneDrive sites" -ForegroundColor Green
+        Write-Host "  Users cannot request access to OneDrive files" -ForegroundColor Gray
+    }
+} catch {
+    Write-Error "Failed to configure access requests: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-legacy-auth-block',
+    title: 'Block Legacy Authentication',
+    description: 'Disable legacy auth protocols',
+    category: 'Sync & Client',
+    instructions: `**How This Task Works:**
+- Blocks legacy authentication protocols (basic auth, NTLM)
+- Forces modern authentication (OAuth 2.0, MFA-capable)
+- Enhances security by eliminating weak protocols
+- Required for Zero Trust security posture
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- Users must have modern auth-capable clients
+
+**What You Need to Provide:**
+- Block or allow legacy authentication (checkbox)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Configures legacy authentication protocol setting
+3. Enables or disables legacy auth support
+4. Reports successful security configuration
+
+**Important Notes:**
+- Applies to all OneDrive and SharePoint access tenant-wide
+- Blocks basic authentication protocols
+- Typical use: security hardening, compliance requirements, Zero Trust
+- May break older Office clients (pre-2016)
+- Users with older clients must upgrade
+- Modern auth supports multi-factor authentication
+- Microsoft recommends blocking legacy auth
+- Test with pilot group before broad deployment`,
+    parameters: [
+      { name: 'block', label: 'Block Legacy Auth', type: 'checkbox', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const block = params.block !== false;
+      
+      return `# Configure Legacy Authentication
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Set-SPOTenant -LegacyAuthProtocolsEnabled $${!block}
+    Write-Host "✓ Legacy authentication: ${block ? 'Blocked' : 'Allowed'}" -ForegroundColor Green
+    Write-Host "  Security posture: ${block ? 'Enhanced (modern auth only)' : 'Reduced (legacy enabled)'}" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to configure legacy authentication: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-idle-timeout',
+    title: 'Set Idle Session Timeout',
+    description: 'Auto-logout inactive sessions',
+    category: 'Sync & Client',
+    instructions: `**How This Task Works:**
+- Automatically signs out idle users from OneDrive/SharePoint
+- Displays warning before timeout occurs
+- Protects unattended sessions from unauthorized access
+- Balances security with user convenience
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- Browser-based access only (does not affect sync client)
+
+**What You Need to Provide:**
+- Timeout duration in minutes (default: 60)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Enables idle session timeout feature
+3. Sets warning time (5 minutes before timeout)
+4. Configures automatic sign-out after specified period
+5. Reports successful timeout configuration
+
+**Important Notes:**
+- Applies only to browser-based OneDrive/SharePoint sessions
+- Warning appears 5 minutes before sign-out
+- Typical use: shared workstations, security compliance, public computers
+- Does not affect OneDrive sync client
+- Minimum recommended: 15 minutes
+- Maximum recommended: 240 minutes (4 hours)
+- Unsaved work may be lost on timeout
+- Users must sign in again after timeout`,
+    parameters: [
+      { name: 'minutes', label: 'Timeout (minutes)', type: 'number', required: true, defaultValue: 60 }
+    ],
+    scriptTemplate: (params) => {
+      const minutes = params.minutes || 60;
+      const warnMinutes = Math.max(minutes - 5, 1);
+      
+      return `# Configure Idle Session Timeout
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Set-SPOBrowserIdleSignOut -Enabled $true -WarnAfter (New-TimeSpan -Minutes ${warnMinutes}) -SignOutAfter (New-TimeSpan -Minutes ${minutes})
+    Write-Host "✓ Idle timeout configured: ${minutes} minutes" -ForegroundColor Green
+    Write-Host "  Warning displayed: ${warnMinutes} minutes" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to configure idle timeout: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-unmanaged-device-policy',
+    title: 'Configure Unmanaged Device Policy',
+    description: 'Control access from unmanaged devices',
+    category: 'Sync & Client',
+    instructions: `**How This Task Works:**
+- Controls OneDrive access from devices not managed by Intune/MDM
+- Three policy levels: full access, limited (web-only), or blocked
+- Enforces corporate device compliance
+- Part of comprehensive device management strategy
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- Intune/MDM infrastructure recommended for managed devices
+
+**What You Need to Provide:**
+- Policy action: Allow Full Access, Allow Limited Access, or Block Access
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Sets conditional access policy for unmanaged devices
+3. Enforces specified access level tenant-wide
+4. Reports successful policy configuration
+
+**Important Notes:**
+- "Allow Full Access": Unmanaged devices have full OneDrive/SharePoint access
+- "Allow Limited Access": Unmanaged devices can only view files in browser (no download/sync)
+- "Block Access": Unmanaged devices completely blocked
+- Typical use: BYOD policies, security compliance, data loss prevention
+- Requires users to enroll devices in Intune for full access
+- Limited access prevents file downloads and sync
+- Policy applies immediately to all users
+- Consider user training before blocking access`,
+    parameters: [
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'AllowFullAccess', label: 'Allow Full Access' },
+          { value: 'AllowLimitedAccess', label: 'Allow Limited Access (Web-only)' },
+          { value: 'BlockAccess', label: 'Block Access' }
+        ]
+      }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      
+      return `# Configure Unmanaged Device Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Set-SPOTenant -ConditionalAccessPolicy ${action}
+    Write-Host "✓ Unmanaged device policy: ${action}" -ForegroundColor Green
+    Write-Host "  Devices not in Intune/MDM: ${action === 'BlockAccess' ? 'Blocked' : action === 'AllowLimitedAccess' ? 'Limited (web-only)' : 'Full access'}" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to configure unmanaged device policy: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-bulk-delete-sites',
+    title: 'Bulk Delete OneDrive Sites',
+    description: 'Remove OneDrive sites from CSV list',
+    category: 'Storage Management',
+    instructions: `**How This Task Works:**
+- Batch deletes multiple OneDrive sites from CSV input
+- Processes list of site URLs for removal
+- Sites moved to recycle bin (recoverable for 93 days)
+- Efficient for offboarding multiple users
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- CSV file with "Url" column containing full OneDrive site URLs
+
+**What You Need to Provide:**
+- CSV file path containing site URLs to delete
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Imports list of OneDrive sites from CSV file
+3. Iterates through each site and removes it
+4. Sites moved to deleted sites collection (recycle bin)
+5. Reports total number of sites deleted
+
+**Important Notes:**
+- **DESTRUCTIVE OPERATION** - Use with extreme caution!
+- CSV must have "Url" column with full site URLs
+- Sites are recoverable from recycle bin for 93 days
+- Typical use: bulk user offboarding, tenant cleanup
+- Example CSV format: Url
+  https://tenant-my.sharepoint.com/personal/user1_domain_com
+  https://tenant-my.sharepoint.com/personal/user2_domain_com
+- Confirm CSV accuracy before running - no undo!
+- Test with small batch first
+- Consider export/backup before bulk deletion`,
+    parameters: [
+      { name: 'csvPath', label: 'CSV Path', type: 'text', required: true, placeholder: 'C:\\Sites.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      
+      return `# Bulk Delete OneDrive Sites
+# Generated: ${new Date().toISOString()}
+# WARNING: DESTRUCTIVE OPERATION
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Importing site list from CSV..." -ForegroundColor Yellow
+    $Sites = Import-Csv "${csvPath}"
+    
+    Write-Host "Deleting $($Sites.Count) OneDrive sites..." -ForegroundColor Yellow
+    foreach ($Site in $Sites) {
+        try {
+            Remove-SPOSite -Identity $Site.Url -Confirm:$false -ErrorAction Stop
+            Write-Host "  Deleted: $($Site.Url)" -ForegroundColor Gray
+        } catch {
+            Write-Warning "Failed to delete $($Site.Url): $_"
+        }
+    }
+    
+    Write-Host "✓ Deleted $($Sites.Count) OneDrive sites" -ForegroundColor Green
+    Write-Host "  Sites recoverable from recycle bin for 93 days" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to bulk delete sites: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-bulk-set-quota',
+    title: 'Bulk Set Storage Quotas',
+    description: 'Apply quotas to multiple OneDrives from CSV',
+    category: 'Storage Management',
+    instructions: `**How This Task Works:**
+- Batch configures storage quotas for multiple users
+- Processes CSV list with email addresses and quota values
+- Applies individual quota limits efficiently
+- Essential for tiered storage allocation
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- CSV file with "Email" and "QuotaGB" columns
+
+**What You Need to Provide:**
+- CSV file path with user emails and quota amounts
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Imports user list with quota assignments from CSV
+3. Locates each user's OneDrive site by email
+4. Applies specified storage quota in MB
+5. Reports total number of quotas configured
+
+**Important Notes:**
+- CSV must have "Email" and "QuotaGB" columns
+- QuotaGB automatically converted to MB (multiply by 1024)
+- Typical use: tiered storage, cost management, capacity planning
+- Example CSV format: Email,QuotaGB
+  user1@domain.com,100
+  user2@domain.com,50
+- Quotas apply immediately
+- Users notified when approaching quota limit
+- Cannot set quota below current usage
+- Test with small batch first`,
+    parameters: [
+      { name: 'csvPath', label: 'CSV Path', type: 'text', required: true, placeholder: 'C:\\Quotas.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const csvPath = escapePowerShellString(params.csvPath);
+      
+      return `# Bulk Set Storage Quotas
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Importing user list from CSV..." -ForegroundColor Yellow
+    $Users = Import-Csv "${csvPath}"
+    
+    Write-Host "Setting quotas for $($Users.Count) users..." -ForegroundColor Yellow
+    $SuccessCount = 0
+    foreach ($User in $Users) {
+        try {
+            $Site = Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '$($User.Email)'" -ErrorAction Stop
+            if ($null -eq $Site) {
+                Write-Warning "No OneDrive site found for $($User.Email)"
+                continue
+            }
+            Set-SPOSite -Identity $Site.Url -StorageQuota ($User.QuotaGB * 1024) -ErrorAction Stop
+            Write-Host "  Set quota: $($User.Email) = $($User.QuotaGB) GB" -ForegroundColor Gray
+            $SuccessCount++
+        } catch {
+            Write-Warning "Failed to set quota for $($User.Email): $_"
+        }
+    }
+    
+    Write-Host "✓ Set quotas for $SuccessCount of $($Users.Count) users" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to bulk set quotas: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-permission-inheritance',
+    title: 'Break Permission Inheritance',
+    description: 'Stop inheriting permissions from parent',
+    category: 'Sharing & Permissions',
+    instructions: `**How This Task Works:**
+- Breaks permission inheritance from parent site collection
+- Allows custom permission configuration for OneDrive
+- Creates independent permission structure
+- Useful for special access control requirements
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- User must have OneDrive provisioned
+
+**What You Need to Provide:**
+- User email address
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Locates user's personal OneDrive site by email
+3. Identifies site URL for permission management
+4. Reports site URL where custom permissions can be applied
+5. Prepares site for manual permission customization
+
+**Important Notes:**
+- This script identifies the site but does not break inheritance automatically
+- Breaking inheritance is typically done via SharePoint UI or PnP PowerShell
+- Use Connect-PnPOnline and Set-PnPList -BreakRoleInheritance for actual break
+- Typical use: special access requirements, delegated administration
+- Once broken, permissions must be managed independently
+- Cannot automatically revert to inherited permissions
+- Consider security implications before breaking inheritance
+- Document custom permissions for future reference`,
+    parameters: [
+      { name: 'userEmail', label: 'User Email', type: 'text', required: true, placeholder: 'user@domain.com' }
+    ],
+    scriptTemplate: (params) => {
+      const userEmail = escapePowerShellString(params.userEmail);
+      
+      return `# Identify OneDrive for Permission Customization
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    $Site = Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '${userEmail}'"
+    
+    Write-Host "✓ OneDrive site located: $($Site.Url)" -ForegroundColor Green
+    Write-Host "  To break permission inheritance, use:" -ForegroundColor Gray
+    Write-Host "  Connect-PnPOnline -Url $($Site.Url) -Interactive" -ForegroundColor Gray
+    Write-Host "  Set-PnPList -Identity 'Documents' -BreakRoleInheritance" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to locate OneDrive site: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-activity-report',
+    title: 'Export Activity Report',
+    description: 'User activity metrics for OneDrive',
+    category: 'Reporting',
+    instructions: `**How This Task Works:**
+- Retrieves detailed OneDrive user activity data
+- Analyzes file views, edits, syncs, and shares
+- Uses Microsoft Graph API for comprehensive metrics
+- Essential for usage analysis and adoption tracking
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Reports.Read.All permission granted
+- Global Administrator or Reports Reader role
+- Connection to Microsoft Graph
+
+**What You Need to Provide:**
+- Export file path (e.g., C:\\Reports\\Activity.csv)
+- Number of days to analyze (default: 7)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with appropriate permissions
+2. Retrieves per-user OneDrive activity report for specified period
+3. Collects metrics on file access, modifications, sharing
+4. Exports detailed activity data to CSV file
+5. Disconnects from Microsoft Graph
+
+**Important Notes:**
+- Maximum period: 180 days
+- Per-user granularity shows individual usage patterns
+- Typical use: adoption tracking, license optimization, user training identification
+- CSV includes: User, FileViews, FileEdits, FileSyncs, SharedFiles
+- Identifies inactive users for license reclamation
+- Useful for identifying power users and support needs
+- Can be visualized in Excel or Power BI
+- Run regularly to track adoption trends`,
+    parameters: [
+      { name: 'exportPath', label: 'Export Path', type: 'text', required: true, placeholder: 'C:\\Reports\\Activity.csv' },
+      { name: 'days', label: 'Days', type: 'number', required: false, defaultValue: 7 }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      const days = params.days || 7;
+      
+      return `# Export OneDrive Activity Report
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "Reports.Read.All"
+
+try {
+    Write-Host "Retrieving user activity data for last ${days} days..." -ForegroundColor Yellow
+    $Report = Get-MgReportOneDriveActivityUserDetail -Period "D${days}"
+    $Report | Export-Csv "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Activity report exported to ${exportPath}" -ForegroundColor Green
+    Write-Host "  Period analyzed: ${days} days" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to export activity report: $_"
+}
+
+Disconnect-MgGraph`;
+    }
+  },
+  {
+    id: 'od-file-types-block',
+    title: 'Block Specific File Types',
+    description: 'Prevent upload of certain file extensions',
+    category: 'Storage Management',
+    instructions: `**How This Task Works:**
+- Blocks specific file extensions from OneDrive sync
+- Prevents potentially dangerous files from syncing
+- Enforces file type policies tenant-wide
+- Essential for security and compliance
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- OneDrive sync client deployed to users
+
+**What You Need to Provide:**
+- Comma-separated list of file extensions to block (e.g., .exe,.bat,.cmd)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Configures excluded file extensions for sync client
+3. Blocks specified file types from syncing
+4. Reports successful file type restriction
+5. Policy applies to all OneDrive sync clients
+
+**Important Notes:**
+- Blocks sync only - does not prevent browser uploads
+- Extensions must include leading dot (e.g., .exe not exe)
+- Common blocked types: .exe, .bat, .cmd, .vbs, .ps1, .com, .msi
+- Typical use: malware prevention, security compliance, policy enforcement
+- Applies immediately to all users' sync clients
+- Users see error when attempting to sync blocked types
+- Does not delete existing synced files
+- Consider user communication before implementation`,
+    parameters: [
+      { name: 'extensions', label: 'Blocked Extensions', type: 'text', required: true, placeholder: '.exe,.bat,.cmd,.ps1,.vbs' }
+    ],
+    scriptTemplate: (params) => {
+      const extensions = escapePowerShellString(params.extensions);
+      
+      return `# Block File Types from OneDrive Sync
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Set-SPOTenant -ExcludedFileExtensionsForSyncApp "${extensions}"
+    Write-Host "✓ Blocked file types from sync: ${extensions}" -ForegroundColor Green
+    Write-Host "  These file types cannot be synced via OneDrive client" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to block file types: $_"
+}`;
+    }
+  },
+  {
+    id: 'od-restore-deleted',
+    title: 'Restore Deleted OneDrive',
+    description: 'Recover recently deleted OneDrive site',
+    category: 'Storage Management',
+    instructions: `**How This Task Works:**
+- Recovers OneDrive site from deleted sites collection
+- Restores all files, folders, and sharing permissions
+- Must be restored within 93-day retention window
+- Essential for accidental deletion recovery
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center required
+- Site must be in deleted sites collection (within 93 days)
+
+**What You Need to Provide:**
+- Full URL of deleted OneDrive site (e.g., https://tenant-my.sharepoint.com/personal/user_domain_com)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Locates specified site in deleted sites collection
+3. Restores entire OneDrive site with all content
+4. Reinstates original permissions and sharing links
+5. Reports successful restoration
+
+**Important Notes:**
+- OneDrive sites retained in recycle bin for 93 days
+- After 93 days, permanent deletion occurs (no recovery)
+- Typical use: accidental deletion, user offboarding reversal
+- Restored site immediately accessible to original owner
+- All files, folders, versions restored intact
+- Sharing links and permissions preserved
+- Cannot restore permanently deleted sites
+- Use Get-SPODeletedSite to find deleted site URLs`,
+    parameters: [
+      { name: 'siteUrl', label: 'Site URL', type: 'text', required: true, placeholder: 'https://tenant-my.sharepoint.com/personal/user_domain_com' }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      
+      return `# Restore Deleted OneDrive Site
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Restoring OneDrive site..." -ForegroundColor Yellow
+    Restore-SPODeletedSite -Identity "${siteUrl}"
+    
+    Write-Host "✓ OneDrive site restored successfully" -ForegroundColor Green
+    Write-Host "  Site URL: ${siteUrl}" -ForegroundColor Gray
+    Write-Host "  All files, folders, and permissions restored" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to restore OneDrive site: $_"
+    Write-Host "  Note: Site must be deleted within last 93 days" -ForegroundColor Yellow
+}`;
+    }
+  }
 ];
 
 export const oneDriveCategories = [

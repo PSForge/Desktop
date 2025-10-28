@@ -242,6 +242,7 @@ if ($Connections) {
 - PowerShell 5.1 or later
 - No administrator privileges required
 - Processes must remain running during monitoring
+- WMI service must be running
 
 **What You Need to Provide:**
 - Monitor duration in seconds (default: 10)
@@ -249,22 +250,23 @@ if ($Connections) {
 - Number of top consumers to show (default: 10)
 
 **What the Script Does:**
-1. Captures initial CPU counters for all processes
-2. Waits for specified duration (monitoring period)
-3. Captures final CPU counters for all processes
-4. Calculates CPU usage delta per process
-5. Filters processes above threshold
-6. Displays top N CPU consumers sorted by usage
+1. Detects number of logical processors for reference
+2. Captures initial CPU counters for all processes
+3. Waits for specified duration (monitoring period)
+4. Captures final CPU counters for all processes
+5. Calculates CPU usage percentage per process
+6. Filters processes above threshold percentage
+7. Displays top N CPU consumers sorted by usage
 
 **Important Notes:**
-- Longer duration provides more accurate measurements
-- CPU % represents average usage during monitoring period
+- CPU % represents average usage of a single core during monitoring period
 - 100% = 1 full CPU core utilized
-- Multi-core systems can show >100% for multi-threaded apps
+- Multi-core systems can show >100% for multi-threaded apps (e.g., 400% on 4-core system)
+- Longer duration provides more accurate measurements
 - Typical use: troubleshoot slow performance, identify runaway processes
-- Short-lived processes may not appear
+- Short-lived processes may not appear in results
 - Run during problem periods for best results
-- Complements Task Manager for deeper analysis`,
+- Script shows total possible CPU% based on core count`,
     parameters: [
       { id: 'duration', label: 'Monitor Duration (seconds)', type: 'number', required: false, defaultValue: 10 },
       { id: 'threshold', label: 'CPU Threshold (%)', type: 'number', required: false, defaultValue: 10 },
@@ -284,6 +286,9 @@ $TopCount = ${topCount}
 
 Write-Host "Monitoring CPU usage for $Duration seconds..." -ForegroundColor Cyan
 
+# Get number of logical processors for percentage calculation
+$ProcessorCount = (Get-WmiObject Win32_ComputerSystem).NumberOfLogicalProcessors
+
 # Get initial CPU counters
 $Before = Get-Process | Select-Object Name, Id, CPU
 
@@ -292,27 +297,37 @@ Start-Sleep -Seconds $Duration
 # Get final CPU counters
 $After = Get-Process | Select-Object Name, Id, CPU
 
-# Calculate CPU delta
+# Calculate CPU delta and convert to percentage
 $Results = @()
 foreach ($Process in $After) {
     $BeforeData = $Before | Where-Object { $_.Id -eq $Process.Id }
-    if ($BeforeData) {
+    if ($BeforeData -and $Process.CPU -and $BeforeData.CPU) {
+        # Calculate CPU usage: (delta CPU time / duration) * 100 = % of 1 core
         $CPUDelta = ($Process.CPU - $BeforeData.CPU) / $Duration
-        if ($CPUDelta -ge $Threshold) {
+        $CPUPercent = [math]::Round($CPUDelta * 100, 2)
+        
+        if ($CPUPercent -ge $Threshold) {
             $Results += [PSCustomObject]@{
                 Name = $Process.Name
                 PID = $Process.Id
-                CPUPercent = [math]::Round($CPUDelta, 2)
+                'CPU%' = $CPUPercent
             }
         }
     }
 }
 
-$Results = $Results | Sort-Object CPUPercent -Descending | Select-Object -First $TopCount
+$Results = $Results | Sort-Object 'CPU%' -Descending | Select-Object -First $TopCount
 
-Write-Host ""
-Write-Host "Top CPU consumers (threshold: ${threshold}%):" -ForegroundColor Yellow
-$Results | Format-Table -AutoSize`;
+if ($Results.Count -gt 0) {
+    Write-Host ""
+    Write-Host "Top CPU consumers (threshold: ${threshold}%):" -ForegroundColor Yellow
+    $Results | Format-Table -AutoSize
+    Write-Host ""
+    Write-Host "Note: CPU% represents usage of a single core. Systems with $ProcessorCount cores can show up to $($ProcessorCount * 100)% total." -ForegroundColor Gray
+} else {
+    Write-Host ""
+    Write-Host "No processes above ${threshold}% CPU threshold" -ForegroundColor Gray
+}`;
     }
   },
 

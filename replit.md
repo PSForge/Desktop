@@ -18,7 +18,11 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
   - Windows Server: 24 new tasks (roles, services, event logs, file sharing, firewall, disk management, domain operations)
   - Power Platform: 25 new tasks (environments, apps, flows, connectors, governance, DLP, reporting, solutions)
   - Fixed ISO timestamp format across all 59 tasks in both categories
-  - All tasks architect-reviewed and approved
+  - **Critical Bug Fix:** Resolved runtime error preventing Windows Server/Power Platform tasks from displaying
+    - Error: "Objects are not valid as a React child (found: object with keys {value, label})"
+    - Root cause: TaskDetailForm select rendering only supported string[] options, not {value, label}[] objects
+    - Solution: Updated ADTaskParameter interface and TaskDetailForm to support both formats
+  - All tasks architect-reviewed and approved (including bug fix)
 
 - **Formatting Standards (Strictly Enforced Across All 114 Tasks):**
   - "How This Task Works" → hyphenated bullets (-) or descriptive paragraph

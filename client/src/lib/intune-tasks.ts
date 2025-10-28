@@ -27,6 +27,31 @@ export const intuneTasks: IntuneTask[] = [
     title: 'Sync Autopilot Devices',
     description: 'Force a sync of Autopilot device registrations',
     category: 'Autopilot',
+    instructions: `**How This Task Works:**
+This script forces immediate synchronization of Windows Autopilot device registrations with Microsoft Intune for rapid deployment readiness.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Global Administrator or Intune Administrator role
+- DeviceManagementServiceConfig.ReadWrite.All permission
+
+**What You Need to Provide:**
+- No parameters required (manual authentication)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with required permissions
+2. Initiates POST request to Autopilot sync endpoint
+3. Triggers synchronization of device hardware hashes
+4. Reports sync initiation status
+
+**Important Notes:**
+- Sync may take 5-15 minutes to complete
+- Essential after uploading new device hardware IDs
+- Forces update of device registration status
+- Required when Autopilot devices not appearing in portal
+- Run after bulk device imports via CSVs
+- Does not restart existing device deployments
+- Check sync status in Intune portal after 15 minutes`,
     parameters: [],
     scriptTemplate: () => {
       return `# Sync Autopilot Devices
@@ -53,6 +78,33 @@ try {
     title: 'Export Device Inventory',
     description: 'Export comprehensive inventory of all Intune-managed devices to CSV',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script generates comprehensive device inventory reports from Intune for asset management, compliance tracking, and lifecycle planning.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementManagedDevices.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with read permissions
+2. Retrieves all Intune-managed devices (all pages)
+3. Extracts device details: name, user, model, manufacturer
+4. Captures OS version, serial number, compliance state
+5. Includes last sync timestamp for health tracking
+6. Exports comprehensive CSV report
+
+**Important Notes:**
+- Retrieves all devices regardless of count (may take time)
+- Essential for asset management and auditing
+- CSV includes compliance state for risk assessment
+- LastSyncDateTime identifies stale/offline devices
+- Use for hardware refresh planning
+- Filter in Excel for specific models/users
+- Run monthly for trending analysis`,
     parameters: [
       {
         name: 'exportPath',
@@ -107,6 +159,33 @@ try {
     title: 'Export Compliance Report',
     description: 'Export device compliance status report to CSV',
     category: 'Compliance',
+    instructions: `**How This Task Works:**
+This script generates focused compliance reports showing which devices meet organizational security and configuration requirements.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Compliance Administrator role
+- DeviceManagementManagedDevices.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path for compliance report
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with read permissions
+2. Retrieves all managed devices with compliance data
+3. Filters and extracts compliance-specific fields
+4. Includes device name, user, OS, and compliance state
+5. Captures last compliance check timestamp
+6. Exports focused compliance CSV report
+
+**Important Notes:**
+- Essential for security audits and compliance reporting
+- ComplianceState shows Compliant/NonCompliant/Unknown
+- Use to identify devices requiring remediation
+- Run before audit reviews and compliance meetings
+- Non-compliant devices may have blocked access
+- Track compliance trends over time
+- Coordinate with conditional access policies`,
     parameters: [
       {
         name: 'exportPath',
@@ -159,6 +238,34 @@ try {
     title: 'Create Windows Update Ring',
     description: 'Create a new Windows Update deployment ring',
     category: 'Updates',
+    instructions: `**How This Task Works:**
+This script creates Windows Update rings for controlled, phased deployment of feature and quality updates across device groups.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Update ring name (e.g., Pilot Ring, Production Ring)
+- Feature update deferral period in days
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates Windows Update for Business configuration policy
+3. Sets feature update deferral period as specified
+4. Configures quality update deferral to 0 days (immediate)
+5. Sets automatic update mode to Windows default
+6. Returns created update ring ID for assignment
+
+**Important Notes:**
+- Essential for phased Windows 11/10 update deployment
+- Feature deferral typical values: 0 (pilot), 7-30 (production)
+- Quality updates deployed immediately by default
+- Must assign ring to device groups after creation
+- Coordinate with maintenance windows
+- Use multiple rings for staged deployments
+- Monitor update ring compliance in Intune portal`,
     parameters: [
       {
         name: 'ringName',
@@ -210,9 +317,36 @@ try {
 
   {
     id: 'intune-export-app-status',
-    title: 'Export App Deployment Status',
-    description: 'Export application deployment status report to CSV',
+    title: 'Export App Inventory',
+    description: 'Export application inventory (name, type, publisher) to CSV',
     category: 'App Management',
+    instructions: `**How This Task Works:**
+This script generates application inventory reports from Intune showing all managed apps with basic metadata for app catalog management.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementApps.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path for app inventory report
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app read permissions
+2. Retrieves all managed mobile applications
+3. Extracts basic app metadata: name, type, publisher
+4. Exports app inventory to CSV (does NOT include deployment/assignment status)
+5. Reports total app count
+
+**Important Notes:**
+- Provides app catalog inventory ONLY (name, type, publisher)
+- Does NOT include deployment status, assignments, or install success/failure
+- Shows all app types: Win32, Store, Web, iOS, Android
+- Essential for app portfolio visibility and governance
+- Use to identify duplicate or unused apps
+- @odata.type indicates app platform/deployment method
+- To get deployment status, use separate Graph API queries for assignments
+- Run monthly for app catalog tracking`,
     parameters: [
       {
         name: 'exportPath',
@@ -226,19 +360,19 @@ try {
     scriptTemplate: (params) => {
       const exportPath = escapePowerShellString(params.exportPath);
 
-      return `# Export App Deployment Status
+      return `# Export App Inventory
 # Generated by PSForge
 
 Connect-MgGraph -Scopes "DeviceManagementApps.Read.All"
 
 try {
-    Write-Host "Collecting app deployment data..." -ForegroundColor Cyan
+    Write-Host "Collecting app inventory data..." -ForegroundColor Cyan
     
     $Apps = Get-MgDeviceAppManagementMobileApp -All
     
     Write-Host "Found $($Apps.Count) apps" -ForegroundColor Yellow
     
-    $DeploymentReport = foreach ($App in $Apps) {
+    $InventoryReport = foreach ($App in $Apps) {
         [PSCustomObject]@{
             AppName    = $App.DisplayName
             AppType    = $App.AdditionalProperties["@odata.type"]
@@ -246,12 +380,13 @@ try {
         }
     }
     
-    $DeploymentReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    $InventoryReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Deployment status exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "✓ App inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "Note: For deployment/assignment status, use additional Graph API queries" -ForegroundColor Yellow
     
 } catch {
-    Write-Error "Failed to export deployment status: $_"
+    Write-Error "Failed to export app inventory: $_"
 }`;
     }
   },
@@ -262,6 +397,33 @@ try {
     title: 'Retire Intune Device',
     description: 'Retire a device from Intune management',
     category: 'Device Management',
+    instructions: `**How This Task Works:**
+This script gracefully retires devices from Intune management, removing company data while preserving personal data for BYOD scenarios.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Device name to retire
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for device by exact name match
+3. Validates device exists in Intune
+4. Initiates retire action via Graph API
+5. Reports retirement status with device ID
+
+**Important Notes:**
+- Retire removes company data, keeps personal data (BYOD-friendly)
+- Use for employee offboarding or device repurposing
+- Device can re-enroll after retirement
+- Different from Wipe (which removes ALL data)
+- Retirement may take 5-15 minutes to complete
+- Check device status in portal to confirm
+- Essential for BYOD lifecycle management
+- Preserves user productivity while protecting company data`,
     parameters: [
       {
         name: 'deviceName',

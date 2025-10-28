@@ -973,6 +973,38 @@ try {
     name: 'Redeploy to Failed Devices',
     category: 'Applications & Deployments',
     description: 'Create a new deployment targeting only devices that failed the original deployment',
+    instructions: `**How This Task Works:**
+This script creates intelligent retry deployments by automatically targeting only devices that failed the original application deployment.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Application deployment permissions
+- Existing deployment with failure data
+- Application content already distributed
+
+**What You Need to Provide:**
+- Application name that had failures
+- Original target collection name
+- New retry collection name
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates application and original deployment exist
+3. Creates WQL query to find devices with compliance state 2 or 4 (failed)
+4. Creates new collection with query-based membership for failed devices
+5. Configures incremental updates for real-time membership changes
+6. Creates Required deployment to retry collection with 24-hour deadline
+7. Reports retry deployment configuration
+
+**Important Notes:**
+- Compliance state 2 = Non-compliant (failed installation)
+- Compliance state 4 = Error state (deployment error)
+- Collection auto-updates as failures occur
+- 24-hour deadline gives immediate retry opportunity
+- Essential for improving deployment success rates
+- Monitor retry collection membership for troubleshooting
+- If devices continue failing, investigate root cause
+- Can reuse retry collection for future failures`,
     parameters: [
       { id: 'appName', label: 'Application Name', type: 'text', required: true, placeholder: 'Adobe Acrobat Reader' },
       { id: 'originalCollection', label: 'Original Target Collection', type: 'text', required: true, placeholder: 'All Workstations' },
@@ -1066,6 +1098,44 @@ AND SMS_AppDeploymentAssetDetails.ComplianceState IN (2, 4)
     name: 'Create ADR (Automatic Deployment Rule)',
     category: 'Software Updates',
     description: 'Create an automatic deployment rule for patch management with specified criteria',
+    instructions: `**How This Task Works:**
+This script creates Automatic Deployment Rules (ADRs) for automated patch management, reducing manual patching workload significantly.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Software Update Point configured
+- WSUS synchronized with Microsoft Update
+- Software update deployment permissions
+- Target collections exist
+
+**What You Need to Provide:**
+- ADR name (descriptive naming convention)
+- Product categories (e.g., Windows 11, Office 365 Client)
+- Update classifications (Security Updates, Critical Updates, etc.)
+- Target collection(s) for deployment
+- Deployment deadline in days (enforcement window)
+- Option to exclude preview updates
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates ADR doesn't already exist
+3. Builds update criteria based on products, classifications, date range
+4. Optional: Excludes preview/beta updates
+5. Creates ADR with monthly schedule
+6. For each target collection: creates deployment with deadline
+7. Configures automatic deployment with restart permissions
+8. Reports ADR configuration details
+
+**Important Notes:**
+- ADR automates monthly patching workflow
+- Schedule runs every 30 days by default
+- Deadline controls enforcement window (typical: 7-14 days)
+- Preview updates excluded by default (stability)
+- Includes updates from last 30 days only
+- Essential for enterprise patch management
+- Configure maintenance windows to control restart timing
+- Test with pilot collection before broad deployment
+- Review ADR runs monthly for issues`,
     parameters: [
       { id: 'adrName', label: 'ADR Name', type: 'text', required: true, placeholder: 'Workstations-Monthly-Patches' },
       { id: 'productCategories', label: 'Products (comma-separated)', type: 'textarea', required: true, placeholder: 'Windows 11, Office 365 Client' },
@@ -1200,6 +1270,38 @@ try {
     name: 'Cleanup Old Software Update Groups',
     category: 'Software Updates',
     description: 'Expire and cleanup old software update groups based on age threshold',
+    instructions: `**How This Task Works:**
+This script maintains MECM database health by automatically expiring old software update groups while preserving recent ones for compliance tracking.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Software update management permissions
+- Understanding of SUG retention requirements
+
+**What You Need to Provide:**
+- Age threshold in days (older SUGs eligible for cleanup)
+- Number of most recent SUGs to keep (safety buffer)
+- Test mode for preview (recommended first run)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Retrieves all software update groups
+3. Sorts by creation date (newest first)
+4. Always preserves N most recent SUGs regardless of age
+5. For remaining SUGs: checks age against threshold
+6. For old SUGs: removes deployments, then expires SUG
+7. Reports expired vs. kept counts
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- Most recent N SUGs always kept (typically 3-6)
+- Age threshold typically 90-180 days
+- Expiring SUGs doesn't delete deployed updates
+- Essential for database performance and maintenance
+- Removes deployments automatically before expiring
+- Expired SUGs remain visible but inactive
+- Run quarterly or after major patching cycles
+- Coordinate with compliance reporting schedules`,
     parameters: [
       { id: 'ageThresholdDays', label: 'Age Threshold (days)', type: 'number', required: true, defaultValue: 90 },
       { id: 'keepRecentCount', label: 'Keep N Most Recent', type: 'number', required: true, defaultValue: 3 },
@@ -1301,6 +1403,39 @@ try {
     name: 'Software Update Compliance Report',
     category: 'Software Updates',
     description: 'Generate compliance report showing top failed updates for a collection',
+    instructions: `**How This Task Works:**
+This script generates comprehensive patch compliance reports identifying problematic updates and non-compliant devices for remediation planning.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Software update reporting permissions
+- Collection with update deployments
+- Export path accessible
+
+**What You Need to Provide:**
+- Target collection name
+- CSV export path for report
+- Optional: Number of top failed updates to highlight
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates collection exists and retrieves member devices
+3. Gathers compliance status for all deployed updates
+4. Calculates overall compliance percentage
+5. Identifies top N most problematic updates (by failure count)
+6. Exports detailed CSV report with device and update details
+7. Reports summary statistics
+
+**Important Notes:**
+- Essential for patch management oversight
+- Identifies updates requiring troubleshooting
+- Shows per-device compliance status
+- Top failed updates indicate deployment issues
+- Use report to prioritize remediation efforts
+- Run monthly or before patch cycles
+- Coordinate with change management processes
+- CSV format enables pivot analysis in Excel
+- High failure rates may indicate compatibility issues`,
     parameters: [
       { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Workstations' },
       { id: 'reportPath', label: 'Report Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\UpdateCompliance.csv' },

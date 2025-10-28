@@ -36,6 +36,36 @@ export const exchangeOnlineTasks: ExchangeOnlineTask[] = [
     name: 'Create Mailbox for Licensed User',
     category: 'User Mailboxes & Licenses',
     description: 'Create a new Exchange Online mailbox for a licensed user',
+    instructions: `**How This Task Works:**
+This script provisions Exchange Online mailboxes by assigning Microsoft 365 licenses to users, triggering automatic mailbox creation.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Microsoft Graph PowerShell SDK
+- Exchange Administrator and User Administrator roles
+- User.ReadWrite.All and Organization.Read.All permissions
+
+**What You Need to Provide:**
+- User Principal Name (UPN)
+- Display name
+- License SKU (e.g., ENTERPRISEPACK for E3)
+- Usage location (2-letter country code)
+
+**What the Script Does:**
+1. Connects to Exchange Online and Microsoft Graph
+2. Verifies mailbox doesn't already exist
+3. Sets usage location (required for licensing)
+4. Assigns Office 365 license to user
+5. Waits for mailbox provisioning (30 seconds)
+6. Verifies mailbox creation
+
+**Important Notes:**
+- Mailbox auto-provisions when license is assigned
+- Usage location MUST be set before licensing
+- Common SKUs: ENTERPRISEPACK (E3), SPE_E5 (E5)
+- Provisioning takes 30-60 seconds typically
+- Run Get-MgSubscribedSku to see available licenses
+- User must exist before running this script`,
     parameters: [
       { id: 'upn', label: 'User Principal Name (UPN)', type: 'email', required: true, placeholder: 'user@contoso.com' },
       { id: 'displayName', label: 'Display Name', type: 'text', required: true, placeholder: 'John Doe' },
@@ -111,6 +141,34 @@ try {
     name: 'Assign/Remove Mailbox Permissions',
     category: 'User Mailboxes & Licenses',
     description: 'Assign or remove Full Access, Send As, or Send on Behalf permissions to a mailbox',
+    instructions: `**How This Task Works:**
+This script manages delegation permissions for mailboxes, enabling users to access shared mailboxes or send email on behalf of others.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Recipient Management role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Target mailbox (typically shared mailbox)
+- User to grant/remove access
+- Permission type (Full Access, Send As, or Send on Behalf)
+- Action (Add or Remove)
+- Auto-mapping preference (Full Access only)
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Verifies target mailbox and user exist
+3. Adds or removes specified permission
+4. Confirms permission modification
+
+**Important Notes:**
+- Full Access: Read/manage mailbox content (folders, emails)
+- Send As: Send emails appearing FROM the mailbox
+- Send on Behalf: Send emails showing "on behalf of"
+- Auto-mapping adds mailbox to Outlook automatically
+- Disable auto-mapping for shared mailboxes with many delegates
+- Changes may take 60 minutes to apply in Outlook`,
     parameters: [
       { id: 'mailboxIdentity', label: 'Target Mailbox', type: 'email', required: true, placeholder: 'shared@contoso.com' },
       { id: 'userIdentity', label: 'User to Grant/Remove Access', type: 'email', required: true, placeholder: 'user@contoso.com' },
@@ -213,6 +271,35 @@ try {
     name: 'Bulk Mailbox Creation/Permission Assignment',
     category: 'User Mailboxes & Licenses',
     description: 'Create multiple mailboxes or assign permissions in bulk from CSV file',
+    instructions: `**How This Task Works:**
+This script automates mailbox provisioning and permission delegation at scale using CSV import for efficient bulk operations.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Microsoft Graph PowerShell SDK
+- Exchange Administrator and User Administrator roles
+- CSV file prepared with required columns
+
+**What You Need to Provide:**
+- CSV file path with mailbox data
+- Operation type (Create Mailboxes or Assign Permissions)
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Exchange Online and Microsoft Graph
+2. Imports CSV file
+3. For Create Mailboxes: Sets usage location and assigns licenses
+4. For Assign Permissions: Grants specified permissions
+5. Reports success/failure per mailbox
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- CSV for Create: UPN, DisplayName, Location, LicenseSku columns
+- CSV for Permissions: Mailbox, User, PermissionType columns
+- Process pauses between operations to avoid throttling
+- Large batches (100+) may take significant time
+- Review failures and reprocess as needed`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Scripts\\mailboxes.csv', description: 'CSV with UPN, DisplayName, Location, LicenseSku columns (SKU part numbers like ENTERPRISEPACK)' },
       { id: 'operation', label: 'Operation', type: 'select', required: true, options: ['CreateMailboxes', 'AssignPermissions'], defaultValue: 'CreateMailboxes' },
@@ -298,6 +385,33 @@ Write-Host "  Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Re
     name: 'Convert Mailbox Type (Shared ↔ User)',
     category: 'User Mailboxes & Licenses',
     description: 'Convert mailbox between User and Shared types',
+    instructions: `**How This Task Works:**
+This script converts mailboxes between User and Shared types for cost optimization and collaboration scenarios.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Mailbox to convert
+- Target type (Shared or Regular/User)
+- Option to remove license (when converting to Shared)
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Retrieves current mailbox type
+3. Converts mailbox to specified type
+4. Verifies conversion
+5. Reminds about license management
+
+**Important Notes:**
+- Converting to Shared saves license costs (no license required)
+- Converting to User requires license assignment
+- Shared mailboxes limited to 50GB storage
+- User access/permissions persist during conversion
+- Remove license manually in M365 Admin Center after conversion
+- Conversion takes effect immediately`,
     parameters: [
       { id: 'mailboxIdentity', label: 'Mailbox to Convert', type: 'email', required: true, placeholder: 'mailbox@contoso.com' },
       { id: 'targetType', label: 'Convert To', type: 'select', required: true, options: ['Shared', 'Regular'], defaultValue: 'Shared' },
@@ -358,6 +472,34 @@ try {
     name: 'Enable/Disable Litigation Hold or Archive',
     category: 'User Mailboxes & Licenses',
     description: 'Enable or disable litigation hold or archive mailbox for compliance',
+    instructions: `**How This Task Works:**
+This script manages litigation hold and archive mailboxes for eDiscovery, compliance, and long-term retention requirements.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Compliance Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Mailbox identity
+- Feature (Litigation Hold or Archive)
+- Action (Enable or Disable)
+- Optional: Comment/reason for hold
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Verifies mailbox exists
+3. Enables/disables litigation hold or archive
+4. Records comment for audit trail
+5. Confirms operation
+
+**Important Notes:**
+- Litigation Hold preserves ALL mailbox content indefinitely
+- Archive provides additional 100GB+ storage
+- Hold prevents deletion by users or retention policies
+- Essential for legal cases and compliance
+- Archive requires Exchange Online Plan 2 or Archive add-on
+- Archive provisioning takes 24-48 hours`,
     parameters: [
       { id: 'mailboxIdentity', label: 'Mailbox Identity', type: 'email', required: true, placeholder: 'user@contoso.com' },
       { id: 'feature', label: 'Feature', type: 'select', required: true, options: ['LitigationHold', 'Archive'], defaultValue: 'LitigationHold' },
@@ -420,6 +562,34 @@ try {
     name: 'Set Mailbox Quota and Retention',
     category: 'User Mailboxes & Licenses',
     description: 'Configure mailbox storage quotas, send/receive limits, and retention policies',
+    instructions: `**How This Task Works:**
+This script configures mailbox storage quotas and message size limits for capacity management and policy enforcement.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Mailbox identity
+- Optional: Prohibit Send quota (GB)
+- Optional: Prohibit Send/Receive quota (GB)
+- Optional: Max send size (MB)
+- Optional: Max receive size (MB)
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Verifies mailbox exists
+3. Configures specified quotas and limits
+4. Displays current settings
+
+**Important Notes:**
+- Prohibit Send: User can receive but not send email
+- Prohibit Send/Receive: Mailbox effectively frozen
+- Default Exchange Online quotas: 50GB (E3), 100GB (E5)
+- Max message size default: 35MB (can increase to 150MB)
+- Quota warnings sent at 90% capacity
+- Settings override organization-wide defaults`,
     parameters: [
       { id: 'mailboxIdentity', label: 'Mailbox Identity', type: 'email', required: true, placeholder: 'user@contoso.com' },
       { id: 'prohibitSendQuota', label: 'Prohibit Send Quota (GB)', type: 'number', required: false, placeholder: '49' },
@@ -477,6 +647,34 @@ try {
     name: 'Bulk Enable Archive Mailboxes',
     category: 'User Mailboxes & Licenses',
     description: 'Enable archive mailboxes for multiple users in bulk',
+    instructions: `**How This Task Works:**
+This script enables archive mailboxes at scale for compliance and mailbox capacity management across multiple users.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- Exchange Online Plan 2 or Archive add-on licenses
+- CSV file (optional) or domain filter
+
+**What You Need to Provide:**
+- Optional: CSV file with UPN column
+- Optional: Domain filter (e.g., contoso.com)
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Retrieves mailboxes (from CSV, domain filter, or all)
+3. Checks archive status for each mailbox
+4. Enables archives for eligible mailboxes
+5. Reports success/failure statistics
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- Requires Exchange Online Plan 2 or Archive add-on
+- Archive provides 100GB+ additional storage
+- Provisioning takes 24-48 hours
+- Skips already-enabled archives
+- Large batches (500+) may take significant time`,
     parameters: [
       { id: 'csvPath', label: 'CSV File Path (Optional)', type: 'path', required: false, placeholder: 'C:\\Scripts\\users.csv', description: 'CSV with UPN column, or leave blank for all users' },
       { id: 'filterDomain', label: 'Filter by Domain (Optional)', type: 'text', required: false, placeholder: 'contoso.com' },
@@ -563,6 +761,34 @@ try {
     name: 'Mailbox Delegation Report',
     category: 'User Mailboxes & Licenses',
     description: 'Generate a report of all mailbox delegations (Full Access, Send As, Send on Behalf)',
+    instructions: `**How This Task Works:**
+This script generates comprehensive mailbox delegation reports for security audits, compliance, and access governance.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Security Reader role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Optional: Mailbox filter (specific user or domain)
+- CSV export file path
+- Option to include inherited permissions
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Retrieves mailboxes (filtered or all)
+3. Extracts Full Access permissions
+4. Extracts Send As permissions
+5. Extracts Send on Behalf permissions
+6. Exports comprehensive report to CSV
+
+**Important Notes:**
+- Critical for security audits and compliance
+- Identifies over-permissioned mailboxes
+- Inherited permissions usually system/admin accounts
+- Exclude inherited to focus on explicit delegations
+- Essential for access reviews and SOC 2 compliance
+- Large tenants (1000+ mailboxes) may take time`,
     parameters: [
       { id: 'mailboxFilter', label: 'Mailbox Filter (Optional)', type: 'text', required: false, placeholder: 'user@contoso.com or *@domain.com' },
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\MailboxDelegations.csv' },
@@ -671,6 +897,35 @@ try {
     name: 'Create/Modify Distribution Group',
     category: 'Distribution & Groups',
     description: 'Create a new distribution group or modify an existing one',
+    instructions: `**How This Task Works:**
+This script creates or modifies distribution groups for email broadcasting to teams, departments, or project groups.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Recipient Management role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Group name
+- Email address for the group
+- Group owner
+- Optional: Initial members (comma-separated)
+- Sender authentication requirement
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Checks if group already exists
+3. Creates new group or updates existing one
+4. Adds initial members (if provided)
+5. Confirms group creation/modification
+
+**Important Notes:**
+- Distribution groups are for email distribution only (no shared resources)
+- Require sender auth prevents external spoofing
+- Owner can manage membership and settings
+- Use for teams, projects, or departmental communication
+- Consider Microsoft 365 Groups for collaboration features
+- Members added immediately (no approval needed)`,
     parameters: [
       { id: 'groupName', label: 'Group Name', type: 'text', required: true, placeholder: 'Sales Team' },
       { id: 'emailAddress', label: 'Email Address', type: 'email', required: true, placeholder: 'sales@contoso.com' },
@@ -744,6 +999,36 @@ try {
     name: 'Bulk Add/Remove Group Members',
     category: 'Distribution & Groups',
     description: 'Add or remove multiple members from a distribution group using CSV',
+    instructions: `**How This Task Works:**
+This script manages distribution group membership at scale using CSV import for efficient bulk operations.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Recipient Management role
+- CSV file prepared with Email column
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Group email address
+- CSV file with "Email" column
+- Action (Add or Remove members)
+- Test mode for preview
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Verifies group exists
+3. Imports CSV file with member emails
+4. Adds or removes members in bulk
+5. Reports success/failure per member
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first with preview mode enabled
+- CSV must have "Email" column header
+- Large batches (500+) may take time
+- Duplicates are handled gracefully (no error)
+- Removing non-member shows as failure
+- Changes take effect immediately`,
     parameters: [
       { id: 'groupIdentity', label: 'Group Email Address', type: 'email', required: true, placeholder: 'group@contoso.com' },
       { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\Scripts\\members.csv', description: 'CSV with "Email" column' },
@@ -828,6 +1113,32 @@ try {
     name: 'Export Group Membership Reports',
     category: 'Distribution & Groups',
     description: 'Generate detailed membership reports for distribution groups',
+    instructions: `**How This Task Works:**
+This script generates comprehensive distribution group membership reports for audits, documentation, and access governance.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Security Reader role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Optional: Group filter (specific group or wildcard pattern)
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Retrieves distribution groups (filtered or all)
+3. Extracts membership for each group
+4. Compiles group details and member lists
+5. Exports comprehensive report to CSV
+
+**Important Notes:**
+- Critical for access audits and compliance
+- Filter by name pattern (e.g., Sales*) or domain
+- Shows group type, owner, and all members
+- Essential for distribution group governance
+- Large tenants (100+ groups) may take time
+- Use for SOC 2 and access review documentation`,
     parameters: [
       { id: 'groupFilter', label: 'Group Filter (Optional)', type: 'text', required: false, placeholder: '*@contoso.com or Sales*' },
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\GroupMembership.csv' }
@@ -896,6 +1207,35 @@ try {
     name: 'Create/Update Transport Rule',
     category: 'Transport Rules & Mail Flow',
     description: 'Create or update mail flow transport rules for disclaimers, routing, or blocking',
+    instructions: `**How This Task Works:**
+This script creates transport rules for mail flow control, including message routing, blocking, disclaimers, and compliance enforcement.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Organization Management role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Rule name
+- Rule action (Reject, Redirect, Disclaimer, or Set SCL)
+- Condition type (Scope, Subject, Attachment, Message Size)
+- Condition value
+- Enable/disable status
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Checks if rule already exists
+3. Creates new transport rule or updates existing
+4. Configures conditions and actions
+5. Confirms rule creation/modification
+
+**Important Notes:**
+- Transport rules process ALL mail flow
+- Rules execute in priority order (1 is highest)
+- RejectMessage blocks and returns NDR
+- SetSCL=9 marks as spam, SetSCL=-1 bypasses filter
+- Test rules carefully before enabling
+- Changes take effect within 30 minutes`,
     parameters: [
       { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Block External Forwarding' },
       { id: 'ruleAction', label: 'Rule Action', type: 'select', required: true, options: ['RejectMessage', 'RedirectMessageTo', 'ApplyDisclaimer', 'SetSCL'], defaultValue: 'RejectMessage' },
@@ -973,6 +1313,33 @@ try {
     name: 'Block/Allow Specific Domains',
     category: 'Transport Rules & Mail Flow',
     description: 'Block or allow email from specific domains or addresses',
+    instructions: `**How This Task Works:**
+This script creates transport rules to block or allow specific domains for security, spam prevention, or trusted partner communication.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Domains to block/allow (comma-separated)
+- Action (Block or Allow)
+- Apply to (Inbound, Outbound, or Both)
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Parses domain list
+3. Creates transport rule with domain conditions
+4. Sets action (block with SCL=9 or allow with SCL=-1)
+5. Confirms rule creation
+
+**Important Notes:**
+- Block: Sets SCL=9 (high confidence spam)
+- Allow: Sets SCL=-1 (bypass all spam filtering)
+- Inbound: Applies to external senders only
+- Outbound: Applies to internal senders only
+- Use for trusted partners or known spam domains
+- Changes take effect within 30 minutes`,
     parameters: [
       { id: 'domains', label: 'Domains (comma-separated)', type: 'textarea', required: true, placeholder: 'spam.com, malicious.net' },
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['Block', 'Allow'], defaultValue: 'Block' },
@@ -1040,6 +1407,35 @@ try {
     name: 'Automated Message Trace',
     category: 'Message Trace & Reporting',
     description: 'Trace messages by sender, recipient, or date range with detailed results',
+    instructions: `**How This Task Works:**
+This script performs message trace searches for troubleshooting mail flow issues, investigating delivery failures, and compliance audits.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Security Reader role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Optional: Sender email address
+- Optional: Recipient email address
+- Start date (days ago, e.g., 7 for past week)
+- End date (days ago, e.g., 0 for today)
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Calculates date range
+3. Traces messages matching criteria
+4. Retrieves delivery status and events
+5. Exports detailed results to CSV
+
+**Important Notes:**
+- Message trace limited to 10 days for Get-MessageTrace
+- Use both sender/recipient for targeted searches
+- Results include status (Delivered, Failed, Pending, Spam)
+- Essential for troubleshooting delivery issues
+- Large result sets (10,000+) may take time
+- For >10 days, use historical trace cmdlets`,
     parameters: [
       { id: 'senderAddress', label: 'Sender Address (Optional)', type: 'email', required: false, placeholder: 'sender@contoso.com' },
       { id: 'recipientAddress', label: 'Recipient Address (Optional)', type: 'email', required: false, placeholder: 'recipient@contoso.com' },
@@ -1103,6 +1499,35 @@ try {
     name: 'Create Shared/Resource Mailbox',
     category: 'Shared & Resource Mailboxes',
     description: 'Create a shared mailbox or resource mailbox (room/equipment)',
+    instructions: `**How This Task Works:**
+This script creates shared mailboxes for team collaboration or resource mailboxes for conference room/equipment booking.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Mailbox type (Shared, Room, or Equipment)
+- Mailbox name
+- Email address
+- Optional: Members with Full Access (comma-separated)
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Verifies mailbox doesn't already exist
+3. Creates shared or resource mailbox
+4. Waits for provisioning
+5. Grants Full Access to specified members
+6. Confirms creation
+
+**Important Notes:**
+- Shared mailboxes don't require licenses (up to 50GB)
+- Room/Equipment mailboxes for calendar booking
+- Auto-mapping adds mailbox to members' Outlook
+- Members can send as the shared mailbox
+- Shared mailboxes limited to 50GB storage
+- No interactive sign-in for shared mailboxes`,
     parameters: [
       { id: 'mailboxType', label: 'Mailbox Type', type: 'select', required: true, options: ['Shared', 'Room', 'Equipment'], defaultValue: 'Shared' },
       { id: 'name', label: 'Mailbox Name', type: 'text', required: true, placeholder: 'Sales Team' },
@@ -1180,6 +1605,33 @@ try {
     name: 'Enable Mailbox Auditing and Export Logs',
     category: 'Security & Compliance',
     description: 'Enable mailbox auditing and export audit logs for compliance',
+    instructions: `**How This Task Works:**
+This script enables mailbox auditing for compliance and forensic investigations, tracking mailbox access and actions.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Compliance Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Optional: Mailbox identity (leave blank for all)
+- Action (Enable Auditing or Export Logs)
+- Optional: Output path for exported logs
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. For Enable: Activates auditing for specified/all mailboxes
+3. For Export: Retrieves audit logs
+4. Exports logs to CSV (if applicable)
+5. Confirms operation
+
+**Important Notes:**
+- Auditing tracks owner, delegate, and admin actions
+- Essential for SOC 2, HIPAA, and compliance requirements
+- Audit logs retained for 90 days (E3) or 365 days (E5)
+- Enabled by default in Exchange Online
+- Logs accessible via Purview Compliance Center
+- Critical for forensic investigations`,
     parameters: [
       { id: 'mailboxIdentity', label: 'Mailbox Identity (Optional - leave blank for all)', type: 'email', required: false, placeholder: 'user@contoso.com' },
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['EnableAuditing', 'ExportLogs'], defaultValue: 'EnableAuditing' },
@@ -1243,6 +1695,33 @@ try {
     name: 'Mailbox Inactive Cleanup/Reporting',
     category: 'Maintenance & Hygiene',
     description: 'Find and report on mailboxes with no login activity for specified days',
+    instructions: `**How This Task Works:**
+This script identifies inactive mailboxes for license optimization, reporting unused mailboxes and optionally converting them to shared mailboxes.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Inactive days threshold (e.g., 90 days)
+- CSV export file path
+- Action (Report Only or Convert to Shared)
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Retrieves all mailboxes with last logon data
+3. Identifies mailboxes inactive beyond threshold
+4. Reports inactive mailboxes to CSV
+5. Optionally converts inactive user mailboxes to shared
+
+**Important Notes:**
+- Inactive = No logon activity for specified days
+- Converting to shared saves license costs
+- Review report before converting mailboxes
+- Former employees often show as inactive
+- Shared mailbox conversion is reversible
+- Essential for license optimization and cost savings`,
     parameters: [
       { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: true, defaultValue: 90, placeholder: '90' },
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\InactiveMailboxes.csv' },
@@ -1311,6 +1790,32 @@ try {
     name: 'Detect and Disable Forwarding to External Domains',
     category: 'Maintenance & Hygiene',
     description: 'Find and optionally disable automatic forwarding rules to external domains',
+    instructions: `**How This Task Works:**
+This script detects and remediates external email forwarding for security, preventing data exfiltration and account compromise indicators.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Action (Report Only or Disable Forwarding)
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Scans all mailboxes for forwarding rules
+3. Identifies forwarding to external domains
+4. Reports external forwarding to CSV
+5. Optionally disables external forwarding
+
+**Important Notes:**
+- External forwarding is common attack indicator
+- Compromised accounts often forward to attacker emails
+- Review forwarding before disabling (may be legitimate)
+- Disabling is reversible (can re-enable manually)
+- Essential for security incident response
+- Consider blocking external forwarding via transport rules`,
     parameters: [
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['ReportOnly', 'DisableForwarding'], defaultValue: 'ReportOnly' },
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\ExternalForwarding.csv' }
@@ -1379,6 +1884,32 @@ try {
     name: 'Mailbox Size Report',
     category: 'Reporting & Inventory',
     description: 'Generate comprehensive mailbox size reports including primary and archive sizes',
+    instructions: `**How This Task Works:**
+This script generates mailbox storage reports for capacity planning, quota management, and identifying oversized mailboxes.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Security Reader role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- CSV export file path
+- Optional: Domain filter
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Retrieves all mailboxes (or filtered by domain)
+3. Collects mailbox statistics (item count, size)
+4. Includes archive mailbox data if enabled
+5. Exports comprehensive report to CSV
+
+**Important Notes:**
+- Essential for storage capacity planning
+- Identifies mailboxes approaching quota limits
+- Archive data included when archive enabled
+- Large tenants (1000+ mailboxes) may take time
+- Use for quota policy enforcement
+- TotalItemSize shown in GB for easy analysis`,
     parameters: [
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\MailboxSizes.csv' },
       { id: 'filterDomain', label: 'Filter by Domain (Optional)', type: 'text', required: false, placeholder: 'contoso.com' }
@@ -1450,6 +1981,32 @@ try {
     name: 'Export Distribution List Members',
     category: 'Reporting & Inventory',
     description: 'Export all members of distribution lists and groups to CSV',
+    instructions: `**How This Task Works:**
+This script exports distribution group membership for documentation, audits, and access reviews.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Security Reader role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Optional: Distribution list email (leave blank for all)
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Retrieves specified or all distribution groups
+3. Extracts membership for each group
+4. Compiles group and member details
+5. Exports comprehensive report to CSV
+
+**Important Notes:**
+- Critical for access reviews and compliance
+- Shows nested group memberships
+- Essential for distribution group governance
+- Use for audit documentation
+- Large groups (1000+ members) may take time
+- Report includes group owner and type`,
     parameters: [
       { id: 'groupIdentity', label: 'Distribution List Identity (Optional - leave blank for all)', type: 'email', required: false, placeholder: 'sales@contoso.com' },
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\DistributionListMembers.csv' }

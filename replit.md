@@ -4,27 +4,27 @@
 PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 8 basic Windows management categories, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 623 automation tasks across 16 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
 ## Recent Changes (October 28, 2025)
-🎉 **OneDrive Category COMPLETE! (268/353 tasks - 75.9%)** 🎉
-- **Latest Milestone:** OneDrive category 100% complete (25/25 tasks documented)
-- **Technical Fixes Applied:**
-  - od-access-requests: Now uses correct `Set-SPOTenant -ODBAccessRequests On/Off` for tenant-wide OneDrive access request control (verified via Microsoft Learn documentation)
-  - od-bulk-set-quota: Added null check for Get-SPOSite results to handle missing/unprovisioned OneDrive sites gracefully
-- **OneDrive Tasks Completed:**
-  - Batch 1 (15 tasks): Sharing, quota management, version control, external access, sync settings, default storage, retention, versioning, lifecycle policies
-  - Batch 2 (10 tasks): Access requests, legacy auth, idle timeout, unmanaged devices, bulk operations (delete sites, set quotas), permissions, activity reports, file type blocking, restore deleted
+🎉 **SharePoint Online Category COMPLETE! (293/353 tasks - 83.0%)** 🎉
+- **Latest Milestone:** SharePoint Online category 100% complete (25/25 tasks documented)
+- **SharePoint Tasks Completed:**
+  - Batch 1 (12 tasks): Create/delete/restore sites, quota management, admin permissions, external sharing, versioning, user/group exports, permission inheritance, hub sites
+  - Batch 2 (13 tasks): Hub association, site title, lock/unlock, modern UI, search reindex, permission audits, bulk upload, guest expiration, download blocking, file inventory, file type blocking, cache management
 - **Quality Assurance:**
-  - All 25 tasks have comprehensive instructions with 5 required sections
+  - All 25 tasks expanded from minified format with comprehensive instructions
   - ISO timestamps present: `# Generated: ${new Date().toISOString()}`
-  - PowerShell technical accuracy verified through web research and architect review
-  - Security warnings for destructive operations (bulk delete, permission changes)
+  - PowerShell technical accuracy verified through architect review
+  - Security warnings for destructive/sensitive operations (delete, lock, download blocking, file type blocking, permission changes)
+  - All cmdlets verified: Connect-SPOService, New-SPOSite, Remove-SPOSite, Restore-SPODeletedSite, Set-SPOSite, Set-SPOUser, Set-SPOTenant, PnP cmdlets
+- **Previous Milestones:**
+  - OneDrive: 25/25 tasks complete with technical fixes (od-access-requests uses `-ODBAccessRequests`, od-bulk-set-quota has null check)
 - **Formatting Standards (Strictly Enforced):**
   - "How This Task Works" → hyphenated bullets (-)
   - "Prerequisites" → hyphenated bullets (-)
   - "What You Need to Provide" → hyphenated bullets (-)
   - "What the Script Does" → NUMBERED bullets (1. 2. 3.)
   - "Important Notes" → hyphenated bullets (-)
-- **Remaining Work:** 85 tasks across SharePoint Online (25), Windows Server (25), Power Platform (20), Others (15)
-- **Application Status:** Workflow running successfully with HMR, ready for continued development
+- **Remaining Work:** 60 tasks across MECM (10), Windows Server (25), Power Platform (25)
+- **Application Status:** Workflow running successfully with HMR on port 5000
 
 ## User Preferences
 - Default theme: Dark mode

@@ -1,0 +1,251 @@
+Windows 365 (Cloud PC) is prime automation territory for PS Forge. Here’s a curated task list you can turn into script generators, plus a shortlist of high-value templates and the PowerShell/Graph surfaces you’ll use.
+
+☁️ Windows 365 (Cloud PC) – Repeatable Admin Tasks
+
+Primary surfaces: Microsoft Graph PowerShell SDK (cloudPC / deviceManagement), Intune policy objects, Entra ID groups, and (optionally) Azure for networking.
+
+Licenses, Assignments & Rings
+
+Bulk assign/revoke Windows 365 licenses
+
+Inputs: UPNs/Group IDs, SKU (e.g., 2vCPU/8GB/128GB), ring (Pilot/Broad).
+
+Options: Verify capacity; auto-create license groups.
+
+Move users across license SKUs (resize plan)
+
+Inputs: UPN(s), target SKU.
+
+Options: Pre-check device performance, schedule window.
+
+Windows 365 Frontline seat assignment
+
+Inputs: Group, seat count, session policy.
+
+Options: Idle/sign-out timers.
+
+Provisioning Policies & Images
+
+Create/Update provisioning policies
+
+Inputs: Region, join type (Entra ID / Hybrid), naming template, locale, restore settings.
+
+Options: Windows 365 Boot / Switch support; custom device name variable map.
+
+Bulk target policies to groups
+
+Inputs: Policy ID(s), AAD group(s).
+
+Custom image lifecycle
+
+Import/update gallery image, set as default, retire old images.
+
+Inputs: Source image (SAS/Shared Image Gallery), version notes.
+
+Azure Network Connections (ANC) – Hybrid only
+
+Create/Validate ANC
+
+Inputs: VNet/Subnet, DNS suffix, on-prem connectivity account, region.
+
+Options: Auto-retest & alert on failures.
+
+Rotate ANC credentials
+
+Inputs: Account, secret rotation schedule.
+
+Cloud PC Lifecycle (Per-User / Bulk)
+
+Provision Cloud PCs
+
+Inputs: UPNs, policy, license validation.
+
+Reprovision Cloud PCs (fix broken state)
+
+Inputs: UPN(s) or CloudPC IDs, reason note.
+
+Resize Cloud PCs (compute/storage)
+
+Inputs: UPN(s), target configuration (vCPU/RAM/Disk).
+
+Restore to point-in-time
+
+Inputs: UPN(s), restore point (UTC), validate impact.
+
+Restart / Rename / Place into local admin
+
+Inputs: UPN(s) or IDs; elevate local admin (temporary/perm).
+
+End grace period / Deprovision
+
+Inputs: UPN(s), hand-off artifacts (OneDrive link, BitLocker keys if hybrid).
+
+Windows 365 Boot / Switch & Offline
+
+Enable Windows 365 Boot on devices (Intune policy set)
+
+Inputs: Device group, kiosk/Single-sign-on mode, AAD device targeting.
+
+Configure Windows 365 Switch settings
+
+Inputs: Allow local resource mapping, UX toggles.
+
+Offline support configuration
+
+Inputs: Policy, max offline duration, sync cadence.
+
+Apps, Settings & Security (via Intune)
+
+Assign app packages to Cloud PC device/user groups
+
+Inputs: Win32/MSI/Store app, detection rules, groups.
+
+Apply baselines (Security, MDM, ASR, BitLocker)
+
+Inputs: Baseline profiles, scope tags, groups.
+
+Windows Update rings for Cloud PCs
+
+Inputs: Rings (Pilot/Broad), deadlines, deferrals.
+
+Conditional Access tailoring for Cloud PC sign-in
+
+Inputs: CA policies, device platform, compliant state.
+
+Monitoring, Reporting & Hygiene
+
+Cloud PC health report
+
+Provisioning status, connectivity, restore points, performance metrics (CPU/mem pressure).
+
+Inventory & cost view
+
+Assigned SKUs, utilization, idle Cloud PCs (last sign-in), orphaned licenses.
+
+Alerting
+
+ANC failures, provisioning errors, low capacity, restore operation failed.
+
+Session analytics (Frontline)
+
+Active sessions, concurrency peaks, seat utilization.
+
+Lifecycle hygiene
+
+Detect Cloud PCs for leavers, archive data, auto-deprovision after N days.
+
+🔧 High-Value PS Forge Templates (great starters)
+
+Bulk Assign Windows 365 Licenses (with capacity checks)
+
+Inputs: CSV (UPN, SKU), dry-run toggle, pilot/broad group.
+
+Create/Update Provisioning Policy
+
+Inputs: Name, region, join type, naming template, restore settings, target groups.
+
+Provision/Reprovision Cloud PCs
+
+Inputs: UPN(s), policy; optional reason & notify user.
+
+Resize Cloud PCs (SKU swap)
+
+Inputs: UPN(s), target SKU; schedule window; confirm data impact note.
+
+Point-in-Time Restore
+
+Inputs: UPN(s), restore timestamp; verification & post-restore ping.
+
+Windows 365 Boot / Switch Policy Pack
+
+Inputs: Device or user group; kiosk mode toggles; local resource map.
+
+Azure Network Connection Create/Validate
+
+Inputs: VNet/Subnet, region, credentials; re-test cadence; Teams webhook.
+
+Cloud PC Health & Utilization Report (HTML + CSV)
+
+Inputs: Filters, thresholds; include errors and last sign-in.
+
+Frontline Seat Assignment & Session Policy
+
+Inputs: Group(s), seats, idle timeout; utilization report.
+
+Deprovision & Offboarding Workflow
+
+Inputs: UPN(s), archive/export actions; revoke tokens; license reclaim.
+
+🧠 Typical Inputs to Surface in PS Forge
+
+Identity: UPN(s), Group(s)
+
+Policy: Provisioning policy ID/name, update ring ID, baseline profiles
+
+SKU/Config: vCPU/RAM/Disk plan, region
+
+Network (Hybrid): VNet/Subnet, DNS, ANC account
+
+Timing: Schedule window (UTC), maintenance ring, restore timestamp
+
+Safety: Dry-run, confirm checkboxes, rollback steps
+
+Outputs: CSV/HTML reports, Teams webhook notifications
+
+🧩 PowerShell / Graph Surfaces You’ll Use
+
+Microsoft Graph PowerShell SDK
+
+cloudPC & related endpoints:
+
+List/manage Cloud PCs: Get-MgDeviceManagementVirtualEndpointCloudPc*
+
+Provision/resume/reprovision/resize/restore/restart: Invoke-MgDeviceManagementVirtualEndpointCloudPc* actions
+
+Provisioning policies: Get/New/Update/Remove-MgDeviceManagementVirtualEndpointProvisioningPolicy*
+
+Gallery images: Get-MgDeviceManagementVirtualEndpointGalleryImage*
+
+On-prem network connections (ANC): Get/New/Update/Validate-MgDeviceManagementVirtualEndpointOnPremisesConnection*
+
+Reports: Get-MgDeviceManagementVirtualEndpointReport*
+
+Intune (deviceManagement) via Graph
+
+Configuration profiles, baselines, update rings, app assignments.
+
+Entra ID (Graph)
+
+License assignment (/subscribedSkus, /assignLicense), groups, users.
+
+Az.Network (only if you also automate VNet prep for ANC)
+
+VNet/Subnet creation & checks.
+
+Tip: Wrap Graph calls with robust pagination & $filter support; add Retry-After handling for 429s.
+
+📦 Suggested Repo Layout
+/Windows365.Automation/
+  /Licensing/       Set-W365LicensesFromCsv.ps1
+  /Policies/        New-W365ProvisioningPolicy.ps1, Set-W365PolicyTargets.ps1
+  /Lifecycle/       Invoke-W365Provision.ps1, Invoke-W365Reprovision.ps1, Invoke-W365Resize.ps1, Invoke-W365Restore.ps1
+  /Network/         New-W365ANC.ps1, Test-W365ANC.ps1, Rotate-W365ANCCreds.ps1
+  /BootSwitch/      Deploy-W365BootPolicySet.ps1, Set-W365SwitchOptions.ps1
+  /AppsSecurity/    Assign-AppsToCloudPC.ps1, Apply-CloudPCBaselines.ps1, Set-CloudPCUpdateRing.ps1
+  /Reporting/       Get-W365HealthReport.ps1, Get-W365Utilization.ps1, Get-W365FrontlineUsage.ps1
+  /Offboarding/     Invoke-W365Deprovision.ps1, Reclaim-W365Licenses.ps1
+  /Common/          Connect-Graph.ps1, Invoke-StdLogger.psm1, Helpers.ps1
+
+🪄 PS Forge UX Suggestions
+
+Scope selectors: UPN list, group picker, or CSV.
+
+Safety defaults: All destructive operations (Reprovision, Deprovision, Resize) gated by Dry-Run and a human confirmation step.
+
+Rings: Pilot → Broad toggles for license & policy rollout.
+
+Validation: Pre-flight checks (license availability, policy existence, ANC health, region capacity).
+
+Observability: Always emit a compact HTML summary (per-user status, errors, links to the Cloud PC object) and a CSV for audit.
+
+Idempotency: Detect existing Cloud PC state (size, policy, license) and do nothing if already compliant.

@@ -1,0 +1,264 @@
+OneDrive for Business is another perfect fit for PS Forge, since so many of its admin tasks are routine, bulk, and scriptable through PowerShell and Microsoft Graph.
+
+Below is a comprehensive task list for OneDrive for Business (ODFB) — ideal for script templates, bulk generators, and maintenance automations.
+
+🧑‍💻 User Provisioning & Access
+
+Bulk pre-provision OneDrive sites for new users
+
+Inputs: UPN(s) or group.
+
+Useful for onboarding waves.
+
+Force OneDrive site creation for a user
+
+Inputs: UPN.
+
+Grant admin access to user OneDrive sites
+
+Inputs: UPN(s), admin account(s).
+
+Options: Temporary vs permanent access.
+
+Remove admin access / revoke delegation
+
+Inputs: UPN(s), account.
+
+Transfer OneDrive ownership (leaver scenario)
+
+Inputs: Source UPN, Destination UPN.
+
+Options: Archive, copy content, transfer permissions.
+
+Assign retention or legal hold policies
+
+Inputs: UPN, retention duration.
+
+📂 Content Management
+
+Bulk file/folder upload or migration (SharePoint to OneDrive)
+
+Inputs: Source path, destination URL, file mapping CSV.
+
+Options: Preserve metadata, version history.
+
+Copy or move content between users’ OneDrive sites
+
+Inputs: Source UPN, Destination UPN, path, options.
+
+Set sharing permissions on folders/files
+
+Inputs: UPN, resource path, recipients, permission level.
+
+Options: expiry date, view/edit toggles.
+
+Enable or disable external sharing per site
+
+Sync library settings (shortcuts / Add to OneDrive)
+
+🔐 Permissions & Sharing Control
+
+Audit & export sharing links
+
+Inputs: UPN, date range, sharing type (external/internal).
+
+Outputs: CSV or HTML summary.
+
+Remove external sharing links in bulk
+
+Inputs: UPN(s), link type, age threshold.
+
+Block/allow specific domains
+
+Tenant-wide or scoped.
+
+Check and fix anonymous links
+
+Inputs: UPN, remediation policy.
+
+Set default sharing link settings
+
+View/Edit toggle, expiration, default link type.
+
+🧭 Governance & Compliance
+
+Apply retention labels / policies in bulk
+
+Inputs: UPN(s), label name, scope.
+
+Apply sensitivity labels
+
+Inputs: Label name, file types.
+
+Legal hold management
+
+Place or release hold.
+
+Guest access / external sharing reports
+
+Detect personal data / PII in OneDrive (DLP integration)
+
+🧾 Reporting & Inventory
+
+Export OneDrive site inventory
+
+UPN, site URL, storage used, last activity date, external sharing status.
+
+Inactive OneDrive report
+
+No login/activity for X days.
+
+Sharing link summary report
+
+Count by type, age, recipients.
+
+Quota usage report
+
+% used, top consumers.
+
+Access audit report
+
+Who accessed what, when, from where.
+
+🧹 Lifecycle Management & Offboarding
+
+Reassign ownership and archive departing user’s OneDrive
+
+Inputs: Source UPN, Destination UPN, retention days.
+
+Lock and retain content for compliance
+
+Inputs: UPN, retention policy.
+
+Permanently delete OneDrive after retention period
+
+Inputs: UPN, date.
+
+Bulk cleanup inactive OneDrive sites
+
+Inputs: age threshold, action (archive, delete, retain).
+
+Move or copy leaver content to archive SharePoint library
+
+⚡ Sync Client & Device Policies (Intune / Group Policy)
+
+Deploy known folder move (KFM)
+
+Inputs: Device/user group, KFM settings.
+
+Enforce OneDrive sync policies (per device or group)
+
+Silent sign-in, files-on-demand, excluded file types.
+
+Monitor sync status
+
+Devices out of sync or blocked.
+
+Report users not using KFM
+
+🔧 High-Value PS Forge Templates (great starters)
+
+Bulk Provision OneDrive Sites
+
+Inputs: CSV (UPN).
+
+Options: Validate provisioning status; log successes/errors.
+
+Grant/Revoke Admin Access
+
+Inputs: UPN(s), Admin account, duration.
+
+Options: Auto-expiry reminder.
+
+Transfer OneDrive Ownership (Leaver)
+
+Inputs: Source UPN, Destination UPN, retention days.
+
+Options: copy or move content, notify destination.
+
+Remove External Sharing Links (Bulk)
+
+Inputs: UPN(s), link type, age threshold.
+
+Options: Audit-only vs enforce.
+
+Sharing Report (HTML + CSV)
+
+Inputs: Date range, UPN(s), external/internal.
+
+Outputs: formatted report for compliance.
+
+Inactive OneDrive Cleanup / Archive
+
+Inputs: Inactivity threshold (days), action, retention policy.
+
+Apply Retention or Legal Hold Policies
+
+Inputs: UPN(s), label/policy name, duration.
+
+Quota & Storage Usage Report
+
+Inputs: UPN(s), threshold for alerting.
+
+OneDrive Offboarding Automation
+
+Inputs: UPN, new owner, retention, delete/archive toggle.
+
+KFM & Sync Policy Enforcement Report
+
+Inputs: Group or device scope, export non-compliance list.
+
+🧠 PowerShell & Graph Surfaces to Wire In
+
+Microsoft Graph PowerShell SDK
+
+Get-MgUserDrive, Get-MgDrive, Get-MgDriveItem
+
+Invoke-MgGraphRequest for advanced link and sharing operations
+
+Audit logs and usage reports (Reports API).
+
+SharePoint Online Management Shell
+
+Get-SPOSite -IncludePersonalSite
+
+Set-SPOSite, Remove-SPOSite, Restore-SPODeletedSite
+
+External sharing policies.
+
+PnP.PowerShell
+
+Connect-PnPOnline -Url https://tenant-my.sharepoint.com
+
+Fine-grained item and link operations.
+
+MSOL / Entra ID (for user lookup and offboarding triggers).
+
+🪄 PS Forge UX Suggestions (OneDrive)
+
+Scope selectors: User UPN list, group selection, CSV import.
+
+Safety controls: All destructive actions gated with Dry-Run & confirmation.
+
+Automation tiers: “Report only” vs “Remediate”.
+
+Output format: CSV, HTML dashboards, Teams webhook notification.
+
+Validation: Pre-check if site exists, user licensed, admin permissions.
+
+Idempotency: Skip already compliant sites (e.g., already on hold, already provisioned).
+
+📦 Suggested Repo Layout
+/OneDrive.Automation/
+  /Provisioning/    Provision-OneDriveBulk.ps1, Force-ProvisionOneDrive.ps1
+  /Access/          Grant-AdminAccess.ps1, Revoke-AdminAccess.ps1, Transfer-Ownership.ps1
+  /Sharing/         Remove-ExternalLinks.ps1, Export-SharingReport.ps1
+  /Compliance/      Apply-RetentionPolicy.ps1, Set-LegalHold.ps1
+  /Lifecycle/       Offboard-UserOneDrive.ps1, Archive-InactiveSites.ps1
+  /Reporting/       Get-StorageUsage.ps1, Get-InactiveSites.ps1
+  /Sync/            Enforce-KFMPolicy.ps1, Get-SyncCompliance.ps1
+  /Common/          Connect-Graph.ps1, Connect-SPOSite.ps1, Invoke-StdLogger.psm1
+
+
+✅ Key benefit for PS Forge:
+OneDrive for Business has a lot of “same every time” admin tasks — especially around provisioning, offboarding, sharing controls, and compliance reporting. Turning these into guided templates (CSV + buttons) will save admins hours.

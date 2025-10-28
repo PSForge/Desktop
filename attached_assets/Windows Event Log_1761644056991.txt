@@ -1,0 +1,237 @@
+Windows Event Log administration is a huge time sink for IT and security teams, and ideal for PS Forge automation. Event logs are at the heart of troubleshooting, auditing, security monitoring, and compliance — and the workflows are highly repeatable and policy-driven.
+
+📝 Windows Event Log Management — Core Automatable Admin Tasks
+📊 Log Inventory & Baseline
+
+Enumerate available event logs (classic & ETW)
+
+Inputs: Computer(s), filter (classic/admin/analytical/debug).
+
+Options: Include retention policy, max size, log mode (Overwrite/Archive/DoNotOverwrite).
+
+Export log configuration baseline
+
+Log name, size, retention, enabled state, channel type.
+
+Use for drift detection later.
+
+Enable/disable specific logs or channels (ETW)
+
+Inputs: Log name(s), state.
+
+e.g., Security, AppLocker, Sysmon, Microsoft-Windows-*.
+
+🧹 Log Maintenance & Retention
+
+Configure log size & retention policy (bulk)
+
+Inputs: Log name(s), max size MB, retention mode.
+
+Options: skip critical logs; dry-run diff.
+
+Clear logs (manual or scheduled)
+
+Inputs: Log name(s), computer(s).
+
+Options: backup to .evtx before clearing; exclude security logs by default.
+
+Archive logs (daily/weekly/monthly)
+
+Inputs: Target directory or network share, compression toggle.
+
+Option: hash signing for tamper proofing.
+
+Rotate logs automatically
+
+Scheduled archiving + clear cycle, retention policy enforcement.
+
+🔍 Querying & Filtering Events
+
+Search logs by ID, source, keywords, time range
+
+Inputs: Log name(s), EventID(s), time window, filter XML or XPath.
+
+Output: filtered events (CSV/JSON/HTML).
+
+Extract top Event IDs over a period
+
+For trending and alerting.
+
+Search security events (e.g., failed logons, elevation)
+
+Common IDs: 4624, 4625, 4672, 4688, 4720, 4732…
+
+Correlate across multiple logs / hosts
+
+Example: login event in Security + error in App + Sysmon network event.
+
+Tail events in real time (-Wait)
+
+Useful for troubleshooting in live sessions.
+
+🧰 Export, Backup & Compliance
+
+Export logs to EVTX / CSV / JSON
+
+Inputs: Log name, time range, output path.
+
+Options: compress, sign, hash for tamper protection.
+
+Scheduled export jobs for compliance
+
+e.g., export security + Sysmon logs daily to SIEM staging folder.
+
+Forward logs to central collector (WEF)
+
+Configure source-initiated subscription.
+
+Backup and clear pattern
+
+Archive → Hash → Clear → Notify.
+
+🛡️ Security & Audit Policy Management
+
+Enable/disable auditing categories
+
+Inputs: Success/Failure for each subcategory (logon, privilege use, object access, etc.).
+
+Configure advanced audit policy baseline
+
+Export/import with auditpol.exe.
+
+Detect log tampering or clearing events
+
+Security Event ID 1102 (log cleared), ID 4719 (audit policy change).
+
+Apply Sysmon / AppLocker log policy baseline
+
+Useful for hardening scenarios.
+
+Alert on critical events
+
+Tail event IDs → Teams/webhook/email notifications.
+
+🧾 Reporting & Analytics
+
+Event ID trending & frequency reports
+
+Top N by ID, source, or task category.
+
+Error/Warning/Information event ratios
+
+Useful for baseline monitoring.
+
+Per-host event volume reports
+
+Detect noisy systems or anomalies.
+
+Generate HTML dashboards
+
+With severity coloring, charts (PowerShell + embedded JS/HTML).
+
+🧼 Hygiene & Monitoring
+
+Detect disabled logs
+
+Report logs that should be enabled but aren’t.
+
+Detect logs close to full capacity
+
+Preemptive alerting.
+
+Detect long-unrotated logs or oversized EVTX files
+
+Monitor security logs for unauthorized clear events
+
+Monitor subscriptions (WEF) for failure
+
+🚀 High-Value PS Forge Templates (ready to build)
+
+Get-EventLogInventory.ps1 — list all logs with size, retention, state; export CSV/HTML.
+
+Set-EventLogRetentionPolicy.ps1 — bulk apply max size & retention (with dry-run).
+
+Export-EventLogs.ps1 — EVTX + CSV backup, compressed & timestamped.
+
+Search-EventById.ps1 — flexible filters: log name, IDs, date range, keywords.
+
+Get-TopEventIDs.ps1 — trending report (top N IDs over X days).
+
+ArchiveAndClear-EventLogs.ps1 — backup, zip, hash, clear, notify.
+
+Enable-AuditPolicyBaseline.ps1 — import/export with auditpol, verify.
+
+Detect-LogTampering.ps1 — look for 1102, 4719, or missing logs; alert.
+
+Tail-EventLog.ps1 — real-time viewer for troubleshooting or monitoring.
+
+Report-EventLogUsage.ps1 — volume, capacity %, severity breakdown.
+
+Enable-EventChannel.ps1 — turn on key logs (Sysmon, AppLocker, PowerShell).
+
+Monitor-LogCapacity.ps1 — scheduled job → alert when nearing capacity.
+
+🧠 PowerShell & Tools Surface
+
+Classic Cmdlets:
+
+Get-EventLog, Clear-EventLog, Limit-EventLog, New-EventLog, Remove-EventLog.
+
+Note: Get-EventLog is older; for advanced filtering use Get-WinEvent.
+
+Modern Cmdlets:
+
+Get-WinEvent (fast, filterable by XPath/XML), wevtutil.exe for advanced ops.
+
+wevtutil el (enumerate), wevtutil gl (get log info), wevtutil cl (clear log), wevtutil epl (export log).
+
+Audit Policy:
+
+auditpol /get /set /backup /restore for auditing baselines.
+
+Sysinternals & Windows Tools (optional):
+
+Sysmon configuration management.
+
+AppLocker / Advanced Audit Policy.
+
+Event Forwarding:
+
+wecutil, GPO configuration for source-initiated collector setup.
+
+🪄 PS Forge UX Suggestions
+
+Scope pickers: Host(s), OU, log name(s), time ranges.
+
+Safety: Always back up before clearing; dry-run for retention changes.
+
+Prebuilt filters: Common event IDs for security, PowerShell logging, service failures.
+
+Scheduling: Daily archive/export jobs with retention control.
+
+Alerting hooks: Teams/webhook/email for critical events (e.g., 1102 log cleared).
+
+Baselines: Store log configuration (size, retention, enabled state) in JSON for drift detection.
+
+Reporting: CSV + HTML + charts; “Top talkers” for noisy logs.
+
+📦 Suggested Repo Layout
+/EventLog.Automation/
+  /Inventory/    Get-EventLogInventory.ps1, Enable-EventChannel.ps1
+  /Retention/    Set-EventLogRetentionPolicy.ps1, ArchiveAndClear-EventLogs.ps1
+  /Search/       Search-EventById.ps1, Tail-EventLog.ps1, Get-TopEventIDs.ps1
+  /Audit/        Enable-AuditPolicyBaseline.ps1, Detect-LogTampering.ps1
+  /Reporting/    Report-EventLogUsage.ps1, Monitor-LogCapacity.ps1
+  /Compliance/   Export-EventLogs.ps1, Backup-AuditPolicy.ps1
+  /Common/       Invoke-StdLogger.psm1, HtmlReport.ps1, Baselines\EventLogConfig.json
+
+
+✅ Why Event Logs are perfect for PS Forge:
+
+Highly repeatable (export, clear, search, rotate, report).
+
+Easy to parameterize (log name, size, IDs, time window).
+
+Great candidate for scheduled tasks (archive, rotation, compliance exports).
+
+Security and operations teams both benefit from automation.

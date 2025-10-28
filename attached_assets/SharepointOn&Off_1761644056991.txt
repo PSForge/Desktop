@@ -1,0 +1,314 @@
+this is another area where PS Forge can save SharePoint admins a ton of time.
+Both SharePoint Online and SharePoint Server (on-prem) involve many repeatable administrative tasks that are easy to automate with PowerShell.
+
+Below is a structured task list for both environments, separated into Online (Microsoft 365 / SPO) and On-Prem (SP 2016/2019/SE).
+Each section includes typical inputs, common automation hooks, and high-value script template ideas for PS Forge.
+
+🌐 SharePoint Online (Microsoft 365)
+
+Core PowerShell Surface:
+
+SharePoint Online Management Shell (Connect-SPOService)
+
+PnP.PowerShell (Connect-PnPOnline) — very powerful for site/content automation
+
+🏗️ Site & Site Collection Management
+
+Create new site collections (Team / Communication)
+
+Inputs: Title, URL, Template, Owner, Storage quota, Hub association.
+
+Bulk site creation from CSV
+
+For departments, projects, or branch offices.
+
+Apply branding and site templates automatically
+
+Set site admins or owners
+
+Change site logo, theme, or hub site association
+
+Set site classification or sensitivity labels
+
+Delete / restore sites from recycle bin
+
+Site URL rename
+
+👥 Permissions & Access
+
+Add/Remove site collection administrators
+
+Add/Remove users or groups to SharePoint groups
+
+Assign permissions to lists, libraries, or subsites
+
+Bulk permission assignments from CSV
+
+Export current permissions for audit
+
+Enable/Disable sharing settings per site
+
+Grant or revoke external sharing
+
+📂 Document Libraries & Content
+
+Create document libraries with preconfigured settings
+
+Bulk library creation across sites
+
+Create folders and upload files programmatically
+
+Enable versioning, retention, or check-in/out policies
+
+Set default metadata or content types
+
+Apply column formatting and views
+
+Sync library permissions with parent site
+
+🧰 Lists & Content Types
+
+Create lists from template
+
+Bulk list creation
+
+Apply column schema / content types programmatically
+
+Add or remove fields from lists
+
+Attach Power Automate flow or event receivers (PnP)
+
+Export/import list schema and data
+
+🔐 Governance & Sharing
+
+Enable/disable external sharing on selected sites
+
+Apply conditional access / sensitivity labels
+
+Report guest access usage
+
+Report all externally shared files
+
+Bulk remove external sharing links
+
+📊 Reporting & Inventory
+
+Site inventory report (URL, owner, storage used, last activity)
+
+User permissions report (flattened)
+
+File activity & version history report
+
+Audit logs: file access, sharing, permission changes
+
+Library size and storage report
+
+🧹 Maintenance & Lifecycle
+
+Archive inactive sites (based on last activity date)
+
+Delete or lock abandoned sites
+
+Bulk site property updates (quota, owners, settings)
+
+Check/repair orphaned user permissions
+
+Apply retention labels in bulk
+
+🏢 SharePoint Server On-Prem (e.g., SharePoint Server 2019)
+
+Core PowerShell Surface:
+
+SharePoint Management Shell (Add-PSSnapin Microsoft.SharePoint.PowerShell)
+
+Some tasks use farm-level cmdlets (e.g., Central Admin equivalents)
+
+🏗️ Farm & Site Collection Administration
+
+Create Web Applications & Site Collections
+
+Inputs: URL, Host Header, App Pool, DB name, template.
+
+Bulk site collection creation from CSV
+
+Set primary/secondary administrators
+
+Extend or delete web applications
+
+Configure quotas and locks
+
+Move site collections between content DBs
+
+⚙️ Farm Configuration & Services
+
+Check farm health status (timer jobs, search, ULS logs)
+
+Restart/monitor SharePoint services (SPTimerV4, Search)
+
+Apply CU/patch maintenance script
+
+Provision or deprovision service applications (Search, BCS, Managed Metadata, etc.)
+
+Backup and restore farm components
+
+👥 Permissions & Access Control
+
+Bulk add/remove users to site collection groups
+
+Set group permissions at site/list/library level
+
+Report effective permissions for users
+
+Migrate or replace users (domain rename scenarios)
+
+Audit permission inheritance
+
+📂 Content & Libraries
+
+Create lists/libraries across site collections
+
+Attach content types programmatically
+
+Versioning settings enforcement
+
+Bulk upload content from file shares
+
+Sync library permissions
+
+Move/copy list items or documents between sites
+
+🧰 Search & Taxonomy
+
+Create/manage Managed Metadata Term Sets
+
+Bulk import terms from CSV
+
+Rebuild search index
+
+Start/stop crawl jobs
+
+Export search topology
+
+🧾 Reporting & Monitoring
+
+Site collection inventory report (size, DB, owner)
+
+Quota usage reports
+
+Timer job status report
+
+Search crawl health report
+
+ULS log parsing for error patterns
+
+🧹 Maintenance & Governance
+
+Lock/unlock site collections
+
+Apply site templates / branding in bulk
+
+Cleanup orphaned users/groups
+
+Delete or archive inactive site collections
+
+Apply retention policies
+
+Backup/restore site collections (scheduled)
+
+🚀 High-Value PS Forge Script Templates
+Category	Task Example	Typical Inputs
+Site Collection Management	Bulk site creation	CSV (Title, URL, Owner, Template, Quota)
+Permissions	Add/remove users in bulk	Site URL, user list, group
+Content Automation	Create libraries/lists, enable versioning	Site, library name, settings
+Governance	External sharing control (SPO)	Site URLs, sharing toggle, expiration
+Reporting	Site and permissions inventory	Scope (site, farm), output path
+Maintenance	Archive or delete inactive sites	Last activity filter, archive location
+Farm Ops (On-Prem)	Start/stop services, timer jobs, health checks	Service names, server roles
+Search/Taxonomy (On-Prem)	Import terms, restart crawls	Term group, CSV, search app
+Security	Apply labels, external link cleanup (SPO)	Site, date range
+Backup/Restore	Export site or collection	Path, credentials, retention
+🪄 PS Forge UX Suggestions (SharePoint)
+
+✅ Scope selectors: Site URL picker, site collection picker, farm scope (on-prem), CSV upload.
+
+📊 Outputs: CSV/HTML reporting, webhook notifications.
+
+🧰 Safeguards: -WhatIf on all destructive actions (delete, archive, permission changes).
+
+🧾 Standard modules:
+
+SPO: PnP.PowerShell (preferred), SharePoint Online Management Shell.
+
+On-prem: Microsoft.SharePoint.PowerShell snap-in.
+
+🪝 Policy enforcement: tag or flag actions run via PS Forge.
+
+🕒 Scheduling support for reporting, cleanup, backup tasks.
+
+💡 Suggested First 10 Templates for PS Forge (SharePoint Online)
+
+Bulk site creation from CSV
+
+Bulk add/remove site admins or group members
+
+External sharing toggle + report
+
+Library creation with versioning & metadata
+
+Permissions export (flattened)
+
+Site inventory report (storage, last activity)
+
+Guest access reporting & cleanup
+
+Bulk apply site classification/sensitivity label
+
+External link removal
+
+Auto-archive inactive sites
+
+💡 Suggested First 10 Templates for PS Forge (SharePoint On-Prem)
+
+Bulk site collection creation
+
+User/group permission assignment script
+
+Site collection inventory & quota report
+
+Start/Stop farm services & health check
+
+Timer job status & search crawl report
+
+Term store import from CSV
+
+Library creation with content type attachment
+
+Site collection lock/unlock
+
+Backup/restore automation
+
+Cleanup orphaned users and groups
+
+🧠 PowerShell Surfaces
+SharePoint Online:
+
+Connect-SPOService, Get-SPOSite, New-SPOSite, Set-SPOSite
+
+PnP PowerShell: Connect-PnPOnline, New-PnPSite, Add-PnPUserToGroup, Get-PnPList, Get-PnPFile, Get-PnPAuditLog, Get-PnPSiteCollectionAdmin, etc.
+
+SharePoint On-Prem:
+
+Add-PSSnapin Microsoft.SharePoint.PowerShell
+
+Get-SPSite, New-SPSite, Set-SPSite, Get-SPWeb, Backup-SPSite, Restore-SPSite
+
+Get-SPServiceInstance, Get-SPTimerJob, Start-SPTimerJob, Get-SPEnterpriseSearchServiceApplication
+
+✅ Bottom line:
+
+SharePoint is a goldmine for PS Forge because so many site and permission tasks repeat.
+
+You can offer simple wizards to generate PnP or On-Prem cmdlets with correct syntax and optional safety controls.
+
+Reporting templates (permissions, site inventory, guest access, external sharing) are especially valuable.

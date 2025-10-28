@@ -1,0 +1,249 @@
+Microsoft 365 (often still referred to as Office 365) is a perfect umbrella for PS Forge automation, because it touches almost every other service you’ve already listed (Exchange Online, SharePoint Online, OneDrive for Business, Teams, etc.) — but also includes organization-wide tasks that apply across the tenant.
+
+Below is a curated task list for Office 365 (M365) itself, focusing on global tenant-level, cross-service, and identity/license automations that are perfect for script templates.
+
+🏢 Tenant & Organization Settings
+
+Export and configure tenant organization settings
+
+Company name, contact info, privacy URL, branding.
+
+Upload and manage branding
+
+Logos, background image, sign-in page text.
+
+Set default time zone, language, region
+
+Configure organization privacy and compliance settings
+
+Enable or disable service plans globally
+
+e.g., disable Yammer or Whiteboard for specific user groups.
+
+Monitor tenant service health
+
+Pull tenant health events & advisories into daily/weekly reports.
+
+Tenant message center digest
+
+Pull top admin messages and push to Teams or email.
+
+🧑 Identity & Licensing
+
+Bulk assign or revoke M365 licenses
+
+Inputs: UPN(s), License SKU, service plans to include/exclude.
+
+Assign licenses based on security group
+
+Report on license usage and available capacity
+
+Reclaim unused licenses
+
+Based on sign-in inactivity or disabled accounts.
+
+Manage service plans inside a license
+
+Enable or disable Exchange, Teams, SharePoint per user.
+
+License usage forecasting
+
+Export CSV for cost tracking.
+
+Set or enforce location and usage location
+
+Required for Teams/Voice and service eligibility.
+
+📊 Reporting & Inventory
+
+Export all licensed users & assigned services
+
+Export user sign-in activity report
+
+Inactive account report
+
+Based on last sign-in date.
+
+Mailbox, OneDrive, Teams, SharePoint activity overview
+
+Report license assignment by SKU
+
+Service health report summary
+
+Export MFA enrollment status
+
+Useful for MFA rollout tracking.
+
+Tenant storage consumption
+
+OneDrive, SharePoint, Exchange combined.
+
+🔐 Security & Compliance
+
+Enable/disable Security Defaults
+
+Enforce MFA for all or targeted groups
+
+Or conditional access policies if integrated with Microsoft Entra ID.
+
+Export risky sign-ins and conditional access logs
+
+Audit log search and export
+
+Across M365 services.
+
+Enable or disable legacy authentication
+
+Assign security & compliance roles
+
+Configure alerts for risky sign-ins or abnormal activity
+
+Enable DLP policies and verify coverage
+
+Report DLP incidents by service.
+
+Retention and label policies
+
+Apply to SharePoint, Exchange, OneDrive, Teams.
+
+📬 Mail / Collaboration Defaults
+
+Set company-wide signature or disclaimer
+
+Configure external email warning banners
+
+Enable/disable calendar sharing defaults
+
+Enforce mailbox auditing globally
+
+Set mailbox size quotas
+
+Enable archive mailboxes in bulk
+
+Disable PST downloads via Outlook web
+
+💬 Teams & Collaboration Baselines (Tenant-Level)
+
+Set Teams org-wide settings
+
+Guest access, external access, file sharing, app policies.
+
+Manage external domains allow/block list
+
+Configure org-wide Teams meeting policies
+
+Recording, transcription, anonymous join, lobby bypass.
+
+Broadcast policy changes across pilot/broad groups
+
+Enable/disable cloud recording storage locations
+
+🌐 SharePoint / OneDrive (Org-Level Settings)
+
+Configure external sharing default policy
+
+Set storage limits and sharing defaults
+
+Disable personal site creation for specific users
+
+Configure retention policies tenant-wide
+
+Apply organization-wide sensitivity labels
+
+🧹 Tenant Hygiene & Automation
+
+Find and disable inactive accounts
+
+Reclaim licenses from inactive or disabled users
+
+Archive leaver data (mailbox, OneDrive, Teams)
+
+Bulk disable legacy authentication for users
+
+Remove guest users older than X days
+
+Rotate app secrets and service principal credentials
+
+Audit admin role assignments regularly
+
+Tenant drift check
+
+Compare settings to baseline; alert on drift.
+
+🚀 High-Value PS Forge Templates
+Category	Task Example	Typical Inputs
+Licensing	Bulk assign or remove licenses	CSV of UPN + SKU + ServicePlan overrides
+Reporting	License + usage + activity export	Date range, target SKU, export path
+Security & MFA	Enforce MFA or disable legacy auth	Target groups, enforcement mode
+Offboarding	Reclaim license + archive mailbox/OneDrive	UPN, retention days
+Tenant Monitoring	Health + Message Center report	Time range, notification channel (Teams, Email)
+Branding & Org Config	Upload branding + configure defaults	Logo file path, text, color
+Sharing & Collaboration Baselines	Configure external sharing defaults	Policy value, target services
+DLP & Compliance	Apply or export retention & DLP policies	Policy name, scope
+Inactive Account Management	Find + disable + reclaim licenses	Age threshold, export path
+Reporting	MFA status, risky sign-ins, sign-in activity	Scope (all or group), time range
+🧠 PowerShell / Graph Surfaces to Use
+
+Microsoft Graph PowerShell SDK
+
+Licensing: /subscribedSkus, /assignLicense
+
+Audit: /auditLogs/signIns, /identityProtection/riskyUsers
+
+Reporting: /reports/get* (sign-in, usage)
+
+Tenant branding: /organization/branding
+
+Conditional access & CA logs.
+
+Microsoft 365 / MSOL PowerShell (legacy, still common)
+
+Get-MsolUser, Set-MsolUserLicense, Get-MsolAccountSku, etc.
+
+Exchange Online PowerShell
+
+Tenant-level mailbox settings.
+
+SharePoint Online & OneDrive management shell
+
+Org sharing, storage, retention policies.
+
+Teams PowerShell
+
+Org-wide meeting & external settings.
+
+🪄 PS Forge UX Suggestions (Office 365)
+
+✅ Scope selectors: Users, Groups, SKU, Service.
+
+🧰 CSV support: Bulk user/license assignment, offboarding lists.
+
+🛑 Dry-run: Mandatory on destructive/license reclaim scripts.
+
+📅 Scheduling: Daily/weekly reports (service health, license usage, MFA status).
+
+📊 Outputs: CSV and HTML dashboard, plus optional Teams webhook for notifications.
+
+🪝 Policy enforcement: Tag baseline states (e.g., [PSForge]) and drift alerts.
+
+🧭 Integration: Tie licensing/offboarding scripts to Exchange/OneDrive/Teams cleanups.
+
+📦 Suggested Repo Layout
+/Office365.Automation/
+  /Licensing/       Assign-LicensesFromCsv.ps1, Reclaim-Licenses.ps1
+  /Branding/        Set-OrgBranding.ps1, Export-OrgConfig.ps1
+  /Security/        Enforce-MFA.ps1, Disable-LegacyAuth.ps1, Rotate-AppSecrets.ps1
+  /Collaboration/   Set-ExternalSharingDefaults.ps1, Set-TeamsOrgPolicies.ps1
+  /Compliance/      Apply-RetentionPolicies.ps1, Export-DlpPolicies.ps1
+  /Reporting/       Get-LicenseUsage.ps1, Get-MfaStatus.ps1, Get-HealthReport.ps1
+  /Offboarding/     Deprovision-User.ps1, Archive-UserData.ps1
+  /Common/          Connect-Graph.ps1, Connect-MSOL.ps1, Invoke-StdLogger.psm1
+
+
+✅ Why this matters for PS Forge:
+
+Office 365 tasks are cross-service → perfect for “bundled” workflows (e.g., offboard user = license removal + mailbox hold + OneDrive transfer + Teams archive).
+
+Many are recurring (health reports, drift checks, license cleanups) → ideal for scheduled automation.
+
+Many are bulk (CSV imports, groups) → exactly what your generator excels at.

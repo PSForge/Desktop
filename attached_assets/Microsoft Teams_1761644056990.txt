@@ -1,0 +1,291 @@
+Microsoft Teams is packed with repeatable admin tasks that are perfect for PS Forge automation. Here’s a curated task list (with typical inputs and “smart options”) you can turn into script generators. Focus modules: MicrosoftTeams PowerShell module and Microsoft Graph PowerShell for gaps/scale.
+
+🧑‍🤝‍🧑 Teams & Channels (Lifecycle)
+
+Create Teams (standard/private/shared)
+
+Inputs: Team name, description, visibility, owners, members, sensitivity label, template.
+
+Options: Team settings (guest access, mentions, gifs), tag [PSForge] in description.
+
+Bulk Team creation from CSV
+
+Inputs: CSV (Name, Owners, Members, Visibility, Template, Label).
+
+Create/Manage Channels (standard/private/shared)
+
+Inputs: Team, channel name, description, moderation settings.
+
+Options: Auto-pin channel, set channel moderation.
+
+Bulk channel creation & membership
+
+Inputs: CSV (Team, Channel, Members/Owners).
+
+Archive/Unarchive Teams
+
+Inputs: Team(s), lock files toggle.
+
+Clone Teams (with/without tabs, apps, settings)
+
+Inputs: Source team, new name(s), parts to clone.
+
+👥 Membership & Access
+
+Add/Remove Owners/Members/Guests (bulk)
+
+Inputs: Team, user list (UPN), role.
+
+Options: CSV import; enforce min owners (≥2).
+
+Team tagging (custom tags) and assignment
+
+Inputs: Team, tag name(s), users.
+
+Guest access enable/disable by Team
+
+Inputs: Team(s), policy toggle; report guests.
+
+🧰 Policy & Settings (Tenant / Per-User)
+
+Assign/Update Teams policies (per-user/bulk)
+
+Messaging, Meeting, Live Events, App permission/setup, Calling.
+
+Inputs: Policy name(s), users/groups.
+
+Options: Safe rollout rings (pilot → broad).
+
+Set Global (Org-wide) Default Policies
+
+Inputs: Policy objects to set as global defaults.
+
+Bulk policy package assignment (Helpdesk/Frontline)
+
+Inputs: Package name, user list.
+
+Emergency/priority access (E911) configuration
+
+Inputs: Locations, users, policies (if using Phone System).
+
+📞 Calling / Phone System
+
+Enable Phone System for users
+
+Inputs: UPNs, license check, calling plan/Operator Connect, emergency location.
+
+Assign phone numbers (bulk)
+
+Inputs: UPN ↔ Number mapping, emergency policy.
+
+Call queue & auto attendant provisioning
+
+Inputs: Resource accounts, numbers, greeting WAV/SSML, hours, routing.
+
+Voice routing policy assignment (Direct Routing)
+
+Inputs: Policy name, users.
+
+Voicemail & call forwarding configuration (bulk)
+
+Inputs: Users, forwarding target, rules.
+
+📅 Meetings / Webinars / Live Events
+
+Meeting policy assignment (bulk)
+
+Inputs: Policy, users/groups.
+
+Create/Manage Teams Live Events policies
+
+Inputs: Policy options, roles.
+
+Webinar settings & registration policies
+
+Inputs: Policy parameters, groups.
+
+Meeting room (MTR) resource accounts & licenses
+
+Inputs: UPNs, license, meeting room policies, device tags.
+
+🧩 Apps, Tabs & App Governance
+
+Tenant-wide app permission policy
+
+Inputs: Allow/Block apps, org-wide settings, store access.
+
+App setup policies (pin apps) assignment (bulk)
+
+Inputs: Policy, users/groups.
+
+Per-team app enable/disable & tab provisioning
+
+Inputs: Team, app ID, tab config.
+
+🧭 Governance & Compliance
+
+Team lifecycle policy (auto-archive/rename rules)
+
+Inputs: Inactivity days, naming convention, prefixes/suffixes, blocked words.
+
+Sensitivity labels for Teams (privacy + guest controls)
+
+Inputs: Label assignment, scope, enforcement.
+
+External access (federation) and guest access posture report
+
+Inputs: Allowed/blocked domains list.
+
+Recording & transcription policy assignment
+
+Inputs: Meeting policy settings, users.
+
+📊 Reporting & Inventory
+
+Inventory Teams/Owners/Members/Guests
+
+Outputs: CSV/HTML; include private/shared channels, creation dates, last activity.
+
+Policy assignment coverage report
+
+Users missing required policy baselines by role.
+
+Channel inventory (files tab, private/shared mappings)
+
+Include SharePoint site URLs.
+
+Usage and activity reports
+
+Active users, meetings per user, PSTN minutes, call quality metrics (CQD extracts).
+
+Phone number utilization report
+
+Assigned/unassigned numbers, type, emergency location.
+
+App usage & permissions report
+
+Which teams/users use which apps.
+
+🧹 Maintenance & Hygiene
+
+Find and clean up inactive Teams
+
+Threshold by last activity; option to notify owners → archive.
+
+Detect Teams without owners; remediate
+
+Auto-promote members or notify security group.
+
+Normalize display names & descriptions
+
+Enforce naming policies; fix emoji/special chars if desired.
+
+Validate channel sprawl & empty channels; cleanup
+
+Remove guest users from Teams lacking activity
+
+Reconcile membership with source systems (CSV/HR/AD group)
+
+🔧 High-Value PS Forge Templates (great starters)
+
+Bulk Create Teams from CSV
+
+Inputs: Name, Owners, Members, Visibility, Template, Sensitivity label.
+
+Options: Auto-archive date, governance tags.
+
+Bulk Add/Remove Members & Owners
+
+Inputs: Team, CSV of UPNs + role.
+
+Options: Enforce min-owners rule.
+
+Channel Provisioning (standard/private/shared) in Bulk
+
+Inputs: CSV (Team, Channel, Type, Members).
+
+Options: Moderation, auto-pin.
+
+Policy Assignment at Scale (Meeting/Messaging/App/Calling)
+
+Inputs: Policy mapping CSV (UPN → PolicySet).
+
+Options: Pilot ring rollout, verification pass.
+
+Phone Number Assignment + Emergency Location (Bulk)
+
+Inputs: CSV (UPN, Number, Location).
+
+Options: License check/assign, validation.
+
+Call Queue & Auto Attendant Wizard
+
+Inputs: Resource accounts, numbers, hours, routing, audio files.
+
+Outputs: IDs + summary; optional rollback script.
+
+Inactive Teams Report → Notify → Archive
+
+Inputs: Inactivity days, notify owners, grace period, then archive.
+
+Options: One-click unarchive link in message.
+
+Teams Inventory & Policy Gaps Report (HTML)
+
+Inputs: Scope (all or filters), baseline policy set.
+
+Outputs: HTML dashboard + CSV.
+
+App Governance: Block/Allow & App Setup Policies (Bulk)
+
+Inputs: App IDs, policies, user/team scope.
+
+Options: Exceptions list; staged rollout.
+
+Owners Remediation (Teams without Owners)
+
+Inputs: Replacement owner group or rule (e.g., largest contributor).
+
+Options: Notify before promote.
+
+🧠 PowerShell Surfaces to Wire In
+
+Microsoft Teams PowerShell (Connect-MicrosoftTeams)
+
+Teams/Channels: Get/New/Set/Remove-Team, Get/New/Set/Remove-TeamChannel, Add/Remove-TeamUser, Get-TeamUser, New-TeamTag, Add-TeamUser.
+
+Policies: Get/Grant-CsTeams*Policy, Get/Set-CsTeams*Policy, Grant-CsPolicyPackage.
+
+Voice: Set-CsPhoneNumberAssignment, New-CsCallQueue, New-CsAutoAttendant, New-CsOnlineApplicationInstance, Set-CsOnlineVoiceRoutingPolicy.
+
+Microsoft Graph PowerShell (beta/stable as needed)
+
+Large-scale membership ops, advanced reporting, app governance.
+
+CQD / Reports
+
+Graph & CQD APIs for call quality exports.
+
+🪄 PS Forge UX Suggestions (Teams)
+
+Scope pickers: Teams, users, or CSV import; policy and number pickers.
+
+Safety: -WhatIf default on destructive ops (remove/rename/archive).
+
+Rings: Pilot → Broad rollout toggles for policy changes.
+
+Validation: Pre-flight checks (licenses, policy existence, number availability).
+
+Outputs: CSV + HTML summaries with links to Teams/Teams Admin Center; optional Teams webhook notifications.
+
+Idempotency: Re-run safe — detect existing team/channel/policy and update instead of duplicate; tag with [PSForge].
+
+📦 Suggested Repo Layout (Teams)
+/Teams.Automation/
+  /Provisioning/      New-TeamsFromCsv.ps1, New-ChannelsFromCsv.ps1
+  /Membership/        Set-TeamsMembersOwners.ps1, Fix-TeamsWithoutOwners.ps1
+  /Policies/          Grant-TeamsPoliciesBulk.ps1, Set-GlobalDefaultPolicies.ps1
+  /Voice/             Assign-PhoneNumbersBulk.ps1, New-CallQueueAndAA.ps1
+  /Governance/        Archive-InactiveTeams.ps1, AppGovernance-BlockAllow.ps1
+  /Reporting/         Get-TeamsInventory.ps1, Get-PolicyGaps.ps1, Get-PhoneUtilization.ps1
+  /Common/            Connect-TeamsTenant.ps1, Invoke-StdLogger.psm1

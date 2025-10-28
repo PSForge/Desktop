@@ -1,0 +1,206 @@
+Windows Registry management is one of the most powerful but sensitive areas for automation. Admins routinely handle registry keys and values for configuration baselines, software deployments, policy enforcement, troubleshooting, and cleanup.
+
+This is also a prime PS Forge candidate because:
+
+Registry operations are structured (path + name + type + data).
+
+They can be batched and rolled back.
+
+Many change workflows repeat across multiple machines.
+
+🧭 Windows Registry Management — Core Automatable Tasks
+🧾 Inventory & Baselines
+
+Enumerate registry keys and values
+
+Inputs: Hive (HKLM/HKCU/HKCR/HKU/HKCC), path, depth.
+
+Options: Include value names/types/data, recursive, export to CSV/JSON.
+
+Export registry snapshots
+
+Inputs: Path or full hive; before/after deployments or patching.
+
+Options: hash-sign snapshots for integrity.
+
+Compare snapshots (drift detection)
+
+Before/after or against a baseline file to detect configuration changes.
+
+Report specific configuration keys across many machines
+
+Ideal for “what’s the value of X everywhere?” checks.
+
+🛠️ Read, Write, and Delete Operations
+
+Read registry values (single or bulk)
+
+Inputs: Path(s), value name(s); output with type and data.
+
+Write or modify registry values
+
+Inputs: Path, Name, Type (String, DWord, QWord, MultiString, ExpandString), Data.
+
+Options: Create missing keys; validate data type.
+
+Delete registry values or keys (with safety checks)
+
+Inputs: Path, name.
+
+Options: -WhatIf dry run; skip critical locations; confirm prompts.
+
+Bulk registry modifications from CSV/JSON
+
+Schema: Path, Name, Type, Data, Action (Create/Update/Delete).
+
+Import/export .reg files programmatically
+
+Useful for migrations, app configurations, policy packs.
+
+🧰 Policy Enforcement & Configuration
+
+Enforce registry baselines
+
+Inputs: JSON/CSV baseline; check for drift; apply if missing.
+
+Toggle common Windows features via registry
+
+E.g., Defender exclusions, Explorer settings, telemetry flags, wallpaper, RDP.
+
+Audit & remediate risky keys
+
+Startup Run keys, Shell hijacks, known persistence locations.
+
+Manage GPO-like tweaks without actual GPO
+
+Useful in non-domain or hybrid environments.
+
+🧹 Maintenance & Cleanup
+
+Remove stale application keys
+
+e.g., Uninstall leftovers under HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall.
+
+Purge empty keys or temp values
+
+Options: recursive pruning.
+
+Remove Run/RunOnce autoruns for decommissioned apps.
+
+Clean up broken file associations
+
+HKCR cleanup, extension-to-handler validation.
+
+Backup before cleanup for rollback.
+
+🔐 Security & Hardening
+
+Audit registry permissions (ACLs)
+
+Inputs: Path(s); output ACLs per key.
+
+Set registry permissions (SDDL)
+
+Enforce least privilege, remove Everyone where inappropriate.
+
+Detect unauthorized registry changes
+
+Compare to signed baseline or monitor key locations.
+
+Enable or disable sensitive features
+
+RDP, USB storage, autorun, SMB signing, firewall toggles.
+
+🧪 Monitoring & Event Triggers
+
+Subscribe to registry change notifications
+
+Real-time detection for critical keys.
+
+Scheduled drift audits
+
+Compare current registry state to baseline nightly.
+
+Trigger remediation on key modification
+
+e.g., automatically revert changed policy key.
+
+🚀 High-Value PS Forge Script Templates
+Category	Task Example	Typical Inputs
+Inventory	Export registry snapshot to JSON/CSV	Hive, path, depth
+Read/Write	Bulk apply registry modifications	CSV (Path, Name, Type, Data, Action)
+Baseline	Enforce registry baseline	Baseline JSON, mode (check/apply)
+Cleanup	Purge stale Run keys / uninstall remnants	Target paths, exclusions
+Diff	Compare registry snapshot vs baseline	Two files or baseline + live
+Permissions	Audit & apply ACL changes	Path(s), SDDL, permission template
+Security	Disable risky features (RDP/USB)	Key path(s), data enforcement
+Backup	Export + sign .reg files	Paths, target folder
+Monitoring	Watch key for changes → alert or revert	Key path, action
+Reporting	Query value across many machines	Key, value, computer list
+🧠 PowerShell & Tools Surface
+
+Core PowerShell
+
+Get-Item, Get-ItemProperty, Set-ItemProperty, New-Item, Remove-Item, Remove-ItemProperty.
+
+Test-Path for safety checks.
+
+Export-CliXml / ConvertTo-Json for baselines.
+
+.NET & WMI
+
+[Microsoft.Win32.RegistryKey] for advanced operations (ACLs, notifications).
+
+Command-line
+
+reg.exe for importing/exporting .reg files.
+
+Security
+
+Get-Acl / Set-Acl for registry permissions.
+
+SDDL strings for fine-grained ACL management.
+
+Monitoring
+
+Register-WmiEvent or Register-ObjectEvent for change notifications.
+
+🪄 PS Forge UX Suggestions
+
+Scope pickers: Hive + path selector, or CSV import.
+
+Safety: Dry-run and confirmation prompts for delete/modify.
+
+Baselines: JSON or .reg templates stored in PS Forge library.
+
+Rollback: Always export original keys before changes.
+
+Drift detection: Highlight added/removed/modified values.
+
+Reporting: CSV + HTML diff tables with severity indicators.
+
+Scheduling: Audit or enforce registry baselines on interval.
+
+Multi-host: Remoting (WinRM/CIM) with throttling.
+
+📦 Suggested Repo Layout
+/Registry.Automation/
+  /Inventory/    Export-RegistrySnapshot.ps1, Compare-RegistryBaseline.ps1
+  /ReadWrite/    Set-RegistryValuesFromCsv.ps1, Remove-RegistryKeys.ps1
+  /Baseline/     Enforce-RegistryBaseline.ps1, Export-RegistryBaseline.ps1
+  /Cleanup/      Cleanup-StaleAppKeys.ps1, Remove-RunKeys.ps1
+  /Permissions/  Audit-RegistryACL.ps1, Set-RegistrySDDL.ps1
+  /Security/     Harden-RegistryKeys.ps1, Monitor-CriticalRegistryKeys.ps1
+  /Monitoring/   Register-RegistryWatcher.ps1, Trigger-RegistryRemediation.ps1
+  /Common/       Invoke-StdLogger.psm1, Baselines\RegistryBaseline.json
+
+
+✅ Why Registry is perfect for PS Forge:
+
+Every enterprise uses registry tweaks as part of builds, compliance, and support.
+
+Easy to parameterize and template (path, name, type, value).
+
+Supports bulk ops, diff, rollback, and scheduled enforcement.
+
+Pairs beautifully with Intune, GPO-lite environments, and server baselining.

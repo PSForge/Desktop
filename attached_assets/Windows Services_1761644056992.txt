@@ -1,0 +1,204 @@
+Windows Services are prime “repeat-and-forget” tasks you can turn into rock-solid PS Forge generators. Here’s a curated task list for Windows Services Management, plus high-value templates, PowerShell surfaces, UX ideas, and a repo layout.
+
+🔧 Core, Repeatable Admin Tasks (Windows Services)
+Inventory & Reporting
+
+Enumerate services (single/remote/multiple)
+
+Inputs: Computer(s), filter (Name, Status, StartType), Include drivers.
+
+Options: CSV/HTML export; include dependent services; signed/unsigned binaries.
+
+Service configuration snapshot (drift baseline)
+
+Capture Name, DisplayName, Path, StartType, Account, FailureActions.
+
+Options: Compare current vs baseline; highlight drift.
+
+Start/Stop/Restart Control
+
+Start/Stop/Restart services (safe + ordered)
+
+Inputs: Service(s), Computer(s), Timeout.
+
+Options: Respect dependencies; retry/jitter; maintenance window.
+
+Graceful restart with health check
+
+Inputs: Post-start probes (port/test URL/event), max attempts.
+
+Startup Type & Recovery
+
+Bulk set StartupType (Automatic/Delayed/Manual/Disabled)
+
+Inputs: Service(s), Computer(s), Desired mode.
+
+Options: Skip critical Windows services; dry-run diff.
+
+Configure Recovery/FailureActions
+
+Inputs: First/Second/Subsequent actions, ResetFailCount, RebootMsg, Program.
+
+Options: Apply baseline JSON; export current.
+
+Accounts & Credentials
+
+Rotate service account credentials (safe)
+
+Inputs: Service(s), New password (secure), Account (managed/local/domain).
+
+Options: Test logon; rolling restarts; revert on failure.
+
+Migrate services to gMSA/Managed Service Account
+
+Inputs: gMSA name; SPN set; service list.
+
+Options: SPN validation; auto grant “Log on as a service”.
+
+Dependencies & Order
+
+Add/Remove service dependencies
+
+Inputs: Service, DependsOn list.
+
+Options: Validate existence; prevent circular deps.
+
+Cluster or app-stack start order
+
+Inputs: Tiered dependency map (JSON).
+
+Options: Timeouts, post-start probes, rollback.
+
+Installation & Removal
+
+Install/Uninstall Windows services (sc.exe / New-Service)
+
+Inputs: Binary path, Name, DisplayName, Account, StartType.
+
+Options: Verify signature; add firewall rule; delayed start.
+
+Repair service registration
+
+Re-create with prior config; preserve ACLs; re-apply recovery actions.
+
+Health & Diagnostics
+
+Detect hung or flapping services
+
+Inputs: CPU/Mem thresholds, restart count in window.
+
+Options: Quarantine (Disable + alert) after N restarts.
+
+Log & event correlation
+
+Pull recent Service Control Manager (SCM) events; map to actions.
+
+Executable verification
+
+Hash/signature check of service binaries; alert on mismatch.
+
+Compliance & Hardening
+
+Lock down service permissions (SDDL)
+
+Inputs: Service(s), desired SDDL/baseline.
+
+Options: Export existing descriptors; diff and remediate.
+
+Audit services running as high-privileged accounts
+
+Report services using LocalSystem/Domain Admin; suggest gMSA.
+
+Remove “Everyone/Users” from service ACLs (if found).
+
+Maintenance & Hygiene
+
+Disable unused vendor services (allowlist/denylist)
+
+Inputs: Pattern list; exceptions file.
+
+Schedule proactive service restarts
+
+Inputs: Service(s), cadence, maintenance window; skip if CPU>threshold.
+
+Roll through farm/cluster nodes
+
+Inputs: Node list; drain/patch hooks; per-node verification.
+
+🚀 High-Value PS Forge Templates (ready to build)
+
+Get-ServiceInventory.ps1 — multi-host service inventory → CSV/HTML; flags unsigned binaries & disabled criticals.
+
+Set-ServiceStartupTypeBulk.ps1 — idempotent change with pre/post snapshot & rollback file.
+
+Restart-ServiceSafe.ps1 — ordered stop/start with dependency walk, health probes (port/event/http).
+
+Set-ServiceRecoveryPolicy.ps1 — apply baseline JSON (Restart/Run Program/Reboot) + reset counter.
+
+Set-ServiceAccount.ps1 — rotate to domain acct or migrate to gMSA; auto grant “Log on as a service”; rolling restarts.
+
+Install-WindowsService.ps1 — create/update service from executable; signer verify; firewall rule optional.
+
+Repair-ServiceRegistration.ps1 — export config → re-create; restore SDDL & recovery actions.
+
+Audit-ServiceSecurity.ps1 — report SDDL, high-privilege accounts, weak ACLs; optional fix mode.
+
+Detect-HungOrFlappingServices.ps1 — watch CPU/mem + restart count; quarantine after threshold; notify.
+
+Baseline-CompareServices.ps1 — snapshot vs baseline diff; outputs drift report with fix script.
+
+🧠 PowerShell & Tools Surface
+
+Built-ins:
+
+Get-Service, Start/Stop/Restart-Service, New/Set/Remove-Service (PowerShell 7+ includes Set-Service),
+
+Get-WmiObject Win32_Service / Get-CimInstance Win32_Service (detailed props: PathName, StartName, etc.).
+
+SCM / Recovery / SDDL:
+
+sc.exe qc/query/config, sc.exe failure/failureflag/triggerinfo, sc.exe sdshow/sdset for ACLs,
+
+sc.exe sidtype (service SID type), ntrights.exe or secedit alternatives for rights (if needed).
+
+Security & Signing:
+
+Get-AuthenticodeSignature to verify service binary signatures; Get-FileHash.
+
+Events & Health:
+
+Get-WinEvent -LogName System -FilterXPath for Service Control Manager (Event IDs 7000–7045),
+
+Get-Counter for CPU/mem sampling during restarts.
+
+Remoting & Scale:
+
+PSRemoting (Invoke-Command), CIM sessions, Throttle/Jitter/Retry wrappers.
+
+🪄 PS Forge UX Suggestions
+
+Scope pickers: Single host, OU, or CSV of servers; service name filter with wildcards.
+
+Safety: Dry-Run and Diff by default for config changes; rollbacks auto-generated (pre-snapshot).
+
+Health checks: Built-in post-action probes (port check, URL, event pattern).
+
+Secrets: SecureString/credential vault for service account updates; mask in logs.
+
+Idempotency: “Skip if compliant” logic on startup type, account, recovery actions, SDDL.
+
+Scheduling: Maintenance windows for restarts; ringed rollout (pilot → broad).
+
+Outputs: CSV + concise HTML (before/after, changed items, failures); optional Teams webhook.
+
+Guardrails: Block changes to critical Windows services unless -ForceCritical is set.
+
+📦 Suggested Repo Layout
+/WindowsServices.Automation/
+  /Inventory/     Get-ServiceInventory.ps1, Baseline-CompareServices.ps1
+  /Control/       Restart-ServiceSafe.ps1, StartStop-ServicesBulk.ps1, Schedule-ServiceRestart.ps1
+  /Config/        Set-ServiceStartupTypeBulk.ps1, Set-ServiceRecoveryPolicy.ps1, Set-ServiceAccount.ps1
+  /Install/       Install-WindowsService.ps1, Repair-ServiceRegistration.ps1, Remove-WindowsService.ps1
+  /Security/      Audit-ServiceSecurity.ps1, Set-ServiceSDDL.ps1
+  /Health/        Detect-HungOrFlappingServices.ps1, Correlate-ServiceEvents.ps1
+  /Common/        Invoke-StdLogger.psm1, RemotingHelpers.ps1, Baselines\Services.json

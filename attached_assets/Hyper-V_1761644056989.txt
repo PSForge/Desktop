@@ -1,0 +1,223 @@
+Hyper-V is perfect for PS Forge. Here’s a curated, repeatable task list you can turn into script generators. I grouped by area and noted the typical inputs your UI should collect plus smart options.
+
+🖥️ Host Provisioning & Baseline
+
+Install/Configure Hyper-V role (single/bulk)
+
+Inputs: Server(s), management tools, restart flag.
+
+Options: Add Hyper-V PowerShell, enable enhanced session mode.
+
+Create/Configure virtual switches
+
+Inputs: Switch name, type (External/Internal/Private), uplink NIC(s), VLAN ID.
+
+Options: SR-IOV, bandwidth min/max.
+
+Set host defaults
+
+Inputs: Default VM path, VHD path, Live Migration settings, NUMA spanning.
+
+Enable/Configure Live Migration
+
+Inputs: Auth (CredSSP/Kerberos), max simultaneous migrations, networks.
+
+Set up host resource controls
+
+Inputs: CPU reserve/limit, memory reserve for parent.
+
+🧪 VM Lifecycle (Gold Images → Prod)
+
+Create VM from template (Gen1/Gen2)
+
+Inputs: Name, Generation, CPU, Memory (static/Dynamic), VHDX path/size, switch, Secure Boot template.
+
+Options: Cloud-Init/Unattend injection, time sync, checkpoints policy.
+
+Bulk VM creation from CSV
+
+Inputs: CSV (Name, Gen, vCPU, Mem, VHDX, Switch, VLAN).
+
+Convert/Attach VHD/VHDX
+
+Inputs: Source, destination, fixed/dynamic, size/expand.
+
+Clone VM (copy & re-ID)
+
+Inputs: Source VM, new name(s), new VHDX location.
+
+Start/Stop/Restart/Shutdown (graceful) VMs
+
+Inputs: VM(s), action, timeout.
+
+Set VM resources (CPU/Memory)
+
+Inputs: vCPU count/reserve/limit/weight, Dynamic Memory min/max/priority.
+
+Set VM firmware/boot order (Gen2)
+
+Inputs: Boot entries order, Secure Boot template.
+
+🌐 Networking (vNIC/VLAN/Teams)
+
+Add/Remove vNICs to VM
+
+Inputs: VM, switch, VLAN, QoS min/max, MAC (static/dynamic).
+
+Bulk VLAN assignment changes
+
+Inputs: VM(s)/NIC(s), VLAN ID, trunk/native VLAN options.
+
+NIC Teaming for host uplinks (where applicable)
+
+Inputs: Team name, members, mode (LACP/Switch Independent).
+
+💾 Storage (VHDX / Checkpoints / CSV)
+
+Create/Resize/Compact VHDX
+
+Inputs: Path, new size, type (fixed/dynamic).
+
+Merge checkpoints / manage checkpoints at scale
+
+Inputs: VM(s), checkpoint name/age.
+
+Move VM storage (datastore/CSV)
+
+Inputs: VM(s), destination path, online move toggle.
+
+♻️ Checkpoints & Backup
+
+Create/Delete checkpoints (policy-driven)
+
+Inputs: VM(s), retention days, pre/post scripts.
+
+Export/Import VM(s)
+
+Inputs: VM(s), export path, include VHD(s)/config only.
+
+🧯 HA, Cluster, and DR
+
+Create/Expand Hyper-V cluster (Failover Clustering)
+
+Inputs: Node list, witness type/path, validation flag.
+
+Configure Cluster Shared Volumes (CSV)
+
+Inputs: Disks to add, CSV names.
+
+Set Preferred Owners & Failover policies
+
+Inputs: Role/VM, node order, failback window.
+
+Enable/Configure Hyper-V Replica
+
+Inputs: Primary/Replica hosts, frequency, VHD set, recovery points, Kerberos/Certificate.
+
+Test failover / planned failover workflows
+
+Inputs: VM(s), test network, cleanup flag.
+
+🔐 Security & Guarded Fabric
+
+Enable Secure Boot / TPM for Gen2
+
+Inputs: Template (MicrosoftWindows/Ubuntu), vTPM on/off.
+
+Create/Assign shielding data (where used)
+
+Inputs: Key protector, template disk, shielding policy.
+
+Restrict VM console and device features
+
+Inputs: Enhanced session, clipboard, checkpoints allowed/denied.
+
+📈 Performance, Monitoring & Maintenance
+
+Collect performance counters for host/VM
+
+Inputs: Counters (CPU ready/memory pressure/IOPS), sample interval, duration, output path.
+
+Health checks & drift report
+
+Host patches, integration services state, VM IC versions, vSwitch mismatch, Live Migration settings.
+
+Schedule host maintenance mode
+
+Drain roles (cluster), pause node, resume after patch.
+
+Cleanup old VM exports / ISO caches
+
+Inputs: Age threshold, paths.
+
+🧾 Reporting & Inventory
+
+Inventory: hosts, VMs, vSwitches, VLANs, storage
+
+Outputs: CSV/HTML; tags for environment/owner/cost center.
+
+Capacity & headroom report
+
+CPU/Memory/Storage utilization vs thresholds; over-commit ratios.
+
+Change summary (last 24h/7d)
+
+New/removed VMs, resource changes, failed migrations.
+
+🔧 High-Value PS Forge Templates (great starters)
+
+Install & Baseline Hyper-V Host
+Inputs: Server(s), default VM/VHD paths, vSwitch plan, Live Migration settings.
+
+Create/Update vSwitch + VLAN plan
+Inputs: Switch name/type/uplinks, VLAN(s), QoS; bulk VM NIC VLAN assignment from CSV.
+
+Bulk Create VMs from CSV
+Inputs: CSV (Name, Gen, vCPU, Mem, VHDX, Switch, VLAN, SecureBoot).
+
+Resize/Compact/Convert VHDX (Batch)
+Inputs: File list, new size/type; safety checks for mounted/in-use disks.
+
+Checkpoint Policy Manager
+Inputs: VM set, retention days; create on-demand, purge old, merge chains.
+
+Hyper-V Replica Setup & Test
+Inputs: Primary/Replica servers, frequency, cert/Kerberos, test failover network.
+
+Cluster Builder & CSV Onboarding
+Inputs: Node list, witness, CSV disks; set failover preferences.
+
+VM Resource Tuner (CPU/Memory) in Bulk
+Inputs: Scope (tags/CSV), resource profile presets.
+
+Host/VM Health & Capacity Report (HTML)
+Inputs: Cluster/host list; thresholds; export and Teams webhook.
+
+Maintenance Mode Orchestrator
+Inputs: Node(s), drain/patch script hooks, reboot, resume.
+
+📦 Typical PowerShell Surfaces (to wire into generators)
+
+Hyper-V module: Get/New/Set/Remove-VM, *-VHD, Add/Set-VMHardDiskDrive, Add/Set-VMNetworkAdapter, Checkpoint-VM, Measure-VM, Move-VM, Export/Import-VM, Enable-VMTPM.
+
+FailoverClusters: Get/Add-ClusterNode, Get/Set-ClusterGroup, Get/Add-ClusterSharedVolume, Suspend/Resume-ClusterNode, Move-ClusterVirtualMachineRole.
+
+Networking: New-VMSwitch, Set-VMSwitch, Get/Set-NetAdapterAdvancedProperty, New-NetLbfoTeam (where relevant).
+
+Security/DR: Set-VMFirmware, Set-VMSecurity, Set-VMReplicationServer, Enable-VMReplication, Start-VMFailover, Test-VMReplicaConnection.
+
+Perf/Logs: Measure-VM, Perf counters (Get-Counter), Get-EventLog/Get-WinEvent.
+
+🪄 PS Forge UX Suggestions (Hyper-V)
+
+Scope pickers: Cluster/host/VM selectors, plus CSV import.
+
+Safety: -WhatIf default; refuse destructive ops if VM is running unless “Force”.
+
+Presets: Resource profiles (“Small/Medium/Large”), vSwitch templates, Replica policies.
+
+Validation: Pre-flight checks (disk space, NIC names, switch existence, cluster state).
+
+Outputs: CSV + attractive HTML report; optional Teams/Webhook notifications.
+
+Idempotency: Update if exists; label objects in notes/description with [PSForge].

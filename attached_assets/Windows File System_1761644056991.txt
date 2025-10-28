@@ -1,0 +1,257 @@
+ Windows File System administration is one of the oldest and most automation-friendly domains for PowerShell, making it a goldmine for PS Forge script templates.
+
+Admins frequently perform repeatable tasks on shares, NTFS permissions, quotas, folder structures, file cleanup, and reporting — all of which can be easily scripted and parameterized.
+
+📁 Windows File System — High-Value Repeatable Admin Tasks
+
+Primary Surface:
+
+Windows PowerShell built-in modules
+
+SMB Share / NTFS / File Server Resource Manager (FSRM) cmdlets
+
+Optional: WMI/CIM, Robocopy, DFS-N & DFS-R cmdlets
+
+🏗️ Folder Structure & Share Provisioning
+
+Automated folder structure creation
+
+Inputs: Root path, structure template (JSON/CSV), folder names.
+
+Options: Auto-create subfolders and apply NTFS ACL templates.
+
+Create or modify SMB shares
+
+Inputs: Path, share name, description, share permissions.
+
+Options: Continuously check if share exists (idempotent).
+
+Bulk create file shares
+
+Inputs: CSV of folder path, share name, description, permissions.
+
+Set NTFS permissions (inheritance-aware)
+
+Inputs: Path, security principals, permissions, inheritance toggle.
+
+Remove or rename shares
+
+With dependency check.
+
+DFS namespace target registration
+
+Inputs: DFS root, share path, target server.
+
+🔐 Permissions & Access Control
+
+Grant or revoke NTFS permissions
+
+Inputs: Path, user/group, permission level (Read/Modify/Full).
+
+Audit effective permissions
+
+Inputs: Path, user/group; output: flattened permission list.
+
+Export and import folder ACLs
+
+Useful for migration, backup, or DR restore.
+
+Convert share-level to NTFS permission models
+
+Bulk update ACLs
+
+Inputs: CSV with path and desired ACL entries.
+
+Detect and remove orphaned SIDs from ACLs
+
+Useful after domain migrations or leaver cleanup.
+
+Set or reset inheritance
+
+🧹 Storage & File Cleanup
+
+Scan and delete files by age
+
+Inputs: Path, file age (days), extensions filter.
+
+Options: Dry-run mode with log report.
+
+Scan and move/archive old files
+
+Inputs: Age, archive path, log output.
+
+Empty temporary folders automatically
+
+Useful on file servers, RDS, shared volumes.
+
+Delete zero-byte files or empty folders
+
+Identify largest files or folders
+
+Inputs: Path, top X results.
+
+Purge old user profiles (on shared file servers)
+
+🧾 Reporting & Auditing
+
+Folder size reports (recursive)
+
+Inputs: Path, depth, thresholds.
+
+Outputs: CSV/HTML dashboards.
+
+Top consumers by size or file count
+
+Sorted by folder/user.
+
+NTFS ACL report
+
+Recursive export of ACLs and inheritance state.
+
+SMB share inventory report
+
+Share name, path, description, share permissions.
+
+File type breakdown report
+
+Count/size by extension.
+
+Stale file/folder detection
+
+Based on last modified or accessed date.
+
+Audit file system access
+
+Read from Security log or enable SACL auditing.
+
+🧱 Quotas, FSRM & Classification (optional)
+
+If you use File Server Resource Manager (FSRM):
+
+Create and assign quotas
+
+Inputs: Path, quota template or limit, hard/soft.
+
+Create and assign file screens
+
+Block certain file types (e.g., *.mp3, *.exe).
+
+Generate FSRM storage reports
+
+Large files, duplicate files, quota usage.
+
+Apply classification rules
+
+Purge FSRM events & logs periodically
+
+🔄 File Server Migration & Maintenance
+
+Robocopy sync job creation
+
+Inputs: Source, destination, flags (mirror, preserve ACLs, logging).
+
+Pre-migration ACL export + post-migration ACL import
+
+Verify file/folder consistency after copy
+
+Hash or size compare.
+
+DFS namespace restructuring automation
+
+Bulk rename or restructure directories
+
+🧰 Backup, Archive & Recovery Scripts
+
+Automated file/folder backup
+
+Inputs: Source path(s), destination path, retention days.
+
+Restore from backup with ACLs preserved
+
+Versioned file archiving (with timestamp)
+
+Zip and archive folders based on age or size
+
+🧠 Security & Compliance Tasks
+
+Search for files containing sensitive terms (e.g., SSN, credit card)
+(integrate RegEx + file scanning)
+
+Report on open share permissions (Everyone:Full)
+
+Auto-remediate overly permissive ACLs
+
+Track changes to critical file system paths
+
+🚀 High-Value PS Forge Script Templates
+Category	Task Example	Typical Inputs
+Folder Structure	Bulk folder/share creation + ACLs	Root path, structure CSV, ACL template
+Permissions	Export/Import ACLs, remove orphan SIDs	Paths, user/group, output path
+Cleanup	Archive/delete old files	Age (days), path, destination, dry-run
+Reporting	Folder size & ACL reports	Path, depth, export format
+Quotas/FSRM	Apply quota/file screen templates	Paths, template, threshold
+Migration	Robocopy mirror job generator	Source/destination, log path
+Auditing	SMB share inventory & ACL report	Scope path, recursive toggle
+Security	Identify & remediate “Everyone:Full” ACLs	Path, action (report/fix)
+Archive	Compress/archive large/old folders	Path, retention period
+Automation	Purge temp folders, zero-byte files, empty dirs	Path(s), schedule
+🧠 PowerShell Surfaces to Use
+
+Built-in cmdlets:
+
+Get-ChildItem, Get-Acl, Set-Acl, icacls.exe for complex scenarios
+
+New-SmbShare, Get-SmbShare, Grant-SmbShareAccess, Revoke-SmbShareAccess
+
+Remove-Item, Copy-Item, Robocopy.exe wrapper for bulk transfers
+
+FSRM (if installed):
+
+New-FsrmQuota, New-FsrmFileScreen, Get-FsrmQuota
+
+WMI / CIM:
+
+For legacy share and ACL queries
+
+Scheduled tasks:
+
+Register-ScheduledTask for cleanup/archival automation
+
+🪄 PS Forge UX Suggestions (Windows File System)
+
+Scope selectors: Folder path(s), share name(s), structure CSV import.
+
+Dry-run default for cleanup and ACL changes.
+
+CSV/HTML reporting with drill-down (e.g., ACL tree or folder size tree).
+
+ACL templates as reusable assets in PS Forge.
+
+Idempotent design for folder creation and ACL application (don’t reapply if already correct).
+
+Scheduling hooks for maintenance tasks (cleanup, reports).
+
+DFS awareness for environments with namespace replication.
+
+📦 Suggested Repo Layout
+/FileSystem.Automation/
+  /Provisioning/    New-FolderStructure.ps1, New-SmbSharesBulk.ps1
+  /Permissions/     Export-ACLs.ps1, Import-ACLs.ps1, Clean-OrphanSIDs.ps1
+  /Cleanup/         Remove-OldFiles.ps1, Archive-Files.ps1, Purge-TempDirs.ps1
+  /Reporting/       Get-FolderSizeReport.ps1, Get-ACLReport.ps1, Get-SmbShareInventory.ps1
+  /FSRM/            Apply-QuotaTemplate.ps1, Apply-FileScreen.ps1, Generate-FsrmReport.ps1
+  /Migration/       New-RobocopyJob.ps1, Compare-FileTrees.ps1
+  /Security/        Find-OpenShares.ps1, Remediate-OpenACLs.ps1, Watch-CriticalPaths.ps1
+  /Backup/          Backup-Folders.ps1, Restore-BackupWithACL.ps1
+  /Common/          Invoke-StdLogger.psm1, ACLTemplates.json
+
+
+✅ Why this is perfect for PS Forge:
+
+File system tasks are extremely repetitive across enterprise environments.
+
+Many of them require bulk operations (ACL updates, cleanup, reporting).
+
+PowerShell gives full control, including ACLs, shares, and FSRM.
+
+You can create reusable GUI or template-based workflows for admins.

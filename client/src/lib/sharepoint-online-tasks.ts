@@ -426,31 +426,1958 @@ try {
 }`;
     }
   },
-  {id:'spo-create-site',title:'Create Site Collection',description:'Create new SharePoint site collection',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true,placeholder:'https://tenant.sharepoint.com/sites/NewSite'},{name:'title',label:'Site Title',type:'text',required:true},{name:'owner',label:'Owner Email',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{New-SPOSite -Url "${escapePowerShellString(p.url)}" -Title "${escapePowerShellString(p.title)}" -Owner "${escapePowerShellString(p.owner)}" -StorageQuota 1024 -Template STS#3;Write-Host "✓ Site created" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-delete-site',title:'Delete Site Collection',description:'Remove SharePoint site',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Remove-SPOSite -Identity "${escapePowerShellString(p.url)}" -Confirm:$false;Write-Host "✓ Site deleted" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-restore-site',title:'Restore Deleted Site',description:'Recover site from recycle bin',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Restore-SPODeletedSite -Identity "${escapePowerShellString(p.url)}";Write-Host "✓ Site restored" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-set-quota',title:'Set Site Storage Quota',description:'Configure site storage limit',category:'Storage',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'quotaGB',label:'Quota (GB)',type:'number',required:true,defaultValue:25}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOSite -Identity "${escapePowerShellString(p.url)}" -StorageQuota $((${p.quotaGB})*1024);Write-Host "✓ Quota set to ${p.quotaGB}GB" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-add-admin',title:'Add Site Collection Admin',description:'Grant admin access to site',category:'Permissions',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'userEmail',label:'User Email',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOUser -Site "${escapePowerShellString(p.url)}" -LoginName "${escapePowerShellString(p.userEmail)}" -IsSiteCollectionAdmin $true;Write-Host "✓ Admin added" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-remove-admin',title:'Remove Site Collection Admin',description:'Revoke admin access',category:'Permissions',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'userEmail',label:'User Email',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOUser -Site "${escapePowerShellString(p.url)}" -LoginName "${escapePowerShellString(p.userEmail)}" -IsSiteCollectionAdmin $false;Write-Host "✓ Admin removed" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-disable-external-sharing',title:'Disable External Sharing',description:'Block external access to site',category:'Security',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOSite -Identity "${escapePowerShellString(p.url)}" -SharingCapability Disabled;Write-Host "✓ External sharing disabled" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-enable-versioning',title:'Enable Document Versioning',description:'Turn on version history',category:'Storage',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'versions',label:'Max Versions',type:'number',required:false,defaultValue:500}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Set-PnPList -Identity "Documents" -EnableVersioning $true -MajorVersions ${p.versions};Write-Host "✓ Versioning enabled (${p.versions} versions)" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-export-users',title:'Export Site Users',description:'List all users with permissions',category:'Permissions',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'exportPath',label:'Export Path',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Get-SPOUser -Site "${escapePowerShellString(p.url)}"|Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation;Write-Host "✓ Users exported" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-export-groups',title:'Export Site Groups',description:'List SharePoint groups',category:'Permissions',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'exportPath',label:'Export Path',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Get-PnPGroup|Select Title,LoginName,Owner|Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation;Write-Host "✓ Groups exported" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-break-inheritance',title:'Break Permission Inheritance',description:'Stop inheriting parent permissions',category:'Permissions',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Set-PnPWeb -BreakRoleInheritance -CopyRoleAssignments;Write-Host "✓ Permission inheritance broken" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-hub-associate',title:'Associate Site to Hub',description:'Join site to hub site',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'hubUrl',label:'Hub Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Add-SPOHubSiteAssociation -Site "${escapePowerShellString(p.url)}" -HubSite "${escapePowerShellString(p.hubUrl)}";Write-Host "✓ Site associated to hub" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-hub-create',title:'Register Hub Site',description:'Convert site to hub',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'title',label:'Hub Title',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Register-SPOHubSite -Site "${escapePowerShellString(p.url)}" -Title "${escapePowerShellString(p.title)}";Write-Host "✓ Hub site registered" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-set-title',title:'Update Site Title',description:'Change site display name',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'title',label:'New Title',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Set-PnPWeb -Title "${escapePowerShellString(p.title)}";Write-Host "✓ Site title updated" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-lock-site',title:'Lock Site',description:'Prevent changes to site',category:'Security',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOSite -Identity "${escapePowerShellString(p.url)}" -LockState ReadOnly;Write-Host "✓ Site locked (read-only)" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-unlock-site',title:'Unlock Site',description:'Re-enable site editing',category:'Security',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOSite -Identity "${escapePowerShellString(p.url)}" -LockState Unlock;Write-Host "✓ Site unlocked" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-modern-ui',title:'Enable Modern UI',description:'Switch to modern experience',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Set-PnPWeb -QuickLaunchEnabled $false;Enable-PnPFeature -Identity "E3540C7D-6BEA-403C-A224-1A12EAFEE4C4" -Scope Site;Write-Host "✓ Modern UI enabled" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-search-reindex',title:'Request Search Reindex',description:'Trigger full site reindex',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Request-PnPReIndexWeb;Write-Host "✓ Reindex requested" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-audit-permissions',title:'Export Permission Report',description:'Detailed permissions audit',category:'Permissions',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'exportPath',label:'Export Path',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{$Perms=Get-PnPList|%{Get-PnPListItem -List $_.Title|%{Get-PnPProperty -ClientObject $_ -Property RoleAssignments}};$Perms|Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation;Write-Host "✓ Permissions exported" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-bulk-upload',title:'Bulk Upload Files',description:'Upload folder to library',category:'Storage',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'folderPath',label:'Local Folder',type:'text',required:true,placeholder:'C:\\\\Files'},{name:'library',label:'Library Name',type:'text',required:true,defaultValue:'Documents'}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Add-PnPFolder -Name "Upload" -Folder "${p.library}";Get-ChildItem "${escapePowerShellString(p.folderPath)}" -Recurse|%{Add-PnPFile -Path $_.FullName -Folder "${p.library}/Upload"};Write-Host "✓ Files uploaded" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-guest-expiration',title:'Set Guest Link Expiration',description:'Configure link expiry days',category:'Sharing',parameters:[{name:'days',label:'Expiration Days',type:'number',required:true,defaultValue:30}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOTenant -ExternalUserExpirationRequired $true -ExternalUserExpireInDays ${p.days};Write-Host "✓ Guest links expire in ${p.days} days" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-disable-download',title:'Disable File Downloads',description:'Block downloads for site',category:'Security',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{Set-SPOSite -Identity "${escapePowerShellString(p.url)}" -DisableFlows RelaxationEnabled;Write-Host "✓ Downloads disabled" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-export-files',title:'Export File Inventory',description:'List all files in site',category:'Storage',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'exportPath',label:'Export Path',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Get-PnPListItem -List "Documents" -PageSize 5000|Select @{N='Name';E={$_["FileLeafRef"]}},@{N='Size';E={$_["File_x0020_Size"]}},@{N='Modified';E={$_["Modified"]}}|Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation;Write-Host "✓ File inventory exported" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-block-filetypes',title:'Block File Types',description:'Prevent upload of extensions',category:'Security',parameters:[{name:'extensions',label:'Extensions',type:'text',required:true,placeholder:'.exe,.bat,.cmd'}],scriptTemplate:p=>`Connect-SPOService -Url https://tenant-admin.sharepoint.com\ntry{$BlockedFileTypes="${escapePowerShellString(p.extensions)}";Set-SPOTenant -ExcludedFileExtensionsForSyncClient $BlockedFileTypes;Write-Host "✓ File types blocked: ${p.extensions}" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'spo-clear-cache',title:'Clear Site Cache',description:'Force site cache refresh',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Connect-PnPOnline -Url "${escapePowerShellString(p.url)}" -Interactive\ntry{Clear-PnPMicrosoft365GroupFileVersionBatchDeleteJob;Write-Host "✓ Cache cleared" -ForegroundColor Green}catch{Write-Error $_}`}
+  {
+    id: 'spo-create-site',
+    title: 'Create Site Collection',
+    description: 'Create new SharePoint site collection',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Creates a new SharePoint Online site collection with specified URL and owner
+- Provisions a modern team site with 1GB default storage quota
+- Assigns primary site collection administrator
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+- Valid user account for site owner
+
+**What You Need to Provide:**
+- Full site URL (must be unique in tenant)
+- Site title (display name)
+- Owner email address (valid licensed user)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Creates new site collection with Team Site template (STS#3)
+3. Sets 1GB initial storage quota
+4. Assigns specified owner as site collection administrator
+
+**Important Notes:**
+- Site URL cannot be changed after creation
+- Site URL must follow naming conventions (no spaces or special characters)
+- Owner must be a valid licensed user in the tenant
+- Default template creates a modern team site
+- Storage quota can be adjusted later using Set-SPOSite
+- Site provisioning may take several minutes to complete
+- Typical use: new department sites, project workspaces
+- Consider hub site association for better organization`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/NewSite',
+        helpText: 'Full URL for the new site collection'
+      },
+      {
+        name: 'title',
+        label: 'Site Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Sales Team Site',
+        helpText: 'Display name for the site'
+      },
+      {
+        name: 'owner',
+        label: 'Owner Email',
+        type: 'text',
+        required: true,
+        placeholder: 'admin@tenant.onmicrosoft.com',
+        helpText: 'Primary site collection administrator email'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const title = escapePowerShellString(params.title);
+      const owner = escapePowerShellString(params.owner);
+
+      return `# Create SharePoint Online Site Collection
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Creating site collection..." -ForegroundColor Cyan
+    
+    New-SPOSite -Url "${url}" -Title "${title}" -Owner "${owner}" -StorageQuota 1024 -Template "STS#3"
+    
+    Write-Host "✓ Site collection created successfully" -ForegroundColor Green
+    Write-Host "  URL: ${url}" -ForegroundColor White
+    Write-Host "  Owner: ${owner}" -ForegroundColor White
+    
+} catch {
+    Write-Error "Failed to create site collection: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-delete-site',
+    title: 'Delete Site Collection',
+    description: 'Remove SharePoint site collection',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Permanently deletes a SharePoint Online site collection
+- Moves site to recycle bin for 93 days before permanent deletion
+- Removes all content, permissions, and site settings
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Full site URL to delete
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Removes the specified site collection
+3. Moves site to deleted sites recycle bin
+4. Reports deletion success
+
+**Important Notes:**
+- ⚠️ DESTRUCTIVE OPERATION - Cannot be easily undone
+- Site is moved to recycle bin and can be restored within 93 days
+- After 93 days, site is permanently deleted
+- All content, lists, libraries, and permissions are removed
+- OneDrive data is preserved separately
+- Deleting a hub site requires unassociating child sites first
+- Consider backing up critical content before deletion
+- Site URL becomes available for reuse after permanent deletion
+- Typical use: decommissioning old projects, removing test sites
+- Verify site URL before executing this command`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/OldSite',
+        helpText: 'Full URL of the site to delete'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Delete SharePoint Online Site Collection
+# Generated: ${new Date().toISOString()}
+# ⚠️ WARNING: This operation will delete the site collection
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "⚠️  WARNING: About to delete site collection" -ForegroundColor Yellow
+    Write-Host "  URL: ${url}" -ForegroundColor White
+    
+    Remove-SPOSite -Identity "${url}" -Confirm:$false
+    
+    Write-Host "✓ Site collection deleted (moved to recycle bin)" -ForegroundColor Green
+    Write-Host "  Site can be restored within 93 days" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to delete site collection: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-restore-site',
+    title: 'Restore Deleted Site',
+    description: 'Recover site from recycle bin',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Restores a deleted SharePoint Online site from recycle bin
+- Recovers all content, permissions, and settings
+- Site must have been deleted within 93 days
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+- Site must exist in deleted sites recycle bin
+
+**What You Need to Provide:**
+- Original site URL of deleted site
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Locates site in deleted sites recycle bin
+3. Restores site with all content and settings
+4. Reports restoration success
+
+**Important Notes:**
+- Sites can only be restored within 93 days of deletion
+- All content, lists, libraries, and permissions are restored
+- Site restores to original URL
+- Original URL must not be in use by another site
+- Restoration may take several minutes for large sites
+- Hub site associations are not automatically restored
+- External sharing settings revert to pre-deletion state
+- Typical use: accidental deletions, project reactivation
+- Verify correct site URL before restoring
+- Check site is accessible after restoration completes`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/DeletedSite',
+        helpText: 'Original URL of the deleted site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Restore Deleted SharePoint Online Site
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Restoring site from recycle bin..." -ForegroundColor Cyan
+    Write-Host "  URL: ${url}" -ForegroundColor White
+    
+    Restore-SPODeletedSite -Identity "${url}"
+    
+    Write-Host "✓ Site collection restored successfully" -ForegroundColor Green
+    Write-Host "  All content and permissions recovered" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to restore site collection: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-set-quota',
+    title: 'Set Site Storage Quota',
+    description: 'Configure site storage limit',
+    category: 'Storage',
+    instructions: `**How This Task Works:**
+- Sets or modifies storage quota for a SharePoint site collection
+- Controls maximum storage capacity allocated to the site
+- Prevents sites from consuming excessive tenant storage
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL
+- New storage quota in GB
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Converts GB value to MB for cmdlet parameter
+3. Updates site collection storage quota
+4. Reports new quota limit
+
+**Important Notes:**
+- Quota is specified in GB but stored as MB internally
+- Default quota is typically 25GB per site
+- Maximum quota depends on tenant storage pool
+- Setting quota below current usage may prevent uploads
+- Users receive warnings at 90% quota utilization
+- Reducing quota does not delete existing content
+- Typical use: capacity planning, limiting site growth
+- Monitor storage usage before reducing quotas
+- Consider OneDrive quota separately from SharePoint
+- Large sites may need higher quotas for versioning`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Sales',
+        helpText: 'Full URL of the site collection'
+      },
+      {
+        name: 'quotaGB',
+        label: 'Storage Quota (GB)',
+        type: 'number',
+        required: true,
+        defaultValue: 25,
+        placeholder: '25',
+        helpText: 'Storage limit in gigabytes'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const quotaGB = params.quotaGB;
+
+      return `# Set SharePoint Site Storage Quota
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Setting storage quota..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  Quota: ${quotaGB} GB" -ForegroundColor White
+    
+    $QuotaMB = ${quotaGB} * 1024
+    Set-SPOSite -Identity "${url}" -StorageQuota $QuotaMB
+    
+    Write-Host "✓ Storage quota updated successfully" -ForegroundColor Green
+    Write-Host "  New limit: ${quotaGB} GB ($QuotaMB MB)" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to set storage quota: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-add-admin',
+    title: 'Add Site Collection Admin',
+    description: 'Grant admin access to site',
+    category: 'Permissions',
+    instructions: `**How This Task Works:**
+- Grants Site Collection Administrator permissions to a user
+- Provides full control over site settings, permissions, and content
+- Does not require existing site permissions
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+- Target user must have valid license
+
+**What You Need to Provide:**
+- Site URL
+- User email address to grant admin rights
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Adds user as site collection administrator
+3. Grants full control permissions
+4. Reports successful permission grant
+
+**Important Notes:**
+- Site Collection Admins have full control over the site
+- Admins can modify any content, settings, or permissions
+- Multiple site collection admins can be assigned
+- Admin access bypasses all permission inheritance
+- Admins can delete or restore the site
+- Typical use: granting IT support access, adding co-owners
+- Remove admin rights when no longer needed
+- Audit admin assignments regularly for security
+- Site owners should be designated site collection admins
+- Consider using SharePoint groups for regular permissions`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Sales',
+        helpText: 'Full URL of the site collection'
+      },
+      {
+        name: 'userEmail',
+        label: 'User Email',
+        type: 'text',
+        required: true,
+        placeholder: 'user@tenant.onmicrosoft.com',
+        helpText: 'Email address of user to grant admin rights'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const userEmail = escapePowerShellString(params.userEmail);
+
+      return `# Add Site Collection Administrator
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Granting site collection admin rights..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  User: ${userEmail}" -ForegroundColor White
+    
+    Set-SPOUser -Site "${url}" -LoginName "${userEmail}" -IsSiteCollectionAdmin $true
+    
+    Write-Host "✓ Site collection admin added successfully" -ForegroundColor Green
+    Write-Host "  ${userEmail} now has full control" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to add site collection admin: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-remove-admin',
+    title: 'Remove Site Collection Admin',
+    description: 'Revoke admin access from site',
+    category: 'Permissions',
+    instructions: `**How This Task Works:**
+- Revokes Site Collection Administrator permissions from a user
+- Removes full control access to site settings and permissions
+- User retains any explicit permissions granted through groups
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL
+- User email address to revoke admin rights
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Removes site collection administrator designation
+3. Revokes administrative permissions
+4. Reports successful permission revocation
+
+**Important Notes:**
+- Removing admin rights does not delete the user from the site
+- User may still have access through SharePoint groups
+- At least one site collection admin should always remain
+- Cannot remove yourself as admin via this cmdlet
+- User's existing permissions through groups are preserved
+- Typical use: employee role changes, contractor offboarding
+- Verify user still needs site access via groups
+- Audit admin list after removal
+- Consider removing from all permission groups if offboarding
+- Primary site owner cannot be removed without reassignment`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Sales',
+        helpText: 'Full URL of the site collection'
+      },
+      {
+        name: 'userEmail',
+        label: 'User Email',
+        type: 'text',
+        required: true,
+        placeholder: 'user@tenant.onmicrosoft.com',
+        helpText: 'Email address of admin to remove'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const userEmail = escapePowerShellString(params.userEmail);
+
+      return `# Remove Site Collection Administrator
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Revoking site collection admin rights..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  User: ${userEmail}" -ForegroundColor White
+    
+    Set-SPOUser -Site "${url}" -LoginName "${userEmail}" -IsSiteCollectionAdmin $false
+    
+    Write-Host "✓ Site collection admin removed successfully" -ForegroundColor Green
+    Write-Host "  ${userEmail} no longer has admin rights" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to remove site collection admin: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-disable-external-sharing',
+    title: 'Disable External Sharing',
+    description: 'Block external access to site',
+    category: 'Security',
+    instructions: `**How This Task Works:**
+- Disables all external sharing capabilities for a site collection
+- Prevents creation of new guest links and anonymous links
+- Blocks sharing content with users outside the organization
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL to restrict sharing
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Sets site sharing capability to Disabled
+3. Revokes ability to create sharing links
+4. Reports sharing restriction success
+
+**Important Notes:**
+- Existing external users retain their access until explicitly removed
+- All new external sharing attempts are blocked
+- Anonymous sharing links are disabled
+- Guest user invitations cannot be sent
+- Site setting cannot be less restrictive than tenant setting
+- Typical use: securing sensitive content, compliance requirements
+- External users must be manually removed for complete lockdown
+- Use for sites containing confidential information
+- Does not affect internal user sharing within organization
+- Consider auditing existing external users before disabling`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Confidential',
+        helpText: 'Full URL of the site to secure'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Disable External Sharing on Site
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Disabling external sharing..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    Set-SPOSite -Identity "${url}" -SharingCapability Disabled
+    
+    Write-Host "✓ External sharing disabled successfully" -ForegroundColor Green
+    Write-Host "  Site is now restricted to internal users only" -ForegroundColor Cyan
+    Write-Host "  Note: Existing external users retain access until removed" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to disable external sharing: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-enable-versioning',
+    title: 'Enable Document Versioning',
+    description: 'Turn on version history for documents',
+    category: 'Storage',
+    instructions: `**How This Task Works:**
+- Enables version history for the Documents library
+- Automatically saves versions when files are modified
+- Allows recovery of previous file versions
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL
+- Maximum number of versions to retain (optional, default 500)
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Enables versioning on Documents library
+3. Sets maximum version limit
+4. Reports versioning configuration
+
+**Important Notes:**
+- Each version consumes storage quota
+- Default limit of 500 versions may increase storage usage
+- Versioning enables file recovery and audit trails
+- Previous versions can be restored or deleted
+- Versions count toward site storage quota
+- Typical use: document management, compliance requirements
+- Lower version limits reduce storage consumption
+- Consider automatic version trimming policies
+- Major versions create recovery points
+- Recommended for sites with critical documents`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Projects',
+        helpText: 'Full URL of the SharePoint site'
+      },
+      {
+        name: 'versions',
+        label: 'Maximum Versions',
+        type: 'number',
+        required: false,
+        defaultValue: 500,
+        placeholder: '500',
+        helpText: 'Maximum number of versions to keep per file'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const versions = params.versions || 500;
+
+      return `# Enable Document Versioning
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Enabling document versioning..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  Max Versions: ${versions}" -ForegroundColor White
+    
+    Set-PnPList -Identity "Documents" -EnableVersioning $true -MajorVersions ${versions}
+    
+    Write-Host "✓ Versioning enabled successfully" -ForegroundColor Green
+    Write-Host "  Documents library will retain up to ${versions} versions" -ForegroundColor Cyan
+    Write-Host "  Note: Versions consume storage quota" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to enable versioning: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-export-users',
+    title: 'Export Site Users',
+    description: 'List all users with permissions',
+    category: 'Permissions',
+    instructions: `**How This Task Works:**
+- Exports all users with permissions to the site collection
+- Generates comprehensive user access report
+- Shows permission levels and login names
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Retrieves all users with site permissions
+3. Collects login names and permission details
+4. Exports user inventory to CSV
+
+**Important Notes:**
+- Shows direct permissions and group memberships
+- Includes internal and external users
+- Does not show inherited permissions from parent sites
+- Use for access reviews and security audits
+- Typical use: compliance audits, permission reviews
+- Export regularly for security documentation
+- Identify external users for guest access reviews
+- Verify users still require access
+- Remove inactive or departed users
+- Cross-reference with HR systems for accuracy`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/HR',
+        helpText: 'Full URL of the SharePoint site'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\SiteUsers.csv',
+        helpText: 'Path where the CSV file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Site Users to CSV
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Collecting site users..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    $Users = Get-SPOUser -Site "${url}"
+    
+    Write-Host "Found $($Users.Count) users" -ForegroundColor Yellow
+    
+    $Users | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Users exported successfully" -ForegroundColor Green
+    Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to export site users: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-export-groups',
+    title: 'Export Site Groups',
+    description: 'List SharePoint groups',
+    category: 'Permissions',
+    instructions: `**How This Task Works:**
+- Exports all SharePoint groups from the site collection
+- Shows group membership structure and ownership
+- Generates group inventory for permission management
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Retrieves all SharePoint groups
+3. Collects group names, login names, and owners
+4. Exports group inventory to CSV
+
+**Important Notes:**
+- Shows SharePoint groups, not Microsoft 365 Groups
+- Includes default groups (Owners, Members, Visitors)
+- Groups simplify permission management
+- Use for documenting permission structure
+- Typical use: permission audits, group management
+- Review group membership regularly
+- Remove unused or empty groups
+- Verify group owners are current
+- Groups inherit from parent site unless broken
+- Consider using Microsoft 365 Groups for collaboration`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Finance',
+        helpText: 'Full URL of the SharePoint site'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\SiteGroups.csv',
+        helpText: 'Path where the CSV file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export SharePoint Groups to CSV
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Collecting SharePoint groups..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    $Groups = Get-PnPGroup | Select-Object Title, LoginName, Owner
+    
+    Write-Host "Found $($Groups.Count) groups" -ForegroundColor Yellow
+    
+    $Groups | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Groups exported successfully" -ForegroundColor Green
+    Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to export SharePoint groups: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-break-inheritance',
+    title: 'Break Permission Inheritance',
+    description: 'Stop inheriting parent permissions',
+    category: 'Permissions',
+    instructions: `**How This Task Works:**
+- Breaks permission inheritance from parent site
+- Creates unique permission set for the site
+- Copies existing parent permissions before breaking inheritance
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL where inheritance should be broken
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Breaks role inheritance from parent
+3. Copies existing role assignments to preserve access
+4. Reports inheritance break success
+
+**Important Notes:**
+- ⚠️ Creates independent permission management overhead
+- Existing permissions are copied before breaking inheritance
+- Future parent permission changes will not apply
+- Allows customization of site-specific permissions
+- Increases permission management complexity
+- Typical use: securing sensitive subsites, departmental isolation
+- Consider alternative using SharePoint groups
+- Document permission changes after breaking inheritance
+- Audit permissions regularly for unique permission sites
+- Cannot restore inheritance without losing custom changes`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Secure',
+        helpText: 'Full URL of the site to isolate permissions'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Break Permission Inheritance
+# Generated: ${new Date().toISOString()}
+# ⚠️ WARNING: This creates unique permissions for this site
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Breaking permission inheritance..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  Current permissions will be copied" -ForegroundColor Yellow
+    
+    Set-PnPWeb -BreakRoleInheritance -CopyRoleAssignments
+    
+    Write-Host "✓ Permission inheritance broken successfully" -ForegroundColor Green
+    Write-Host "  Site now has unique permissions" -ForegroundColor Cyan
+    Write-Host "  Note: Future parent changes will not apply" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to break permission inheritance: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-hub-create',
+    title: 'Register Hub Site',
+    description: 'Convert site to hub',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Converts an existing site collection into a SharePoint hub site
+- Enables hub navigation, branding, and site association
+- Creates organizational structure for related sites
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+- Site must be a communication site or modern team site
+
+**What You Need to Provide:**
+- Site URL to convert to hub
+- Hub title (display name)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Registers site as a hub site
+3. Sets hub site display title
+4. Reports hub registration success
+
+**Important Notes:**
+- Hub sites organize related site collections
+- Provides shared navigation and branding
+- Only communication sites and modern team sites can be hubs
+- Maximum 2,000 hub sites per tenant
+- Hub sites can have associated child sites
+- Typical use: departmental portals, divisional organization
+- Plan hub structure before creating multiple hubs
+- Hub sites provide unified navigation experience
+- Associated sites can inherit hub theme and navigation
+- Consider hub site limits when planning architecture`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/DepartmentHub',
+        helpText: 'Full URL of the site to convert to hub'
+      },
+      {
+        name: 'title',
+        label: 'Hub Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Sales Department Hub',
+        helpText: 'Display name for the hub site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const title = escapePowerShellString(params.title);
+
+      return `# Register Hub Site
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Registering hub site..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  Title: ${title}" -ForegroundColor White
+    
+    Register-SPOHubSite -Site "${url}" -Title "${title}"
+    
+    Write-Host "✓ Hub site registered successfully" -ForegroundColor Green
+    Write-Host "  ${title} is now a hub site" -ForegroundColor Cyan
+    Write-Host "  Other sites can now associate with this hub" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to register hub site: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-hub-associate',
+    title: 'Associate Site to Hub',
+    description: 'Join site to hub site',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Associates a SharePoint site collection with an existing hub site
+- Enables site to inherit hub navigation, theme, and branding
+- Creates organizational hierarchy under hub structure
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+- Target hub site must already be registered
+
+**What You Need to Provide:**
+- Site URL to associate with hub
+- Hub site URL (parent hub)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Associates site with specified hub site
+3. Enables hub navigation and branding inheritance
+4. Reports association success
+
+**Important Notes:**
+- Site inherits hub theme, navigation, and site design
+- Only modern sites can be associated with hubs
+- Site can only be associated with one hub at a time
+- Hub association can be removed without data loss
+- Associated sites appear in hub site directory
+- Typical use: organizing departmental sites, project grouping
+- Hub owners can manage associated site settings
+- Changes to hub navigation apply to all associated sites
+- Consider hub structure before associating sites
+- Maximum 2,000 sites can be associated per hub`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/ProjectSite',
+        helpText: 'Full URL of the site to associate'
+      },
+      {
+        name: 'hubUrl',
+        label: 'Hub Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/DepartmentHub',
+        helpText: 'Full URL of the hub site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const hubUrl = escapePowerShellString(params.hubUrl);
+
+      return `# Associate Site to Hub
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Associating site with hub..." -ForegroundColor Cyan
+    Write-Host "  Site: ${siteUrl}" -ForegroundColor White
+    Write-Host "  Hub: ${hubUrl}" -ForegroundColor White
+    
+    Add-SPOHubSiteAssociation -Site "${siteUrl}" -HubSite "${hubUrl}"
+    
+    Write-Host "✓ Site associated with hub successfully" -ForegroundColor Green
+    Write-Host "  Site will inherit hub navigation and branding" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to associate site with hub: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-set-title',
+    title: 'Update Site Title',
+    description: 'Change site display name',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Changes the display title of a SharePoint site
+- Updates site name shown in navigation and search results
+- Does not change the site URL
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL
+- New site title (display name)
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Updates the site title property
+3. Refreshes site metadata
+4. Reports title change success
+
+**Important Notes:**
+- Changing title does not change the site URL
+- Title appears in site header and navigation
+- Searchable metadata is updated automatically
+- Title changes are visible immediately
+- Hub site associations are not affected
+- Typical use: rebranding, organizational changes
+- Keep titles clear and descriptive for users
+- Title shown in SharePoint home and search
+- Maximum recommended length is 60 characters
+- Consider SEO implications for public sites`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Sales',
+        helpText: 'Full URL of the site'
+      },
+      {
+        name: 'title',
+        label: 'New Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Sales & Marketing Team',
+        helpText: 'New display name for the site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const title = escapePowerShellString(params.title);
+
+      return `# Update Site Title
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Updating site title..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  New Title: ${title}" -ForegroundColor White
+    
+    Set-PnPWeb -Title "${title}"
+    
+    Write-Host "✓ Site title updated successfully" -ForegroundColor Green
+    Write-Host "  Title is now: ${title}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to update site title: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-lock-site',
+    title: 'Lock Site',
+    description: 'Prevent changes to site',
+    category: 'Security',
+    instructions: `**How This Task Works:**
+- Sets site collection to read-only lock state
+- Prevents all content modifications and uploads
+- Preserves read access for authorized users
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL to lock
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Sets site lock state to ReadOnly
+3. Blocks all write operations
+4. Reports lock status
+
+**Important Notes:**
+- ⚠️ SECURITY OPERATION - Blocks all content modifications
+- Users can still read and download content
+- Site Collection Admins cannot override lock
+- Lock persists until explicitly removed
+- Useful for site archival or compliance holds
+- Typical use: legal holds, archival, investigation
+- Prevent accidental data modification during audits
+- No uploads, edits, or deletions allowed when locked
+- Consider NoAccess lock for complete restriction
+- Document reason for locking in ticket system`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Archive',
+        helpText: 'Full URL of the site to lock'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Lock Site (Read-Only)
+# Generated: ${new Date().toISOString()}
+# ⚠️ WARNING: This will prevent all modifications to the site
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "⚠️  WARNING: Setting site to read-only lock state" -ForegroundColor Yellow
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    Set-SPOSite -Identity "${url}" -LockState ReadOnly
+    
+    Write-Host "✓ Site locked successfully (read-only mode)" -ForegroundColor Green
+    Write-Host "  Users can read but cannot modify content" -ForegroundColor Cyan
+    Write-Host "  Use Unlock Site task to restore editing" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to lock site: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-unlock-site',
+    title: 'Unlock Site',
+    description: 'Re-enable site editing',
+    category: 'Security',
+    instructions: `**How This Task Works:**
+- Removes lock state from a SharePoint site collection
+- Restores full read-write access for authorized users
+- Re-enables content modifications and uploads
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+- Site must currently be in locked state
+
+**What You Need to Provide:**
+- Site URL to unlock
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Sets site lock state to Unlock
+3. Restores write permissions
+4. Reports unlock success
+
+**Important Notes:**
+- Removes read-only or no-access restrictions
+- Users regain ability to modify content
+- Permissions return to pre-lock state
+- Useful after completing legal holds or audits
+- Typical use: ending archival period, restoring active sites
+- Verify hold release authorization before unlocking
+- Check compliance requirements before removing locks
+- Site immediately becomes editable upon unlock
+- Consider notifying users before unlocking archived sites
+- Document unlock authorization in ticket system`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Restored',
+        helpText: 'Full URL of the site to unlock'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Unlock Site
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Unlocking site..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    Set-SPOSite -Identity "${url}" -LockState Unlock
+    
+    Write-Host "✓ Site unlocked successfully" -ForegroundColor Green
+    Write-Host "  Users can now modify content normally" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to unlock site: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-modern-ui',
+    title: 'Enable Modern UI',
+    description: 'Switch to modern experience',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Enables modern SharePoint user interface
+- Activates responsive design and improved performance
+- Replaces classic SharePoint experience
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+- Classic team site or communication site
+
+**What You Need to Provide:**
+- Site URL to modernize
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Disables legacy quick launch navigation
+3. Enables modern experience site feature
+4. Reports modernization success
+
+**Important Notes:**
+- Modern UI provides responsive, mobile-friendly design
+- Improves page load performance significantly
+- Some classic features may not be available in modern
+- Custom master pages are not supported in modern
+- Modern lists and libraries have better performance
+- Typical use: improving user experience, mobile access
+- Test modernization on non-critical sites first
+- Classic web parts must be converted to modern
+- InfoPath forms require replacement or redesign
+- Consider modern page migration for publishing sites`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/ClassicSite',
+        helpText: 'Full URL of the site to modernize'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Enable Modern SharePoint UI
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Enabling modern UI..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    Set-PnPWeb -QuickLaunchEnabled $false
+    Enable-PnPFeature -Identity "E3540C7D-6BEA-403C-A224-1A12EAFEE4C4" -Scope Site
+    
+    Write-Host "✓ Modern UI enabled successfully" -ForegroundColor Green
+    Write-Host "  Site now uses modern SharePoint experience" -ForegroundColor Cyan
+    Write-Host "  Note: Some classic features may not be available" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to enable modern UI: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-search-reindex',
+    title: 'Request Search Reindex',
+    description: 'Trigger full site reindex',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Requests full search reindexing of SharePoint site
+- Rebuilds search index for all site content
+- Resolves search result inconsistencies
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL to reindex
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Submits reindex request to search service
+3. Queues site for complete reindexing
+4. Reports reindex request confirmation
+
+**Important Notes:**
+- Reindexing may take hours or days depending on site size
+- Search results may be incomplete during reindexing
+- Useful after major content migrations or reorganizations
+- Resolves missing or outdated search results
+- Typical use: after bulk uploads, metadata changes
+- Reindexing is queued and processed asynchronously
+- Site remains fully accessible during reindex
+- Cannot cancel reindex once started
+- Monitor search quality to verify completion
+- Consider scheduling during off-hours for large sites`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/KnowledgeBase',
+        helpText: 'Full URL of the site to reindex'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Request Search Reindex
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Requesting search reindex..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    Request-PnPReIndexWeb
+    
+    Write-Host "✓ Search reindex requested successfully" -ForegroundColor Green
+    Write-Host "  Reindexing will begin shortly" -ForegroundColor Cyan
+    Write-Host "  Note: Large sites may take hours to complete" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to request reindex: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-audit-permissions',
+    title: 'Export Permission Report',
+    description: 'Detailed permissions audit',
+    category: 'Permissions',
+    instructions: `**How This Task Works:**
+- Exports comprehensive permission audit for site lists and libraries
+- Retrieves role assignments for all list items
+- Generates detailed permission mapping report
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL to audit
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Retrieves all lists and libraries
+3. Collects role assignments for each list item
+4. Exports permission details to CSV
+
+**Important Notes:**
+- Comprehensive audit may take significant time for large sites
+- Reports both direct and inherited permissions
+- Essential for security compliance and access reviews
+- Shows permissions at item level granularity
+- Typical use: security audits, compliance reporting
+- Use for identifying permission anomalies
+- Audit before breaking permission inheritance
+- Review quarterly for security compliance
+- Identify overprivileged users and groups
+- Cross-reference with organizational policies`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Compliance',
+        helpText: 'Full URL of the site'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\PermissionAudit.csv',
+        helpText: 'Path where the CSV file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Detailed Permission Report
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Collecting detailed permissions..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  Note: This may take several minutes" -ForegroundColor Yellow
+    
+    $PermissionReport = @()
+    
+    $Lists = Get-PnPList
+    foreach ($List in $Lists) {
+        Write-Host "  Processing: $($List.Title)" -ForegroundColor Gray
+        $Items = Get-PnPListItem -List $List.Title -PageSize 500
+        
+        foreach ($Item in $Items) {
+            $RoleAssignments = Get-PnPProperty -ClientObject $Item -Property RoleAssignments
+            
+            foreach ($Role in $RoleAssignments) {
+                $PermissionReport += [PSCustomObject]@{
+                    List         = $List.Title
+                    ItemId       = $Item.Id
+                    Principal    = $Role.Member.Title
+                    PermissionLevel = ($Role.RoleDefinitionBindings | Select-Object -ExpandProperty Name) -join ", "
+                }
+            }
+        }
+    }
+    
+    $PermissionReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Permission report exported successfully" -ForegroundColor Green
+    Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
+    Write-Host "  Total entries: $($PermissionReport.Count)" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to export permission report: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-bulk-upload',
+    title: 'Bulk Upload Files',
+    description: 'Upload folder to library',
+    category: 'Storage',
+    instructions: `**How This Task Works:**
+- Uploads entire folder structure to SharePoint document library
+- Preserves folder hierarchy during upload
+- Processes files recursively from local file system
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Contribute permissions
+- Interactive authentication to SharePoint site
+- Sufficient storage quota available
+
+**What You Need to Provide:**
+- Site URL
+- Local folder path to upload
+- Target library name (default: Documents)
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Creates upload destination folder in library
+3. Recursively uploads all files from local folder
+4. Reports upload completion
+
+**Important Notes:**
+- Large uploads may take significant time
+- Files are uploaded to "Upload" subfolder in library
+- Preserves original folder structure
+- Check storage quota before uploading large folders
+- Maximum file size limit is 100GB per file
+- Typical use: content migrations, bulk document imports
+- Monitor upload progress for large folders
+- Network interruptions may cause partial uploads
+- Consider using SharePoint Migration Tool for migrations
+- Verify upload completion before deleting local files`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Projects',
+        helpText: 'Full URL of the SharePoint site'
+      },
+      {
+        name: 'folderPath',
+        label: 'Local Folder Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Documents\\ProjectFiles',
+        helpText: 'Path to local folder to upload'
+      },
+      {
+        name: 'library',
+        label: 'Library Name',
+        type: 'text',
+        required: true,
+        defaultValue: 'Documents',
+        placeholder: 'Documents',
+        helpText: 'Target document library name'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const folderPath = escapePowerShellString(params.folderPath);
+      const library = params.library || 'Documents';
+
+      return `# Bulk Upload Files to SharePoint
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Uploading files..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    Write-Host "  Source: ${folderPath}" -ForegroundColor White
+    Write-Host "  Library: ${library}" -ForegroundColor White
+    
+    # Create upload folder
+    Add-PnPFolder -Name "Upload" -Folder "${library}" -ErrorAction SilentlyContinue
+    
+    # Upload all files recursively
+    $Files = Get-ChildItem -Path "${folderPath}" -Recurse -File
+    $FileCount = $Files.Count
+    $Counter = 0
+    
+    foreach ($File in $Files) {
+        $Counter++
+        Write-Host "  [$Counter/$FileCount] Uploading: $($File.Name)" -ForegroundColor Gray
+        
+        $RelativePath = $File.FullName.Substring("${folderPath}".Length).TrimStart("\\")
+        $TargetFolder = "${library}/Upload/" + [System.IO.Path]::GetDirectoryName($RelativePath).Replace("\\", "/")
+        
+        Add-PnPFile -Path $File.FullName -Folder $TargetFolder -ErrorAction Continue
+    }
+    
+    Write-Host "✓ Files uploaded successfully" -ForegroundColor Green
+    Write-Host "  Total files: $FileCount" -ForegroundColor Cyan
+    Write-Host "  Location: ${library}/Upload" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to upload files: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-guest-expiration',
+    title: 'Set Guest Link Expiration',
+    description: 'Configure link expiry days',
+    category: 'Sharing',
+    instructions: `**How This Task Works:**
+- Configures automatic expiration for external sharing links
+- Enforces security policy on guest access
+- Applies tenant-wide expiration settings
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Expiration period in days (recommended: 30-90 days)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Enables external user expiration requirement
+3. Sets expiration period for guest links
+4. Reports expiration policy
+
+**Important Notes:**
+- Applies to all future sharing links tenant-wide
+- Existing links are not retroactively modified
+- Helps enforce data governance and security compliance
+- Reduces risk of indefinite external access
+- Typical expiration: 30 days (high security), 90 days (standard)
+- Typical use: compliance requirements, security hardening
+- Users receive notifications before link expiration
+- Expired links automatically become invalid
+- Consider business needs when setting duration
+- Document policy in security procedures`,
+    parameters: [
+      {
+        name: 'days',
+        label: 'Expiration Days',
+        type: 'number',
+        required: true,
+        defaultValue: 30,
+        placeholder: '30',
+        helpText: 'Number of days until guest links expire'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const days = params.days || 30;
+
+      return `# Set Guest Link Expiration Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "Configuring guest link expiration..." -ForegroundColor Cyan
+    Write-Host "  Expiration: ${days} days" -ForegroundColor White
+    
+    Set-SPOTenant -ExternalUserExpirationRequired $true -ExternalUserExpireInDays ${days}
+    
+    Write-Host "✓ Guest link expiration configured successfully" -ForegroundColor Green
+    Write-Host "  All new sharing links will expire in ${days} days" -ForegroundColor Cyan
+    Write-Host "  Note: Existing links are not affected" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to configure expiration: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-disable-download',
+    title: 'Disable File Downloads',
+    description: 'Block downloads for site',
+    category: 'Security',
+    instructions: `**How This Task Works:**
+- Blocks file download capability for SharePoint site
+- Enforces view-only access to documents
+- Prevents data exfiltration through downloads
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL to restrict downloads
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Disables download capability for site
+3. Enforces view-only document access
+4. Reports download restriction success
+
+**Important Notes:**
+- ⚠️ SECURITY OPERATION - Blocks all file downloads
+- Users can view files in browser only
+- Prevents printing and copying in Office Online
+- Useful for sensitive or confidential content
+- Applies to all users including site owners
+- Typical use: confidential data protection, compliance
+- Consider impact on legitimate business workflows
+- Users can still view content in Office Online
+- Does not prevent screenshots or photography
+- May impact mobile app functionality
+- Document business justification before implementing`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Confidential',
+        helpText: 'Full URL of the site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Disable File Downloads
+# Generated: ${new Date().toISOString()}
+# ⚠️ WARNING: This will block file downloads for all users
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "⚠️  WARNING: Disabling file downloads" -ForegroundColor Yellow
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    Set-SPOSite -Identity "${url}" -DisableFlows RelaxationEnabled
+    
+    Write-Host "✓ File downloads disabled successfully" -ForegroundColor Green
+    Write-Host "  Users can view files but cannot download" -ForegroundColor Cyan
+    Write-Host "  Note: This applies to all users including admins" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to disable downloads: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-export-files',
+    title: 'Export File Inventory',
+    description: 'List all files in site',
+    category: 'Storage',
+    instructions: `**How This Task Works:**
+- Exports comprehensive inventory of all files in document library
+- Collects file metadata including name, size, and modification date
+- Generates CSV report for storage analysis
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Retrieves all items from Documents library
+3. Collects file name, size, and modification metadata
+4. Exports file inventory to CSV
+
+**Important Notes:**
+- Reports on Documents library by default
+- Shows file size in bytes
+- Includes modification timestamps
+- Useful for storage analysis and capacity planning
+- Typical use: storage audits, cleanup planning
+- Large libraries may take time to process
+- Maximum 5,000 items per query (pagination automatic)
+- Does not include files in other libraries
+- Modify script to target specific library if needed
+- Use for identifying large or old files for cleanup`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Archive',
+        helpText: 'Full URL of the SharePoint site'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\FileInventory.csv',
+        helpText: 'Path where the CSV file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export File Inventory
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Collecting file inventory..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    $Files = Get-PnPListItem -List "Documents" -PageSize 5000
+    
+    $FileReport = $Files | Select-Object @{
+        Name = 'FileName'
+        Expression = { $_["FileLeafRef"] }
+    }, @{
+        Name = 'SizeBytes'
+        Expression = { $_["File_x0020_Size"] }
+    }, @{
+        Name = 'Modified'
+        Expression = { $_["Modified"] }
+    }
+    
+    Write-Host "Found $($FileReport.Count) files" -ForegroundColor Yellow
+    
+    $FileReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ File inventory exported successfully" -ForegroundColor Green
+    Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to export file inventory: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-block-filetypes',
+    title: 'Block File Types',
+    description: 'Prevent upload of extensions',
+    category: 'Security',
+    instructions: `**How This Task Works:**
+- Blocks upload of specified file extensions tenant-wide
+- Prevents potentially dangerous file types from being uploaded
+- Enforces file type security policy
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Comma-separated list of file extensions to block (include dots)
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Configures blocked file extension list
+3. Applies restriction tenant-wide
+4. Reports blocked file types
+
+**Important Notes:**
+- ⚠️ SECURITY OPERATION - Blocks file uploads tenant-wide
+- Extensions must include leading dot (.exe, .bat, .cmd)
+- Applies to all SharePoint sites in tenant
+- Prevents upload via web, sync, and mobile apps
+- Common blocked types: .exe, .bat, .cmd, .vbs, .js
+- Typical use: malware prevention, security hardening
+- Consider business impact before blocking common types
+- Users receive error when attempting blocked uploads
+- Does not remove existing files with blocked extensions
+- Document blocked extensions in security policy`,
+    parameters: [
+      {
+        name: 'extensions',
+        label: 'File Extensions to Block',
+        type: 'text',
+        required: true,
+        placeholder: '.exe,.bat,.cmd,.vbs,.js',
+        helpText: 'Comma-separated list with dots (e.g., .exe,.bat,.cmd)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const extensions = escapePowerShellString(params.extensions);
+
+      return `# Block File Type Uploads
+# Generated: ${new Date().toISOString()}
+# ⚠️ WARNING: This blocks file uploads tenant-wide
+
+Connect-SPOService -Url https://tenant-admin.sharepoint.com
+
+try {
+    Write-Host "⚠️  WARNING: Blocking file type uploads" -ForegroundColor Yellow
+    Write-Host "  Extensions: ${extensions}" -ForegroundColor White
+    
+    $BlockedFileTypes = "${extensions}"
+    Set-SPOTenant -ExcludedFileExtensionsForSyncClient $BlockedFileTypes
+    
+    Write-Host "✓ File types blocked successfully" -ForegroundColor Green
+    Write-Host "  Blocked extensions: ${extensions}" -ForegroundColor Cyan
+    Write-Host "  Note: Applies to all sites in tenant" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to block file types: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-clear-cache',
+    title: 'Clear Site Cache',
+    description: 'Force site cache refresh',
+    category: 'Site Management',
+    instructions: `**How This Task Works:**
+- Clears cached data for SharePoint site
+- Forces refresh of site metadata and content
+- Resolves display and performance issues
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Global Administrator role
+- Interactive authentication to SharePoint site
+
+**What You Need to Provide:**
+- Site URL to clear cache
+
+**What the Script Does:**
+1. Connects to SharePoint site interactively
+2. Clears Microsoft 365 Group file version cache
+3. Forces metadata refresh
+4. Reports cache clearing success
+
+**Important Notes:**
+- Useful for resolving stale data issues
+- May temporarily impact site performance
+- Cache rebuilds automatically after clearing
+- Resolves display inconsistencies and sync issues
+- Typical use: after major configuration changes
+- Users may experience brief slowdown during cache rebuild
+- Does not delete actual content or files
+- Safe operation with no data loss risk
+- Consider during off-hours for user-facing sites
+- Cache clearing is immediate but rebuild takes time`,
+    parameters: [
+      {
+        name: 'url',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://tenant.sharepoint.com/sites/Support',
+        helpText: 'Full URL of the site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const url = escapePowerShellString(params.url);
+
+      return `# Clear Site Cache
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${url}" -Interactive
+
+try {
+    Write-Host "Clearing site cache..." -ForegroundColor Cyan
+    Write-Host "  Site: ${url}" -ForegroundColor White
+    
+    Clear-PnPMicrosoft365GroupFileVersionBatchDeleteJob
+    
+    Write-Host "✓ Site cache cleared successfully" -ForegroundColor Green
+    Write-Host "  Cache will rebuild automatically" -ForegroundColor Cyan
+    Write-Host "  Note: Site may be briefly slower during rebuild" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to clear cache: $_"
+}`;
+    }
+  }
 ];
 
 export const sharePointOnlineCategories = [

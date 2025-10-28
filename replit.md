@@ -3,6 +3,17 @@
 ## Overview
 PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 8 basic Windows management categories, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 623 automation tasks across 16 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
+## Recent Changes (October 28, 2025)
+**MAJOR MILESTONE: 34.8% Complete (215/618 tasks)**
+- Completed comprehensive instructions for 20 additional tasks across 4 small categories
+- **Newly Completed Categories (4):** SharePoint Online (5), SharePoint On-Premises (5), Windows 365 (5), Windows Server (5)
+- **Total Fully Complete Categories: 13 of 23**
+  - Active Directory (30), Azure AD/Entra ID (25), Exchange Online (20), Intune (29), Azure Resources (31), Hyper-V (29), Office 365 (5), OneDrive (5), Power Platform (5), SharePoint Online (5), SharePoint On-Premises (5), Windows 365 (5), Windows Server (5)
+- **Partially Complete Categories: 2**
+  - Microsoft Teams (5/30), MECM (11/60)
+- **Remaining Work:** 403 tasks across 8 categories
+- All instructions follow Markdown formatting standards with hyphenated bullets for "How This Task Works" and numbered bullets for "What the Script Does"
+
 ## User Preferences
 - Default theme: Dark mode
 - Auto-save script to localStorage

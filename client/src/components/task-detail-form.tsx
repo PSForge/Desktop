@@ -10,6 +10,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Code, AlertCircle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface TaskDetailFormProps {
   task: ADTask;
@@ -201,8 +203,10 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
             <div className="px-6 pb-4">
               <Alert className="bg-accent/20 border-accent" data-testid="alert-task-instructions">
                 <Info className="h-4 w-4" />
-                <AlertDescription className="mt-2 text-sm leading-relaxed whitespace-pre-line">
-                  {task.instructions}
+                <AlertDescription className="mt-2 text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {task.instructions}
+                  </ReactMarkdown>
                 </AlertDescription>
               </Alert>
             </div>

@@ -33,6 +33,35 @@ export const adTasks: ADTask[] = [
     name: 'New Hire Provisioning',
     category: 'Identity Lifecycle',
     description: 'Create new user account with groups, home drive, manager, and welcome notification',
+    instructions: `**How This Task Works:**
+This script automates the complete new hire provisioning process by creating a new Active Directory user account with all required attributes, security group memberships, home drive configuration, and manager assignment.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or delegated user creation permissions
+- Manager account must already exist in AD
+- Organizational Unit (OU) must exist
+- Home drive file server accessible (if using home drives)
+
+**What You Need to Provide:**
+- Employee first name, last name, department, and job title
+- Manager's username for reporting structure
+- Target OU distinguished name (e.g., OU=Users,DC=company,DC=com)
+- Optional: Home drive UNC path and security groups
+
+**What the Script Does:**
+1. Generates username from first initial + last name (e.g., John Doe → jdoe)
+2. Creates secure random password (user must change at first logon)
+3. Creates AD user account with all specified attributes
+4. Creates and configures home drive folder with proper permissions (if specified)
+5. Adds user to specified security groups
+6. Outputs username and confirms successful creation
+
+**Important Notes:**
+- The generated temporary password is displayed only once - save it securely
+- Username conflicts are not automatically handled - ensure uniqueness
+- Home drive creation requires network share permissions
+- User will be prompted to change password at first logon`,
     parameters: [
       { id: 'firstName', label: 'First Name', type: 'text', required: true, placeholder: 'John' },
       { id: 'lastName', label: 'Last Name', type: 'text', required: true, placeholder: 'Doe' },
@@ -132,6 +161,35 @@ try {
     name: 'User Offboarding',
     category: 'Identity Lifecycle',
     description: 'Disable account, remove groups, move to disabled OU, and archive home drive',
+    instructions: `**How This Task Works:**
+This script performs a complete user offboarding process by disabling the account, removing group memberships, relocating to a disabled users OU, and optionally archiving the home directory.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or delegated account management permissions
+- Disabled Users OU must exist
+- Access to home drive archive location (if archiving)
+
+**What You Need to Provide:**
+- Username of the departing employee
+- Disabled Users OU distinguished name
+- Optional: Archive path for home drive backup
+- Choose whether to remove all group memberships
+
+**What the Script Does:**
+1. Retrieves user account and current group memberships
+2. Disables the user account immediately
+3. Updates description with disable date and former title
+4. Removes user from all security groups (except Domain Users)
+5. Moves user object to Disabled Users OU
+6. Archives home directory with timestamp (if specified)
+
+**Important Notes:**
+- Account is disabled immediately - user cannot log in
+- Group removal preserves Domain Users membership
+- Home drive is copied, not moved - original remains intact
+- Archive includes timestamp to prevent naming conflicts
+- This is reversible - account can be re-enabled if needed`,
     parameters: [
       { id: 'username', label: 'Username', type: 'text', required: true, placeholder: 'jdoe' },
       { id: 'disabledOU', label: 'Disabled Users OU', type: 'text', required: true, placeholder: 'OU=Disabled,DC=company,DC=com' },
@@ -206,6 +264,35 @@ try {
     name: 'Password Expiry Notification',
     category: 'Identity Lifecycle',
     description: 'Find users with expiring passwords and send notifications',
+    instructions: `**How This Task Works:**
+This script identifies users whose passwords are approaching expiration and sends automated email notifications to remind them to change their passwords before they expire.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Read access to Active Directory
+- SMTP server accessible and configured
+- Email relay permissions configured
+
+**What You Need to Provide:**
+- Days before expiry to trigger notifications (e.g., 14 days)
+- SMTP server hostname or IP address
+- From email address for notifications
+- Optional: Specific OU to search (default: entire domain)
+
+**What the Script Does:**
+1. Calculates the expiration window based on days specified
+2. Queries Active Directory for users with expiring passwords
+3. Filters enabled accounts with email addresses
+4. Generates personalized email for each user
+5. Sends notification via SMTP with expiry date and instructions
+6. Outputs summary of notifications sent
+
+**Important Notes:**
+- Only processes enabled accounts with valid email addresses
+- Requires users to have the "mail" attribute populated in AD
+- SMTP server must allow relay from the executing server
+- Password expiry is based on domain password policy
+- Run regularly (scheduled task) for ongoing notification`,
     parameters: [
       { id: 'daysBeforeExpiry', label: 'Days Before Expiry', type: 'number', required: true, defaultValue: 14, placeholder: '14' },
       { id: 'searchBase', label: 'Search Base (optional)', type: 'text', required: false, placeholder: 'OU=Users,DC=company,DC=com' },
@@ -297,6 +384,33 @@ Write-Host "Found $($ExpiringUsers.Count) users with expiring passwords" -Foregr
     name: 'Cleanup Stale Computers',
     category: 'Computers & OUs',
     description: 'Find and optionally remove/disable computers inactive for specified days',
+    instructions: `**How This Task Works:**
+This script identifies computer accounts that haven't logged into the domain for a specified period and performs cleanup actions to maintain Active Directory hygiene.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or delegated computer object management permissions
+- Quarantine OU must exist (if using move action)
+
+**What You Need to Provide:**
+- Inactive days threshold (e.g., 90 days)
+- Action to perform: Report Only, Disable, Move to Quarantine OU, or Delete
+- Quarantine OU path (if moving objects)
+- Optional: CSV export path for reporting
+
+**What the Script Does:**
+1. Calculates cutoff date based on inactive days threshold
+2. Searches Active Directory for computers with no activity since cutoff
+3. Lists all stale computers with last logon date
+4. Performs specified action (report, disable, move, or delete)
+5. Exports detailed report to CSV (if path specified)
+
+**Important Notes:**
+- "Report Only" is safest - review before taking destructive actions
+- LastLogonDate may be up to 14 days old due to AD replication
+- Deleted computer objects cannot be easily recovered
+- Consider disabling before deleting to allow time for review
+- Excludes domain controllers from stale computer detection`,
     parameters: [
       { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: true, defaultValue: 90, placeholder: '90' },
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['Report Only', 'Disable', 'Move to Quarantine OU', 'Delete'], defaultValue: 'Report Only' },
@@ -379,6 +493,34 @@ Write-Host "Stale computers cleanup completed!" -ForegroundColor Green`;
     name: 'Backup All GPOs',
     category: 'GPO & Configuration',
     description: 'Create timestamped backup of all Group Policy Objects',
+    instructions: `**How This Task Works:**
+This script creates a complete backup of all Group Policy Objects in the domain, organized by timestamp, with optional automatic cleanup of old backups.
+
+**Prerequisites:**
+- Group Policy PowerShell module installed
+- Domain Admin or delegated GPO management permissions
+- Write access to backup destination path
+- Sufficient disk space for GPO backups
+
+**What You Need to Provide:**
+- Backup directory path (e.g., C:\\GPOBackups)
+- Optional: Retention period in days for automatic cleanup
+- Optional: Comment to document backup purpose
+
+**What the Script Does:**
+1. Creates timestamped backup folder (format: yyyyMMdd-HHmmss)
+2. Enumerates all GPOs in the domain
+3. Backs up each GPO individually with metadata
+4. Generates detailed backup manifest
+5. Removes backups older than retention period (if specified)
+
+**Important Notes:**
+- Each backup includes GPO settings and permissions
+- Backups are stored in individual GUID folders
+- Manifest file maps GPO names to backup GUIDs
+- Schedule this regularly (daily/weekly) for disaster recovery
+- Test restoration process periodically
+- Retention cleanup helps manage disk space automatically`,
     parameters: [
       { id: 'backupPath', label: 'Backup Path', type: 'path', required: true, placeholder: 'C:\\GPOBackups' },
       { id: 'retentionDays', label: 'Retention Days (delete older)', type: 'number', required: false, defaultValue: 30, placeholder: '30' },

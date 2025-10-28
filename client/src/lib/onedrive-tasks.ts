@@ -27,6 +27,32 @@ export const oneDriveTasks: OneDriveTask[] = [
     title: 'Export Storage Usage Report',
     description: 'Export OneDrive storage usage for all users to CSV',
     category: 'Storage Management',
+    instructions: `**How This Task Works:**
+This script exports comprehensive OneDrive storage usage statistics for all users to monitor consumption and plan capacity.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- Reports.Read.All permission
+- Global Administrator or Reports Reader role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves 7-day OneDrive usage details
+- Exports storage metrics to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for capacity planning and storage management
+- Shows storage used per user
+- Use for identifying storage hogs and quota planning
+- Run monthly for storage trend analysis
+- Plan for storage growth (average 20-30% annually)
+- Identify users exceeding quotas
+- Typical use: capacity planning, cost optimization
+- Compare with assigned quotas to prevent overruns`,
     parameters: [
       {
         name: 'exportPath',
@@ -65,6 +91,32 @@ try {
     title: 'Export Sharing Activity Report',
     description: 'Export OneDrive sharing activity to CSV',
     category: 'Sharing & Permissions',
+    instructions: `**How This Task Works:**
+This script exports OneDrive sharing and file activity metrics for security monitoring and collaboration analytics.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- Reports.Read.All permission
+- Global Administrator or Reports Reader role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves 7-day OneDrive activity details
+- Exports sharing activity to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for security monitoring and compliance
+- Shows file views, edits, shares, and syncs
+- Use for identifying excessive external sharing
+- Run weekly for security audits
+- Monitor for data exfiltration patterns
+- Identify inactive users for license optimization
+- Typical use: security reviews, compliance reporting
+- Compare sharing patterns against policies`,
     parameters: [
       {
         name: 'exportPath',
@@ -103,6 +155,33 @@ try {
     title: 'List Externally Shared Files',
     description: 'List all files shared externally from a user OneDrive',
     category: 'Sharing & Permissions',
+    instructions: `**How This Task Works:**
+This script lists all files shared externally from a specific user's OneDrive for security audit and compliance verification.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- Sites.Read.All permission
+- SharePoint Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- User principal name (email address)
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves user's OneDrive
+- Lists all externally shared items
+- Displays file names and URLs
+- Reports total shared item count
+
+**Important Notes:**
+- Essential for security audits and data loss prevention
+- Shows files accessible outside organization
+- Use during offboarding to revoke external access
+- Run quarterly for compliance reviews
+- Identify sensitive data shared externally
+- Use for GDPR/HIPAA compliance verification
+- Typical use: security incidents, user departures
+- Revoke sharing for departed employees immediately`,
     parameters: [
       {
         name: 'userPrincipalName',
@@ -144,6 +223,32 @@ try {
     title: 'Export OneDrive Sync Health',
     description: 'Export OneDrive sync client health status to CSV',
     category: 'Sync & Client',
+    instructions: `**How This Task Works:**
+This script exports OneDrive sync client health metrics to troubleshoot sync issues and monitor client performance.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- Reports.Read.All permission
+- Global Administrator or Reports Reader role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves 7-day OneDrive sync health data
+- Exports sync metrics to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for troubleshooting sync problems
+- Shows sync errors, conflicts, and health status
+- Use for identifying users with sync failures
+- Run weekly for proactive support
+- Common issues: quota exceeded, authentication failures
+- Identify users needing Known Folder Move assistance
+- Typical use: helpdesk troubleshooting, proactive monitoring
+- Compare with support tickets to identify patterns`,
     parameters: [
       {
         name: 'exportPath',
@@ -182,6 +287,32 @@ try {
     title: 'Export OneDrive User Inventory',
     description: 'Export list of all OneDrive sites to CSV',
     category: 'Reporting',
+    instructions: `**How This Task Works:**
+This script exports complete inventory of all OneDrive sites with owner, storage usage, and quota details for tenant-wide management.
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connection to SharePoint admin center
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all personal OneDrive sites
+- Collects owner, URL, storage usage, and quota
+- Exports comprehensive inventory to CSV
+- Reports total OneDrive site count
+
+**Important Notes:**
+- Essential for tenant-wide OneDrive management
+- Shows all provisioned OneDrive sites
+- Use for capacity planning and license verification
+- Run monthly for inventory updates
+- Identify orphaned OneDrives from departed users
+- Compare with active directory for discrepancies
+- Typical use: annual audits, capacity planning
+- Total storage cost calculation for budgeting`,
     parameters: [
       {
         name: 'exportPath',

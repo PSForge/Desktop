@@ -27,6 +27,33 @@ export const office365Tasks: Office365Task[] = [
     title: 'Export License Inventory',
     description: 'Export comprehensive report of Office 365 licenses to CSV',
     category: 'Licensing',
+    instructions: `**How This Task Works:**
+This script exports a comprehensive inventory of all Office 365 license SKUs with allocation details for capacity planning and license management.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- Organization.Read.All permission
+- Global Administrator or License Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves all subscribed SKUs
+- Calculates total, assigned, and available licenses
+- Exports detailed report to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for license management and capacity planning
+- Shows SKU part numbers (e.g., ENTERPRISEPACK for E3)
+- Use for tracking license consumption and purchasing decisions
+- Run monthly for license utilization trends
+- Identify over-allocated SKUs requiring additional purchases
+- Identify under-utilized SKUs for cost optimization
+- Typical use: annual budgeting, quarterly reviews
+- Compare with user count to predict growth needs`,
     parameters: [
       {
         name: 'exportPath',
@@ -74,6 +101,33 @@ try {
     title: 'Export User License Assignments',
     description: 'Export detailed user license assignments to CSV',
     category: 'Licensing',
+    instructions: `**How This Task Works:**
+This script exports user-level license assignment details showing which users have licenses and license counts for audit and optimization.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- User.Read.All and Organization.Read.All permissions
+- License Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves all users with assigned licenses
+- Counts licenses per user
+- Exports user license details to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for license audit and user verification
+- Identifies users with multiple licenses
+- Use for license optimization and deduplication
+- Excludes unlicensed users from report
+- Run during license audits or compliance reviews
+- Compare with HR data to identify departures
+- Typical use: quarterly license reviews, audit compliance
+- Identify users with excessive license assignments`,
     parameters: [
       {
         name: 'exportPath',
@@ -122,6 +176,32 @@ try {
     title: 'Export Service Health Status',
     description: 'Export current Office 365 service health status to CSV',
     category: 'Health Monitoring',
+    instructions: `**How This Task Works:**
+This script exports real-time Office 365 service health status for monitoring outages, degradation, and service incidents.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- ServiceHealth.Read.All permission
+- Service Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves service health overview for all services
+- Exports service status to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for monitoring service availability and incidents
+- Shows status for Exchange, SharePoint, Teams, etc.
+- Status values: Healthy, Degraded, Interrupted
+- Use for incident response and SLA tracking
+- Run during suspected outages or performance issues
+- Combine with service communications for details
+- Typical use: daily health checks, incident investigations
+- Automate for proactive monitoring dashboards`,
     parameters: [
       {
         name: 'exportPath',
@@ -167,6 +247,32 @@ try {
     title: 'Export Admin Role Assignments',
     description: 'Export Office 365 admin role assignments to CSV',
     category: 'Administration',
+    instructions: `**How This Task Works:**
+This script exports all administrative role assignments for security audit, compliance, and privileged access review.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- RoleManagement.Read.Directory permission
+- Privileged Role Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves all directory roles and members
+- Exports role-member mappings to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for security audit and privileged access management
+- Shows Global Admin, Exchange Admin, SharePoint Admin, etc.
+- Use for quarterly privileged access reviews
+- Identify excessive admin assignments
+- Run during security audits or compliance reviews
+- Implement principle of least privilege
+- Typical use: quarterly access reviews, audit compliance
+- Compare with HR data to remove departed admins immediately`,
     parameters: [
       {
         name: 'exportPath',
@@ -217,6 +323,33 @@ try {
     title: 'Export Tenant Domains',
     description: 'Export list of all domains in the Office 365 tenant to CSV',
     category: 'Tenant Configuration',
+    instructions: `**How This Task Works:**
+This script exports all registered domains in Office 365 tenant with verification and default status for domain management and documentation.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell module installed
+- Domain.Read.All permission
+- Domain Administrator or Global Administrator role
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Microsoft Graph
+- Retrieves all tenant domains
+- Shows default and verification status
+- Exports domain inventory to CSV
+- Reports export success
+
+**Important Notes:**
+- Essential for domain management and tenant documentation
+- Shows .onmicrosoft.com and custom domains
+- Default domain used for new user creation
+- Verified domains ready for email and services
+- Use for domain inventory and planning
+- Identify unverified domains requiring DNS configuration
+- Typical use: tenant documentation, domain audits
+- Required before adding users to custom domains`,
     parameters: [
       {
         name: 'exportPath',

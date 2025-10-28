@@ -27,6 +27,32 @@ export const powerPlatformTasks: PowerPlatformTask[] = [
     title: 'Export Environments List',
     description: 'Export list of all Power Platform environments to CSV',
     category: 'Environment Management',
+    instructions: `**How This Task Works:**
+This script exports comprehensive inventory of all Power Platform environments for governance, capacity planning, and license management.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all Power Platform environments
+- Collects environment type, location, and creation date
+- Exports detailed inventory to CSV
+- Reports total environment count
+
+**Important Notes:**
+- Essential for environment governance and compliance
+- Shows production, trial, sandbox, and developer environments
+- Use for capacity planning and cost management
+- Run monthly for environment inventory updates
+- Identify rogue trial environments for cleanup
+- Track environment sprawl across organization
+- Typical use: governance reviews, cost analysis
+- Delete unused trial/sandbox environments to reduce costs`,
     parameters: [
       {
         name: 'exportPath',
@@ -75,6 +101,32 @@ try {
     title: 'Export Power Apps Inventory',
     description: 'Export list of all Power Apps to CSV',
     category: 'Apps & Flows',
+    instructions: `**How This Task Works:**
+This script exports complete inventory of all Power Apps across tenant for app lifecycle management and governance.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all Power Apps across environments
+- Collects app name, owner, environment, and creation date
+- Exports comprehensive app inventory to CSV
+- Reports total app count
+
+**Important Notes:**
+- Essential for app lifecycle governance
+- Shows canvas and model-driven apps
+- Use for identifying orphaned apps after user departures
+- Run quarterly for app inventory audits
+- Identify duplicate apps for consolidation
+- Track app ownership for support accountability
+- Typical use: governance reviews, license optimization
+- Delete unused apps to improve manageability`,
     parameters: [
       {
         name: 'exportPath',
@@ -123,6 +175,32 @@ try {
     title: 'Export Power Automate Flows',
     description: 'Export list of all Power Automate flows to CSV',
     category: 'Apps & Flows',
+    instructions: `**How This Task Works:**
+This script exports inventory of all Power Automate flows for monitoring automation usage and governance.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all Power Automate flows across environments
+- Collects flow name, enabled status, owner, and creation date
+- Exports flow inventory to CSV
+- Reports total flow count
+
+**Important Notes:**
+- Essential for automation governance and monitoring
+- Shows enabled/disabled flow status
+- Use for identifying broken or orphaned flows
+- Run monthly for flow health audits
+- Identify flows with expired connections
+- Track flow ownership for maintenance
+- Typical use: governance reviews, troubleshooting
+- Disable unused flows to reduce API consumption`,
     parameters: [
       {
         name: 'exportPath',
@@ -172,6 +250,32 @@ try {
     title: 'Export Custom Connectors',
     description: 'Export list of custom connectors to CSV',
     category: 'Connectors',
+    instructions: `**How This Task Works:**
+This script exports inventory of custom connectors for API integration governance and documentation.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all custom connectors across environments
+- Collects connector name, environment, and creation date
+- Exports connector inventory to CSV
+- Reports total custom connector count
+
+**Important Notes:**
+- Essential for API integration governance
+- Shows custom API connectors only (not built-in)
+- Use for tracking external API dependencies
+- Run quarterly for connector audits
+- Identify unused connectors for cleanup
+- Document connector purposes and owners
+- Typical use: security reviews, API inventory
+- Review for security vulnerabilities in custom APIs`,
     parameters: [
       {
         name: 'exportPath',
@@ -219,6 +323,32 @@ try {
     title: 'Export DLP Policies',
     description: 'Export Data Loss Prevention policies to CSV',
     category: 'Governance',
+    instructions: `**How This Task Works:**
+This script exports Data Loss Prevention (DLP) policies for security compliance and connector governance documentation.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all DLP policies across tenant
+- Collects policy name, creator, and creation date
+- Exports DLP policy inventory to CSV
+- Reports total policy count
+
+**Important Notes:**
+- Essential for security compliance and data protection
+- DLP policies control connector data sharing
+- Use for regulatory compliance documentation
+- Run quarterly for security audits
+- Prevent data leakage between business/non-business connectors
+- Typical policies: block consumer services in production
+- Typical use: compliance reviews, security audits
+- Ensure all environments covered by DLP policies`,
     parameters: [
       {
         name: 'exportPath',

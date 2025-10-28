@@ -28,6 +28,35 @@ export const azureResourceTasks: AzureResourceTask[] = [
     title: 'Create Resource Group',
     description: 'Create a new Azure Resource Group with optional tags and lock',
     category: 'Resource Management',
+    instructions: `**How This Task Works:**
+This script creates Azure Resource Groups to organize and manage related Azure resources with consistent tagging and governance.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Contributor or Owner role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Resource Group name (use naming convention: rg-purpose-location)
+- Azure region/location
+- Optional tags in Key=Value format
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates new Resource Group in specified location
+- Applies optional tags for organization and cost tracking
+- Reports creation success with provisioning state
+- Displays Resource Group details
+
+**Important Notes:**
+- Essential foundation for Azure resource organization
+- Use consistent naming: rg-production-eastus, rg-dev-westus
+- Tags enable cost allocation and resource governance
+- Resource Group location doesn't restrict resource locations
+- All resources inherit Resource Group tags by default
+- Cannot be moved between subscriptions after creation
+- Deletion removes ALL contained resources
+- Use for logical grouping by environment, project, or department`,
     parameters: [
       {
         name: 'resourceGroupName',
@@ -108,6 +137,35 @@ try {
     title: 'Tag Resources at Scale',
     description: 'Add or update tags across resources in a Resource Group',
     category: 'Resource Management',
+    instructions: `**How This Task Works:**
+This script applies tags to all resources within a Resource Group simultaneously for consistent cost tracking and governance compliance.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Contributor role on target Resource Group
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Resource Group name
+- Tags to apply (Key=Value format, one per line)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves all resources in target Resource Group
+- Merges new tags with existing resource tags
+- Applies updated tags to each resource
+- Reports success/failure count for each resource
+- Provides tagging summary
+
+**Important Notes:**
+- Essential for cost allocation and resource governance
+- Preserves existing tags while adding/updating new ones
+- Bulk operation saves time vs manual portal tagging
+- Common tags: Environment, CostCenter, Owner, Project
+- Use for compliance enforcement across resource groups
+- Tags enable Azure Cost Management filtering
+- Coordinate with finance for cost center codes
+- Run after resource deployments for governance compliance`,
     parameters: [
       {
         name: 'resourceGroupName',
@@ -185,6 +243,34 @@ try {
     title: 'Export Resource Inventory',
     description: 'Export comprehensive inventory of all Azure resources to CSV',
     category: 'Resource Management',
+    instructions: `**How This Task Works:**
+This script generates complete Azure resource inventory reports for asset management, cost optimization, and compliance auditing.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Reader role (minimum)
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path for resource inventory
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves all Azure resources across subscription
+- Extracts resource name, type, group, location, tags
+- Formats tags as semicolon-separated key=value pairs
+- Exports complete inventory to CSV
+- Reports total resource count
+
+**Important Notes:**
+- Essential for Azure estate visibility and governance
+- Shows all resources across entire subscription
+- Use for cost optimization and cleanup planning
+- Tags column enables cost center allocation analysis
+- Run monthly for inventory reconciliation
+- Coordinate with finance for budget planning
+- Identify orphaned or unused resources
+- Supports compliance auditing and reporting`,
     parameters: [
       {
         name: 'exportPath',
@@ -246,6 +332,36 @@ try {
     title: 'Start/Stop/Restart VMs',
     description: 'Perform power operations on Azure Virtual Machines',
     category: 'Virtual Machines',
+    instructions: `**How This Task Works:**
+This script performs bulk power management operations on Azure VMs for cost optimization, maintenance windows, and operational scheduling.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Virtual Machine Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Power action (Start, Stop/Deallocate, or Restart)
+- Resource Group name
+- VM names (one per line, or * for all VMs in group)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves target VMs from Resource Group
+- Validates VMs exist
+- Performs power operation (Start/Stop/Restart) asynchronously
+- Reports success/failure count for each VM
+- Provides operation summary
+
+**Important Notes:**
+- Stop deallocates VMs to stop compute charges
+- Essential for cost optimization (stop dev/test VMs after hours)
+- NoWait flag enables parallel processing for speed
+- Use * wildcard to target all VMs in Resource Group
+- Start operation may take 2-5 minutes per VM
+- Stop saves compute costs but retains storage costs
+- Coordinate with users before production VM operations
+- Use for scheduled maintenance windows`,
     parameters: [
       {
         name: 'action',
@@ -347,6 +463,35 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
     title: 'Export VM Inventory',
     description: 'Export comprehensive inventory of all Azure Virtual Machines to CSV',
     category: 'Virtual Machines',
+    instructions: `**How This Task Works:**
+This script generates comprehensive VM inventory reports with hardware specs, network config, and power states for capacity planning and asset management.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Reader role (minimum)
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path
+- Whether to include power state (checkbox, adds processing time)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves all Azure VMs across subscription
+- Collects VM size, OS type, resource group, location
+- Optionally queries current power state for each VM
+- Extracts private IP addresses from network interfaces
+- Exports complete inventory to CSV with power state summary
+
+**Important Notes:**
+- Essential for VM capacity planning and optimization
+- Power state collection adds 5-10 seconds per VM
+- Shows VM size for cost optimization analysis
+- Private IPs useful for network documentation
+- Run monthly for inventory reconciliation
+- Identify oversized or underutilized VMs
+- Coordinate with finance for budget planning
+- Use for license compliance tracking`,
     parameters: [
       {
         name: 'exportPath',
@@ -427,6 +572,35 @@ try {
     title: 'Resize Virtual Machine',
     description: 'Change the size/SKU of an Azure Virtual Machine',
     category: 'Virtual Machines',
+    instructions: `**How This Task Works:**
+This script resizes Azure VMs to optimize costs or increase capacity based on workload requirements and performance metrics.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Virtual Machine Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Resource Group name
+- VM name to resize
+- New VM size/SKU (e.g., Standard_D4s_v3)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves current VM configuration
+- Validates new size is available in VM's region
+- Changes VM size to specified SKU
+- Reports resize success with new VM size
+
+**Important Notes:**
+- VM must be stopped (deallocated) before resizing
+- Essential for cost optimization and performance tuning
+- Downsize underutilized VMs to save costs
+- Upsize VMs experiencing performance issues
+- Validate size availability in region first
+- Some size changes may require restart
+- Cost impact: B-series (burstable), D-series (general), F-series (compute)
+- Coordinate with app owners before production resizes`,
     parameters: [
       {
         name: 'resourceGroupName',
@@ -495,6 +669,37 @@ try {
     title: 'Create Virtual Network',
     description: 'Create a new Azure Virtual Network with subnets',
     category: 'Networking',
+    instructions: `**How This Task Works:**
+This script creates Azure Virtual Networks (VNets) with subnets for network isolation, security boundaries, and multi-tier application architectures.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Network Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- VNet name
+- Resource Group name
+- Azure region/location
+- Address space in CIDR notation (e.g., 10.0.0.0/16)
+- Subnets in Name:CIDR format (one per line)
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates subnet configurations from input
+- Creates Virtual Network with specified address space
+- Adds all subnets to VNet
+- Reports VNet details with subnet summary
+
+**Important Notes:**
+- Essential foundation for Azure networking and VM deployment
+- Address space cannot overlap with peered VNets
+- Plan CIDR ranges carefully (typical: /16 for VNet, /24 for subnets)
+- Subnets enable network segmentation (web, app, data tiers)
+- Cannot change address space after deployment
+- Use for hub-spoke network topologies
+- Coordinate with network team for IP address planning
+- Reserve first subnet for Azure Gateway if needed`,
     parameters: [
       {
         name: 'vnetName',
@@ -596,6 +801,34 @@ ${subnetConfigs.map((subnet: any) => `        New-AzVirtualNetworkSubnetConfig -
     title: 'Create Network Security Group',
     description: 'Create a Network Security Group with firewall rules',
     category: 'Networking',
+    instructions: `**How This Task Works:**
+This script creates Network Security Groups (NSGs) to control inbound and outbound traffic with firewall rules at subnet or NIC level.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Network Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- NSG name
+- Resource Group name
+- Azure region/location
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates Network Security Group in specified region
+- Reports NSG creation success
+- Displays NSG details including Resource ID
+
+**Important Notes:**
+- Essential for network security and traffic control
+- Created empty - add security rules separately
+- Assign to subnets or network interfaces after creation
+- Default rules: allow VNet-to-VNet, deny all inbound internet
+- Use for DMZ isolation, web tier protection, database security
+- Typical rules: allow HTTPS (443), RDP (3389), SSH (22)
+- Rules processed by priority (100-4096)
+- Test connectivity after applying NSG to avoid lockout`,
     parameters: [
       {
         name: 'nsgName',
@@ -659,6 +892,36 @@ try {
     title: 'Create Storage Account',
     description: 'Create a new Azure Storage Account',
     category: 'Storage',
+    instructions: `**How This Task Works:**
+This script creates Azure Storage Accounts for blob storage, file shares, queues, and tables with configurable redundancy and performance tiers.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Storage Account Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Storage Account name (globally unique, 3-24 lowercase alphanumeric)
+- Resource Group name
+- Azure region/location
+- SKU type (Standard_LRS, Standard_GRS, etc.)
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates Storage Account with specified SKU
+- Configures redundancy and performance tier
+- Reports creation success
+- Displays primary endpoints for blob, file, queue, table services
+
+**Important Notes:**
+- Essential for VM disks, backups, file shares, application data
+- Name must be globally unique across Azure
+- Standard LRS: cheapest, single datacenter
+- Standard GRS: geo-redundant across regions
+- Premium: high-performance SSDs for VMs
+- Cannot change redundancy type after creation
+- Use consistent naming: st<purpose><environment><number>
+- Enable firewall/VNET rules after creation for security`,
     parameters: [
       {
         name: 'storageAccountName',
@@ -744,6 +1007,35 @@ try {
     title: 'Assign RBAC Role',
     description: 'Assign an Azure RBAC role to a user or group',
     category: 'Identity & Access (RBAC)',
+    instructions: `**How This Task Works:**
+This script assigns Azure RBAC roles to users or groups for permission management at subscription or resource group scope.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with User Access Administrator or Owner role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- User or group email address
+- RBAC role name (Reader, Contributor, Owner, etc.)
+- Optional Resource Group for scoped access (leave empty for subscription-level)
+
+**What the Script Does:**
+- Connects to Azure account
+- Determines scope (Resource Group or entire subscription)
+- Looks up principal (user or group) by email
+- Assigns specified RBAC role to principal at scope
+- Reports assignment success with details
+
+**Important Notes:**
+- Essential for Azure access governance and security
+- Use least privilege principle (prefer Reader/Contributor over Owner)
+- Scope to Resource Groups when possible vs subscription-wide
+- Common roles: Reader (view only), Contributor (manage resources), Owner (full control)
+- Assignments inherit down the resource hierarchy
+- Use groups for team access vs individual user assignments
+- Coordinate with security team for role assignments
+- Audit regularly to prevent permission creep`,
     parameters: [
       {
         name: 'principalEmail',
@@ -824,6 +1116,34 @@ try {
     title: 'Export RBAC Assignments',
     description: 'Export all RBAC role assignments to CSV',
     category: 'Identity & Access (RBAC)',
+    instructions: `**How This Task Works:**
+This script exports complete RBAC role assignment inventory for access governance audits and security compliance reviews.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Reader role (minimum)
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path for RBAC assignments
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves all RBAC role assignments across subscription
+- Collects principal name, role, scope, object type
+- Exports assignments to CSV
+- Reports total count
+- Displays assignment summary by role
+
+**Important Notes:**
+- Essential for security audits and access reviews
+- Shows all permissions across entire subscription
+- Use for identifying overprivileged accounts
+- Run monthly for access governance compliance
+- Coordinate with security team for audit requirements
+- Identify unused or unnecessary permissions
+- Export before major organization changes
+- Review for external guest access patterns`,
     parameters: [
       {
         name: 'exportPath',
@@ -879,6 +1199,35 @@ try {
     title: 'Export Cost Data',
     description: 'Generate a cost report for Azure resources',
     category: 'Cost Management',
+    instructions: `**How This Task Works:**
+This script generates Azure cost reports for budget tracking, cost optimization, and finance reconciliation using Cost Management APIs.
+
+**Prerequisites:**
+- Az.CostManagement PowerShell module
+- Azure subscription with Cost Management Reader role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path
+- Timeframe (Month to Date or Last Month)
+
+**What the Script Does:**
+- Connects to Azure account
+- Queries Cost Management API for specified timeframe
+- Retrieves resource costs, service categories, usage details
+- Aggregates cost data by service and resource
+- Exports cost breakdown to CSV
+- Reports total spend and top cost drivers
+
+**Important Notes:**
+- Essential for Azure cost tracking and budget management
+- Costs may have 24-48 hour reporting delay
+- Use Month to Date for current billing period
+- Use Last Month for complete monthly reconciliation
+- Coordinate with finance for budget variance analysis
+- Run weekly for proactive cost management
+- Identify cost anomalies and optimization opportunities
+- Tag resources for accurate cost allocation`,
     parameters: [
       {
         name: 'exportPath',
@@ -950,6 +1299,34 @@ try {
     title: 'Assign Azure Policy',
     description: 'Assign a built-in Azure Policy to a resource group or subscription',
     category: 'Policy & Governance',
+    instructions: `**How This Task Works:**
+This script assigns built-in Azure Policies for compliance enforcement, security standards, and governance across resources.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Resource Policy Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Built-in policy name (Allowed locations, Require tag, VM SKU restrictions)
+- Optional Resource Group for scoped policy (leave empty for subscription-level)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves policy definition by display name
+- Determines scope (Resource Group or entire subscription)
+- Assigns policy to specified scope
+- Reports assignment success with policy details
+
+**Important Notes:**
+- Essential for compliance, security, and cost governance
+- Common policies: location restrictions, required tags, VM size limits
+- Subscription-scoped policies affect all Resource Groups
+- Resource Group scope limits policy to specific resources
+- Use for regulatory compliance (HIPAA, PCI-DSS, SOC 2)
+- Policy evaluation happens on resource create/update
+- Some policies support remediation of existing resources
+- Coordinate with security team for policy assignments`,
     parameters: [
       {
         name: 'policyName',
@@ -1018,6 +1395,37 @@ try {
     title: 'Enable Diagnostic Settings',
     description: 'Enable diagnostic settings on Azure resources',
     category: 'Monitoring & Logging',
+    instructions: `**How This Task Works:**
+This script enables diagnostic logging and metrics collection on Azure resources for monitoring, troubleshooting, and security analysis.
+
+**Prerequisites:**
+- Az.Monitor PowerShell module
+- Azure subscription with Monitoring Contributor role
+- Log Analytics workspace already created
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Target resource ID (full Azure resource ID path)
+- Log Analytics workspace name
+- Workspace Resource Group name
+
+**What the Script Does:**
+- Connects to Azure account
+- Validates Log Analytics workspace exists
+- Queries available diagnostic categories (logs and metrics)
+- Enables all log categories
+- Enables all metric categories
+- Creates diagnostic setting streaming to Log Analytics
+
+**Important Notes:**
+- Essential for monitoring, troubleshooting, security analysis
+- Collects activity logs, performance metrics, security events
+- Data sent to Log Analytics for querying and alerting
+- Additional costs for Log Analytics data ingestion
+- Critical for production resources and compliance
+- Use for security monitoring and incident investigation
+- Query logs using KQL (Kusto Query Language)
+- Enable within 24 hours of resource deployment`,
     parameters: [
       {
         name: 'resourceId',
@@ -1093,6 +1501,35 @@ try {
     title: 'Apply Resource Lock',
     description: 'Apply CanNotDelete or ReadOnly lock to prevent accidental changes',
     category: 'Resource Management',
+    instructions: `**How This Task Works:**
+This script applies resource locks to prevent accidental deletion or modification of critical Azure resources and Resource Groups.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Owner or User Access Administrator role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Resource Group name to protect
+- Lock type (CanNotDelete or ReadOnly)
+- Lock name for identification
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates resource lock on specified Resource Group
+- Applies lock level (CanNotDelete or ReadOnly)
+- Reports lock success
+
+**Important Notes:**
+- Essential protection for production resources
+- CanNotDelete: allows modifications but prevents deletion
+- ReadOnly: prevents all modifications and deletions
+- Locks inherit to all resources in Resource Group
+- Must remove lock before deleting Resource Group
+- Owner/Administrator can remove locks
+- Use CanNotDelete for production databases, VMs
+- Use ReadOnly for compliance-frozen resources
+- Coordinate with teams before applying ReadOnly locks`,
     parameters: [
       {
         name: 'resourceGroupName',
@@ -1150,6 +1587,35 @@ try {
     title: 'Move Resources Between Resource Groups',
     description: 'Move Azure resources from one resource group to another',
     category: 'Resource Management',
+    instructions: `**How This Task Works:**
+This script moves Azure resources between Resource Groups for organizational restructuring, resource consolidation, or environment separation.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Contributor role on both source and target Resource Groups
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Source Resource Group name
+- Target Resource Group name (must exist)
+- Resource names to move (one per line)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves resources from source Resource Group by name
+- Validates resources exist
+- Moves resources to target Resource Group
+- Reports move success
+
+**Important Notes:**
+- Resources must support move operation (most do, some don't)
+- VMs can be moved but requires downtime
+- Some resources have dependencies that must move together
+- Target Resource Group must exist in same subscription
+- Move operations can take 5-30 minutes
+- Network configurations may need updates after move
+- Use for reorganizing resources by project or environment
+- Coordinate with app owners before moving production resources`,
     parameters: [
       {
         name: 'sourceResourceGroup',
@@ -1219,6 +1685,37 @@ try {
     title: 'Create VPN Gateway',
     description: 'Create a site-to-site VPN gateway for hybrid connectivity',
     category: 'Networking',
+    instructions: `**How This Task Works:**
+This script creates Azure VPN Gateways for secure site-to-site connectivity between Azure and on-premises networks.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Network Contributor role
+- Virtual Network with GatewaySubnet already created
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- VPN Gateway name
+- Resource Group name
+- Virtual Network name (must contain GatewaySubnet)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves Virtual Network and validates GatewaySubnet exists
+- Creates public IP address for gateway
+- Creates IP configuration for gateway
+- Deploys VPN Gateway (30-45 minute operation)
+- Reports creation success
+
+**Important Notes:**
+- Essential for hybrid cloud connectivity
+- Gateway deployment takes 30-45 minutes
+- Requires dedicated GatewaySubnet (/27 or larger)
+- Public IP enables site-to-site VPN
+- VpnGw1 SKU: baseline performance (650 Mbps)
+- Higher SKUs available for more throughput
+- Coordinate with network team for on-premises VPN configuration
+- Use for connecting Azure to corporate datacenters`,
     parameters: [
       {
         name: 'gatewayName',
@@ -1280,6 +1777,34 @@ try {
     title: 'Create DNS Zone with Records',
     description: 'Create an Azure DNS zone and add DNS records',
     category: 'Networking',
+    instructions: `**How This Task Works:**
+This script creates Azure DNS zones for domain name hosting and provides name servers for domain delegation.
+
+**Prerequisites:**
+- Az.Dns PowerShell module
+- Azure subscription with DNS Zone Contributor role
+- Domain registered with domain registrar
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- DNS zone name (domain: contoso.com)
+- Resource Group name
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates public DNS zone for domain
+- Reports creation success
+- Displays Azure name servers for domain delegation
+
+**Important Notes:**
+- Essential for hosting domain DNS in Azure
+- Update domain registrar with Azure name servers
+- Name server delegation can take 24-48 hours to propagate
+- Add DNS records separately after zone creation
+- Typical records: A (IPv4), CNAME (alias), MX (mail), TXT (verification)
+- Use for Azure-hosted applications and services
+- Low cost: $0.50/month per zone + query charges
+- Coordinate with network team for DNS migration`,
     parameters: [
       {
         name: 'zoneName',
@@ -1328,6 +1853,36 @@ try {
     title: 'Create Cost Budget with Alert',
     description: 'Set up cost budget with email alerts for Azure resources',
     category: 'Cost Management',
+    instructions: `**How This Task Works:**
+This script creates Azure cost budgets with email alerts to prevent budget overruns and enable proactive cost management.
+
+**Prerequisites:**
+- Az.CostManagement PowerShell module
+- Azure subscription with Cost Management Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Budget name
+- Monthly budget amount ($USD)
+- Alert threshold percentage (e.g., 80%)
+- Email address for alerts
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates monthly budget for subscription
+- Configures alert threshold (e.g., 80% of budget)
+- Sets up email notification
+- Reports budget creation success
+
+**Important Notes:**
+- Essential for cost governance and budget control
+- Alerts trigger when actual costs exceed threshold
+- Common thresholds: 50%, 80%, 100%, 110%
+- Budget alerts are informational only (not enforcement)
+- Use for department budgets and project cost tracking
+- Coordinate with finance for budget amounts
+- Review budgets monthly and adjust as needed
+- Combine with Azure Policy for cost enforcement`,
     parameters: [
       {
         name: 'budgetName',
@@ -1413,6 +1968,34 @@ try {
     title: 'Export Cost Analysis Report',
     description: 'Generate detailed cost analysis report for current month',
     category: 'Cost Management',
+    instructions: `**How This Task Works:**
+This script generates detailed cost analysis reports with resource-level cost breakdown for financial analysis and optimization.
+
+**Prerequisites:**
+- Az.Billing or Az.Consumption PowerShell module
+- Azure subscription with Cost Management Reader role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path for cost analysis
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves usage details for last 30 days
+- Extracts resource name, type, cost per resource
+- Aggregates by date, Resource Group, resource
+- Exports detailed cost report to CSV
+- Reports total cost for period
+
+**Important Notes:**
+- Essential for detailed cost analysis and optimization
+- Shows per-resource costs for granular tracking
+- Use for identifying highest cost resources
+- Run monthly for cost trend analysis
+- Coordinate with finance for budget reconciliation
+- Combine with tagging for cost center allocation
+- Identify unused or oversized resources
+- Plan right-sizing based on cost vs utilization`,
     parameters: [
       {
         name: 'exportPath',
@@ -1475,6 +2058,34 @@ try {
     title: 'Assign Azure Policy',
     description: 'Assign a built-in or custom policy to resource group or subscription',
     category: 'Policy & Governance',
+    instructions: `**How This Task Works:**
+This script assigns Azure Policies (built-in or custom) at subscription or Resource Group scope for governance enforcement.
+
+**Prerequisites:**
+- Az.Resources PowerShell module
+- Azure subscription with Resource Policy Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Policy display name
+- Scope (subscription ID path or Resource Group name)
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves policy definition by display name
+- Determines scope from input (subscription or Resource Group)
+- Assigns policy to specified scope
+- Reports assignment success
+
+**Important Notes:**
+- Essential for compliance and governance enforcement
+- Built-in policies: 500+ ready-to-use definitions
+- Custom policies for organization-specific requirements
+- Subscription scope affects all Resource Groups
+- Use for regulatory compliance and security standards
+- Policy evaluation on resource create/update operations
+- Some policies support automatic remediation
+- Coordinate with compliance team for requirements`,
     parameters: [
       {
         name: 'policyName',
@@ -1533,6 +2144,34 @@ try {
     title: 'Audit Policy Compliance',
     description: 'Generate compliance report for assigned Azure policies',
     category: 'Policy & Governance',
+    instructions: `**How This Task Works:**
+This script generates comprehensive policy compliance reports showing compliant and non-compliant resources across assigned policies.
+
+**Prerequisites:**
+- Az.PolicyInsights PowerShell module
+- Azure subscription with Reader role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path for compliance report
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves policy state for all assigned policies
+- Collects compliance status for each resource
+- Extracts resource ID, policy, compliance state, type
+- Exports complete compliance report to CSV
+- Displays compliance summary (compliant vs non-compliant)
+
+**Important Notes:**
+- Essential for compliance audits and governance reporting
+- Shows which resources violate policies
+- Use for remediation planning and compliance tracking
+- Policy evaluation may lag 15-30 minutes
+- Run weekly for compliance monitoring
+- Coordinate with security/compliance teams
+- Non-compliant resources may require remediation
+- Use for regulatory audit evidence`,
     parameters: [
       {
         name: 'exportPath',
@@ -1593,6 +2232,36 @@ try {
     title: 'Configure Blob Lifecycle Management',
     description: 'Set up automated blob tier transitions and deletion policies',
     category: 'Storage',
+    instructions: `**How This Task Works:**
+This script configures automated blob lifecycle management for cost optimization through tiering and automated deletion of old data.
+
+**Prerequisites:**
+- Az.Storage PowerShell module
+- Azure subscription with Storage Account Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Storage Account name
+- Resource Group name
+- Days before archiving blobs
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates lifecycle action to archive blobs after specified days
+- Adds action to delete blobs after 365 days
+- Applies filter to target specific prefixes (logs/)
+- Sets lifecycle policy on Storage Account
+- Reports policy configuration success
+
+**Important Notes:**
+- Essential for storage cost optimization
+- Hot tier: frequent access, highest cost
+- Cool tier: 30+ day retention, lower cost
+- Archive tier: 180+ day retention, lowest cost
+- Automated tiering reduces manual work
+- Use for log retention and backup data
+- Coordinate with app owners for retention requirements
+- Cost savings: Archive tier is 80% cheaper than Hot`,
     parameters: [
       {
         name: 'storageAccountName',
@@ -1656,6 +2325,35 @@ try {
     title: 'Configure Storage Account Backup',
     description: 'Enable blob versioning and soft delete for data protection',
     category: 'Storage',
+    instructions: `**How This Task Works:**
+This script enables data protection features (soft delete, versioning, change feed) on Storage Accounts for disaster recovery and compliance.
+
+**Prerequisites:**
+- Az.Storage PowerShell module
+- Azure subscription with Storage Account Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Storage Account name
+- Resource Group name
+- Soft delete retention period (days)
+
+**What the Script Does:**
+- Connects to Azure account
+- Enables soft delete with specified retention
+- Enables blob versioning for point-in-time recovery
+- Enables change feed for audit trail
+- Reports configured protection features
+
+**Important Notes:**
+- Essential for production data protection
+- Soft delete: recover deleted blobs within retention period
+- Versioning: restore previous blob versions
+- Change feed: audit trail of all blob changes
+- Additional storage costs for versions and deleted blobs
+- Use for compliance and disaster recovery requirements
+- Critical for databases, application data, backups
+- Coordinate with data retention policies`,
     parameters: [
       {
         name: 'storageAccountName',
@@ -1718,6 +2416,37 @@ try {
     title: 'Resize Virtual Machine',
     description: 'Change VM size to scale compute resources',
     category: 'Virtual Machines',
+    instructions: `**How This Task Works:**
+This script resizes Azure VMs by stopping, changing size, and restarting to optimize performance or reduce costs based on workload needs.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Virtual Machine Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- VM name to resize
+- Resource Group name
+- New VM size/SKU
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves current VM configuration
+- Checks if VM is already target size
+- Stops (deallocates) VM
+- Changes VM hardware profile to new size
+- Starts VM with new size
+- Reports resize success
+
+**Important Notes:**
+- Identical to azure-resize-vm task
+- VM must be stopped before resizing
+- Causes downtime during stop/resize/start cycle
+- Use for cost optimization (downsize) or performance (upsize)
+- Validate new size availability in VM's region
+- Typical downtime: 5-10 minutes
+- B-series: burstable, D-series: general purpose, E-series: memory-optimized
+- Coordinate with application owners before resizing`,
     parameters: [
       {
         name: 'vmName',
@@ -1796,6 +2525,37 @@ try {
     title: 'Attach Managed Disk to VM',
     description: 'Attach an existing or new managed disk to a virtual machine',
     category: 'Virtual Machines',
+    instructions: `**How This Task Works:**
+This script creates and attaches managed data disks to Azure VMs for additional storage capacity beyond the OS disk.
+
+**Prerequisites:**
+- Az.Compute PowerShell module
+- Azure subscription with Virtual Machine Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Target VM name
+- Resource Group name
+- Disk name
+- Disk size in GB
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves target VM configuration
+- Creates new Premium SSD managed disk
+- Attaches disk to VM at next available LUN
+- Updates VM configuration
+- Reports attachment success with disk details
+
+**Important Notes:**
+- Essential for expanding VM storage capacity
+- Creates new empty disk (not existing disk)
+- Premium SSD recommended for production workloads
+- Disk inherits VM's location automatically
+- LUN assigned automatically based on existing disks
+- Must initialize and format disk in guest OS after attachment
+- Standard vs Premium: Premium has higher IOPS/throughput
+- Use for databases, file servers, application data`,
     parameters: [
       {
         name: 'vmName',
@@ -1869,6 +2629,35 @@ try {
     title: 'Bulk Assign RBAC Roles',
     description: 'Assign RBAC roles to multiple users from CSV',
     category: 'Identity & Access (RBAC)',
+    instructions: `**How This Task Works:**
+This script processes bulk RBAC role assignments from CSV for efficient onboarding of multiple users or permission updates.
+
+**Prerequisites:**
+- Az.Resources PowerShell module
+- Azure subscription with User Access Administrator role
+- CSV file with Email, Role, Scope columns
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV file path with role assignments (Email, Role, Scope columns)
+
+**What the Script Does:**
+- Connects to Azure account
+- Imports CSV with assignment details
+- For each assignment: looks up user by email
+- Assigns specified role at specified scope
+- Reports success/failure for each assignment
+- Provides final assignment summary
+
+**Important Notes:**
+- Essential for bulk user onboarding and permission changes
+- CSV format: Email, Role, Scope (one assignment per row)
+- Scope examples: /subscriptions/{id}, /resourceGroups/{name}
+- Saves time vs manual portal assignments
+- Failed assignments reported without stopping process
+- Use for new team onboarding or reorganizations
+- Coordinate with HR for user email addresses
+- Audit assignments after bulk operations`,
     parameters: [
       {
         name: 'csvPath',
@@ -1928,6 +2717,34 @@ try {
     title: 'Audit All RBAC Assignments',
     description: 'Export comprehensive report of all role assignments',
     category: 'Identity & Access (RBAC)',
+    instructions: `**How This Task Works:**
+This script generates comprehensive RBAC audit reports with all role assignments, principal details, and top role usage for access reviews.
+
+**Prerequisites:**
+- Az.Resources PowerShell module
+- Azure subscription with Reader role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path for RBAC audit
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves all RBAC role assignments across subscription
+- Extracts principal name, email, role, scope, type
+- Exports complete assignments to CSV
+- Reports total assignment count
+- Displays top 5 most-assigned roles
+
+**Important Notes:**
+- Identical to azure-export-rbac-assignments task
+- Essential for access governance and compliance audits
+- Shows all permissions across entire subscription
+- Use for quarterly access reviews
+- Identify overprivileged accounts and orphaned assignments
+- Coordinate with security team for audit schedules
+- Review for external/guest user access
+- Export before major organizational changes`,
     parameters: [
       {
         name: 'exportPath',
@@ -1989,6 +2806,35 @@ try {
     title: 'Create Action Group for Alerts',
     description: 'Set up email and SMS notifications for Azure alerts',
     category: 'Monitoring & Logging',
+    instructions: `**How This Task Works:**
+This script creates Azure Monitor Action Groups to define notification recipients (email, SMS) for alert rules and automated responses.
+
+**Prerequisites:**
+- Az.Monitor PowerShell module
+- Azure subscription with Monitoring Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Action Group name
+- Resource Group name
+- Email address for notifications
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates email receiver configuration
+- Creates Action Group with short name
+- Assigns email receiver to Action Group
+- Reports creation success
+
+**Important Notes:**
+- Essential for Azure alert notifications
+- Action Groups define WHO gets notified when alerts trigger
+- Short name limited to 12 characters for SMS
+- Can add multiple receivers: email, SMS, webhook, Logic Apps
+- Reusable across multiple alert rules
+- Use for critical system monitoring
+- Typical groups: IT team, DevOps, on-call rotation
+- Coordinate with teams for notification preferences`,
     parameters: [
       {
         name: 'actionGroupName',
@@ -2041,8 +2887,150 @@ try {
     }
   },
 
-  {id:'azure-export-tags',title:'Export Resource Tags Report',description:'List all resources with their tags',category:'Resource Management',parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Azure\\\\ResourceTags.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-AzAccount\ntry{Write-Host "Collecting resources with their tags..." -ForegroundColor Cyan;$Resources=Get-AzResource|Select Name,ResourceType,ResourceGroupName,@{N='Tags';E={($_.Tags.GetEnumerator()|%{"$($_.Key)=$($_.Value)"})-join'; '}};$Resources|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "✓ Tags exported: $($Resources.Count) resources" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'azure-set-resource-lock',title:'Set Resource Lock',description:'Prevent accidental deletion by applying resource lock',category:'Resource Management',parameters:[{name:'resourceGroupName',label:'Resource Group Name',type:'text',required:true,placeholder:'rg-production'},{name:'lockLevel',label:'Lock Level',type:'select',required:true,options:[{value:'CanNotDelete',label:'Cannot Delete'},{value:'ReadOnly',label:'Read Only'}],defaultValue:'CanNotDelete'}],scriptTemplate:p=>{const rgName=escapePowerShellString(p.resourceGroupName);const lockLevel=p.lockLevel||'CanNotDelete';return `Connect-AzAccount\ntry{Write-Host "Applying ${lockLevel} lock to ${rgName}" -ForegroundColor Cyan;New-AzResourceLock -LockName "PreventDeletion" -LockLevel ${lockLevel} -ResourceGroupName "${rgName}" -Force;Write-Host "✓ Resource lock applied" -ForegroundColor Green}catch{Write-Error $_}`;}}
+  {
+    id: 'azure-export-tags',
+    title: 'Export Resource Tags Report',
+    description: 'List all resources with their tags',
+    category: 'Resource Management',
+    instructions: `**How This Task Works:**
+This script exports comprehensive resource tag inventory for cost allocation analysis, compliance tracking, and governance reporting.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Reader role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- CSV export file path for resource tags
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves all Azure resources across subscription
+- Extracts resource name, type, Resource Group, and all tags
+- Formats tags as semicolon-separated key=value pairs
+- Exports complete tag inventory to CSV
+- Reports total resource count
+
+**Important Notes:**
+- Essential for tag compliance and cost allocation audits
+- Shows which resources are missing required tags
+- Use for identifying untagged resources
+- Run monthly for tag governance compliance
+- Coordinate with finance for cost center tagging
+- Common required tags: Environment, CostCenter, Owner, Project
+- Enforce tagging through Azure Policy
+- Use for cost allocation and chargeback reporting`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Azure\\ResourceTags.csv',
+        helpText: 'Path for the CSV export'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Export Resource Tags Report
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+    Write-Host "Collecting resources with their tags..." -ForegroundColor Cyan
+    
+    $Resources = Get-AzResource | Select-Object Name, ResourceType, ResourceGroupName, @{
+        Name = 'Tags'
+        Expression = { ($_.Tags.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join '; ' }
+    }
+    
+    $Resources | Export-Csv "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Tags exported: $($Resources.Count) resources" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to export tags: $_"
+}`;
+    }
+  },
+  {
+    id: 'azure-set-resource-lock',
+    title: 'Set Resource Lock',
+    description: 'Prevent accidental deletion by applying resource lock',
+    category: 'Resource Management',
+    instructions: `**How This Task Works:**
+This script applies resource locks to Resource Groups to prevent accidental deletion or modification of critical production resources.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Owner or User Access Administrator role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Resource Group name to protect
+- Lock level (CanNotDelete or ReadOnly)
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates resource lock on specified Resource Group
+- Applies lock level (CanNotDelete or ReadOnly)
+- Reports lock success
+
+**Important Notes:**
+- Identical to azure-apply-resource-lock task
+- Essential protection for production resources
+- CanNotDelete: allows modifications but prevents deletion
+- ReadOnly: prevents all modifications and deletions
+- Locks inherit to all resources in Resource Group
+- Must remove lock before deleting Resource Group
+- Owner/Administrator can remove locks
+- Use CanNotDelete for production databases, VMs
+- Coordinate with teams before applying ReadOnly locks`,
+    parameters: [
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group Name',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-production',
+        helpText: 'Resource group to protect'
+      },
+      {
+        name: 'lockLevel',
+        label: 'Lock Level',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'CanNotDelete', label: 'Cannot Delete' },
+          { value: 'ReadOnly', label: 'Read Only' }
+        ],
+        defaultValue: 'CanNotDelete',
+        helpText: 'Type of resource lock'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const lockLevel = params.lockLevel || 'CanNotDelete';
+      
+      return `# Set Resource Lock
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+    Write-Host "Applying ${lockLevel} lock to ${rgName}" -ForegroundColor Cyan
+    
+    New-AzResourceLock -LockName "PreventDeletion" -LockLevel ${lockLevel} -ResourceGroupName "${rgName}" -Force
+    
+    Write-Host "✓ Resource lock applied" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to apply resource lock: $_"
+}`;
+    }
+  }
 ];
 
 export const azureResourceCategories = [

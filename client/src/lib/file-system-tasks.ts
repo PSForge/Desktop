@@ -28,6 +28,35 @@ export const fileSystemTasks: FileSystemTask[] = [
     name: 'Enumerate Network Shares',
     category: 'Share Management',
     description: 'List all SMB shares with paths, descriptions, and permissions',
+    instructions: `**How This Task Works:**
+- Lists all SMB file shares on server
+- Shows share name, path, description, state, caching mode
+- Optionally includes hidden administrative shares
+- Optional CSV export for documentation
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required for viewing)
+- SMB service must be running
+
+**What You Need to Provide:**
+- Optional: Export path for CSV output
+- Include hidden shares: true or false (default: false)
+
+**What the Script Does:**
+1. Retrieves all SMB shares using Get-SmbShare
+2. Filters out hidden shares (ending with $) unless includeHidden is true
+3. Selects name, path, description, state, and caching mode
+4. Displays formatted table
+5. Optionally exports to CSV file
+
+**Important Notes:**
+- No administrator privileges required
+- Hidden shares (ending with $): administrative shares like C$, ADMIN$
+- Typical use: inventory, documentation, access reviews
+- ShareState: Online or Offline
+- CachingMode: controls offline file caching behavior
+- CSV export useful for compliance and documentation`,
     parameters: [
       { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false, placeholder: 'C:\\Reports\\Shares.csv' },
       { id: 'includeHidden', label: 'Include Hidden Shares', type: 'boolean', required: false, defaultValue: false }
@@ -54,6 +83,42 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     name: 'Create SMB Share with Permissions',
     category: 'Share Management',
     description: 'Create a new SMB file share with access control',
+    instructions: `**How This Task Works:**
+- Creates new SMB file share with permissions
+- Automatically creates directory if it doesn't exist
+- Configures both full access and read-only users/groups
+- Essential for file server management
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- SMB service must be running
+- Write permissions on parent directory
+
+**What You Need to Provide:**
+- Share name (unique identifier)
+- Folder path (will be created if missing)
+- Optional: Share description
+- Optional: Comma-separated full access users/groups (DOMAIN\\Group)
+- Optional: Comma-separated read access users/groups
+
+**What the Script Does:**
+1. Creates directory if it doesn't exist
+2. Creates SMB share with New-SmbShare
+3. Sets initial full access to Everyone (modified next)
+4. Grants full access to specified users/groups
+5. Grants read access to specified users/groups
+6. Displays share configuration
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Directory created automatically if missing
+- Use DOMAIN\\username or DOMAIN\\groupname format
+- Typical use: department shares, project folders, collaboration spaces
+- Full access: read, write, modify, delete
+- Read access: read and execute only
+- Consider NTFS permissions separately from share permissions
+- Effective permissions: most restrictive of share and NTFS`,
     parameters: [
       { id: 'shareName', label: 'Share Name', type: 'text', required: true, placeholder: 'Documents' },
       { id: 'path', label: 'Folder Path', type: 'path', required: true, placeholder: 'D:\\Shares\\Documents' },
@@ -102,6 +167,38 @@ Get-SmbShare -Name $ShareName | Format-List`;
     name: 'Remove SMB Share',
     category: 'Share Management',
     description: 'Remove an existing SMB file share (preserves files)',
+    instructions: `**How This Task Works:**
+- Removes SMB share while preserving files by default
+- Optionally deletes all files in share (dangerous!)
+- Captures share path before removal
+- Essential for decommissioning shares
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Share must exist
+- Backup recommended if deleting files
+
+**What You Need to Provide:**
+- Share name to remove
+- Delete files: true to DELETE FILES, false to preserve (default: false)
+
+**What the Script Does:**
+1. Retrieves share information including path
+2. Removes SMB share with Remove-SmbShare
+3. If delete files enabled: recursively deletes all files and folders
+4. If delete files disabled: preserves files at original path
+5. Reports action taken
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Files PRESERVED by default (safe operation)
+- Delete files option PERMANENTLY DELETES ALL DATA
+- Typical use: decommission shares, reorganize file servers
+- Share removal immediate but files remain
+- Users lose network access to files even if preserved
+- Review share contents before enabling delete files
+- No recycle bin for deleted network files`,
     parameters: [
       { id: 'shareName', label: 'Share Name', type: 'text', required: true, placeholder: 'OldShare' },
       { id: 'deleteFiles', label: 'Delete Files (WARNING)', type: 'boolean', required: false, defaultValue: false }
@@ -136,6 +233,38 @@ if (Test-Path $SharePath) {
     name: 'Audit Share Permissions Report',
     category: 'Permissions & Security',
     description: 'Generate detailed report of share permissions and access',
+    instructions: `**How This Task Works:**
+- Audits SMB share permissions across server
+- Reports who has access to each share
+- Shows access rights (Full, Change, Read)
+- Essential for security reviews and compliance
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- SMB service must be running
+- Write permissions on export location
+
+**What You Need to Provide:**
+- Export CSV file path
+- Optional: Specific share name (blank for all shares)
+
+**What the Script Does:**
+1. Retrieves all shares (or specific share if specified)
+2. For each share: gets all access control entries
+3. Collects share name, path, account, access right, control type
+4. Exports detailed report to CSV file
+5. Reports total permission entries found
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Excludes hidden administrative shares
+- Access rights: Full (all), Change (modify), Read (read-only)
+- Control type: Allow or Deny
+- Typical use: security audits, compliance reviews, access certification
+- CSV format for analysis in Excel or compliance tools
+- Review for over-privileged accounts
+- Identify shares with Everyone full access (security risk)`,
     parameters: [
       { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: true, placeholder: 'C:\\Reports\\SharePermissions.csv' },
       { id: 'shareName', label: 'Share Name (blank for all)', type: 'text', required: false, placeholder: 'Documents' }
@@ -175,6 +304,38 @@ Write-Host "  Total entries: $($Report.Count)" -ForegroundColor Gray`;
     name: 'Fix NTFS Inheritance (Recursive)',
     category: 'Permissions & Security',
     description: 'Enable inheritance and propagate permissions recursively',
+    instructions: `**How This Task Works:**
+- Fixes broken NTFS permission inheritance
+- Recursively scans all subfolders and files
+- Re-enables inheritance where disabled
+- Test mode available for safe preview
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Full control permissions on target folder
+- Understanding of NTFS permissions
+
+**What You Need to Provide:**
+- Target folder path
+- Test mode: true for preview only, false to apply changes (default: true)
+
+**What the Script Does:**
+1. Recursively scans all items in target path
+2. Checks each item for broken inheritance (AreAccessRulesProtected)
+3. In test mode: reports items with broken inheritance without fixing
+4. In apply mode: re-enables inheritance on each broken item
+5. Reports total items processed and fixed
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Test mode enabled by default for safety
+- Broken inheritance prevents permissions from parent folder
+- Typical use: fix permission issues after migrations, restore standard inheritance
+- Re-enabling inheritance preserves existing explicit permissions
+- Changes apply immediately
+- Review test mode results before applying
+- May take time on large folder structures`,
     parameters: [
       { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'D:\\Shares\\Documents' },
       { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
@@ -218,6 +379,38 @@ ${testMode ? 'Write-Host "  ⚠ TEST MODE - No changes made" -ForegroundColor Ye
     name: 'Set Folder Ownership (Bulk)',
     category: 'Permissions & Security',
     description: 'Take ownership of a folder and all contents',
+    instructions: `**How This Task Works:**
+- Takes ownership of folder and all contents
+- Changes owner to specified user or group
+- Optionally recursive to include all subfolders
+- Essential for recovering access to orphaned files
+
+**Prerequisites:**
+- Administrator privileges (or TakeOwnership right)
+- PowerShell 5.1 or later
+- Access to target folder
+- Valid DOMAIN\\username or group name
+
+**What You Need to Provide:**
+- Target folder path
+- New owner (format: DOMAIN\\Username or DOMAIN\\Groupname)
+- Recursive: true for all contents, false for folder only (default: true)
+
+**What the Script Does:**
+1. Creates NTAccount object for new owner
+2. Retrieves all items (recursive or single folder)
+3. For each item: gets ACL, sets new owner, applies ACL
+4. Reports total items changed
+5. Displays failures separately
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES or TakeOwnership right
+- Recursive by default (processes all subfolders and files)
+- Typical use: recover access after user termination, fix orphaned files
+- Use DOMAIN\\Administrators for administrative ownership
+- Taking ownership different from granting permissions (separate step)
+- May take time on large folder structures
+- Ownership change required before modifying permissions`,
     parameters: [
       { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'D:\\Shares\\OldData' },
       { id: 'owner', label: 'New Owner', type: 'text', required: true, placeholder: 'DOMAIN\\Administrators' },
@@ -262,6 +455,36 @@ Write-Host "✓ Ownership set for $Count items to ${owner}" -ForegroundColor Gre
     name: 'Disk Space Report (All Drives)',
     category: 'Disk Reporting',
     description: 'Generate detailed disk space report with usage thresholds',
+    instructions: `**How This Task Works:**
+- Reports disk space usage for all drives
+- Calculates used percentage for each volume
+- Alerts when usage exceeds threshold
+- Optional CSV export for trending
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+- Write permissions on export location (if exporting)
+
+**What You Need to Provide:**
+- Alert threshold percentage (default: 80%)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all logical disks (Get-WmiObject Win32_LogicalDisk)
+2. For each disk: calculates total size, free space, used percentage
+3. Color-codes output: Red if above threshold, Green if OK
+4. Displays formatted table with drive letter, label, size, free, used%
+5. Optionally exports to CSV file
+
+**Important Notes:**
+- No administrator privileges required
+- Reports all drive types: Fixed, Network, Removable, CD-ROM
+- Alert threshold default: 80% (industry standard warning level)
+- Typical use: proactive monitoring, capacity planning, health checks
+- Export useful for trending and capacity forecasting
+- Schedule regular checks to avoid space issues
+- Critical threshold typically 90% for urgent action`,
     parameters: [
       { id: 'threshold', label: 'Alert Threshold (%)', type: 'number', required: false, defaultValue: 80 },
       { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false, placeholder: 'C:\\Reports\\DiskSpace.csv' }
@@ -298,6 +521,41 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     name: 'Find Large Files (Top N)',
     category: 'Disk Reporting',
     description: 'Locate largest files by size threshold or top N count',
+    instructions: `**How This Task Works:**
+- Scans directory tree for largest files
+- Filters by minimum file size threshold
+- Returns top N files by size
+- Optional CSV export for analysis
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on search path
+- No administrator privileges required
+- Write permissions on export location (if exporting)
+
+**What You Need to Provide:**
+- Search path (root directory to scan)
+- Minimum file size in MB (default: 100 MB)
+- Top N files to return (default: 50)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Recursively scans all files in search path
+2. Filters files larger than minimum size threshold
+3. Sorts by size descending
+4. Returns top N largest files
+5. Displays size (MB), full path, last modified date
+6. Reports total count and cumulative size
+7. Optionally exports to CSV file
+
+**Important Notes:**
+- No administrator privileges required
+- Scan time depends on directory size and depth
+- Typical use: identify space hogs, cleanup candidates, capacity analysis
+- Minimum size default: 100 MB (adjust for your needs)
+- Results sorted by size (largest first)
+- CSV export useful for trending and cleanup planning
+- Consider user profile folders as common culprits`,
     parameters: [
       { id: 'searchPath', label: 'Search Path', type: 'path', required: true, placeholder: 'C:\\Users' },
       { id: 'minSizeMB', label: 'Minimum Size (MB)', type: 'number', required: false, defaultValue: 100 },
@@ -337,6 +595,41 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     name: 'Delete Old Files (Age-Based)',
     category: 'Disk Cleanup',
     description: 'Remove files older than specified age with optional test mode',
+    instructions: `**How This Task Works:**
+- Deletes files older than specified days
+- Supports file pattern filtering (*.log, *.tmp, etc.)
+- Test mode for safe preview before deletion
+- Reclaims disk space from old files
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Delete permissions on target directory
+- Administrator privileges recommended
+- Backup recommended before large deletions
+
+**What You Need to Provide:**
+- Target directory path
+- Age threshold in days (files older than this will be deleted)
+- Optional: File pattern (*.log, *.tmp, or *.* for all)
+- Test mode: true for preview, false to delete (default: true)
+
+**What the Script Does:**
+1. Calculates cutoff date based on days old parameter
+2. Recursively scans target path for matching files
+3. Filters files with LastWriteTime older than cutoff
+4. In test mode: shows preview of first 10 files without deletion
+5. In deletion mode: permanently removes all matching files
+6. Reports count and total space freed
+
+**Important Notes:**
+- REQUIRES DELETE PERMISSIONS (admin recommended)
+- Test mode enabled by default for safety
+- Files permanently deleted (no recycle bin)
+- Typical use: log cleanup, temp file removal, archive maintenance
+- Default threshold: 90 days
+- File pattern default: *.* (all files)
+- Review test mode output before disabling test mode
+- LastWriteTime used for age determination`,
     parameters: [
       { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'C:\\Temp' },
       { id: 'daysOld', label: 'Days Old', type: 'number', required: true, defaultValue: 90 },
@@ -381,6 +674,39 @@ if ($TestMode) {
     name: 'Clean Windows Temp Folders',
     category: 'Disk Cleanup',
     description: 'Remove temporary files from Windows and user temp directories',
+    instructions: `**How This Task Works:**
+- Cleans Windows temp and user profile temp folders
+- Removes files older than specified age
+- Optionally includes all user profiles
+- Safe reclamation of wasted disk space
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Full control on C:\\Windows\\Temp and user profile folders
+- Some files may be locked (script handles gracefully)
+
+**What You Need to Provide:**
+- Include user profiles: true to clean all users, false for system only (default: true)
+- Minimum age in days (default: 7 days)
+
+**What the Script Does:**
+1. Targets Windows temp folder (C:\\Windows\\Temp)
+2. If includeUserProfiles: also targets C:\\Users\\*\\AppData\\Local\\Temp
+3. Calculates cutoff date from minimum age
+4. Removes files older than cutoff date
+5. Handles locked files gracefully (skips with error suppression)
+6. Reports total space freed
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Locked files skipped automatically (no script failure)
+- Typical use: reclaim disk space, routine maintenance, troubleshooting
+- Default age: 7 days (safe for most environments)
+- System temp: C:\\Windows\\Temp
+- User temps: C:\\Users\\[username]\\AppData\\Local\\Temp
+- Files permanently deleted
+- Schedule monthly for best results`,
     parameters: [
       { id: 'includeUserProfiles', label: 'Include User Profiles', type: 'boolean', required: false, defaultValue: true },
       { id: 'daysOld', label: 'Min Age (Days)', type: 'number', required: false, defaultValue: 7 }
@@ -425,6 +751,40 @@ Write-Host "✓ Total space freed: $([math]::Round($TotalSize/1MB, 2)) MB" -Fore
     name: 'Set Disk Quota (Per User)',
     category: 'Quotas & Storage',
     description: 'Configure disk quotas with warning and limit thresholds',
+    instructions: `**How This Task Works:**
+- Enables NTFS disk quotas on volume
+- Sets warning and hard limit thresholds
+- Optionally enforces quotas (deny writes over limit)
+- Essential for multi-user file servers
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- NTFS volume (quotas not supported on FAT32)
+- fsutil.exe available (built into Windows)
+
+**What You Need to Provide:**
+- Drive letter (e.g., D:)
+- Quota limit in MB (hard limit)
+- Warning threshold in MB (soft warning)
+- Deny over limit: true to block writes, false to warn only (default: false)
+
+**What the Script Does:**
+1. Enables quota tracking on specified drive
+2. Enforces quota system using fsutil
+3. Sets default warning and limit thresholds
+4. Optionally denies storage over limit
+5. Reports quota configuration
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- NTFS volumes only (not FAT32)
+- Quotas apply per user
+- Warning threshold should be less than limit
+- Typical use: file servers, shared storage, capacity management
+- Deny over limit: blocks writes when user exceeds quota
+- Warn only mode: allows over-quota but alerts
+- Monitor quota usage separately with monitor-quota-usage task`,
     parameters: [
       { id: 'drive', label: 'Drive Letter', type: 'text', required: true, placeholder: 'D:' },
       { id: 'quotaLimitMB', label: 'Quota Limit (MB)', type: 'number', required: true, placeholder: '10240' },
@@ -468,6 +828,38 @@ Write-Host "  Limit: $(${quotaLimit})MB, Warning: $(${warning})MB" -ForegroundCo
     name: 'Monitor User Quota Usage',
     category: 'Quotas & Storage',
     description: 'Report users exceeding quota thresholds',
+    instructions: `**How This Task Works:**
+- Monitors disk quota usage by user
+- Identifies users exceeding thresholds
+- Queries quota entries with fsutil
+- Recommends FSRM for advanced reporting
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Quotas must be enabled on drive
+- File Server Resource Manager recommended for detailed reports
+
+**What You Need to Provide:**
+- Drive letter to monitor
+- Alert threshold percentage (default: 80%)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Queries quota entries on specified drive using fsutil
+2. Reports basic quota information
+3. Recommends File Server Resource Manager (FSRM) for detailed analysis
+4. Provides alternative PowerShell command for FSRM quota monitoring
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Quotas must be enabled first (use set-disk-quota task)
+- Basic fsutil output requires parsing for detailed analysis
+- Typical use: proactive monitoring, capacity planning, user notifications
+- File Server Resource Manager provides richer quota reports
+- Alternative: Get-FsrmQuota cmdlet (requires FSRM role)
+- Schedule regular monitoring for proactive management
+- Consider automating user notifications for over-quota users`,
     parameters: [
       { id: 'drive', label: 'Drive Letter', type: 'text', required: true, placeholder: 'D:' },
       { id: 'threshold', label: 'Alert Threshold (%)', type: 'number', required: false, defaultValue: 80 },
@@ -503,6 +895,42 @@ Write-Host '  Get-FsrmQuota | Where-Object { ($_.Usage/$_.Size)*100 -ge ${thresh
     name: 'File Type Breakdown Report',
     category: 'Disk Reporting',
     description: 'Analyze disk usage by file extension with size statistics',
+    instructions: `**How This Task Works:**
+- Analyzes disk usage by file extension
+- Groups files by extension type
+- Reports count and total size per extension
+- Identifies space-consuming file types
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on search path
+- No administrator privileges required
+- Write permissions on export location (if exporting)
+
+**What You Need to Provide:**
+- Search path (root directory to analyze)
+- Top N extensions to display (default: 20)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Recursively scans all files in search path
+2. Groups files by extension
+3. Calculates file count and total size (MB) per extension
+4. Sorts by total size descending
+5. Returns top N extensions
+6. Displays formatted table
+7. Reports total file count and overall size
+8. Optionally exports to CSV file
+
+**Important Notes:**
+- No administrator privileges required
+- Scan time depends on file count and directory depth
+- Typical use: storage analysis, cleanup planning, capacity forecasting
+- Files without extension reported as "(No Extension)"
+- Results sorted by total size (largest first)
+- Identify unexpected large file types (temp files, logs, media)
+- CSV export useful for trend analysis
+- Use results to target cleanup efforts`,
     parameters: [
       { id: 'searchPath', label: 'Search Path', type: 'path', required: true, placeholder: 'D:\\Shares' },
       { id: 'topCount', label: 'Top N Extensions', type: 'number', required: false, defaultValue: 20 },
@@ -542,6 +970,42 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     name: 'Find Duplicate Files (Hash-Based)',
     category: 'Disk Cleanup',
     description: 'Locate duplicate files using file hash comparison',
+    instructions: `**How This Task Works:**
+- Identifies duplicate files using MD5 hash comparison
+- Filters by minimum file size
+- Reports potential space savings
+- Hash-based detection ensures accuracy
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on search path
+- No administrator privileges required
+- Write permissions on export location (if exporting)
+
+**What You Need to Provide:**
+- Search path (root directory to scan)
+- Minimum file size in MB (default: 1 MB)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Scans all files larger than minimum size
+2. Computes MD5 hash for each file
+3. Groups files by hash value
+4. Identifies sets where multiple files share same hash
+5. Reports duplicate sets with file paths
+6. Calculates potential space savings
+7. Optionally exports to CSV file
+
+**Important Notes:**
+- No administrator privileges required
+- MD5 hashing ensures byte-for-byte accuracy
+- Scan time depends on file count and total size
+- Typical use: reclaim wasted space, identify redundant copies
+- Minimum size filter improves performance (skip tiny files)
+- Results show all files in each duplicate set
+- Manually review before deletion
+- Space savings = total size - one copy per set
+- Hash computation CPU-intensive for large files`,
     parameters: [
       { id: 'searchPath', label: 'Search Path', type: 'path', required: true, placeholder: 'D:\\Shares' },
       { id: 'minSizeMB', label: 'Min File Size (MB)', type: 'number', required: false, defaultValue: 1 },

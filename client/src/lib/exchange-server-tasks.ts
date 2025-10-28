@@ -36,6 +36,42 @@ export const exchangeServerTasks: ExchangeServerTask[] = [
     name: 'Create New Mailbox (User/Shared/Resource)',
     category: 'Mailboxes & Users',
     description: 'Create a new mailbox in Exchange Server on-premises',
+    instructions: `**How This Task Works:**
+- Creates new mailboxes in Exchange Server on-premises
+- Supports User, Shared, Room, and Equipment mailbox types
+- Integrates with Active Directory for user accounts
+- Assigns mailbox to specified database
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Active Directory integration configured
+- Mailbox database must exist and be mounted
+- For User mailboxes: AD account should already exist
+
+**What You Need to Provide:**
+- Mailbox type: User, Shared, Room, or Equipment
+- Alias (unique mailbox identifier)
+- Display name
+- Mailbox database name
+- Optional: Organizational Unit path
+
+**What the Script Does:**
+1. Connects to Exchange Management Shell
+2. Checks if mailbox with alias already exists
+3. Verifies target mailbox database exists and is mounted
+4. Creates mailbox based on type (User: enables existing AD account, others: creates new)
+5. Reports mailbox creation success with details
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- User mailboxes require existing AD user account (use Enable-Mailbox)
+- Shared/Room/Equipment mailboxes create new AD accounts automatically
+- Alias must be unique across organization
+- Typical use: onboarding new users, creating shared resources, conference rooms
+- Run on Exchange Server or via remote PowerShell session
+- Room and Equipment mailboxes for resource booking
+- Shared mailboxes for team collaboration (no license required)`,
     parameters: [
       { id: 'mailboxType', label: 'Mailbox Type', type: 'select', required: true, options: ['User', 'Shared', 'Room', 'Equipment'], defaultValue: 'User' },
       { id: 'alias', label: 'Alias', type: 'text', required: true, placeholder: 'jdoe' },
@@ -122,6 +158,41 @@ try {
     name: 'Move Mailbox Between Databases',
     category: 'Mailboxes & Users',
     description: 'Move mailbox to different database with throttling options',
+    instructions: `**How This Task Works:**
+- Moves mailboxes between Exchange databases
+- Creates asynchronous move request with throttling
+- Handles corrupted items with bad item limit
+- Test mode allows preview before execution
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Source and target databases must exist and be mounted
+- Sufficient space on target database
+- Network connectivity between databases
+
+**What You Need to Provide:**
+- Mailbox identity (email address or alias)
+- Target database name
+- Bad item limit (number of corrupted items to skip, default: 10)
+- Test mode: true to preview, false to execute
+
+**What the Script Does:**
+1. Verifies mailbox exists and retrieves current database
+2. Verifies target database exists and is accessible
+3. In test mode: displays what would be moved without executing
+4. In execution mode: creates New-MoveRequest with specified parameters
+5. Reports move request creation and provides monitoring command
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Move is asynchronous - mailbox remains accessible during move
+- BadItemLimit handles corrupted items (increase if mailbox has corruption)
+- Test mode enabled by default for safety
+- Typical use: database load balancing, maintenance, server decommissioning
+- Monitor progress with Get-MoveRequest and Get-MoveRequestStatistics
+- Large mailboxes may take hours to move
+- Users can access mailbox during move with minimal interruption`,
     parameters: [
       { id: 'mailboxIdentity', label: 'Mailbox Identity', type: 'email', required: true, placeholder: 'user@contoso.com' },
       { id: 'targetDatabase', label: 'Target Database', type: 'text', required: true, placeholder: 'DB02' },
@@ -187,6 +258,42 @@ try {
     name: 'Enable/Disable OWA, ActiveSync, POP, IMAP',
     category: 'Mailboxes & Users',
     description: 'Control protocol access for mailboxes (OWA, ActiveSync, POP3, IMAP4)',
+    instructions: `**How This Task Works:**
+- Controls which protocols mailbox can use for access
+- Configures OWA (Outlook Web App), ActiveSync, POP3, IMAP4
+- Security hardening by disabling unnecessary protocols
+- Changes take effect immediately
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Mailbox must exist
+- Client Access Server (CAS) services running
+
+**What You Need to Provide:**
+- Mailbox identity (email address)
+- OWA enabled: true or false (default: true)
+- ActiveSync enabled: true or false (default: true)
+- POP3 enabled: true or false (default: false)
+- IMAP4 enabled: true or false (default: false)
+
+**What the Script Does:**
+1. Verifies mailbox exists
+2. Configures CAS mailbox settings with Set-CASMailbox
+3. Enables or disables each protocol as specified
+4. Displays protocol access configuration summary
+5. Shows current enabled status for each protocol
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- OWA: web-based email access (Outlook Web App)
+- ActiveSync: mobile device synchronization
+- POP3/IMAP4: legacy email protocols (typically disabled for security)
+- Typical use: security hardening, comply with access policies, troubleshooting
+- Disabling protocols prevents access via that method immediately
+- Users must use enabled protocols or Outlook/MAPI
+- Security best practice: disable POP3/IMAP4 unless required
+- ActiveSync required for mobile email access`,
     parameters: [
       { id: 'mailboxIdentity', label: 'Mailbox Identity', type: 'email', required: true, placeholder: 'user@contoso.com' },
       { id: 'owaEnabled', label: 'OWA Enabled', type: 'boolean', required: false, defaultValue: true },
@@ -245,6 +352,40 @@ try {
     name: 'Create Distribution Group',
     category: 'Distribution Groups & Contacts',
     description: 'Create new distribution group with members and moderation settings',
+    instructions: `**How This Task Works:**
+- Creates new distribution groups for email collaboration
+- Sets owner who can manage group membership
+- Optionally adds initial members
+- Integrates with Active Directory
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Group owner must have valid mailbox
+- Members must have valid mailboxes or mail contacts
+
+**What You Need to Provide:**
+- Group name (display name)
+- Email address for the group
+- Group owner email address
+- Optional: Comma-separated list of initial members
+
+**What the Script Does:**
+1. Checks if distribution group already exists
+2. Creates new distribution group with specified name and email
+3. Sets group owner (ManagedBy)
+4. Adds initial members if provided
+5. Reports creation success with group details
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Email address must be unique across organization
+- Group owner can add/remove members
+- Typical use: department aliases, project teams, mailing lists
+- Members receive all emails sent to group
+- Distribution groups don't require Exchange licenses
+- Can be converted to dynamic distribution group later
+- Use Security Groups for permissions, Distribution Groups for email only`,
     parameters: [
       { id: 'groupName', label: 'Group Name', type: 'text', required: true, placeholder: 'Sales Team' },
       { id: 'emailAddress', label: 'Email Address', type: 'email', required: true, placeholder: 'sales@contoso.com' },
@@ -311,6 +452,40 @@ try {
     name: 'Set Group Moderation and Delivery Restrictions',
     category: 'Distribution Groups & Contacts',
     description: 'Configure moderation and delivery management for distribution groups',
+    instructions: `**How This Task Works:**
+- Configures message moderation for distribution groups
+- Requires moderator approval before delivery
+- Controls who can send to group (authentication)
+- Prevents unauthorized or inappropriate messages
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Distribution group must exist
+- Moderators must have valid mailboxes
+
+**What You Need to Provide:**
+- Group identity (email address)
+- Enable moderation: true or false
+- Optional: Comma-separated list of moderators
+- Require sender authentication: true or false
+
+**What the Script Does:**
+1. Verifies distribution group exists
+2. Configures moderation enabled/disabled
+3. Sets moderators who approve messages (if moderation enabled)
+4. Configures sender authentication requirement
+5. Displays moderation settings summary
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Moderation: messages held for moderator approval before delivery
+- Moderators receive approval requests via email
+- Typical use: executive communications, sensitive announcements, compliance
+- Require sender auth: prevents external users from sending to group
+- Moderated messages have delivery delay while awaiting approval
+- Moderators can approve or reject with reason
+- Multiple moderators can be assigned (any one can approve)`,
     parameters: [
       { id: 'groupIdentity', label: 'Group Identity', type: 'email', required: true, placeholder: 'group@contoso.com' },
       { id: 'moderationEnabled', label: 'Enable Moderation', type: 'boolean', required: false, defaultValue: false },
@@ -369,6 +544,43 @@ try {
     name: 'Create/Modify Transport Rule',
     category: 'Mail Flow & Transport Rules',
     description: 'Create or modify transport rules for mail flow control',
+    instructions: `**How This Task Works:**
+- Creates or modifies Exchange transport rules
+- Controls mail flow based on conditions and actions
+- Enforces email policies automatically
+- Can block, redirect, or modify messages
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Understanding of mail flow policies
+- Transport service must be running
+
+**What You Need to Provide:**
+- Rule name (unique identifier)
+- Condition: FromScope, MessageSizeOver, AttachmentExtension, or SubjectContains
+- Condition value (specific to condition type)
+- Action: RejectMessage, DeleteMessage, or RedirectTo
+- Enable rule: true or false
+
+**What the Script Does:**
+1. Checks if transport rule with name already exists
+2. If exists: updates enabled status
+3. If new: creates rule with specified condition and action
+4. Configures condition (scope, size, extension, subject)
+5. Configures action (reject, delete, redirect)
+6. Reports rule creation or update success
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Rules process in priority order
+- Typical use: block attachments, prevent data loss, enforce disclaimers, size limits
+- MessageSizeOver: specify size like "25MB"
+- AttachmentExtension: specify extensions like "exe,bat,vbs"
+- SubjectContains: specify words or phrases
+- Reject provides explanation to sender, Delete is silent
+- Rules apply to all mail flow through server
+- Test rules carefully before enabling in production`,
     parameters: [
       { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Block Large Attachments' },
       { id: 'condition', label: 'Condition', type: 'select', required: true, options: ['FromScope', 'MessageSizeOver', 'AttachmentExtension', 'SubjectContains'], defaultValue: 'MessageSizeOver' },
@@ -443,6 +655,39 @@ try {
     name: 'Manage Accepted Domains',
     category: 'Mail Flow & Transport Rules',
     description: 'Add or configure accepted domains for the Exchange organization',
+    instructions: `**How This Task Works:**
+- Configures domains Exchange accepts email for
+- Supports Authoritative, Internal Relay, and External Relay types
+- Required for receiving email at custom domains
+- Integrates with DNS MX records
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- DNS MX records pointing to Exchange server
+- Domain ownership verification
+
+**What You Need to Provide:**
+- Domain name (e.g., contoso.com)
+- Domain type: Authoritative (default), InternalRelay, or ExternalRelay
+
+**What the Script Does:**
+1. Checks if accepted domain already exists
+2. If exists: displays warning and current configuration
+3. If new: creates accepted domain with specified type
+4. Configures domain as Authoritative, InternalRelay, or ExternalRelay
+5. Reports domain configuration success
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Authoritative: Exchange hosts all mailboxes for this domain (most common)
+- InternalRelay: Exchange relays to internal servers hosting mailboxes
+- ExternalRelay: Exchange relays to external mail servers
+- Typical use: add company domain, subsidiaries, acquisition domains
+- DNS MX records must point to Exchange server
+- First accepted domain often becomes default reply address
+- Multiple domains supported for multi-brand organizations
+- Verify domain ownership before adding`,
     parameters: [
       { id: 'domainName', label: 'Domain Name', type: 'text', required: true, placeholder: 'contoso.com' },
       { id: 'domainType', label: 'Domain Type', type: 'select', required: true, options: ['Authoritative', 'InternalRelay', 'ExternalRelay'], defaultValue: 'Authoritative' },
@@ -503,6 +748,42 @@ try {
     name: 'Create Mailbox Database',
     category: 'Database & DAG Management',
     description: 'Create a new mailbox database on an Exchange server',
+    instructions: `**How This Task Works:**
+- Creates new mailbox database on Exchange server
+- Configures database and log file locations
+- Automatically mounts database after creation
+- Required for storing user mailboxes
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Sufficient disk space for database and logs
+- Exchange Server must be running
+- Separate volumes for database and logs recommended
+
+**What You Need to Provide:**
+- Database name (unique identifier)
+- Server name where database will be created
+- EDB file path (database file location)
+- Log folder path (transaction log location)
+
+**What the Script Does:**
+1. Checks if database with name already exists
+2. Creates new mailbox database with New-MailboxDatabase
+3. Configures database file path (.edb file)
+4. Configures transaction log folder path
+5. Automatically mounts database
+6. Reports creation success with configuration details
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Database and logs should be on separate physical disks for performance
+- Typical database size: starts small, grows with mailbox content
+- Transaction logs critical for database recovery
+- Typical use: capacity expansion, new server setup, load balancing
+- Database name must be unique across organization
+- Mount operation verifies database integrity
+- Plan for database growth and backup space`,
     parameters: [
       { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'DB03' },
       { id: 'server', label: 'Server Name', type: 'text', required: true, placeholder: 'EX01' },
@@ -563,6 +844,38 @@ try {
     name: 'Mount/Dismount Database',
     category: 'Database & DAG Management',
     description: 'Mount or dismount a mailbox database',
+    instructions: `**How This Task Works:**
+- Mounts or dismounts mailbox databases
+- Mounting makes database available for mailbox access
+- Dismounting takes database offline for maintenance
+- Essential for database maintenance and troubleshooting
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Database must exist
+- For dismount: no active connections recommended
+
+**What You Need to Provide:**
+- Database name
+- Action: Mount or Dismount
+
+**What the Script Does:**
+1. Verifies database exists
+2. Checks current mounted status
+3. For Mount: mounts database if currently dismounted
+4. For Dismount: dismounts database if currently mounted
+5. Reports current status and action result
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Dismounting makes mailboxes inaccessible to users
+- Mount verifies database integrity before making available
+- Typical use: database maintenance, backup operations, troubleshooting
+- Dismount before database moves or offline maintenance
+- Users cannot access mailboxes in dismounted database
+- Mount failures may indicate database corruption
+- Always mount database after maintenance to restore service`,
     parameters: [
       { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'DB01' },
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['Mount', 'Dismount'], defaultValue: 'Mount' }
@@ -612,6 +925,39 @@ try {
     name: 'Check DAG Replication Health',
     category: 'Database & DAG Management',
     description: 'Monitor Database Availability Group replication status and health',
+    instructions: `**How This Task Works:**
+- Monitors Database Availability Group (DAG) replication health
+- Checks replication status for database copies
+- Reports copy queue length and replay lag
+- Essential for high availability monitoring
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- DAG must be configured
+- Database copies must exist
+
+**What You Need to Provide:**
+- Optional: DAG name (if not specified, checks all databases)
+- Output CSV file path for health report
+
+**What the Script Does:**
+1. Retrieves mailbox databases (all or filtered by DAG)
+2. Gets replication status for each database copy
+3. Checks status, copy queue length, replay queue length, content index state
+4. Displays health status with color coding (Green=Healthy, Yellow=Warning)
+5. Exports detailed report to CSV file
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Healthy status indicates replication working correctly
+- Copy queue: logs waiting to be copied to passive copy
+- Replay queue: logs copied but not yet replayed into database
+- Typical use: proactive monitoring, health checks, troubleshooting failover issues
+- High queue lengths may indicate replication lag or network issues
+- Content index state critical for search functionality
+- Schedule regular health checks for production DAGs
+- CSV report useful for trending and capacity planning`,
     parameters: [
       { id: 'dagName', label: 'DAG Name (Optional)', type: 'text', required: false, placeholder: 'DAG01' },
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\DAGHealth.csv' }
@@ -678,6 +1024,40 @@ try {
     name: 'Purge Disconnected Mailboxes',
     category: 'Maintenance & Hygiene',
     description: 'Find and purge disconnected mailboxes from database',
+    instructions: `**How This Task Works:**
+- Identifies disconnected mailboxes in database
+- Shows disconnect reason and date for each
+- Report-only mode for review before purging
+- Purge mode permanently removes disconnected mailboxes
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Database must exist and be mounted
+- Backup recommended before purging
+
+**What You Need to Provide:**
+- Database name to scan
+- Action: ReportOnly (default) or Purge
+- Output CSV file path for report
+
+**What the Script Does:**
+1. Scans specified database for disconnected mailboxes
+2. Retrieves disconnect reason, date, and mailbox size for each
+3. In ReportOnly mode: lists disconnected mailboxes without removing
+4. In Purge mode: permanently removes each disconnected mailbox
+5. Exports detailed report to CSV file
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- ReportOnly mode enabled by default for safety
+- Disconnected mailboxes result from: user deletion, mailbox moves, mailbox disable
+- Typical disconnect reasons: Disabled, SoftDeleted
+- Typical use: reclaim database space, cleanup after user terminations
+- Purged mailboxes CANNOT be recovered (permanent deletion)
+- Review report before switching to Purge mode
+- Exchange retains disconnected mailboxes for 30 days by default
+- Purging frees database white space (requires maintenance to reclaim)`,
     parameters: [
       { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'DB01' },
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['ReportOnly', 'Purge'], defaultValue: 'ReportOnly' },
@@ -749,6 +1129,41 @@ try {
     name: 'Enable Mailbox Auditing Globally',
     category: 'Security & Compliance',
     description: 'Enable mailbox auditing for all mailboxes in the organization',
+    instructions: `**How This Task Works:**
+- Enables mailbox auditing across organization
+- Tracks owner, delegate, and admin actions
+- Creates audit log for compliance and security
+- Essential for detecting unauthorized access
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Sufficient mailbox database space for audit logs
+- Understanding of compliance requirements
+
+**What You Need to Provide:**
+- Optional: Database filter (e.g., "DB*" to filter specific databases)
+- Audit owner actions: true or false (mailbox owner activities)
+- Audit delegate actions: true or false (delegate access)
+- Audit admin actions: true or false (administrator access)
+
+**What the Script Does:**
+1. Retrieves all mailboxes (or filtered by database)
+2. Enables audit logging on each mailbox
+3. Configures which actions to audit (owner, delegate, admin)
+4. Sets standard audit actions for each category
+5. Reports total mailboxes configured and any failures
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Owner auditing: tracks mailbox owner actions (login, folder access)
+- Delegate auditing: tracks actions by users with delegate permissions
+- Admin auditing: tracks actions by Exchange administrators
+- Typical use: compliance (SOX, HIPAA, PCI), security monitoring, forensics
+- Audit logs stored in mailbox (increases mailbox size)
+- Query audit logs with Search-MailboxAuditLog cmdlet
+- May impact database size and performance at scale
+- Configure audit log age limit to manage storage`,
     parameters: [
       { id: 'databaseFilter', label: 'Database Filter (Optional)', type: 'text', required: false, placeholder: 'DB*' },
       { id: 'auditOwner', label: 'Audit Owner Actions', type: 'boolean', required: false, defaultValue: true },
@@ -823,6 +1238,37 @@ try {
     name: 'Mailbox Database Size Report',
     category: 'Reporting & Inventory',
     description: 'Generate comprehensive database size and growth reports',
+    instructions: `**How This Task Works:**
+- Generates comprehensive database size report
+- Shows database and transaction log sizes
+- Reports mailbox count per database
+- Essential for capacity planning and growth trending
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- File system access to database and log paths
+- Read permissions on database files
+
+**What You Need to Provide:**
+- Output CSV file path for report
+
+**What the Script Does:**
+1. Retrieves all mailbox databases with status
+2. For each database: measures EDB file size and transaction log total size
+3. Counts mailboxes in each database
+4. Collects mounted status and circular logging configuration
+5. Exports detailed report to CSV file
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Database size includes all mailbox content
+- Log size shows transaction logs (cleared by backup)
+- Typical use: capacity planning, growth trending, storage forecasting
+- Circular logging: if enabled, logs auto-delete (not backup-aware)
+- Plan database growth: 50-100GB per 100 users typical
+- Monitor growth monthly for capacity planning
+- CSV report useful for trending and budgeting`,
     parameters: [
       { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\DatabaseSizes.csv' }
     ],
@@ -882,6 +1328,40 @@ try {
     name: 'Transport Queue Length Monitoring',
     category: 'Reporting & Inventory',
     description: 'Monitor transport queue lengths and identify mail flow issues',
+    instructions: `**How This Task Works:**
+- Monitors Exchange transport queues for mail delivery
+- Identifies mail flow issues and bottlenecks
+- Alerts when queue lengths exceed thresholds
+- Essential for mail flow health monitoring
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Transport service must be running
+- Network connectivity to Exchange servers
+
+**What You Need to Provide:**
+- Optional: Server name (if not specified, checks all servers)
+- Alert threshold count (default: 100 messages)
+- Output CSV file path for report
+
+**What the Script Does:**
+1. Retrieves all transport queues (or filtered by server)
+2. For each queue: collects identity, delivery type, status, message count
+3. Color-codes results: Red if exceeds threshold, Yellow if half threshold, Green if OK
+4. Exports detailed report to CSV file
+5. Alerts if any queues exceed threshold
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- High queue counts indicate mail flow issues
+- Typical causes: network issues, DNS problems, recipient server down
+- Delivery types: SmtpDelivery (external), MapiDelivery (internal), Shadow (redundancy)
+- Typical use: proactive monitoring, troubleshooting delivery delays
+- Healthy queues typically have <10 messages
+- Threshold of 100 messages indicates potential problem
+- Check LastError field for specific failure reasons
+- Schedule regular checks for production monitoring`,
     parameters: [
       { id: 'server', label: 'Server Name (Optional)', type: 'text', required: false, placeholder: 'EX01' },
       { id: 'thresholdCount', label: 'Alert Threshold Count', type: 'number', required: false, defaultValue: 100, placeholder: '100' },
@@ -957,6 +1437,40 @@ try {
     name: 'Start/Stop Exchange Services',
     category: 'Server & Service Management',
     description: 'Gracefully start or stop Exchange services on a server',
+    instructions: `**How This Task Works:**
+- Controls Exchange services on server
+- Supports Start, Stop, and Restart actions
+- Filters services by pattern (All, MSExchange*, HostController)
+- Essential for maintenance and troubleshooting
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with remoting enabled
+- Network connectivity to target server
+- Administrative access to target server
+
+**What You Need to Provide:**
+- Server name
+- Action: Start, Stop, or Restart
+- Service filter: All, MSExchange* (Exchange services), or HostController
+
+**What the Script Does:**
+1. Connects to specified server
+2. Retrieves services matching filter pattern
+3. For each service: performs specified action (Start/Stop/Restart)
+4. Skips disabled services
+5. Reports success or failure for each service
+
+**Important Notes:**
+- Exchange Server Administrator and local admin privileges required
+- Stopping services makes Exchange unavailable to users
+- MSExchange* filter targets all Exchange services
+- HostController manages Exchange service dependencies
+- Typical use: server maintenance, troubleshooting, applying updates
+- Restart recommended after configuration changes
+- Services start in dependency order automatically
+- Stopping Exchange services impacts mail flow and user access
+- Plan maintenance windows for service operations`,
     parameters: [
       { id: 'server', label: 'Server Name', type: 'text', required: true, placeholder: 'EX01' },
       { id: 'action', label: 'Action', type: 'select', required: true, options: ['Start', 'Stop', 'Restart'], defaultValue: 'Start' },

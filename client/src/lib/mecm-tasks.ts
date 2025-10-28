@@ -2766,9 +2766,259 @@ Write-Host "  Total members: $($Report.Count)" -ForegroundColor Gray`;
   // ========================================
   // SITE CONFIGURATION & MAINTENANCE CATEGORY
   // ========================================
-  {id:'configure-maintenance-window',name:'Configure Maintenance Window',category:'Site Configuration & Maintenance',description:'Create maintenance windows for collections to control deployment timing',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'Production-Servers'},{id:'windowName',label:'Window Name',type:'text',required:true,placeholder:'Monthly Patching Window'},{id:'startTime',label:'Start Time (HH:mm)',type:'text',required:true,placeholder:'02:00'},{id:'durationHours',label:'Duration (hours)',type:'number',required:true,defaultValue:4},{id:'recurrence',label:'Recurrence',type:'select',required:true,defaultValue:'Monthly',options:['None','Weekly','Monthly']}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),n=escapePowerShellString(p.windowName),s=escapePowerShellString(p.startTime),d=p.durationHours||4,r=escapePowerShellString(p.recurrence||'Monthly');return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";$Coll="${c}";$Name="${n}";$Start="${s}";$Duration=${d};$Recur="${r}";try{$Collection=Get-CMDeviceCollection -Name $Coll;$StartDate=Get-Date;$StartDate=$StartDate.Date.AddHours($Start.Split(':')[0]).AddMinutes($Start.Split(':')[1]);$Schedule=if($Recur -eq 'Monthly'){New-CMSchedule -Start $StartDate -DurationInterval Hours -DurationCount $Duration -RecurInterval Months -RecurCount 1}elseif($Recur -eq 'Weekly'){New-CMSchedule -Start $StartDate -DurationInterval Hours -DurationCount $Duration -RecurInterval Weeks -RecurCount 1}else{New-CMSchedule -Start $StartDate -DurationInterval Hours -DurationCount $Duration -RecurCount 1};New-CMMaintenanceWindow -CollectionId $Collection.CollectionID -Name $Name -Schedule $Schedule -ApplyTo SoftwareUpdatesOnly;Write-Host "✓ Maintenance window created" -ForegroundColor Green;Write-Host "  Collection: $Coll" -ForegroundColor Gray;Write-Host "  Start: $Start" -ForegroundColor Gray;Write-Host "  Duration: $Duration hours" -ForegroundColor Gray}catch{Write-Error "Failed: $_"}`;}},
-  {id:'create-boundary-group',name:'Create Boundary Group',category:'Site Configuration & Maintenance',description:'Create boundary group and assign distribution points',parameters:[{id:'name',label:'Boundary Group Name',type:'text',required:true,placeholder:'Building-A-Network'},{id:'siteCode',label:'Site Code',type:'text',required:true,placeholder:'PS1'},{id:'boundaries',label:'Boundaries (comma-separated)',type:'textarea',required:true,placeholder:'10.1.0.0/24,10.1.1.0/24',description:'IP subnets or AD sites'}],scriptTemplate:p=>{const n=escapePowerShellString(p.name),s=escapePowerShellString(p.siteCode),b=p.boundaries?buildPowerShellArray(p.boundaries):'';return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$BG=New-CMBoundaryGroup -Name "${n}" -DefaultSiteCode "${s}";Write-Host "✓ Boundary group created: ${n}" -ForegroundColor Green;$Boundaries=${b};foreach($Bound in $Boundaries){if($Bound -match '/'){$Type='IPSubnet'}else{$Type='ADSite'};$NewBound=New-CMBoundary -Name "Boundary-$Bound" -Type $Type -Value $Bound;Add-CMBoundaryToGroup -BoundaryGroupId $BG.GroupID -BoundaryId $NewBound.BoundaryID;Write-Host "  Added boundary: $Bound" -ForegroundColor Gray};Write-Host "✓ Configuration complete" -ForegroundColor Green}catch{Write-Error "Failed: $_"}`;}},
-  {id:'site-status-monitor',name:'Site Status Health Monitor',category:'Site Configuration & Maintenance',description:'Check MECM site component status and generate health report',parameters:[{id:'siteCode',label:'Site Code',type:'text',required:true,placeholder:'PS1'},{id:'exportPath',label:'Export Path (optional)',type:'path',required:false,placeholder:'C:\\Reports\\SiteHealth.csv'}],scriptTemplate:p=>{const s=escapePowerShellString(p.siteCode),e=p.exportPath?escapePowerShellString(p.exportPath):'';return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Components=Get-CMComponentStatusMessage -SiteCode "${s}" -Severity Error,Warning -ViewingPeriod "24 hours";$Summary=$Components|Group-Object ComponentName|Select @{N='Component';E={$_.Name}},@{N='Errors';E={($_.Group|Where Severity -eq 'Error').Count}},@{N='Warnings';E={($_.Group|Where Severity -eq 'Warning').Count}};Write-Host "Site Health Summary (Last 24h):" -ForegroundColor Cyan;$Summary|Format-Table -AutoSize;${e?`$Summary|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Report: ${e}" -ForegroundColor Green`:''};$Overall=if(($Summary|Measure -Property Errors -Sum).Sum -eq 0){'Healthy'}else{'Issues Detected'};Write-Host "Overall Status: $Overall" -ForegroundColor $(if($Overall -eq 'Healthy'){'Green'}else{'Yellow'})}catch{Write-Error "Failed: $_"}`;}},
+  {
+    id: 'configure-maintenance-window',
+    name: 'Configure Maintenance Window',
+    category: 'Site Configuration & Maintenance',
+    description: 'Create maintenance windows for collections to control deployment timing',
+    instructions: `**How This Task Works:**
+- Creates scheduled maintenance windows for device collections
+- Controls when software updates and deployments can install
+- Prevents disruptions during business hours
+- Supports one-time, weekly, or monthly recurrence patterns
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- Full Administrator role on target collection
+- PowerShell 5.1 or later
+- Target collection must exist
+
+**What You Need to Provide:**
+- Collection name for maintenance window assignment
+- Window name (descriptive label)
+- Start time in 24-hour format (HH:mm)
+- Duration in hours
+- Recurrence pattern (None/Weekly/Monthly)
+
+**What the Script Does:**
+1. Imports Configuration Manager module and connects to site
+2. Retrieves target device collection
+3. Parses start time and creates schedule object
+4. Configures recurrence pattern (monthly/weekly/one-time)
+5. Creates maintenance window applied to software updates only
+6. Reports creation success with collection details
+
+**Important Notes:**
+- Maintenance windows only control software updates by default
+- Devices will only install updates during specified window
+- Multiple overlapping windows are allowed on same collection
+- Typical use: production servers, critical workstations, deployment rings
+- Weekly pattern: same day/time each week
+- Monthly pattern: same date/time each month
+- One-time windows useful for emergency maintenance
+- Does not prevent users from manually installing updates`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'Production-Servers' },
+      { id: 'windowName', label: 'Window Name', type: 'text', required: true, placeholder: 'Monthly Patching Window' },
+      { id: 'startTime', label: 'Start Time (HH:mm)', type: 'text', required: true, placeholder: '02:00' },
+      { id: 'durationHours', label: 'Duration (hours)', type: 'number', required: true, defaultValue: 4 },
+      { id: 'recurrence', label: 'Recurrence', type: 'select', required: true, defaultValue: 'Monthly', options: ['None', 'Weekly', 'Monthly'] }
+    ],
+    scriptTemplate: (params) => {
+      const c = escapePowerShellString(params.collectionName);
+      const n = escapePowerShellString(params.windowName);
+      const s = escapePowerShellString(params.startTime);
+      const d = params.durationHours || 4;
+      const r = escapePowerShellString(params.recurrence || 'Monthly');
+      
+      return `# Configure Maintenance Window
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$Coll = "${c}"
+$Name = "${n}"
+$Start = "${s}"
+$Duration = ${d}
+$Recur = "${r}"
+
+try {
+    $Collection = Get-CMDeviceCollection -Name $Coll
+    
+    $StartDate = Get-Date
+    $StartDate = $StartDate.Date.AddHours($Start.Split(':')[0]).AddMinutes($Start.Split(':')[1])
+    
+    $Schedule = if ($Recur -eq 'Monthly') {
+        New-CMSchedule -Start $StartDate -DurationInterval Hours -DurationCount $Duration -RecurInterval Months -RecurCount 1
+    } elseif ($Recur -eq 'Weekly') {
+        New-CMSchedule -Start $StartDate -DurationInterval Hours -DurationCount $Duration -RecurInterval Weeks -RecurCount 1
+    } else {
+        New-CMSchedule -Start $StartDate -DurationInterval Hours -DurationCount $Duration -RecurCount 1
+    }
+    
+    New-CMMaintenanceWindow -CollectionId $Collection.CollectionID -Name $Name -Schedule $Schedule -ApplyTo SoftwareUpdatesOnly
+    
+    Write-Host "✓ Maintenance window created" -ForegroundColor Green
+    Write-Host "  Collection: $Coll" -ForegroundColor Gray
+    Write-Host "  Window: $Name" -ForegroundColor Gray
+    Write-Host "  Start: $Start (Duration: $Duration hours)" -ForegroundColor Gray
+    Write-Host "  Recurrence: $Recur" -ForegroundColor Gray
+} catch {
+    Write-Error "Failed to create maintenance window: $_"
+    exit 1
+}`;
+    }
+  },
+  {
+    id: 'create-boundary-group',
+    name: 'Create Boundary Group',
+    category: 'Site Configuration & Maintenance',
+    description: 'Create boundary group and assign distribution points',
+    instructions: `**How This Task Works:**
+- Creates logical boundary groups for client assignment
+- Groups network locations (IP subnets or AD sites)
+- Controls which management points and distribution points clients use
+- Essential for multi-site and multi-network deployments
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- Full Administrator role
+- PowerShell 5.1 or later
+- Site code must exist
+- Valid IP subnets or AD site names
+
+**What You Need to Provide:**
+- Boundary group name
+- Site code to assign as default
+- Comma-separated list of boundaries (IP subnets with CIDR or AD site names)
+
+**What the Script Does:**
+1. Imports Configuration Manager module and connects to site
+2. Creates new boundary group with specified name and default site
+3. Loops through provided boundaries list
+4. Detects boundary type (IP subnet if contains /, AD site otherwise)
+5. Creates each boundary object
+6. Adds boundary to the group
+7. Reports successful configuration
+
+**Important Notes:**
+- IP subnets must use CIDR notation (e.g., 10.1.0.0/24)
+- AD sites must match exact Active Directory site names
+- Boundary groups control content location and client assignment
+- Typical use: branch offices, VPN networks, multi-site deployments
+- After creation, manually assign distribution points and management points in console
+- Clients automatically discover boundaries based on their network location
+- Overlapping boundaries allowed but may cause unpredictable client assignment`,
+    parameters: [
+      { id: 'name', label: 'Boundary Group Name', type: 'text', required: true, placeholder: 'Building-A-Network' },
+      { id: 'siteCode', label: 'Site Code', type: 'text', required: true, placeholder: 'PS1' },
+      { id: 'boundaries', label: 'Boundaries (comma-separated)', type: 'textarea', required: true, placeholder: '10.1.0.0/24,10.1.1.0/24', description: 'IP subnets or AD sites' }
+    ],
+    scriptTemplate: (params) => {
+      const n = escapePowerShellString(params.name);
+      const s = escapePowerShellString(params.siteCode);
+      const b = params.boundaries ? buildPowerShellArray(params.boundaries) : '';
+      
+      return `# Create Boundary Group
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    $BG = New-CMBoundaryGroup -Name "${n}" -DefaultSiteCode "${s}"
+    Write-Host "✓ Boundary group created: ${n}" -ForegroundColor Green
+    
+    $Boundaries = ${b}
+    
+    foreach ($Bound in $Boundaries) {
+        if ($Bound -match '/') {
+            $Type = 'IPSubnet'
+        } else {
+            $Type = 'ADSite'
+        }
+        
+        $NewBound = New-CMBoundary -Name "Boundary-$Bound" -Type $Type -Value $Bound
+        Add-CMBoundaryToGroup -BoundaryGroupId $BG.GroupID -BoundaryId $NewBound.BoundaryID
+        
+        Write-Host "  Added boundary: $Bound ($Type)" -ForegroundColor Gray
+    }
+    
+    Write-Host "✓ Configuration complete" -ForegroundColor Green
+    Write-Host "  Remember to assign distribution points and management points in console" -ForegroundColor Yellow
+} catch {
+    Write-Error "Failed to create boundary group: $_"
+    exit 1
+}`;
+    }
+  },
+  {
+    id: 'site-status-monitor',
+    name: 'Site Status Health Monitor',
+    category: 'Site Configuration & Maintenance',
+    description: 'Check MECM site component status and generate health report',
+    instructions: `**How This Task Works:**
+- Monitors MECM site component health and error/warning messages
+- Retrieves component status messages from last 24 hours
+- Groups errors and warnings by component name
+- Generates summary report of site health issues
+- Optional CSV export for trending analysis
+
+**Prerequisites:**
+- MECM Console with Configuration Manager PowerShell module
+- Read permissions on site status messages
+- PowerShell 5.1 or later
+- Access to SMS Provider
+
+**What You Need to Provide:**
+- Site code to monitor
+- Optional: CSV export path for persistent reporting
+
+**What the Script Does:**
+1. Imports Configuration Manager module and connects to site
+2. Retrieves component status messages (errors and warnings only) from last 24 hours
+3. Groups messages by component name
+4. Counts errors and warnings per component
+5. Displays formatted summary table in console
+6. Exports to CSV if path provided
+7. Calculates overall site health status (Healthy/Issues Detected)
+
+**Important Notes:**
+- Only retrieves errors and warnings (not informational messages)
+- 24-hour window provides recent health snapshot
+- Typical use: daily health checks, proactive monitoring, troubleshooting
+- High error counts indicate component failures requiring investigation
+- Common problematic components: Management Point, Distribution Manager, SMS_SITE_COMPONENT_MANAGER
+- CSV export useful for trending and historical analysis
+- Overall status is "Healthy" only if zero errors found
+- Schedule script for automated daily health monitoring`,
+    parameters: [
+      { id: 'siteCode', label: 'Site Code', type: 'text', required: true, placeholder: 'PS1' },
+      { id: 'exportPath', label: 'Export Path (optional)', type: 'path', required: false, placeholder: 'C:\\Reports\\SiteHealth.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const s = escapePowerShellString(params.siteCode);
+      const e = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Site Status Health Monitor
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+try {
+    $Components = Get-CMComponentStatusMessage -SiteCode "${s}" -Severity Error,Warning -ViewingPeriod "24 hours"
+    
+    $Summary = $Components | Group-Object ComponentName | Select @{N='Component';E={$_.Name}},@{N='Errors';E={($_.Group|Where Severity -eq 'Error').Count}},@{N='Warnings';E={($_.Group|Where Severity -eq 'Warning').Count}}
+    
+    Write-Host "Site Health Summary (Last 24h):" -ForegroundColor Cyan
+    $Summary | Format-Table -AutoSize
+    ${e ? `
+    $Summary | Export-Csv "${e}" -NoTypeInformation
+    Write-Host "✓ Report: ${e}" -ForegroundColor Green` : ''}
+    
+    $Overall = if (($Summary | Measure -Property Errors -Sum).Sum -eq 0) { 'Healthy' } else { 'Issues Detected' }
+    Write-Host "Overall Status: $Overall" -ForegroundColor $(if ($Overall -eq 'Healthy') {'Green'} else {'Yellow'})
+} catch {
+    Write-Error "Failed to check site status: $_"
+    exit 1
+}`;
+    }
+  },
   {id:'clear-client-cache',name:'Clear Client Cache',category:'Client Management & Health',description:'Clear MECM client cache to free disk space',parameters:[{id:'devices',label:'Device Names (comma-separated)',type:'textarea',required:true,placeholder:'PC001,PC002'}],scriptTemplate:p=>{const d=p.devices?buildPowerShellArray(p.devices):'';return `$Devices=${d};foreach($Dev in $Devices){try{Invoke-Command -ComputerName $Dev -ScriptBlock{$UIResource=New-Object -ComObject UIResource.UIResourceMgr;$Cache=$UIResource.GetCacheInfo();$Cache.GetCacheElements()|ForEach{$Cache.DeleteCacheElement($_.CacheElementID)}};Write-Host "✓ $Dev: Cache cleared" -ForegroundColor Green}catch{Write-Host "✗ $Dev: Failed" -ForegroundColor Red}}`;}},
   {id:'export-hardware-inventory',name:'Export Hardware Inventory',category:'Inventory & Reporting',description:'Export hardware inventory for devices',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\HWInventory.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Devices=Get-CMDevice -CollectionName "${c}";$Results=$Devices|Select Name,Manufacturer,Model,TotalPhysicalMemory,OSVersion;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
   {id:'create-dynamic-collection',name:'Create Dynamic Device Collection',category:'Collections',description:'Create query-based device collection',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'Windows 11 Devices'},{id:'queryExpression',label:'WQL Query',type:'textarea',required:true,placeholder:'SELECT * FROM SMS_R_System WHERE OperatingSystemNameAndVersion LIKE "%Windows 11%"'}],scriptTemplate:p=>{const n=escapePowerShellString(p.collectionName),q=escapePowerShellString(p.queryExpression);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Collection=New-CMDeviceCollection -Name "${n}" -LimitingCollectionName "All Systems";Add-CMDeviceCollectionQueryMembershipRule -CollectionName "${n}" -QueryExpression "${q}" -RuleName "Query-${n}";Write-Host "✓ Collection created: ${n}" -ForegroundColor Green}catch{Write-Error $_}`;}},

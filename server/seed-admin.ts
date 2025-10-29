@@ -10,7 +10,7 @@ export async function seedAdminAccount() {
     return existingAdmin;
   }
 
-  const adminPassword = await hashPassword("admin123");
+  const adminPassword = await hashPassword("PSForge@dmin2025!Secure");
 
   const adminUser = await storage.createUser({
     email: adminEmail,
@@ -22,7 +22,7 @@ export async function seedAdminAccount() {
 
   console.log("✓ Admin account created");
   console.log("  Email: admin@psforge.com");
-  console.log("  Password: admin123");
+  console.log("  Password: PSForge@dmin2025!Secure");
   console.log("  Please change the password after first login!");
 
   return adminUser;

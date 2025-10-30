@@ -101,7 +101,7 @@ export function ScriptWizardTab() {
 
   // Filter platforms based on subscription
   const availablePlatforms = useMemo(() => {
-    return platforms.filter(p => !p.isPremium || featureAccess?.hasGuiBuilderAccess);
+    return platforms.filter(p => !p.isPremium || featureAccess?.hasPremiumCategories);
   }, [featureAccess]);
 
   // Get tasks from selected platforms
@@ -124,7 +124,7 @@ export function ScriptWizardTab() {
 
   const handlePlatformToggle = (platformId: string) => {
     const platform = platforms.find(p => p.id === platformId);
-    if (platform?.isPremium && !featureAccess?.hasGuiBuilderAccess) {
+    if (platform?.isPremium && !featureAccess?.hasPremiumCategories) {
       toast({
         title: 'Pro Feature',
         description: `${platform.name} requires a Pro subscription`,

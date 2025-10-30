@@ -12,6 +12,7 @@ import {
   loginSchema,
   changePasswordSchema,
   adminCreateUserSchema,
+  insertPlatformNotificationSchema,
   type ValidationResult,
   type SubscriptionStatus
 } from "@shared/schema";
@@ -841,6 +842,83 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     } catch (error) {
       console.error("Admin role update error:", error);
       return res.status(500).json({ error: "Failed to update user role" });
+    }
+  });
+
+  // Platform notification routes
+  app.get("/api/notifications/active", async (req, res) => {
+    try {
+      const notification = await storage.getActiveNotification();
+      return res.json(notification || null);
+    } catch (error) {
+      console.error("Get active notification error:", error);
+      return res.status(500).json({ error: "Failed to retrieve notification" });
+    }
+  });
+
+  app.get("/api/admin/notifications", requireAdmin, async (req, res) => {
+    try {
+      const notifications = await storage.getAllNotifications();
+      return res.json(notifications);
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      return res.status(500).json({ error: "Failed to retrieve notifications" });
+    }
+  });
+
+  app.post("/api/admin/notifications", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertPlatformNotificationSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid notification data",
+          details: parsed.error.errors
+        });
+      }
+
+      const notification = await storage.createNotification(parsed.data);
+      return res.status(201).json(notification);
+    } catch (error) {
+      console.error("Create notification error:", error);
+      return res.status(500).json({ error: "Failed to create notification" });
+    }
+  });
+
+  app.patch("/api/admin/notifications/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { message, enabled } = req.body;
+
+      const updates: Partial<{ message: string; enabled: boolean }> = {};
+      if (message !== undefined) updates.message = message;
+      if (enabled !== undefined) updates.enabled = enabled;
+
+      const notification = await storage.updateNotification(id, updates);
+      if (!notification) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+
+      return res.json(notification);
+    } catch (error) {
+      console.error("Update notification error:", error);
+      return res.status(500).json({ error: "Failed to update notification" });
+    }
+  });
+
+  app.delete("/api/admin/notifications/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteNotification(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Delete notification error:", error);
+      return res.status(500).json({ error: "Failed to delete notification" });
     }
   });
 

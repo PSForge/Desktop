@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth-context";
 import { getPlatformStats } from "@/lib/platform-stats";
+import { NotificationBanner } from "@/components/notification-banner";
 import logoTransparent from "@assets/Full Logo Transparent_1761565796152.png";
 import logoLight from "@assets/Full Logo_1761565796152.png";
 import iconLogo from "@assets/Icon_1761565796152.png";
@@ -114,6 +115,8 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      <NotificationBanner />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">

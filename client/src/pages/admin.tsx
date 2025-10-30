@@ -21,6 +21,7 @@ import { adminCreateUserSchema, type AdminCreateUserData } from "@shared/schema"
 import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import { AdminNotificationsSection } from "@/components/admin-notifications-section";
 
 interface AnalyticsOverview {
   totalUsers: number;
@@ -587,6 +588,8 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+
+        <AdminNotificationsSection />
       </div>
     </div>
   );

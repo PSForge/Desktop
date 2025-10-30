@@ -12,7 +12,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { SecurityDashboard } from "@/components/security-dashboard";
 
 interface ExportDialogProps {
   open: boolean;
@@ -53,7 +55,7 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="dialog-export">
+      <DialogContent className="max-w-4xl max-h-[90vh]" data-testid="dialog-export">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -94,17 +96,29 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Script Preview</Label>
-            <ScrollArea className="h-64 rounded-md border bg-muted/30">
-              <pre className="p-4 text-xs font-mono" data-testid="text-script-preview">
-                <code>{code || '# No script content'}</code>
-              </pre>
-            </ScrollArea>
-            <p className="text-xs text-muted-foreground">
-              Review your script before exporting
-            </p>
-          </div>
+          <Tabs defaultValue="preview" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="preview" data-testid="tab-preview">Script Preview</TabsTrigger>
+              <TabsTrigger value="security" data-testid="tab-security">Security Analysis</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="preview" className="space-y-2 mt-4">
+              <ScrollArea className="h-64 rounded-md border bg-muted/30">
+                <pre className="p-4 text-xs font-mono" data-testid="text-script-preview">
+                  <code>{code || '# No script content'}</code>
+                </pre>
+              </ScrollArea>
+              <p className="text-xs text-muted-foreground">
+                Review your script before exporting
+              </p>
+            </TabsContent>
+
+            <TabsContent value="security" className="mt-4">
+              <ScrollArea className="h-[400px]">
+                <SecurityDashboard script={code} />
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </div>
 
         <DialogFooter>

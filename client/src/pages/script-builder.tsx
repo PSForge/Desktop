@@ -6,8 +6,9 @@ import { Header } from "@/components/header";
 import { ScriptGeneratorTab } from "@/components/script-generator-tab";
 import { AIAssistantTab } from "@/components/ai-assistant-tab";
 import { GUIBuilderTab } from "@/components/gui-builder-tab";
+import { ScriptWizardTab } from "@/components/script-wizard-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileCode, Sparkles, LayoutGrid } from "lucide-react";
+import { FileCode, Sparkles, LayoutGrid, Wand2 } from "lucide-react";
 import { generatePowerShellScript } from "@/lib/script-generator";
 
 export default function ScriptBuilder() {
@@ -21,7 +22,7 @@ export default function ScriptBuilder() {
   const defaultTab = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab === 'ai-assistant' || tab === 'gui-builder') {
+    if (tab === 'ai-assistant' || tab === 'gui-builder' || tab === 'script-wizard') {
       return tab;
     }
     return 'script-generator';
@@ -83,6 +84,10 @@ export default function ScriptBuilder() {
                 <LayoutGrid className="h-4 w-4" />
                 <span>GUI</span>
               </TabsTrigger>
+              <TabsTrigger value="script-wizard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-script-wizard">
+                <Wand2 className="h-4 w-4" />
+                <span>Wizard</span>
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -108,6 +113,10 @@ export default function ScriptBuilder() {
             selectedCategory={selectedGuiCategory}
             onCategorySelect={setSelectedGuiCategory}
           />
+        </TabsContent>
+
+        <TabsContent value="script-wizard" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
+          <ScriptWizardTab />
         </TabsContent>
       </Tabs>
     </div>

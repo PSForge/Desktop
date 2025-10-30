@@ -3,8 +3,28 @@
 ## Overview
 PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 8 basic Windows management categories, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 623 automation tasks across 16 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
-## Recent Changes (October 28, 2025)
-🎉 **PROJECT COMPLETE: 114/114 tasks (100%)** 🎉
+## Recent Changes (October 30, 2025)
+🚀 **PSFORGE 2.0 RELEASED** 🚀
+
+### Version 2.0 Features (October 30, 2025)
+- **Script Wizard Tab:** New 4-step interactive wizard for bulk automation
+  - Step 1: Multi-platform selection (all 23 platforms available)
+  - Step 2: Task selection with subscription-aware filtering
+  - Step 3: CSV upload/manual data entry for bulk operations
+  - Step 4: Script preview with integrated security analysis
+- **Security Features (App-Wide):**
+  - Malicious code scanner detecting dangerous PowerShell patterns (Add-Type, -EncodedCommand, COM objects, credential harvesting, etc.)
+  - SHA-256 script integrity verification
+  - Security dashboard with visual security score (0-100)
+  - Integrated into all export dialogs (Script Generator, AI Assistant, GUI Builder, Script Wizard)
+- **Bulk Operations:**
+  - CSV parsing and validation with row-level error reporting
+  - Bulk PowerShell script generation with foreach loops
+  - Error handling and progress tracking in generated scripts
+  - Template CSV download for easy data structure
+
+### Version 1.0 Complete (October 28, 2025)
+🎉 **114/114 automation tasks** 🎉
 
 - **All Categories Complete with Full Instructions:**
   - OneDrive: 25/25 ✅
@@ -54,8 +74,9 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Typography**: Inter for UI, JetBrains Mono for code.
 - **Layout**: Tabbed interface featuring:
     - **Script Generator**: Code editor with command sidebar.
-    - **AI Assistant**: Full-screen chat interface for natural language command help.
+    - **AI Assistant**: Full-screen chat interface for natural language command help (Pro).
     - **GUI Builder**: Category-based task interface with user-friendly forms.
+    - **Script Wizard**: Multi-step wizard for bulk automation operations (Free + Pro with task filtering).
 
 ### Technical Implementations
 - **Frontend**: React with Vite, Tailwind CSS, Shadcn UI components, React hooks for state management with localStorage persistence.
@@ -67,9 +88,14 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **Script Editor**: Editable textarea with cursor-based command insertion.
     - **Code Preview**: Syntax-highlighted PowerShell output.
     - **Validation Panel**: Real-time error and warning display.
-    - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting 623 automation tasks across 16 enterprise IT platforms (Azure AD/Entra ID, Azure Resources, Exchange Online/Server, Hyper-V, Intune, MECM, Microsoft Teams, Office 365, OneDrive, Power Platform, SharePoint Online/On-Premises, Windows 365, Windows Server) and 7 Windows management categories (Event Logs, File System, Networking, Process Management, Registry, Security Management, Services).
-    - **Export**: Copy to clipboard and .ps1 file download.
-- **Security**: PowerShell injection prevention via input escaping, robust input validation, comprehensive error handling.
+    - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting 461 automation tasks across 23 platforms (16 enterprise + 7 Windows management).
+    - **Script Wizard**: Bulk operations wizard supporting CSV import and multi-platform task automation.
+    - **Export**: Copy to clipboard and .ps1 file download with security analysis.
+- **Security Features (v2.0)**:
+    - **Malicious Code Scanner**: Detects 15+ dangerous PowerShell patterns including encoded commands, COM objects, credential harvesting
+    - **Script Integrity**: SHA-256 hashing for script verification
+    - **Security Dashboard**: Visual security score (0-100) with detailed warnings and recommendations
+    - PowerShell injection prevention via input escaping, robust input validation, comprehensive error handling.
 - **Admin Features**: Admin dashboard with analytics (total users, subscribers, MRR, churn, growth trends), user management (create, view, edit roles), and a default admin account for initial setup.
 
 ## External Dependencies

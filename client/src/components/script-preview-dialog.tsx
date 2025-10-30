@@ -1,7 +1,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Download, Copy, Check } from "lucide-react";
 import { useState } from "react";
+import { SecurityDashboard } from "@/components/security-dashboard";
 
 interface ScriptPreviewDialogProps {
   open: boolean;
@@ -33,7 +36,7 @@ export function ScriptPreviewDialog({ open, onOpenChange, script, taskName }: Sc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Generated PowerShell Script</DialogTitle>
           <DialogDescription>
@@ -41,11 +44,24 @@ export function ScriptPreviewDialog({ open, onOpenChange, script, taskName }: Sc
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto border rounded-lg bg-muted/30">
-          <pre className="p-4 text-xs sm:text-sm font-mono">
-            <code>{script}</code>
-          </pre>
-        </div>
+        <Tabs defaultValue="preview" className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="preview" data-testid="tab-preview">Script Preview</TabsTrigger>
+            <TabsTrigger value="security" data-testid="tab-security">Security Analysis</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="preview" className="flex-1 overflow-auto mt-4 border rounded-lg bg-muted/30">
+            <pre className="p-4 text-xs sm:text-sm font-mono">
+              <code>{script}</code>
+            </pre>
+          </TabsContent>
+
+          <TabsContent value="security" className="flex-1 overflow-auto mt-4">
+            <ScrollArea className="h-[400px]">
+              <SecurityDashboard script={script} />
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter className="flex-row gap-2 justify-end">
           <Button

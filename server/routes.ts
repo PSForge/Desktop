@@ -28,6 +28,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(attachUser);
 
+  // SEO routes - sitemap and robots.txt
+  app.get("/sitemap.xml", (req, res) => {
+    res.type("application/xml");
+    res.sendFile("sitemap.xml", { root: "./public" });
+  });
+
+  app.get("/robots.txt", (req, res) => {
+    res.type("text/plain");
+    res.sendFile("robots.txt", { root: "./public" });
+  });
+
   app.post("/auth/register", async (req, res) => {
     try {
       const parsed = insertUserSchema.safeParse(req.body);

@@ -203,6 +203,17 @@ export const featureAccessSchema = z.object({
   restrictedCategories: z.array(z.string()),
 });
 
+// Platform Update Notification Schema
+export const platformNotificationSchema = z.object({
+  id: z.string(),
+  message: z.string(),
+  enabled: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const insertPlatformNotificationSchema = platformNotificationSchema.omit({ id: true, createdAt: true, updatedAt: true });
+
 // Type exports
 export type User = z.infer<typeof userSchema>;
 export type Session = z.infer<typeof sessionSchema>;
@@ -216,6 +227,8 @@ export type SubscriptionEvent = z.infer<typeof subscriptionEventSchema>;
 export type UsageMetric = z.infer<typeof usageMetricSchema>;
 export type AnalyticsOverview = z.infer<typeof analyticsOverviewSchema>;
 export type FeatureAccess = z.infer<typeof featureAccessSchema>;
+export type PlatformNotification = z.infer<typeof platformNotificationSchema>;
+export type InsertPlatformNotification = z.infer<typeof insertPlatformNotificationSchema>;
 
 // Basic categories accessible to free users
 export const freeTierCategories = [

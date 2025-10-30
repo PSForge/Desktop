@@ -11,6 +11,8 @@ import {
   type AnalyticsOverview,
   type UserRole,
   type SubscriptionStatus,
+  type PlatformNotification,
+  type InsertPlatformNotification,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -56,6 +58,14 @@ export interface IStorage {
   createUsageMetric(metric: Omit<UsageMetric, "id">): Promise<UsageMetric>;
   getAnalyticsOverview(): Promise<AnalyticsOverview>;
   getUserMetrics(userId: string, metricType?: string): Promise<UsageMetric[]>;
+  
+  // Platform Notifications
+  getNotification(id: string): Promise<PlatformNotification | undefined>;
+  getAllNotifications(): Promise<PlatformNotification[]>;
+  getActiveNotification(): Promise<PlatformNotification | undefined>;
+  createNotification(notification: InsertPlatformNotification): Promise<PlatformNotification>;
+  updateNotification(id: string, updates: Partial<PlatformNotification>): Promise<PlatformNotification | undefined>;
+  deleteNotification(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -66,6 +76,7 @@ export class MemStorage implements IStorage {
   private userSubscriptions: Map<string, UserSubscription>;
   private subscriptionEvents: Map<string, SubscriptionEvent>;
   private usageMetrics: Map<string, UsageMetric>;
+  private notifications: Map<string, PlatformNotification>;
 
   constructor() {
     this.scripts = new Map();
@@ -75,6 +86,7 @@ export class MemStorage implements IStorage {
     this.userSubscriptions = new Map();
     this.subscriptionEvents = new Map();
     this.usageMetrics = new Map();
+    this.notifications = new Map();
     this.initializeDefaultData();
   }
 
@@ -338,6 +350,53 @@ export class MemStorage implements IStorage {
     }
     
     return metrics.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+  }
+
+  // Platform Notifications
+  async getNotification(id: string): Promise<PlatformNotification | undefined> {
+    return this.notifications.get(id);
+  }
+
+  async getAllNotifications(): Promise<PlatformNotification[]> {
+    return Array.from(this.notifications.values())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getActiveNotification(): Promise<PlatformNotification | undefined> {
+    const notifications = Array.from(this.notifications.values())
+      .filter(n => n.enabled)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return notifications[0];
+  }
+
+  async createNotification(insertNotification: InsertPlatformNotification): Promise<PlatformNotification> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const notification: PlatformNotification = {
+      id,
+      ...insertNotification,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.notifications.set(id, notification);
+    return notification;
+  }
+
+  async updateNotification(id: string, updates: Partial<PlatformNotification>): Promise<PlatformNotification | undefined> {
+    const existing = this.notifications.get(id);
+    if (!existing) return undefined;
+
+    const updated: PlatformNotification = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.notifications.set(id, updated);
+    return updated;
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    return this.notifications.delete(id);
   }
 }
 

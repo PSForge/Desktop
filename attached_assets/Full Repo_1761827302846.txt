@@ -1,0 +1,273 @@
+Active Directory (On-Prem)
+
+Users: create/import; set attributes; move OU; enable/disable; unlock; reset/expire password; profile/home path; logon hours; manager/department; thumbnailPhoto; UPN suffix changes; convert external→member; stale/inactive discovery; bulk offboard (disable, move, remove groups, mailbox handoff).
+
+Groups: create/security/distribution; owners; add/remove/bulk membership; nested groups; convert type/scope; cleanup empty/orphaned; export membership (flattened).
+
+Computers: join/unjoin; move OU; rename; reset account; reimage flags; stale device cleanup by lastLogonTimestamp; BitLocker key backup to AD; delegated local admin seeding.
+
+OUs & Delegation: create OU tree; link/unlink GPO; set protect-from-accidental-deletion; delegation model (custom ACEs); audit permissions drift.
+
+GPO (via RSAT/PowerShell): create/copy/backup/restore; import settings (GPO packs); link order/enforcement; security filtering/WMI filters; report RSOP; drift report vs baseline.
+
+DNS (AD-integrated): zones/records CRUD; scavenging; aging; conditional forwarders; zone transfers; SOA/NS management; stale record cleanup.
+
+Sites & Services: site/subnet CRUD; site links/cost/schedule; bridgehead/DC placement.
+
+Domain/Forest Ops: FSMO transfer/seize; functional level checks; replication health/force; SYSVOL status; DC promotion/demotion automation; time source config.
+
+PKI/Certificates (if AD CS): template CRUD; auto-enrollment settings; CRL publish; backup/restore.
+
+Auditing & Reports: privileged groups members; password never expires; locked/disabled; duplicated SPNs; constrained/unconstrained delegation; kerberoastable accounts; last logon reports.
+
+Exchange Online
+
+Recipients: user/shared/resource mailboxes; room/equipment; mail users/contacts; distribution lists & dynamic DLs; groups to Teams conversion; aliases/proxy; mailbox moves; archive enable; litigation hold/in-place hold; mailbox permissions (FullAccess/SendAs/SendOnBehalf).
+
+Policies & Config: mailbox plans; retention/MRM; OWA/Mobile/POP/IMAP; transport rules; journaling; DLP policies; spam/anti-phish; safe/blocked senders (tenant/user); DKIM/DMARC/SPF assist.
+
+Mail Flow: connectors (inbound/outbound); accepted domains; remote domains; TLS; rules with exceptions; disclaimers; automatic forwarding/redirect governance.
+
+Migrations: cutover/staged/hybrid batches; PST import/export jobs; mapping CSV prep; reports/progress.
+
+Mobile: ActiveSync policies; quarantine/allow devices; wipe device.
+
+Compliance & Audit: mailbox audit enable; eDiscovery cases/searches/exports; content search; message trace; admin audit log export; high-risk rule detection.
+
+Reporting: mailbox sizes/quotas; inactive mailboxes; send/receive stats; transport rule hit counts; spam/phish trends.
+
+Exchange Server (On-Prem)
+
+Org/Server: install roles; virtual directories URLs; certificates (import/assign/renew); backup/restore of configs; DAG setup/seeds; database mounts/moves; circular logging toggles; maintenance mode; health probes.
+
+Databases: create/mount/dismount; move DB/logs; mailbox moves; defrag/offline maintenance; backup status.
+
+Recipients & Mail Flow: all EO tasks analogues plus Edge/Hub connectors; receive connectors (scoped/anonymous); send connectors; transport queues management.
+
+Hybrid: HCW automation; accepted domains sync; free/busy; connectors; centralized transport.
+
+Compliance: journaling, retention tags/policies; message tracking logs.
+
+Reporting: DAG copy/lag health; queue trends; protocol logs; client access logs.
+
+Microsoft Entra ID (Azure AD)
+
+Users: create/import; attributes; license assign/reclaim with plan toggles; password reset; MFA methods; convert guest/member; delete/restore (soft delete).
+
+Groups: security/M365; dynamic rules; owners; membership CRUD; role-assignable groups; naming policies.
+
+Apps & Enterprise Apps: app registrations; secrets/certs rotation; API permissions grant; service principal assignments; consent policies; SSO config; SCIM provisioning connections.
+
+Roles & PIM: assign/remove roles; eligible/active (PIM); approval workflows; access reviews.
+
+Conditional Access: policy CRUD; include/exclude; session controls; report-only vs enforce; break-glass validation.
+
+Identity Protection: risky users/sign-ins export; remediation actions.
+
+B2B/B2C: invite guests; redeem status; custom attributes; external collaboration settings.
+
+Audit & Reporting: sign-in logs; directory audit; license usage; stale accounts; last sign-in.
+
+Azure Resources
+
+Subscriptions/RGs: create/move/lock; tag strategy; inventory export.
+
+Compute: VM create/resize/start/stop/deallocate/delete; images/snapshots; disks attach/detach; availability sets/zones; VM extensions; boot diagnostics.
+
+Networking: vNets/subnets; NSGs & rules (bulk CSV); public IPs; Load Balancers; App Gateways/WAF; VNet peering; routes/UDRs; Private Endpoints; DNS zones/records.
+
+Storage: accounts (SKU/network rules); containers/queues/tables; lifecycle rules; SAS/keys rotation; firewall+VNet rules.
+
+RBAC: role assignments/removals; custom roles; access reviews.
+
+Policy: assign built-in/custom; initiative; remediation tasks; compliance export.
+
+Monitor: diagnostic settings; Log Analytics; alerts & action groups; workbooks; activity log exports.
+
+Backup/Recovery: vaults; VM backup enable/restore; retention; cleanup.
+
+Cost: budgets; exports; tag-based showback; idle resource detection.
+
+Hygiene: orphaned NIC/IP/disk cleanup; tag enforcement; resource move tooling.
+
+SharePoint Online
+
+Sites: create Team/Comm sites; hub assoc; rename/URL change; delete/restore; quotas/storage; site admins.
+
+Permissions: owners/members/visitors; SharePoint groups; external sharing (site/file); guest audits; link expiration policies.
+
+Libraries/Lists: create with templates; content types; columns/validation; versioning/retention; views/formatting; metadata defaults; sync Add to OneDrive.
+
+Content: upload/migrate (PnP/CSOM); copy/move across sites; retention labels; sensitivity labels.
+
+Governance: external sharing reports; guest cleanup; inactive site archive; hub navigation automation.
+
+Search/Taxonomy: term sets CRUD; synonyms; modern search configs.
+
+Reporting: storage usage; activity; permission inventory (flattened).
+
+SharePoint Server (On-Prem)
+
+Farm: config wizard; service applications (Search, MMS, BCS); timer jobs; ULS log parsing; patch/PU rollout; health analyzer fixes.
+
+Web Apps & Site Collections: create/extend/remove; quotas; locks; DB move; backup/restore; host-named site collections.
+
+Permissions/Content: all SPO analogues plus classic features (features activation, IIS bindings, claims/NTLM).
+
+Search: topology; crawls; content sources; query rules.
+
+Governance/Reporting: orphaned users; size reports; timer job health; crawl errors.
+
+Microsoft Endpoint Configuration Manager (SCCM/MECM)
+
+Collections: device/user; query rules; include/exclude; maintenance windows; incremental updates.
+
+Applications/Packages: import/create; detection; requirements; supersedence; dependencies; deployments (avail/req); uninstall; content distribution; status reports.
+
+OSD: task sequences (build/capture/in-place upgrade); boot images; drivers; USMT; pre-cache; peer cache; CMG DP options.
+
+Software Updates: ADRs; SUGs; deployments; maintenance windows; compliance reporting; third-party catalogs.
+
+Compliance Settings: configuration items/baselines; remediation; reporting.
+
+Devices: client install/repair; site assignment; inventory; power management; remote control enablement.
+
+Infrastructure: site roles; DPs/MPs/SUPs; boundaries/groups; backups; WSUS sync; CMG/IaaS setup.
+
+Reporting: SSRS automation; custom queries; export to CSV/HTML dashboards.
+
+Hyper-V
+
+Hosts: virtual switch creation; NIC teaming; SR-IOV; live migration settings; NUMA; host resource limits; replica setup.
+
+VMs: create from template; gen1/gen2; vCPU/Memory (Dynamic); checkpoints; start/stop/suspend; export/import; rename; VM groups.
+
+Storage: VHDX create/resize/convert; attach/detach; storage QoS; shared VHDX; CSV placement.
+
+Networking: vNICs; VLANs; QoS; MAC spoofing; trunk; NVGRE/VxLAN (if SDN).
+
+Replica/DR: enable replication; failover/failback; test failover; planned failover scripts.
+
+Reporting: VM inventory; host capacity; integration services status.
+
+Intune (Endpoint Manager)
+
+Autopilot: import hashes; profile assign; group tags; cleanup stale; sync.
+
+Devices: inventory; retire/wipe/reset; rename; primary user set; locate.
+
+Configuration: device profiles (OMA-URI), settings catalog; assignment; scope tags; drift remediation.
+
+Compliance: policies; actions for non-compliance; reporting.
+
+Apps: Win32/MSI/Store/LOB import; detection rules; dependencies; assignments (required/available/uninstall); updates.
+
+Update Management: Windows update rings; feature update profiles; expedite patch; reporting.
+
+Security: baselines; Defender/BitLocker/Firewall profiles; EDR onboarding; attack surface reduction.
+
+RBAC/Scope: roles; assignments; scope tags; tenant attach.
+
+Reports: device compliance; app install status; update compliance.
+
+Power Platform (Power Apps, Power Automate, Power BI, Copilot Studio)
+
+Environments: list/create/delete; convert trial→prod; admins; backups/restore; capacity allocation; region move (where supported).
+
+DLP Policies: create/update; connector classification; assign to envs; drift reports.
+
+Apps (Power Apps): inventory; owners/co-owners; publish/unpublish; import/export solutions; orphaned apps cleanup.
+
+Flows (Power Automate): inventory; enable/disable; reassign owner; export/import; orphan detection; connection reference fixes.
+
+Power BI: workspaces CRUD; add/remove users; dataset refresh; ownership transfer; usage metrics export; capacity assignment.
+
+Copilot/Chatbots: inventory; publish; transfer ownership; disable; usage reports.
+
+Governance Reports: connector usage; DLP violations; capacity trends; audit.
+
+Microsoft Teams
+
+Teams/Channels: create/clone/archive/unarchive; private/shared channels; moderation; pin tabs/apps; templates; guest toggle.
+
+Membership: owners/members/guests add/remove (bulk); tags; enforce min-owners.
+
+Policies: messaging/meeting/calling/app permission & setup; assign per-user/group; policy packages.
+
+Voice: enable Phone System; number assignment/port; voice routing policies; call queues/auto attendants; resource accounts.
+
+Meetings/Webinars: meeting policies; recording/transcription; webinar settings.
+
+App Governance: allow/block apps; tenant settings; setup policies.
+
+Lifecycle: inactive team reports; ownerless remediation; naming policies; expiration.
+
+Reporting: inventory; usage; policy coverage; number utilization; CQD exports.
+
+Microsoft 365 (Tenant-Level / Office 365)
+
+Org Config: branding; company profile; default settings (region/time); service plan toggles.
+
+Licensing: assign/reclaim (SKU/plan); group-based; capacity reports; forecasting.
+
+Security/Compliance: security defaults; legacy auth disable; audit/export; DLP/retention labels/policies; insider risk (if licensed).
+
+Sharing & Collaboration Defaults: SPO/ODFB external sharing posture; Teams external domains; meeting defaults.
+
+Health & Message Center: pull advisories/incidents; digest emails/Teams posts.
+
+User Lifecycle: onboarding/offboarding bundles (mailbox/OneDrive/Teams/license).
+
+Reporting: license usage; sign-in activity; MFA status; storage consumption.
+
+Windows 365 (Cloud PC)
+
+Licenses: assign/revoke; Frontline seats; SKU swaps.
+
+Provisioning Policies: create/update; region; join type; naming; assignments.
+
+Images: import/update gallery; set default; retire.
+
+Azure Network Connections: create/validate; rotate creds; health monitor.
+
+Cloud PC Ops: provision/reprovision; resize; restore point; restart; rename; local admin elevate; deprovision.
+
+Boot/Switch/Offline: deploy policy packs; configure Switch; offline duration.
+
+Monitoring/Reporting: provisioning status; health; performance; utilization; orphaned licenses.
+
+OneDrive for Business
+
+Provisioning: force site creation; bulk pre-provision.
+
+Access: grant/revoke admin access; transfer ownership (leavers); legal hold; retention label apply.
+
+Sharing: external sharing toggles; link audits/export; remove links; domain allow/block.
+
+Content: migrate/copy between users; KFM enforcement; sync health reporting.
+
+Reporting: storage/quota; activity; inactive sites.
+
+Lifecycle: offboarding automation; archive/delete after retention.
+
+Windows Server (General)
+
+Local Users/Groups: audit; add/remove; enforce admin membership baseline; rights assignment.
+
+Networking: IP/DNS/routes; NIC features; firewall baseline; VPN/proxy; packet capture; QoS; SMB tuning.
+
+Storage/FS: create shares; NTFS ACLs; quotas (FSRM); file screens; cleanup/archive; DFS-N/DFS-R config; Robocopy jobs; volume mgmt.
+
+Services/Processes: inventory; start/stop/restart; startup type; recovery actions; service accounts/gMSA; hung/flapping detect; policy enforce.
+
+Event Logs: retention/size; export/clear/rotate; search/XPath; audit policy baseline; tamper detection.
+
+Registry: snapshot; baseline enforce; bulk write; ACLs; monitoring; security toggles.
+
+Security: Defender baseline; signatures; scans; firewall rules; BitLocker; SMBv1/LLMNR/NTLM hardening; Credential Guard; TLS settings; patch level checks.
+
+Roles & Features: install/remove; IIS (sites/app pools/certs); DHCP/DNS (if not in AD section); RDS configs.
+
+Backup/Recovery: Windows Server Backup jobs; VSS; system state; restore tests.
+
+Monitoring/Reporting: capacity (CPU/RAM/disk); topology; configuration drift; compliance dashboard.

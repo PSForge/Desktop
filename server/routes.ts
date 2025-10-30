@@ -28,15 +28,61 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(attachUser);
 
-  // SEO routes - sitemap and robots.txt
+  // SEO routes - dynamic sitemap and robots.txt
   app.get("/sitemap.xml", (req, res) => {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers.host;
+    const baseUrl = `${protocol}://${host}`;
+    const lastmod = new Date().toISOString().split('T')[0];
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/login</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/signup</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+
     res.type("application/xml");
-    res.sendFile("sitemap.xml", { root: "./public" });
+    res.send(sitemap);
   });
 
   app.get("/robots.txt", (req, res) => {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers.host;
+    const baseUrl = `${protocol}://${host}`;
+
+    const robotsTxt = `# PSForge - PowerShell Script Builder
+# Robots.txt
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+Disallow: /builder
+Disallow: /account
+Disallow: /admin
+Disallow: /api/
+
+# Sitemap location
+Sitemap: ${baseUrl}/sitemap.xml`;
+
     res.type("text/plain");
-    res.sendFile("robots.txt", { root: "./public" });
+    res.send(robotsTxt);
   });
 
   app.post("/auth/register", async (req, res) => {

@@ -22,11 +22,8 @@ export function AdminNotificationsSection() {
 
   const createMutation = useMutation({
     mutationFn: async (data: { message: string; enabled: boolean }) => {
-      return await apiRequest("/api/admin/notifications", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await apiRequest("POST", "/api/admin/notifications", data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/notifications"] });
@@ -49,11 +46,8 @@ export function AdminNotificationsSection() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<PlatformNotification> }) => {
-      return await apiRequest(`/api/admin/notifications/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(updates),
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await apiRequest("PATCH", `/api/admin/notifications/${id}`, updates);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/notifications"] });
@@ -74,9 +68,8 @@ export function AdminNotificationsSection() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/admin/notifications/${id}`, {
-        method: "DELETE",
-      });
+      const response = await apiRequest("DELETE", `/api/admin/notifications/${id}`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/notifications"] });

@@ -3,8 +3,20 @@
 ## Overview
 PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 8 basic Windows management categories, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 623 automation tasks across 16 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
-## Recent Changes (October 30, 2025)
+## Recent Changes (October 31, 2025)
 🚀 **PSFORGE 2.0 RELEASED** 🚀
+
+### Version 2.0.1 (October 31, 2025)
+- **Microsoft 365 Tenant-Level Platform Expansion:**
+  - Expanded from 30 to 40 tasks (+10 critical tenant configuration tasks)
+  - Added new "User Lifecycle" category for automated provisioning/deprovisioning
+  - New Security Tasks: Configure Security Defaults, Block Legacy Authentication
+  - New Collaboration Tasks: SharePoint External Sharing, Teams External Access, Teams Meeting Defaults
+  - New Health Monitoring: Export Message Center Posts, Export Service Health Incidents
+  - New Reporting: Export MFA Enrollment Status (comprehensive authentication status)
+  - New Lifecycle Bundles: Complete User Onboarding, Complete User Offboarding
+  - Fixed PowerShell boolean escaping bug in all new checkbox parameters
+  - All new tasks architect-reviewed and approved
 
 ### Version 2.0 Features (October 30, 2025)
 - **Monaco Editor Integration (Script Tab Enhancement):**

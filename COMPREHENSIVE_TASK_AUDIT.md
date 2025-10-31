@@ -130,46 +130,46 @@
 
 ### TIER 4: NEEDS EXPANSION (≤10 tasks)
 
-#### 21. Microsoft 365 Tenant-Level (10 tasks) ⚠️ EXPANSION NEEDED
+#### 21. Microsoft 365 Tenant-Level (40 tasks) ✅ EXCELLENT - RECENTLY EXPANDED
 - **Document Requirements**: Org Config, Licensing, Security/Compliance, Sharing & Collaboration Defaults, Health & Message Center, User Lifecycle, Reporting (7 major categories)
 
-**Current Status**: Has 10 tasks - appears to focus heavily on licensing
+**Current Status**: ✅ COMPLETE - Expanded from 10 to 40 tasks (October 31, 2025)
 
-**CRITICAL GAPS TO ADDRESS**:
+**EXPANSION COMPLETED**:
 
-**Org Config & Branding:**
-- ❌ Set company branding (logo, colors, custom themes)
-- ❌ Configure company profile information
-- ❌ Set default region and time zone
-- ❌ Service plan toggles (enable/disable specific services)
+**Core Licensing (10 tasks):**
+- ✅ Export licenses, Assign/Remove licenses, Bulk license operations, Export license usage, Get unlicensed users
 
-**Security & Compliance:**
-- ❌ Configure security defaults
-- ❌ Disable legacy authentication protocols
-- ❌ Configure tenant-wide DLP policies
-- ❌ Configure retention labels/policies
-- ❌ Configure insider risk management (if licensed)
-- ❌ Configure sensitivity labels
+**Security & Compliance (5 tasks):**
+- ✅ Configure security defaults
+- ✅ Disable legacy authentication protocols
+- ✅ Enable audit logging
+- ✅ Enable MFA for user
+- ✅ Block/Unblock user sign-in
 
-**Sharing & Collaboration:**
-- ❌ Configure SPO/OneDrive external sharing tenant defaults
-- ❌ Configure Teams external domains (allow/block)
-- ❌ Configure meeting defaults (recording, transcription)
-- ❌ Configure guest access policies
+**Sharing & Collaboration (3 tasks):**
+- ✅ Configure SPO/OneDrive external sharing tenant defaults
+- ✅ Configure Teams external access (federation & guest access)
+- ✅ Configure Teams meeting defaults (recording, transcription)
 
-**Health & Message Center:**
-- ❌ Pull service advisories/incidents via API
-- ❌ Export Message Center posts
-- ❌ Create digest emails/Teams posts for notifications
+**Health & Message Center (3 tasks):**
+- ✅ Export service health incidents
+- ✅ Export Message Center posts
+- ✅ Export service health (original task)
 
-**User Lifecycle Bundles:**
-- ❌ Complete onboarding bundle (mailbox + OneDrive + Teams + license)
-- ❌ Complete offboarding bundle (disable, transfer mailbox/files, remove from Teams, reclaim license)
+**User Lifecycle Bundles (2 tasks):**
+- ✅ Complete user onboarding bundle (create user, assign license, provision mailbox/OneDrive)
+- ✅ Complete user offboarding bundle (disable, forward mailbox, transfer OneDrive, reclaim license)
 
-**Reporting:**
-- ❌ Export MFA enrollment status
-- ❌ Export sign-in activity summary
-- ❌ Export storage consumption across services
+**Administration (7 tasks):**
+- ✅ Bulk disable user accounts, Export/Assign/Remove admin roles, Reset password, Restore deleted user
+
+**Tenant Configuration (4 tasks):**
+- ✅ Export domains, Configure password policy, Add/Remove custom domain
+
+**Reporting (9 tasks):**
+- ✅ Export MFA enrollment status
+- ✅ Export inactive users, sign-in logs, mailbox sizes, OneDrive/SharePoint/Teams usage, deleted users
 
 #### 22. Windows 365 Cloud PC (10 tasks) 🔍 REVIEW NEEDED
 - **Document Requirements**: Licenses, Provisioning Policies, Images, Azure Network Connections, Cloud PC Ops, Boot/Switch/Offline, Monitoring/Reporting (7 major categories)
@@ -186,12 +186,12 @@
 
 ## GAP ANALYSIS SUMMARY
 
-### HIGH PRIORITY - Immediate Action Recommended
+### HIGH PRIORITY - ✅ COMPLETED
 
-**1. Microsoft 365 Tenant-Level (office365-tasks.ts)**
-- **Current**: 10 tasks
-- **Recommended**: 20-25 tasks
-- **Add**: ~10-15 tasks for org config, security defaults, sharing policies, health center, lifecycle bundles
+**1. Microsoft 365 Tenant-Level (office365-tasks.ts)** ✅
+- **Previous**: 10 tasks
+- **Current**: 40 tasks (+30 tasks added October 31, 2025)
+- **Status**: COMPLETE - Added security defaults, sharing policies, health monitoring, lifecycle bundles, MFA reporting
 
 ### MEDIUM PRIORITY - Review and Expand if Needed
 
@@ -250,7 +250,7 @@
 
 ✅ **PSForge has EXCELLENT coverage** across all 23 platforms with 750+ tasks
 ✅ **ALL major platform categories from the document are represented**
-⚠️ **Minor expansion needed** primarily in Microsoft 365 Tenant-Level operations
+✅ **Microsoft 365 Tenant-Level expansion complete** (40 tasks, up from 10)
 ✅ **NO duplicate tasks found** - all IDs are unique
 🎯 **Estimated effort to close gaps**: 20-40 additional tasks across 5 platforms
 

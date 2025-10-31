@@ -2802,16 +2802,10 @@ try {
     $RemoteDomain = Get-RemoteDomain | Where-Object { $_.DomainName -eq "${domainName}" }
     
     if ($RemoteDomain) {
-        Set-RemoteDomain -Identity $RemoteDomain.Identity ` +
-            `-AllowedOOFType ${allowOOF ? 'External' : 'None'} ` +
-            `-DeliveryReportEnabled ${psDR} ` +
-            `-AutoReplyEnabled ${psAuto}
+        Set-RemoteDomain -Identity $RemoteDomain.Identity -AllowedOOFType ${allowOOF ? 'External' : 'None'} -DeliveryReportEnabled ${psDR} -AutoReplyEnabled ${psAuto}
         Write-Host "✓ Updated existing remote domain" -ForegroundColor Green
     } else {
-        New-RemoteDomain -Name "${domainName}" -DomainName "${domainName}" ` +
-            `-AllowedOOFType ${allowOOF ? 'External' : 'None'} ` +
-            `-DeliveryReportEnabled ${psDR} ` +
-            `-AutoReplyEnabled ${psAuto}
+        New-RemoteDomain -Name "${domainName}" -DomainName "${domainName}" -AllowedOOFType ${allowOOF ? 'External' : 'None'} -DeliveryReportEnabled ${psDR} -AutoReplyEnabled ${psAuto}
         Write-Host "✓ Created new remote domain" -ForegroundColor Green
     }
     

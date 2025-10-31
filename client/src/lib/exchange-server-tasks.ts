@@ -1844,5 +1844,682 @@ try {
     Write-Error $_
 }`;
     }
+  },
+
+  // ========================================
+  // DAG & HIGH AVAILABILITY CATEGORY
+  // ========================================
+  {
+    id: 'create-database-availability-group',
+    name: 'Create Database Availability Group (DAG)',
+    category: 'DAG & High Availability',
+    description: 'Create a new Database Availability Group for high availability',
+    instructions: `**How This Task Works:**
+This script creates a Database Availability Group (DAG) to provide automatic database-level recovery from failures.
+
+**Prerequisites:**
+- Exchange Enterprise CALs for all users
+- Multiple Exchange servers in same AD site
+- Witness server configured
+- Network configured for DAG replication
+
+**What You Need to Provide:**
+- DAG name
+- Witness server and directory
+- DAG IP address (or use DHCP)
+
+**What the Script Does:**
+1. Creates new DAG
+2. Configures witness server
+3. Sets DAG network settings
+4. Prepares for server addition
+
+**Important Notes:**
+- Requires Enterprise Edition Exchange
+- Plan network topology before creating
+- Use dedicated replication network
+- Add servers after DAG creation
+- Witness server can be any Windows server`,
+    parameters: [
+      { id: 'dagName', label: 'DAG Name', type: 'text', required: true, placeholder: 'DAG-Primary' },
+      { id: 'witnessServer', label: 'Witness Server', type: 'text', required: true, placeholder: 'FS01.contoso.com' },
+      { id: 'witnessDirectory', label: 'Witness Directory', type: 'path', required: true, placeholder: 'C:\\\\DAGWitness\\\\DAG-Primary' },
+      { id: 'dagIPAddress', label: 'DAG IP Address', type: 'text', required: false, placeholder: '192.168.1.100 (leave blank for DHCP)', description: 'Static IP or leave blank for DHCP' }
+    ],
+    scriptTemplate: (params) => {
+      const dagName = escapePowerShellString(params.dagName);
+      const witnessServer = escapePowerShellString(params.witnessServer);
+      const witnessDir = escapePowerShellString(params.witnessDirectory);
+      const dagIP = params.dagIPAddress ? escapePowerShellString(params.dagIPAddress) : '';
+
+      return `# Create Database Availability Group
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Creating DAG: ${dagName}" -ForegroundColor Cyan
+    
+    $DAGParams = @{
+        Name = "${dagName}"
+        WitnessServer = "${witnessServer}"
+        WitnessDirectory = "${witnessDir}"
+    }
+    
+    ${dagIP ? `$DAGParams.DatabaseAvailabilityGroupIpAddresses = "${dagIP}"` : `$DAGParams.DatabaseAvailabilityGroupIpAddresses = ([System.Net.IPAddress]::None)`}
+    
+    New-DatabaseAvailabilityGroup @DAGParams
+    
+    Write-Host "✓ DAG created successfully" -ForegroundColor Green
+    Write-Host "  Name: ${dagName}" -ForegroundColor Gray
+    Write-Host "  Witness Server: ${witnessServer}" -ForegroundColor Gray
+    Write-Host "  Witness Directory: ${witnessDir}" -ForegroundColor Gray
+    ${dagIP ? `Write-Host "  IP Address: ${dagIP}" -ForegroundColor Gray` : `Write-Host "  IP Mode: DHCP" -ForegroundColor Gray`}
+    Write-Host ""
+    Write-Host "Next: Add servers with Add-DatabaseAvailabilityGroupServer" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to create DAG: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'add-database-copy',
+    name: 'Add Database Copy to DAG',
+    category: 'DAG & High Availability',
+    description: 'Add a passive copy of a mailbox database to another server in the DAG',
+    instructions: `**How This Task Works:**
+This script creates a passive database copy on another server for high availability and disaster recovery.
+
+**Prerequisites:**
+- DAG already created
+- Target server added to DAG
+- Sufficient disk space on target server
+- Database to copy must be on DAG member
+
+**What You Need to Provide:**
+- Database name
+- Target server for copy
+- Replay lag time (optional)
+
+**What the Script Does:**
+1. Adds database copy to target server
+2. Begins automatic seeding
+3. Configures replication settings
+4. Reports copy status
+
+**Important Notes:**
+- Initial seeding can take hours for large databases
+- Monitor seeding with Get-MailboxDatabaseCopyStatus
+- Replay lag allows point-in-time recovery
+- Ensure disk layout matches source server`,
+    parameters: [
+      { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'MBX-DB01' },
+      { id: 'targetServer', label: 'Target Server', type: 'text', required: true, placeholder: 'EXCH02' },
+      { id: 'replayLagTime', label: 'Replay Lag (days)', type: 'number', required: false, placeholder: '0', description: 'Days to delay log replay (0-14)' }
+    ],
+    scriptTemplate: (params) => {
+      const dbName = escapePowerShellString(params.databaseName);
+      const targetServer = escapePowerShellString(params.targetServer);
+      const lagDays = params.replayLagTime ? parseInt(params.replayLagTime) : 0;
+
+      return `# Add Database Copy
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Adding database copy: ${dbName} to ${targetServer}" -ForegroundColor Cyan
+    
+    $CopyParams = @{
+        Identity = "${dbName}"
+        MailboxServer = "${targetServer}"
+        SeedingPostponed = \\$false
+    }
+    
+    ${lagDays > 0 ? `$CopyParams.ReplayLagTime = "${lagDays}.00:00:00"` : ''}
+    
+    Add-MailboxDatabaseCopy @CopyParams
+    
+    Write-Host "✓ Database copy added successfully" -ForegroundColor Green
+    Write-Host "  Database: ${dbName}" -ForegroundColor Gray
+    Write-Host "  Copy Location: ${targetServer}" -ForegroundColor Gray
+    ${lagDays > 0 ? `Write-Host "  Replay Lag: ${lagDays} days" -ForegroundColor Gray` : ''}
+    Write-Host ""
+    Write-Host "Monitor copy status:" -ForegroundColor Cyan
+    Write-Host "  Get-MailboxDatabaseCopyStatus '${dbName}\\\\${targetServer}'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to add database copy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'update-database-copy-seed',
+    name: 'Seed/Reseed Database Copy',
+    category: 'DAG & High Availability',
+    description: 'Manually seed or reseed a database copy',
+    instructions: `**How This Task Works:**
+This script manually seeds or reseeds a database copy when automatic seeding fails or after corruption.
+
+**Prerequisites:**
+- Database copy already added
+- Network connectivity between servers
+- Sufficient disk space on target
+
+**What You Need to Provide:**
+- Database name
+- Server hosting the copy to seed
+
+**What the Script Does:**
+1. Suspends database copy (if active)
+2. Initiates manual seeding
+3. Monitors seeding progress
+4. Resumes replication after seeding
+
+**Important Notes:**
+- Use when automatic seeding fails
+- Can take hours for large databases
+- Source database remains online
+- Consider network bandwidth impact
+- Verify copy health after seeding completes`,
+    parameters: [
+      { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'MBX-DB01' },
+      { id: 'targetServer', label: 'Server to Seed', type: 'text', required: true, placeholder: 'EXCH02' }
+    ],
+    scriptTemplate: (params) => {
+      const dbName = escapePowerShellString(params.databaseName);
+      const targetServer = escapePowerShellString(params.targetServer);
+
+      return `# Seed Database Copy
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    $CopyIdentity = "${dbName}\\\\${targetServer}"
+    Write-Host "Seeding database copy: $CopyIdentity" -ForegroundColor Cyan
+    
+    # Suspend copy before seeding
+    Suspend-MailboxDatabaseCopy -Identity $CopyIdentity -Confirm:\\$false
+    Write-Host "  Copy suspended" -ForegroundColor Gray
+    
+    # Start seeding
+    Update-MailboxDatabaseCopy -Identity $CopyIdentity -DeleteExistingFiles -Confirm:\\$false
+    Write-Host "  Seeding initiated" -ForegroundColor Yellow
+    
+    Write-Host ""
+    Write-Host "✓ Seeding started successfully" -ForegroundColor Green
+    Write-Host "  Database: ${dbName}" -ForegroundColor Gray
+    Write-Host "  Target: ${targetServer}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Monitor progress:" -ForegroundColor Cyan
+    Write-Host "  Get-MailboxDatabaseCopyStatus '$CopyIdentity'" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "After seeding completes, resume copy:" -ForegroundColor Yellow
+    Write-Host "  Resume-MailboxDatabaseCopy '$CopyIdentity'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to seed database copy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // CERTIFICATES & VIRTUAL DIRECTORIES CATEGORY
+  // ========================================
+  {
+    id: 'request-exchange-certificate',
+    name: 'Request and Install Exchange Certificate',
+    category: 'Certificates & Virtual Directories',
+    description: 'Generate CSR, request certificate from CA, and install on Exchange server',
+    instructions: `**How This Task Works:**
+This script creates a certificate signing request (CSR) for Exchange Server SSL/TLS certificates.
+
+**Prerequisites:**
+- Exchange Administrator permissions
+- Access to certificate authority
+- Fully qualified domain names (FQDNs) documented
+
+**What You Need to Provide:**
+- Subject name (primary FQDN)
+- Subject Alternative Names (SANs)
+- Friendly name for certificate
+
+**What the Script Does:**
+1. Generates certificate request (CSR)
+2. Saves CSR to file
+3. Provides instructions for CA submission
+4. Prepares for certificate installation
+
+**Important Notes:**
+- Include all required FQDNs in SANs
+- Typical SANs: mail.domain.com, autodiscover.domain.com
+- Submit CSR to your certificate authority
+- Install certificate after receiving from CA
+- Assign services (SMTP, IIS, IMAP, POP) after install`,
+    parameters: [
+      { id: 'subjectName', label: 'Subject Name (CN)', type: 'text', required: true, placeholder: 'mail.contoso.com' },
+      { id: 'subjectAltNames', label: 'Subject Alternative Names', type: 'textarea', required: true, placeholder: 'mail.contoso.com, autodiscover.contoso.com, outlook.contoso.com', description: 'Comma-separated FQDNs' },
+      { id: 'friendlyName', label: 'Friendly Name', type: 'text', required: true, placeholder: 'Exchange 2019 Certificate' },
+      { id: 'outputPath', label: 'CSR Output Path', type: 'path', required: true, placeholder: 'C:\\\\Certs\\\\ExchangeCSR.req' }
+    ],
+    scriptTemplate: (params) => {
+      const subjectName = escapePowerShellString(params.subjectName);
+      const sans = params.subjectAltNames.split(',').map((s: string) => escapePowerShellString(s.trim())).filter((s: string) => s);
+      const friendlyName = escapePowerShellString(params.friendlyName);
+      const outputPath = escapePowerShellString(params.outputPath);
+
+      return `# Request Exchange Certificate
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Generating certificate request..." -ForegroundColor Cyan
+    
+    $SubjectName = "CN=${subjectName}"
+    $SANs = @(${sans.map((s: string) => `"${s}"`).join(', ')})
+    
+    # Generate certificate request
+    $CertRequest = New-ExchangeCertificate -GenerateRequest -SubjectName $SubjectName -DomainName $SANs -FriendlyName "${friendlyName}" -PrivateKeyExportable \\$true
+    
+    # Save CSR to file
+    $CertRequest | Out-File -FilePath "${outputPath}" -Encoding ASCII
+    
+    Write-Host "✓ Certificate request generated" -ForegroundColor Green
+    Write-Host "  Subject: ${subjectName}" -ForegroundColor Gray
+    Write-Host "  SANs: ${sans.join(', ')}" -ForegroundColor Gray
+    Write-Host "  Output: ${outputPath}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Yellow
+    Write-Host "  1. Submit ${outputPath} to your Certificate Authority" -ForegroundColor Gray
+    Write-Host "  2. After receiving certificate, import with:" -ForegroundColor Gray
+    Write-Host "     Import-ExchangeCertificate -FileData ([Byte[]](Get-Content cert.cer -Encoding byte))" -ForegroundColor Gray
+    Write-Host "  3. Enable services with:" -ForegroundColor Gray
+    Write-Host "     Enable-ExchangeCertificate -Thumbprint <thumbprint> -Services SMTP,IIS" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to generate certificate request: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-owa-virtual-directory',
+    name: 'Configure OWA Virtual Directory',
+    category: 'Certificates & Virtual Directories',
+    description: 'Configure Outlook on the Web (OWA) virtual directory URLs and authentication',
+    instructions: `**How This Task Works:**
+This script configures the Outlook on the Web (OWA) virtual directory with external and internal URLs.
+
+**Prerequisites:**
+- Exchange Server installed and running
+- IIS configured properly
+- DNS records for OWA URL
+
+**What You Need to Provide:**
+- Server name
+- Internal and external URLs
+- Authentication methods
+
+**What the Script Does:**
+1. Configures OWA virtual directory
+2. Sets internal and external URLs
+3. Configures authentication
+4. Restarts IIS application pool
+
+**Important Notes:**
+- URL format: https://mail.domain.com/owa
+- Match AutoDiscover published URLs
+- Consider authentication requirements
+- Test after configuration
+- May require IIS reset`,
+    parameters: [
+      { id: 'serverName', label: 'Exchange Server', type: 'text', required: true, placeholder: 'EXCH01' },
+      { id: 'internalUrl', label: 'Internal URL', type: 'text', required: true, placeholder: 'https://mail.contoso.local/owa' },
+      { id: 'externalUrl', label: 'External URL', type: 'text', required: true, placeholder: 'https://mail.contoso.com/owa' }
+    ],
+    scriptTemplate: (params) => {
+      const serverName = escapePowerShellString(params.serverName);
+      const internalUrl = escapePowerShellString(params.internalUrl);
+      const externalUrl = escapePowerShellString(params.externalUrl);
+
+      return `# Configure OWA Virtual Directory
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Configuring OWA virtual directory on ${serverName}" -ForegroundColor Cyan
+    
+    Set-OwaVirtualDirectory -Identity "${serverName}\\\\owa (Default Web Site)" -InternalUrl "${internalUrl}" -ExternalUrl "${externalUrl}"
+    
+    Write-Host "✓ OWA virtual directory configured" -ForegroundColor Green
+    Write-Host "  Server: ${serverName}" -ForegroundColor Gray
+    Write-Host "  Internal URL: ${internalUrl}" -ForegroundColor Gray
+    Write-Host "  External URL: ${externalUrl}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠️ Restart IIS to apply changes:" -ForegroundColor Yellow
+    Write-Host "  iisreset /noforce" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure OWA virtual directory: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // TRANSPORT & CONNECTORS CATEGORY
+  // ========================================
+  {
+    id: 'create-send-connector',
+    name: 'Create Send Connector',
+    category: 'Transport & Connectors',
+    description: 'Create an SMTP send connector for outbound mail routing',
+    instructions: `**How This Task Works:**
+This script creates an SMTP send connector to route outbound email to external destinations.
+
+**Prerequisites:**
+- Exchange Administrator permissions
+- Smart host or MX routing plan
+- Network/firewall configured for SMTP
+
+**What You Need to Provide:**
+- Connector name
+- Address spaces to route
+- Smart host (if using) or DNS routing
+- Source servers
+
+**What the Script Does:**
+1. Creates send connector
+2. Configures address spaces
+3. Sets routing method
+4. Assigns source servers
+
+**Important Notes:**
+- Use smart host for mail gateways/security appliances
+- DNS routing for direct internet delivery
+- Configure SPF/DKIM for delivered mail
+- Test with telnet after creation
+- Monitor send connector queues`,
+    parameters: [
+      { id: 'connectorName', label: 'Connector Name', type: 'text', required: true, placeholder: 'Internet Send Connector' },
+      { id: 'addressSpaces', label: 'Address Spaces', type: 'textarea', required: true, placeholder: 'SMTP:*;1', description: 'Format: SMTP:domain;cost (e.g., SMTP:*;1 for all)' },
+      { id: 'smartHost', label: 'Smart Host', type: 'text', required: false, placeholder: 'smtp.relay.com', description: 'Leave blank for DNS routing' },
+      { id: 'sourceServers', label: 'Source Servers', type: 'textarea', required: true, placeholder: 'EXCH01, EXCH02', description: 'Comma-separated server names' }
+    ],
+    scriptTemplate: (params) => {
+      const connectorName = escapePowerShellString(params.connectorName);
+      const addressSpaces = params.addressSpaces.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      const smartHost = params.smartHost ? escapePowerShellString(params.smartHost) : '';
+      const sourceServers = params.sourceServers.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+
+      return `# Create Send Connector
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Creating send connector: ${connectorName}" -ForegroundColor Cyan
+    
+    $ConnectorParams = @{
+        Name = "${connectorName}"
+        AddressSpaces = @(${addressSpaces.map((s: string) => `"${s}"`).join(', ')})
+        SourceTransportServers = @(${sourceServers.map((s: string) => `"${s}"`).join(', ')})
+        ${smartHost ? `SmartHosts = @("${smartHost}")` : 'DNSRoutingEnabled = $true'}
+        ${smartHost ? 'DNSRoutingEnabled = $false' : ''}
+    }
+    
+    New-SendConnector @ConnectorParams
+    
+    Write-Host "✓ Send connector created successfully" -ForegroundColor Green
+    Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
+    Write-Host "  Address Spaces: ${addressSpaces.join(', ')}" -ForegroundColor Gray
+    ${smartHost ? `Write-Host "  Smart Host: ${smartHost}" -ForegroundColor Gray` : `Write-Host "  Routing: DNS" -ForegroundColor Gray`}
+    Write-Host "  Source Servers: ${sourceServers.join(', ')}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create send connector: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-receive-connector',
+    name: 'Create Receive Connector',
+    category: 'Transport & Connectors',
+    description: 'Create a receive connector for inbound SMTP mail',
+    instructions: `**How This Task Works:**
+This script creates a receive connector to accept inbound SMTP connections from specified sources.
+
+**Prerequisites:**
+- Exchange Administrator permissions
+- IP addresses/ranges of sending servers
+- Port and binding requirements documented
+
+**What You Need to Provide:**
+- Connector name
+- Server to host connector
+- Remote IP ranges allowed
+- Binding (IP and port)
+
+**What the Script Does:**
+1. Creates receive connector
+2. Configures remote IP ranges
+3. Sets authentication methods
+4. Binds to network interface
+
+**Important Notes:**
+- Default frontend: port 25, all IPs
+- Backend connector: port 2525, local subnet
+- Configure permissions carefully
+- Use for application relay, hybrid, etc.
+- Monitor for open relay vulnerabilities`,
+    parameters: [
+      { id: 'connectorName', label: 'Connector Name', type: 'text', required: true, placeholder: 'Application Relay Connector' },
+      { id: 'serverName', label: 'Server Name', type: 'text', required: true, placeholder: 'EXCH01' },
+      { id: 'remoteIPRanges', label: 'Remote IP Ranges', type: 'textarea', required: true, placeholder: '192.168.1.0/24, 10.0.0.5', description: 'Comma-separated IPs/ranges' },
+      { id: 'port', label: 'Port', type: 'number', required: true, defaultValue: 25, placeholder: '25' }
+    ],
+    scriptTemplate: (params) => {
+      const connectorName = escapePowerShellString(params.connectorName);
+      const serverName = escapePowerShellString(params.serverName);
+      const remoteIPs = params.remoteIPRanges.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      const port = params.port || 25;
+
+      return `# Create Receive Connector
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Creating receive connector: ${connectorName}" -ForegroundColor Cyan
+    
+    New-ReceiveConnector -Name "${connectorName}" -Server "${serverName}" -TransportRole FrontendTransport -Bindings "0.0.0.0:${port}" -RemoteIPRanges @(${remoteIPs.map((ip: string) => `"${ip}"`).join(', ')})
+    
+    Write-Host "✓ Receive connector created successfully" -ForegroundColor Green
+    Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
+    Write-Host "  Server: ${serverName}" -ForegroundColor Gray
+    Write-Host "  Port: ${port}" -ForegroundColor Gray
+    Write-Host "  Remote IPs: ${remoteIPs.join(', ')}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠️ Configure permissions as needed:" -ForegroundColor Yellow
+    Write-Host "  Set-ReceiveConnector '${serverName}\\\\${connectorName}' -PermissionGroups <groups>" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create receive connector: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // MAINTENANCE & HEALTH CATEGORY
+  // ========================================
+  {
+    id: 'set-server-maintenance-mode',
+    name: 'Put Server into Maintenance Mode',
+    category: 'Maintenance & Health',
+    description: 'Safely put Exchange server into maintenance mode for patching or maintenance',
+    instructions: `**How This Task Works:**
+This script gracefully puts an Exchange server into maintenance mode, draining connections and preparing for maintenance.
+
+**Prerequisites:**
+- Multiple Exchange servers (DAG or load-balanced)
+- Exchange Administrator permissions
+- Maintenance window scheduled
+
+**What You Need to Provide:**
+- Server name to put into maintenance
+
+**What the Script Does:**
+1. Sets ServerComponentState to inactive
+2. Drains active mailbox databases (if DAG)
+3. Redirects client connections
+4. Pauses transport queues
+5. Suspends cluster node (if DAG member)
+
+**Important Notes:**
+- Only for multi-server environments
+- Allows safe patching/maintenance
+- Monitor active sessions before starting
+- Complete maintenance before business hours
+- Exit maintenance mode after work completes`,
+    parameters: [
+      { id: 'serverName', label: 'Server Name', type: 'text', required: true, placeholder: 'EXCH01' }
+    ],
+    scriptTemplate: (params) => {
+      const serverName = escapePowerShellString(params.serverName);
+
+      return `# Set Server into Maintenance Mode
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Putting ${serverName} into maintenance mode..." -ForegroundColor Yellow
+    Write-Host "This may take several minutes." -ForegroundColor Gray
+    Write-Host ""
+    
+    # Set server component state
+    Write-Host "1. Setting component states to inactive..." -ForegroundColor Cyan
+    Set-ServerComponentState "${serverName}" -Component ServerWideOffline -State Inactive -Requester Maintenance
+    
+    # Drain active databases if DAG member
+    Write-Host "2. Checking for active database copies..." -ForegroundColor Cyan
+    $ActiveDBs = Get-MailboxDatabaseCopyStatus -Server "${serverName}" | Where-Object { $_.Status -eq "Mounted" }
+    if ($ActiveDBs) {
+        Write-Host "   Found $($ActiveDBs.Count) active databases" -ForegroundColor Gray
+        foreach ($DB in $ActiveDBs) {
+            Write-Host "   Moving $($DB.DatabaseName)..." -ForegroundColor Gray
+            Move-ActiveMailboxDatabase $DB.DatabaseName -Confirm:\\$false
+        }
+    }
+    
+    # Redirect protocols
+    Write-Host "3. Redirecting client protocols..." -ForegroundColor Cyan
+    Set-ServerComponentState "${serverName}" -Component HubTransport -State Inactive -Requester Maintenance
+    
+    # Pause transport queues
+    Write-Host "4. Pausing transport queues..." -ForegroundColor Cyan
+    Set-ServerComponentState "${serverName}" -Component UMCallRouter -State Inactive -Requester Maintenance
+    
+    # Suspend cluster node if DAG
+    Write-Host "5. Suspending cluster node..." -ForegroundColor Cyan
+    $DAGMembership = Get-DatabaseAvailabilityGroup | Where-Object { $_.Servers -contains "${serverName}" }
+    if ($DAGMembership) {
+        Suspend-ClusterNode "${serverName}"
+    }
+    
+    Write-Host ""
+    Write-Host "✓ Server in maintenance mode" -ForegroundColor Green
+    Write-Host "  Server: ${serverName}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "ℹ️ Perform maintenance now" -ForegroundColor Cyan
+    Write-Host "After completing maintenance, exit with:" -ForegroundColor Yellow
+    Write-Host "  Set-ServerComponentState '${serverName}' -Component ServerWideOffline -State Active -Requester Maintenance" -ForegroundColor Gray
+    Write-Host "  Resume-ClusterNode '${serverName}'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to set maintenance mode: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'enable-mrs-proxy',
+    name: 'Enable MRS Proxy for Migrations',
+    category: 'Maintenance & Health',
+    description: 'Enable Mailbox Replication Service (MRS) Proxy for cross-forest migrations',
+    instructions: `**How This Task Works:**
+This script enables the MRS Proxy endpoint on Client Access servers to allow mailbox migrations.
+
+**Prerequisites:**
+- Exchange Server with Client Access role
+- Exchange Administrator permissions
+- Certificate configured for EWS
+
+**What You Need to Provide:**
+- Server name to enable MRS Proxy on
+
+**What the Script Does:**
+1. Enables MRS Proxy on EWS virtual directory
+2. Restarts MRS service
+3. Verifies configuration
+
+**Important Notes:**
+- Required for hybrid migrations
+- Required for cross-forest moves
+- Must be enabled on CAS servers
+- Requires IIS restart to take effect
+- Test connectivity after enabling`,
+    parameters: [
+      { id: 'serverName', label: 'Server Name', type: 'text', required: true, placeholder: 'EXCH01' }
+    ],
+    scriptTemplate: (params) => {
+      const serverName = escapePowerShellString(params.serverName);
+
+      return `# Enable MRS Proxy
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Enabling MRS Proxy on ${serverName}" -ForegroundColor Cyan
+    
+    # Enable MRS Proxy
+    Set-WebServicesVirtualDirectory -Identity "${serverName}\\\\EWS (Default Web Site)" -MRSProxyEnabled \\$true
+    
+    Write-Host "  MRS Proxy enabled on EWS virtual directory" -ForegroundColor Gray
+    
+    # Restart MRS service
+    Write-Host "  Restarting Mailbox Replication Service..." -ForegroundColor Gray
+    Restart-Service MSExchangeMailboxReplication
+    
+    Write-Host ""
+    Write-Host "✓ MRS Proxy enabled successfully" -ForegroundColor Green
+    Write-Host "  Server: ${serverName}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠️ Restart IIS for changes to take effect:" -ForegroundColor Yellow
+    Write-Host "  iisreset /noforce" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Test MRS Proxy:" -ForegroundColor Cyan
+    Write-Host "  Test-MigrationServerAvailability -ExchangeRemoteMove -RemoteServer '${serverName}'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to enable MRS Proxy: $_"
+    exit 1
+}`;
+    }
   }
 ];

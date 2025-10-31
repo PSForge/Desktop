@@ -3645,5 +3645,747 @@ if ($TestMode) {
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
     }
+  },
+
+  // ========================================
+  // DNS OPERATIONS CATEGORY
+  // ========================================
+  {
+    id: 'create-dns-zone',
+    name: 'Create DNS Zone',
+    category: 'DNS Operations',
+    description: 'Create a new DNS zone (primary or secondary)',
+    instructions: `**How This Task Works:**
+This script creates a new DNS zone on a Windows DNS server for name resolution.
+
+**Prerequisites:**
+- DNS Server role installed
+- Domain Administrator or DNS Admins group membership
+- DNS service running
+
+**What You Need to Provide:**
+- Zone name
+- Zone type (Primary or Secondary)
+- For Primary zones: Replication scope (if AD-integrated)
+- For Secondary zones: Master DNS server IPs
+
+**What the Script Does:**
+1. Creates new DNS zone (primary or secondary)
+2. For primary: Configures AD integration and replication
+3. For secondary: Sets master servers for zone transfers
+4. Verifies zone creation
+
+**Important Notes:**
+- AD-integrated zones replicate via AD (Primary only)
+- Primary zones are authoritative
+- Secondary zones are read-only copies from master servers
+- Forward lookup zones for name-to-IP
+- Reverse lookup zones for IP-to-name
+- Secondary zones automatically transfer from masters`,
+    parameters: [
+      { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'contoso.com or 1.168.192.in-addr.arpa' },
+      { id: 'zoneType', label: 'Zone Type', type: 'select', required: true, options: ['Primary', 'Secondary'], defaultValue: 'Primary' },
+      { id: 'adIntegrated', label: 'AD-Integrated (Primary only)', type: 'boolean', required: false, defaultValue: true, description: 'Store zone in Active Directory (Primary zones only)' },
+      { id: 'replicationScope', label: 'Replication Scope (Primary only)', type: 'select', required: false, options: ['Forest', 'Domain', 'Legacy'], defaultValue: 'Domain', description: 'AD replication scope (Primary AD-integrated only)' },
+      { id: 'masterServers', label: 'Master Servers (Secondary only)', type: 'textarea', required: false, placeholder: '10.0.0.10, 10.0.0.11', description: 'Comma-separated master DNS server IPs (Secondary zones only)' }
+    ],
+    scriptTemplate: (params) => {
+      const zoneName = escapePowerShellString(params.zoneName);
+      const zoneType = params.zoneType || 'Primary';
+      const adIntegrated = params.adIntegrated !== false;
+      const replicationScope = params.replicationScope || 'Domain';
+      const masterServers = params.masterServers ? params.masterServers.split(',').map((ip: string) => ip.trim()).filter((ip: string) => ip) : [];
+
+      return `# Create DNS Zone
+# Generated: ${new Date().toISOString()}
+
+Import-Module DnsServer
+
+try {
+    Write-Host "Creating ${zoneType} DNS zone: ${zoneName}" -ForegroundColor Cyan
+    
+    ${zoneType === 'Secondary' ? `
+    # Create secondary zone
+    ${masterServers.length === 0 ? `
+    Write-Host "⚠️ ERROR: Secondary zones require master server IPs" -ForegroundColor Red
+    Write-Host "   Please provide master servers in the 'Master Servers' field" -ForegroundColor Yellow
+    exit 1
+    ` : `
+    $MasterServers = @(${masterServers.map((ip: string) => `"${ip}"`).join(', ')})
+    Add-DnsServerSecondaryZone -Name "${zoneName}" -MasterServers $MasterServers -ZoneFile "${zoneName}.dns"
+    
+    Write-Host "✓ Secondary DNS zone created successfully" -ForegroundColor Green
+    Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
+    Write-Host "  Type: Secondary" -ForegroundColor Gray
+    Write-Host "  Master Servers: ${masterServers.join(', ')}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Zone transfer will begin automatically from master servers" -ForegroundColor Cyan
+    `}
+    ` : adIntegrated ? `
+    # Create AD-integrated primary zone
+    Add-DnsServerPrimaryZone -Name "${zoneName}" -ReplicationScope "${replicationScope}"
+    
+    Write-Host "✓ Primary DNS zone created successfully" -ForegroundColor Green
+    Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
+    Write-Host "  Type: Primary (AD-Integrated)" -ForegroundColor Gray
+    Write-Host "  Replication: ${replicationScope}" -ForegroundColor Gray
+    ` : `
+    # Create file-based primary zone
+    Add-DnsServerPrimaryZone -Name "${zoneName}" -ZoneFile "${zoneName}.dns"
+    
+    Write-Host "✓ Primary DNS zone created successfully" -ForegroundColor Green
+    Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
+    Write-Host "  Type: Primary (File-based)" -ForegroundColor Gray
+    Write-Host "  Zone File: ${zoneName}.dns" -ForegroundColor Gray
+    `}
+    
+} catch {
+    Write-Error "Failed to create DNS zone: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-dns-a-record',
+    name: 'Create DNS A Record',
+    category: 'DNS Operations',
+    description: 'Create a DNS A (host) record for name-to-IP resolution',
+    instructions: `**How This Task Works:**
+This script creates a DNS A record to map a hostname to an IPv4 address.
+
+**Prerequisites:**
+- DNS Server role with zone configured
+- DNS Admins permissions
+- Zone must exist
+
+**What You Need to Provide:**
+- Zone name
+- Record name (hostname)
+- IPv4 address
+
+**What the Script Does:**
+1. Verifies zone exists
+2. Creates A record
+3. Sets TTL if specified
+4. Confirms creation
+
+**Important Notes:**
+- A records map names to IPv4 addresses
+- Use AAAA records for IPv6
+- PTR records for reverse lookup
+- Can create multiple A records for same name (round-robin)
+- Typical TTL: 3600 seconds (1 hour)`,
+    parameters: [
+      { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'recordName', label: 'Record Name', type: 'text', required: true, placeholder: 'server01 or www' },
+      { id: 'ipAddress', label: 'IPv4 Address', type: 'text', required: true, placeholder: '192.168.1.10' },
+      { id: 'ttl', label: 'TTL (seconds)', type: 'number', required: false, placeholder: '3600', description: 'Time to live' }
+    ],
+    scriptTemplate: (params) => {
+      const zoneName = escapePowerShellString(params.zoneName);
+      const recordName = escapePowerShellString(params.recordName);
+      const ipAddress = escapePowerShellString(params.ipAddress);
+      const ttl = params.ttl ? parseInt(params.ttl) : 3600;
+
+      return `# Create DNS A Record
+# Generated: ${new Date().toISOString()}
+
+Import-Module DnsServer
+
+try {
+    Write-Host "Creating DNS A record in ${zoneName}" -ForegroundColor Cyan
+    
+    Add-DnsServerResourceRecordA -Name "${recordName}" -ZoneName "${zoneName}" -IPv4Address "${ipAddress}" -TimeToLive (New-TimeSpan -Seconds ${ttl})
+    
+    Write-Host "✓ DNS A record created successfully" -ForegroundColor Green
+    Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
+    Write-Host "  Name: ${recordName}" -ForegroundColor Gray
+    Write-Host "  IP: ${ipAddress}" -ForegroundColor Gray
+    Write-Host "  TTL: ${ttl} seconds" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Test with: nslookup ${recordName}.${zoneName}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to create DNS A record: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-dns-scavenging',
+    name: 'Configure DNS Scavenging',
+    category: 'DNS Operations',
+    description: 'Enable and configure DNS scavenging to remove stale records',
+    instructions: `**How This Task Works:**
+This script configures DNS scavenging to automatically clean up stale DNS records.
+
+**Prerequisites:**
+- DNS Server role
+- DNS Admins permissions
+- Understanding of no-refresh and refresh intervals
+
+**What You Need to Provide:**
+- Zone name
+- Scavenging intervals
+
+**What the Script Does:**
+1. Enables scavenging on zone
+2. Sets no-refresh interval
+3. Sets refresh interval
+4. Configures aging
+
+**Important Notes:**
+- Prevents DNS database bloat
+- Only affects dynamically registered records
+- No-refresh: 7 days typical
+- Refresh: 7 days typical  
+- Scavenging period: sum of both intervals
+- Run scavenging manually or on schedule`,
+    parameters: [
+      { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'noRefreshInterval', label: 'No-Refresh Interval (days)', type: 'number', required: false, defaultValue: 7, placeholder: '7' },
+      { id: 'refreshInterval', label: 'Refresh Interval (days)', type: 'number', required: false, defaultValue: 7, placeholder: '7' }
+    ],
+    scriptTemplate: (params) => {
+      const zoneName = escapePowerShellString(params.zoneName);
+      const noRefresh = params.noRefreshInterval || 7;
+      const refresh = params.refreshInterval || 7;
+
+      return `# Configure DNS Scavenging
+# Generated: ${new Date().toISOString()}
+
+Import-Module DnsServer
+
+try {
+    Write-Host "Configuring DNS scavenging for ${zoneName}" -ForegroundColor Cyan
+    
+    # Enable scavenging on zone
+    Set-DnsServerZoneAging -Name "${zoneName}" -Aging \\$true -NoRefreshInterval (New-TimeSpan -Days ${noRefresh}) -RefreshInterval (New-TimeSpan -Days ${refresh})
+    
+    # Enable scavenging on server
+    Set-DnsServerScavenging -ScavengingState \\$true -ScavengingInterval (New-TimeSpan -Days 7)
+    
+    Write-Host "✓ DNS scavenging configured successfully" -ForegroundColor Green
+    Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
+    Write-Host "  No-Refresh Interval: ${noRefresh} days" -ForegroundColor Gray
+    Write-Host "  Refresh Interval: ${refresh} days" -ForegroundColor Gray
+    Write-Host "  Total Scavenging Period: ${noRefresh + refresh} days" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Run scavenging now:" -ForegroundColor Cyan
+    Write-Host "  Start-DnsServerScavenging -Force" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure DNS scavenging: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-dns-conditional-forwarder',
+    name: 'Create DNS Conditional Forwarder',
+    category: 'DNS Operations',
+    description: 'Create a conditional forwarder for selective DNS query forwarding',
+    instructions: `**How This Task Works:**
+This script creates a DNS conditional forwarder to forward queries for specific domains to designated DNS servers.
+
+**Prerequisites:**
+- DNS Server role
+- DNS Admins permissions
+- Target DNS servers accessible
+
+**What You Need to Provide:**
+- Domain name to forward
+- Target DNS server IPs
+
+**What the Script Does:**
+1. Creates conditional forwarder
+2. Configures target DNS servers
+3. Sets AD integration if applicable
+4. Tests forwarding
+
+**Important Notes:**
+- Used for multi-forest scenarios
+- Partner domain name resolution
+- Can be AD-integrated for replication
+- Improves DNS resolution performance
+- Reduces external DNS queries`,
+    parameters: [
+      { id: 'forwardDomain', label: 'Domain to Forward', type: 'text', required: true, placeholder: 'partner.com' },
+      { id: 'masterServers', label: 'Target DNS Servers', type: 'textarea', required: true, placeholder: '10.0.0.10, 10.0.0.11', description: 'Comma-separated IP addresses' },
+      { id: 'storeInAD', label: 'Store in Active Directory', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const forwardDomain = escapePowerShellString(params.forwardDomain);
+      const masterIPs = params.masterServers.split(',').map((ip: string) => ip.trim()).filter((ip: string) => ip);
+      const storeInAD = params.storeInAD === true;
+      const psAD = storeInAD ? '$true' : '$false';
+
+      return `# Create DNS Conditional Forwarder
+# Generated: ${new Date().toISOString()}
+
+Import-Module DnsServer
+
+try {
+    Write-Host "Creating conditional forwarder for ${forwardDomain}" -ForegroundColor Cyan
+    
+    $MasterServers = @(${masterIPs.map((ip: string) => `"${ip}"`).join(', ')})
+    
+    Add-DnsServerConditionalForwarderZone -Name "${forwardDomain}" -MasterServers $MasterServers ${storeInAD ? `-ReplicationScope "Forest"` : ''}
+    
+    Write-Host "✓ Conditional forwarder created successfully" -ForegroundColor Green
+    Write-Host "  Domain: ${forwardDomain}" -ForegroundColor Gray
+    Write-Host "  Target Servers: ${masterIPs.join(', ')}" -ForegroundColor Gray
+    Write-Host "  AD-Integrated: ${storeInAD}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Test with:" -ForegroundColor Cyan
+    Write-Host "  nslookup server.${forwardDomain}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create conditional forwarder: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // SITES & SERVICES CATEGORY
+  // ========================================
+  {
+    id: 'create-ad-site',
+    name: 'Create Active Directory Site',
+    category: 'Sites & Services',
+    description: 'Create a new AD site for physical network location',
+    instructions: `**How This Task Works:**
+This script creates a new Active Directory site to represent a physical network location.
+
+**Prerequisites:**
+- Domain Administrator or Enterprise Administrator
+- Active Directory Sites and Services access
+- Network topology documented
+
+**What You Need to Provide:**
+- Site name
+- Site description (optional)
+
+**What the Script Does:**
+1. Creates new AD site
+2. Sets site description
+3. Verifies site creation
+4. Provides next steps
+
+**Important Notes:**
+- Sites represent physical locations
+- Control AD replication traffic
+- Improve authentication performance
+- Associate subnets after creating site
+- Create site links between sites
+- Typical naming: City-Building or Location code`,
+    parameters: [
+      { id: 'siteName', label: 'Site Name', type: 'text', required: true, placeholder: 'Seattle-HQ or SEA01' },
+      { id: 'siteDescription', label: 'Site Description', type: 'text', required: false, placeholder: 'Seattle Headquarters Office' }
+    ],
+    scriptTemplate: (params) => {
+      const siteName = escapePowerShellString(params.siteName);
+      const siteDesc = params.siteDescription ? escapePowerShellString(params.siteDescription) : '';
+
+      return `# Create AD Site
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "Creating AD site: ${siteName}" -ForegroundColor Cyan
+    
+    New-ADReplicationSite -Name "${siteName}" ${siteDesc ? `-Description "${siteDesc}"` : ''}
+    
+    Write-Host "✓ AD site created successfully" -ForegroundColor Green
+    Write-Host "  Site: ${siteName}" -ForegroundColor Gray
+    ${siteDesc ? `Write-Host "  Description: ${siteDesc}" -ForegroundColor Gray` : ''}
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Yellow
+    Write-Host "  1. Associate subnets with New-ADReplicationSubnet" -ForegroundColor Gray
+    Write-Host "  2. Create site links with New-ADReplicationSiteLink" -ForegroundColor Gray
+    Write-Host "  3. Move domain controllers to site if needed" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create AD site: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-ad-subnet',
+    name: 'Create and Associate AD Subnet',
+    category: 'Sites & Services',
+    description: 'Create an AD subnet and associate it with a site',
+    instructions: `**How This Task Works:**
+This script creates an AD subnet object and associates it with a site for proper client site assignment.
+
+**Prerequisites:**
+- Domain Administrator or Enterprise Administrator
+- Site must already exist
+- Network subnet documented (CIDR notation)
+
+**What You Need to Provide:**
+- Subnet in CIDR format (e.g., 192.168.1.0/24)
+- Site name to associate with
+
+**What the Script Does:**
+1. Creates subnet object
+2. Associates subnet with site
+3. Sets subnet description
+4. Verifies configuration
+
+**Important Notes:**
+- Use CIDR notation (192.168.1.0/24)
+- Clients use subnet for site discovery
+- Affects DC selection and logon
+- Don't overlap subnets
+- Update when network changes`,
+    parameters: [
+      { id: 'subnetCIDR', label: 'Subnet (CIDR)', type: 'text', required: true, placeholder: '192.168.1.0/24 or 10.0.0.0/16' },
+      { id: 'siteName', label: 'Site Name', type: 'text', required: true, placeholder: 'Seattle-HQ' },
+      { id: 'subnetDescription', label: 'Subnet Description', type: 'text', required: false, placeholder: 'HQ LAN Segment 1' }
+    ],
+    scriptTemplate: (params) => {
+      const subnetCIDR = escapePowerShellString(params.subnetCIDR);
+      const siteName = escapePowerShellString(params.siteName);
+      const subnetDesc = params.subnetDescription ? escapePowerShellString(params.subnetDescription) : '';
+
+      return `# Create AD Subnet
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "Creating AD subnet: ${subnetCIDR}" -ForegroundColor Cyan
+    
+    # Get site distinguished name
+    $Site = Get-ADReplicationSite -Identity "${siteName}"
+    
+    New-ADReplicationSubnet -Name "${subnetCIDR}" -Site $Site ${subnetDesc ? `-Description "${subnetDesc}"` : ''}
+    
+    Write-Host "✓ AD subnet created successfully" -ForegroundColor Green
+    Write-Host "  Subnet: ${subnetCIDR}" -ForegroundColor Gray
+    Write-Host "  Site: ${siteName}" -ForegroundColor Gray
+    ${subnetDesc ? `Write-Host "  Description: ${subnetDesc}" -ForegroundColor Gray` : ''}
+    Write-Host ""
+    Write-Host "Clients in this subnet will authenticate to DCs in ${siteName}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to create AD subnet: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-ad-site-link',
+    name: 'Create AD Site Link',
+    category: 'Sites & Services',
+    description: 'Create a site link to control replication between AD sites',
+    instructions: `**How This Task Works:**
+This script creates an AD site link to define replication paths and schedules between sites.
+
+**Prerequisites:**
+- Enterprise Administrator permissions
+- Sites must exist
+- Replication requirements documented
+
+**What You Need to Provide:**
+- Site link name
+- Sites to include in link
+- Replication cost and interval
+
+**What the Script Does:**
+1. Creates site link
+2. Associates sites
+3. Sets replication cost
+4. Configures replication interval
+
+**Important Notes:**
+- Lower cost = preferred path
+- Interval: how often replication occurs
+- Default interval: 180 minutes
+- Cost affects replication topology
+- Use schedule for bandwidth control`,
+    parameters: [
+      { id: 'linkName', label: 'Site Link Name', type: 'text', required: true, placeholder: 'Seattle-Portland-Link' },
+      { id: 'site1', label: 'First Site', type: 'text', required: true, placeholder: 'Seattle-HQ' },
+      { id: 'site2', label: 'Second Site', type: 'text', required: true, placeholder: 'Portland-Branch' },
+      { id: 'cost', label: 'Replication Cost', type: 'number', required: false, defaultValue: 100, placeholder: '100' },
+      { id: 'intervalMinutes', label: 'Replication Interval (minutes)', type: 'number', required: false, defaultValue: 180, placeholder: '180' }
+    ],
+    scriptTemplate: (params) => {
+      const linkName = escapePowerShellString(params.linkName);
+      const site1 = escapePowerShellString(params.site1);
+      const site2 = escapePowerShellString(params.site2);
+      const cost = params.cost || 100;
+      const interval = params.intervalMinutes || 180;
+
+      return `# Create AD Site Link
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "Creating AD site link: ${linkName}" -ForegroundColor Cyan
+    
+    $Site1 = Get-ADReplicationSite -Identity "${site1}"
+    $Site2 = Get-ADReplicationSite -Identity "${site2}"
+    
+    New-ADReplicationSiteLink -Name "${linkName}" -SitesIncluded $Site1, $Site2 -Cost ${cost} -ReplicationFrequencyInMinutes ${interval}
+    
+    Write-Host "✓ AD site link created successfully" -ForegroundColor Green
+    Write-Host "  Link: ${linkName}" -ForegroundColor Gray
+    Write-Host "  Sites: ${site1} <-> ${site2}" -ForegroundColor Gray
+    Write-Host "  Cost: ${cost}" -ForegroundColor Gray
+    Write-Host "  Interval: ${interval} minutes" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create AD site link: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // DOMAIN & FOREST OPERATIONS CATEGORY
+  // ========================================
+  {
+    id: 'transfer-fsmo-role',
+    name: 'Transfer FSMO Role',
+    category: 'Domain & Forest Operations',
+    description: 'Transfer a Flexible Single Master Operations (FSMO) role to another DC',
+    instructions: `**How This Task Works:**
+This script gracefully transfers an FSMO role from one domain controller to another.
+
+**Prerequisites:**
+- Enterprise Administrator (for forest roles) or Domain Administrator (for domain roles)
+- Target DC online and responsive
+- Good replication health between DCs
+
+**What You Need to Provide:**
+- FSMO role to transfer
+- Target domain controller
+
+**What the Script Does:**
+1. Verifies target DC is online
+2. Connects to target DC
+3. Transfers specified FSMO role
+4. Verifies transfer success
+
+**Important Notes:**
+- Forest roles: Schema Master, Domain Naming Master
+- Domain roles: RID Master, PDC Emulator, Infrastructure Master
+- Use Move-ADDirectoryServerOperationMasterRole for graceful transfer
+- Use -Force for seizure (if source DC offline)
+- Verify replication after transfer`,
+    parameters: [
+      { id: 'role', label: 'FSMO Role', type: 'select', required: true, options: ['PDCEmulator', 'RIDMaster', 'InfrastructureMaster', 'SchemaMaster', 'DomainNamingMaster'], defaultValue: 'PDCEmulator' },
+      { id: 'targetDC', label: 'Target Domain Controller', type: 'text', required: true, placeholder: 'DC02.contoso.com' }
+    ],
+    scriptTemplate: (params) => {
+      const role = params.role || 'PDCEmulator';
+      const targetDC = escapePowerShellString(params.targetDC);
+
+      return `# Transfer FSMO Role
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "Transferring FSMO role: ${role}" -ForegroundColor Yellow
+    Write-Host "  Target DC: ${targetDC}" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Verify target DC is reachable
+    if (-not (Test-Connection -ComputerName "${targetDC}" -Count 1 -Quiet)) {
+        throw "Target DC ${targetDC} is not reachable"
+    }
+    
+    # Transfer role
+    Move-ADDirectoryServerOperationMasterRole -Identity "${targetDC}" -OperationMasterRole ${role} -Confirm:\\$false
+    
+    Write-Host "✓ FSMO role transferred successfully" -ForegroundColor Green
+    Write-Host "  Role: ${role}" -ForegroundColor Gray
+    Write-Host "  New Holder: ${targetDC}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Verify with:" -ForegroundColor Cyan
+    Write-Host "  Get-ADDomain | Select PDCEmulator, RIDMaster, InfrastructureMaster" -ForegroundColor Gray
+    Write-Host "  Get-ADForest | Select SchemaMaster, DomainNamingMaster" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to transfer FSMO role: $_"
+    Write-Host ""
+    Write-Host "⚠️ If source DC is offline, use -Force to seize role" -ForegroundColor Yellow
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'raise-domain-functional-level',
+    name: 'Raise Domain Functional Level',
+    category: 'Domain & Forest Operations',
+    description: 'Raise the Active Directory domain functional level',
+    instructions: `**How This Task Works:**
+This script raises the domain functional level to enable new features.
+
+**Prerequisites:**
+- Domain Administrator permissions
+- All DCs running compatible Windows Server version
+- Good AD replication health
+- IRREVERSIBLE - cannot be rolled back
+
+**What You Need to Provide:**
+- Target functional level
+
+**What the Script Does:**
+1. Verifies current functional level
+2. Checks DC compatibility
+3. Raises functional level
+4. Confirms new level
+
+**Important Notes:**
+⚠️ **THIS IS IRREVERSIBLE** - Cannot downgrade after raising
+- Ensure all DCs meet minimum OS requirements
+- Windows Server 2016 level = WinThreshold domain
+- New features enabled at higher levels
+- Test in lab environment first
+- Document before making change`,
+    parameters: [
+      { id: 'targetLevel', label: 'Target Functional Level', type: 'select', required: true, options: ['Windows2012R2Domain', 'Windows2016Domain', 'Windows2025Domain'], defaultValue: 'Windows2016Domain' }
+    ],
+    scriptTemplate: (params) => {
+      const targetLevel = params.targetLevel || 'Windows2016Domain';
+      const levelDisplay = targetLevel.replace('Windows', 'Windows Server ').replace('Domain', '');
+
+      return `# Raise Domain Functional Level
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    $Domain = Get-ADDomain
+    $CurrentLevel = $Domain.DomainMode
+    
+    Write-Host "Current domain functional level: $CurrentLevel" -ForegroundColor Cyan
+    Write-Host "Target level: ${levelDisplay}" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "⚠️ WARNING: This operation is IRREVERSIBLE!" -ForegroundColor Red
+    Write-Host "   Ensure all DCs meet minimum OS requirements" -ForegroundColor Yellow
+    Write-Host ""
+    
+    # Verify all DCs
+    $DCs = Get-ADDomainController -Filter *
+    Write-Host "Domain controllers found: $($DCs.Count)" -ForegroundColor Gray
+    foreach ($DC in $DCs) {
+        Write-Host "  - $($DC.Name): $($DC.OperatingSystem)" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    $Confirm = Read-Host "Type 'YES' to proceed with raising functional level"
+    
+    if ($Confirm -ne 'YES') {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    Set-ADDomainMode -Identity $Domain -DomainMode ${targetLevel}
+    
+    Write-Host "✓ Domain functional level raised successfully" -ForegroundColor Green
+    Write-Host "  New Level: ${levelDisplay}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Verify with: Get-ADDomain | Select DomainMode" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to raise domain functional level: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'promote-domain-controller',
+    name: 'Promote Server to Domain Controller',
+    category: 'Domain & Forest Operations',
+    description: 'Promote a Windows Server to domain controller role',
+    instructions: `**How This Task Works:**
+This script promotes a Windows Server to a domain controller in an existing domain.
+
+**Prerequisites:**
+- Windows Server (Standard or Datacenter)
+- Enterprise Administrator permissions
+- Server joined to domain
+- Static IP address configured
+- DNS configured correctly
+
+**What You Need to Provide:**
+- Domain name
+- Safe Mode Administrator Password
+- Site name (optional)
+
+**What the Script Does:**
+1. Installs AD DS role
+2. Promotes server to DC
+3. Configures DNS (if needed)
+4. Sets site association
+5. Reboots server
+
+**Important Notes:**
+- Server will reboot after promotion
+- Process takes 15-30 minutes
+- Ensure good network connectivity
+- DNS will be configured automatically
+- GC role assigned by default
+- SYSVOL replication must complete`,
+    parameters: [
+      { id: 'domainName', label: 'Domain Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'safeModePassword', label: 'Safe Mode Administrator Password', type: 'text', required: true, placeholder: 'P@ssw0rd!', description: 'DSRM password' },
+      { id: 'siteName', label: 'Site Name', type: 'text', required: false, placeholder: 'Default-First-Site-Name', description: 'Leave blank for automatic' }
+    ],
+    scriptTemplate: (params) => {
+      const domainName = escapePowerShellString(params.domainName);
+      const safeModePassword = escapePowerShellString(params.safeModePassword);
+      const siteName = params.siteName ? escapePowerShellString(params.siteName) : '';
+
+      return `# Promote Domain Controller
+# Generated: ${new Date().toISOString()}
+
+Write-Host "⚠️ Server will reboot after promotion" -ForegroundColor Yellow
+Write-Host ""
+
+try {
+    # Install AD DS role
+    Write-Host "Installing AD DS role..." -ForegroundColor Cyan
+    Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+    
+    Write-Host "✓ AD DS role installed" -ForegroundColor Green
+    Write-Host ""
+    
+    # Prepare safe mode password
+    $SafeModePassword = ConvertTo-SecureString "${safeModePassword}" -AsPlainText -Force
+    
+    Write-Host "Promoting to domain controller..." -ForegroundColor Cyan
+    Write-Host "  Domain: ${domainName}" -ForegroundColor Gray
+    ${siteName ? `Write-Host "  Site: ${siteName}" -ForegroundColor Gray` : ''}
+    Write-Host ""
+    
+    # Promote to DC
+    Install-ADDSDomainController -DomainName "${domainName}" -SafeModeAdministratorPassword $SafeModePassword -InstallDns \\$true ${siteName ? `-SiteName "${siteName}"` : ''} -Force \\$true
+    
+    Write-Host "✓ Server promoted successfully" -ForegroundColor Green
+    Write-Host "  Server will reboot shortly" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to promote domain controller: $_"
+    exit 1
+}`;
+    }
   }
 ];

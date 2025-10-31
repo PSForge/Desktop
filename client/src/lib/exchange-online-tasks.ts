@@ -2063,5 +2063,767 @@ try {
     exit 1
 }`;
     }
+  },
+
+  // ========================================
+  // MAIL FLOW & TRANSPORT CATEGORY
+  // ========================================
+  {
+    id: 'configure-inbound-connector',
+    name: 'Configure Inbound Mail Connector',
+    category: 'Mail Flow & Transport',
+    description: 'Create an inbound connector for mail flow from on-premises or third-party systems',
+    instructions: `**How This Task Works:**
+This script creates an inbound connector to receive mail from external mail servers like on-premises Exchange or third-party email security gateways.
+
+**Prerequisites:**
+- Exchange Online Administrator role
+- Sender IP addresses or certificate information
+- TLS requirements documented
+
+**What You Need to Provide:**
+- Connector name
+- Sender domains or IP addresses
+- TLS/security settings
+
+**What the Script Does:**
+1. Creates new inbound connector
+2. Configures sender authentication (IP/certificate)
+3. Sets TLS requirements
+4. Enables the connector
+
+**Important Notes:**
+- Test mail flow after creating connector
+- Use IP restrictions for on-premises servers
+- Certificate-based auth recommended for production
+- Monitor connector usage in mail flow reports`,
+    parameters: [
+      { id: 'connectorName', label: 'Connector Name', type: 'text', required: true, placeholder: 'Inbound from On-Prem' },
+      { id: 'senderDomains', label: 'Sender Domains', type: 'textarea', required: false, placeholder: 'contoso.com, fabrikam.com', description: 'Comma-separated domains' },
+      { id: 'senderIPAddresses', label: 'Sender IP Addresses', type: 'textarea', required: false, placeholder: '192.168.1.10, 10.0.0.5', description: 'Comma-separated IPs' },
+      { id: 'requireTLS', label: 'Require TLS', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const connectorName = escapePowerShellString(params.connectorName);
+      const senderDomains = params.senderDomains ? params.senderDomains.split(',').map((d: string) => escapePowerShellString(d.trim())).filter((d: string) => d) : [];
+      const senderIPs = params.senderIPAddresses ? params.senderIPAddresses.split(',').map((ip: string) => ip.trim()).filter((ip: string) => ip) : [];
+      const requireTLS = params.requireTLS !== false;
+      const psRequireTLS = requireTLS ? '$true' : '$false';
+
+      return `# Configure Inbound Mail Connector
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Creating inbound connector: ${connectorName}" -ForegroundColor Cyan
+    
+    $ConnectorParams = @{
+        Name = "${connectorName}"
+        ConnectorType = "OnPremises"
+        RequireTls = ${psRequireTLS}
+        Enabled = \\$true
+    }
+    
+    ${senderDomains.length > 0 ? `$ConnectorParams.SenderDomains = @(${senderDomains.map(d => `"${d}"`).join(', ')})` : ''}
+    ${senderIPs.length > 0 ? `$ConnectorParams.SenderIPAddresses = @(${senderIPs.map(ip => `"${ip}"`).join(', ')})` : ''}
+    
+    New-InboundConnector @ConnectorParams
+    
+    Write-Host "✓ Inbound connector created successfully" -ForegroundColor Green
+    Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
+    Write-Host "  TLS Required: ${requireTLS}" -ForegroundColor Gray
+    ${senderDomains.length > 0 ? `Write-Host "  Sender Domains: ${senderDomains.join(', ')}" -ForegroundColor Gray` : ''}
+    ${senderIPs.length > 0 ? `Write-Host "  Sender IPs: ${senderIPs.join(', ')}" -ForegroundColor Gray` : ''}
+    
+} catch {
+    Write-Error "Failed to create inbound connector: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-accepted-domain',
+    name: 'Add Accepted Domain',
+    category: 'Mail Flow & Transport',
+    description: 'Add an accepted domain to Exchange Online for receiving mail',
+    instructions: `**How This Task Works:**
+This script adds a new accepted domain to Exchange Online, allowing the organization to receive mail for that domain.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Domain ownership verified in Microsoft 365 admin center
+- DNS MX records configured
+
+**What You Need to Provide:**
+- Domain name
+- Domain type (Authoritative or Internal Relay)
+
+**What the Script Does:**
+1. Adds the accepted domain
+2. Sets domain type
+3. Verifies configuration
+
+**Important Notes:**
+- Domain must be verified in M365 admin center first
+- Authoritative = primary mail domain
+- Internal Relay = mail forwarded elsewhere
+- Update MX records in DNS after adding`,
+    parameters: [
+      { id: 'domainName', label: 'Domain Name', type: 'text', required: true, placeholder: 'newdomain.com' },
+      { id: 'domainType', label: 'Domain Type', type: 'select', required: true, options: ['Authoritative', 'InternalRelay'], defaultValue: 'Authoritative' }
+    ],
+    scriptTemplate: (params) => {
+      const domainName = escapePowerShellString(params.domainName);
+      const domainType = params.domainType || 'Authoritative';
+
+      return `# Add Accepted Domain
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Adding accepted domain: ${domainName}" -ForegroundColor Cyan
+    
+    New-AcceptedDomain -Name "${domainName}" -DomainName "${domainName}" -DomainType ${domainType}
+    
+    Write-Host "✓ Accepted domain added successfully" -ForegroundColor Green
+    Write-Host "  Domain: ${domainName}" -ForegroundColor Gray
+    Write-Host "  Type: ${domainType}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠️ Next steps:" -ForegroundColor Yellow
+    Write-Host "  1. Update DNS MX records to point to Exchange Online" -ForegroundColor Gray
+    Write-Host "  2. Verify mail flow with Test-MxRecordCache" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to add accepted domain: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // MIGRATION & COMPLIANCE CATEGORY  
+  // ========================================
+  {
+    id: 'start-mailbox-migration-batch',
+    name: 'Start Mailbox Migration Batch',
+    category: 'Migration & Compliance',
+    description: 'Create and start a mailbox migration batch from on-premises Exchange',
+    instructions: `**How This Task Works:**
+This script creates a migration batch to move mailboxes from on-premises Exchange Server to Exchange Online.
+
+**Prerequisites:**
+- Hybrid configuration completed (Hybrid Configuration Wizard)
+- Migration endpoint created and tested
+- Mailboxes licensed in Microsoft 365
+- MRS Proxy enabled on on-premises Exchange
+
+**What You Need to Provide:**
+- CSV file with mailboxes to migrate
+- Migration endpoint name
+- Target delivery domain
+
+**What the Script Does:**
+1. Imports CSV with user list
+2. Creates migration batch
+3. Starts the migration
+4. Reports progress
+
+**Important Notes:**
+- CSV must have EmailAddress column
+- Test with small batch first
+- Monitor for sync errors
+- Complete migration in Exchange Admin Center
+- Users may experience brief Outlook reconnection`,
+    parameters: [
+      { id: 'batchName', label: 'Migration Batch Name', type: 'text', required: true, placeholder: 'Q1-2025-Migration' },
+      { id: 'csvPath', label: 'CSV File Path', type: 'path', required: true, placeholder: 'C:\\\\Migrations\\\\users.csv', description: 'CSV with EmailAddress column' },
+      { id: 'migrationEndpoint', label: 'Migration Endpoint', type: 'text', required: true, placeholder: 'Hybrid Migration Endpoint' },
+      { id: 'targetDeliveryDomain', label: 'Target Delivery Domain', type: 'text', required: true, placeholder: 'contoso.mail.onmicrosoft.com' }
+    ],
+    scriptTemplate: (params) => {
+      const batchName = escapePowerShellString(params.batchName);
+      const csvPath = escapePowerShellString(params.csvPath);
+      const endpoint = escapePowerShellString(params.migrationEndpoint);
+      const targetDomain = escapePowerShellString(params.targetDeliveryDomain);
+
+      return `# Start Mailbox Migration Batch
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Creating migration batch: ${batchName}" -ForegroundColor Cyan
+    
+    $BatchParams = @{
+        Name = "${batchName}"
+        CSVData = ([System.IO.File]::ReadAllBytes("${csvPath}"))
+        SourceEndpoint = "${endpoint}"
+        TargetDeliveryDomain = "${targetDomain}"
+        AutoStart = \\$true
+        AutoComplete = \\$false
+    }
+    
+    $Batch = New-MigrationBatch @BatchParams
+    
+    Write-Host "✓ Migration batch created and started" -ForegroundColor Green
+    Write-Host "  Batch Name: ${batchName}" -ForegroundColor Gray
+    Write-Host "  Endpoint: ${endpoint}" -ForegroundColor Gray
+    Write-Host "  Target Domain: ${targetDomain}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Monitor progress with:" -ForegroundColor Cyan
+    Write-Host "  Get-MigrationBatch -Identity '${batchName}' | fl" -ForegroundColor Gray
+    Write-Host "  Get-MigrationUser -BatchId '${batchName}'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create migration batch: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'enable-mailbox-archive',
+    name: 'Enable In-Place Archive for Mailbox',
+    category: 'Migration & Compliance',
+    description: 'Enable online archive mailbox for a user',
+    instructions: `**How This Task Works:**
+This script enables the In-Place Archive (online archive) for a user mailbox, providing additional storage capacity.
+
+**Prerequisites:**
+- Exchange Online Plan 2 or archive add-on license
+- Exchange Administrator role
+- Mailbox must already exist
+
+**What You Need to Provide:**
+- User email address
+
+**What the Script Does:**
+1. Verifies mailbox exists
+2. Enables archive mailbox
+3. Sets archive quota (if specified)
+4. Confirms activation
+
+**Important Notes:**
+- Archive appears in Outlook after provisioning (5-10 minutes)
+- Default quota: 100 GB (can be increased to unlimited with license)
+- Use for long-term email retention
+- Archive policies can auto-move old items`,
+    parameters: [
+      { id: 'userEmail', label: 'User Email Address', type: 'email', required: true, placeholder: 'user@contoso.com' },
+      { id: 'archiveQuota', label: 'Archive Warning Quota (GB)', type: 'number', required: false, placeholder: '90', description: 'Optional: warning quota in GB' }
+    ],
+    scriptTemplate: (params) => {
+      const userEmail = escapePowerShellString(params.userEmail);
+      const quota = params.archiveQuota ? parseInt(params.archiveQuota) : null;
+
+      return `# Enable In-Place Archive
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Enabling archive for ${userEmail}..." -ForegroundColor Cyan
+    
+    Enable-Mailbox -Identity "${userEmail}" -Archive
+    
+    ${quota ? `
+    # Set archive quota
+    Set-Mailbox -Identity "${userEmail}" -ArchiveWarningQuota "${quota}GB" -ArchiveQuota "${quota + 10}GB"
+    Write-Host "  Archive Quota: ${quota} GB (warning)" -ForegroundColor Gray
+    ` : ''}
+    
+    $Mailbox = Get-Mailbox -Identity "${userEmail}"
+    
+    Write-Host "✓ Archive enabled successfully" -ForegroundColor Green
+    Write-Host "  User: ${userEmail}" -ForegroundColor Gray
+    Write-Host "  Archive Status: $($Mailbox.ArchiveStatus)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "ℹ️ Archive will appear in Outlook within 5-10 minutes" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to enable archive: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-ediscovery-case',
+    name: 'Create eDiscovery Case',
+    category: 'Migration & Compliance',
+    description: 'Create a new eDiscovery case for legal hold and content search',
+    instructions: `**How This Task Works:**
+This script creates an eDiscovery case in the Security & Compliance Center for legal investigations and content preservation.
+
+**Prerequisites:**
+- eDiscovery Manager role in Security & Compliance Center
+- Appropriate compliance license (E3/E5)
+- Connect to Security & Compliance PowerShell
+
+**What You Need to Provide:**
+- Case name
+- Case description
+- Case members (optional)
+
+**What the Script Does:**
+1. Connects to Security & Compliance Center
+2. Creates eDiscovery case
+3. Adds case members if specified
+4. Reports case details
+
+**Important Notes:**
+- Use for legal holds and content searches
+- Add searches and holds after creating case
+- Case members can view/manage the case
+- Export results via Security & Compliance Center`,
+    parameters: [
+      { id: 'caseName', label: 'Case Name', type: 'text', required: true, placeholder: 'Legal-Investigation-2025-001' },
+      { id: 'caseDescription', label: 'Case Description', type: 'textarea', required: true, placeholder: 'Investigation regarding...' },
+      { id: 'caseMembers', label: 'Case Members (emails)', type: 'textarea', required: false, placeholder: 'legal@contoso.com, compliance@contoso.com', description: 'Comma-separated emails' }
+    ],
+    scriptTemplate: (params) => {
+      const caseName = escapePowerShellString(params.caseName);
+      const caseDesc = escapePowerShellString(params.caseDescription);
+      const members = params.caseMembers ? params.caseMembers.split(',').map((m: string) => escapePowerShellString(m.trim())).filter((m: string) => m) : [];
+
+      return `# Create eDiscovery Case
+# Generated: ${new Date().toISOString()}
+
+# Connect to Security & Compliance Center
+Connect-IPPSSession
+
+try {
+    Write-Host "Creating eDiscovery case: ${caseName}" -ForegroundColor Cyan
+    
+    $Case = New-ComplianceCase -Name "${caseName}" -Description "${caseDesc}"
+    
+    ${members.length > 0 ? `
+    # Add case members
+    foreach ($Member in @(${members.map(m => `"${m}"`).join(', ')})) {
+        Add-ComplianceCaseMember -Case "${caseName}" -Member $Member
+        Write-Host "  Added member: $Member" -ForegroundColor Gray
+    }
+    ` : ''}
+    
+    Write-Host "✓ eDiscovery case created successfully" -ForegroundColor Green
+    Write-Host "  Case Name: ${caseName}" -ForegroundColor Gray
+    Write-Host "  Case ID: $($Case.Identity)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Cyan
+    Write-Host "  1. Create content searches in this case" -ForegroundColor Gray
+    Write-Host "  2. Place mailboxes/sites on hold" -ForegroundColor Gray
+    Write-Host "  3. Export search results when ready" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create eDiscovery case: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // SECURITY & DLP CATEGORY
+  // ========================================
+  {
+    id: 'configure-dkim-signing',
+    name: 'Enable DKIM Signing for Domain',
+    category: 'Security & DLP',
+    description: 'Enable DomainKeys Identified Mail (DKIM) signing for a domain',
+    instructions: `**How This Task Works:**
+This script enables DKIM email authentication for a domain, cryptographically signing outbound messages to prevent spoofing.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Domain must be accepted domain in Exchange Online
+- Access to DNS management for the domain
+
+**What You Need to Provide:**
+- Domain name to enable DKIM for
+
+**What the Script Does:**
+1. Enables DKIM signing configuration
+2. Generates CNAME records for publication
+3. Provides DNS record details
+4. Activates DKIM signing
+
+**Important Notes:**
+- Publish CNAME records in DNS before activating
+- DKIM improves email deliverability
+- Required for DMARC policy enforcement
+- Check DKIM status after DNS propagation (24-48 hours)`,
+    parameters: [
+      { id: 'domainName', label: 'Domain Name', type: 'text', required: true, placeholder: 'contoso.com' }
+    ],
+    scriptTemplate: (params) => {
+      const domainName = escapePowerShellString(params.domainName);
+
+      return `# Enable DKIM Signing
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Configuring DKIM for domain: ${domainName}" -ForegroundColor Cyan
+    
+    # Get or create DKIM signing config
+    $DkimConfig = Get-DkimSigningConfig -Identity "${domainName}" -ErrorAction SilentlyContinue
+    
+    if (-not $DkimConfig) {
+        $DkimConfig = New-DkimSigningConfig -DomainName "${domainName}" -Enabled \\$false
+        Write-Host "  DKIM config created" -ForegroundColor Gray
+    }
+    
+    # Get CNAME records
+    $CnameRecords = $DkimConfig | Select-Object -ExpandProperty Selector1CNAME, Selector2CNAME
+    
+    Write-Host ""
+    Write-Host "✓ DKIM configuration created" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "⚠️ IMPORTANT: Add these CNAME records to your DNS:" -ForegroundColor Yellow
+    Write-Host "  Selector 1 CNAME:" -ForegroundColor Cyan
+    Write-Host "    $($DkimConfig.Selector1CNAME)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Selector 2 CNAME:" -ForegroundColor Cyan  
+    Write-Host "    $($DkimConfig.Selector2CNAME)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "After publishing DNS records (wait 24-48 hours), enable DKIM:" -ForegroundColor Cyan
+    Write-Host "  Set-DkimSigningConfig -Identity '${domainName}' -Enabled \\$true" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure DKIM: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-dlp-policy',
+    name: 'Create DLP Policy',
+    category: 'Security & DLP',
+    description: 'Create a Data Loss Prevention policy to protect sensitive information',
+    instructions: `**How This Task Works:**
+This script creates a DLP policy in Exchange Online to detect and protect sensitive information in emails.
+
+**Prerequisites:**
+- Security Administrator or Compliance Administrator role
+- DLP feature available in license (E3/E5)
+- Connect to Security & Compliance PowerShell
+
+**What You Need to Provide:**
+- Policy name
+- Sensitive information type to protect
+- Action to take (notify, block, etc.)
+
+**What the Script Does:**
+1. Creates DLP policy
+2. Configures rules for sensitive info detection
+3. Sets policy actions
+4. Enables the policy
+
+**Important Notes:**
+- Test in audit mode first
+- Common types: Credit Card, SSN, Financial Data
+- Can notify users or block sending
+- Monitor policy matches in reports`,
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'Protect Credit Card Numbers' },
+      { id: 'sensitiveType', label: 'Sensitive Info Type', type: 'select', required: true, options: ['Credit Card Number', 'U.S. Social Security Number', 'U.S. Bank Account Number', 'SWIFT Code'], defaultValue: 'Credit Card Number' },
+      { id: 'action', label: 'Policy Action', type: 'select', required: true, options: ['NotifyUser', 'BlockAccess', 'NotifyAndBlock'], defaultValue: 'NotifyUser', description: 'Action when sensitive info detected' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const sensitiveType = params.sensitiveType || 'Credit Card Number';
+      const action = params.action || 'NotifyUser';
+
+      return `# Create DLP Policy
+# Generated: ${new Date().toISOString()}
+
+# Connect to Security & Compliance Center
+Connect-IPPSSession
+
+try {
+    Write-Host "Creating DLP policy: ${policyName}" -ForegroundColor Cyan
+    
+    # Create DLP policy
+    New-DlpCompliancePolicy -Name "${policyName}" -ExchangeLocation All -Mode Enable
+    
+    # Create DLP rule
+    $RuleParams = @{
+        Policy = "${policyName}"
+        Name = "${policyName} Rule"
+        ContentContainsSensitiveInformation = @{Name="${sensitiveType}"; minCount="1"}
+    }
+    
+    # Add action based on selection
+    switch ("${action}") {
+        "NotifyUser" { 
+            $RuleParams.NotifyUser = @("LastModifier")
+            $RuleParams.NotifyUserType = "NotSet"
+        }
+        "BlockAccess" {
+            $RuleParams.BlockAccess = \\$true
+            $RuleParams.BlockAccessScope = "All"
+        }
+        "NotifyAndBlock" {
+            $RuleParams.NotifyUser = @("LastModifier")
+            $RuleParams.BlockAccess = \\$true
+            $RuleParams.BlockAccessScope = "All"
+        }
+    }
+    
+    New-DlpComplianceRule @RuleParams
+    
+    Write-Host "✓ DLP policy created successfully" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Gray
+    Write-Host "  Protects: ${sensitiveType}" -ForegroundColor Gray
+    Write-Host "  Action: ${action}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "ℹ️ Monitor policy matches in Compliance Center > Reports" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to create DLP policy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'set-mobile-device-access-rule',
+    name: 'Configure Mobile Device Access Rule',
+    category: 'Security & DLP',
+    description: 'Set mobile device access rules for Exchange ActiveSync',
+    instructions: `**How This Task Works:**
+This script configures access rules for mobile devices connecting via Exchange ActiveSync (EAS).
+
+**Prerequisites:**
+- Exchange Administrator role
+- Mobile Device Management configured
+- ActiveSync enabled for organization
+
+**What You Need to Provide:**
+- Device type or family to target
+- Access level (Allow, Block, Quarantine)
+
+**What the Script Does:**
+1. Creates or updates mobile device access rule
+2. Sets access level for specified devices
+3. Applies rule to organization
+
+**Important Notes:**
+- Rules apply to new device connections
+- Existing devices may need manual intervention
+- Quarantine allows admin review before access
+- Use with device compliance policies for best security`,
+    parameters: [
+      { id: 'deviceFamily', label: 'Device Family', type: 'select', required: true, options: ['iOS', 'Android', 'WindowsPhone', 'WindowsMail'], defaultValue: 'Android' },
+      { id: 'accessLevel', label: 'Access Level', type: 'select', required: true, options: ['Allow', 'Block', 'Quarantine'], defaultValue: 'Allow' }
+    ],
+    scriptTemplate: (params) => {
+      const deviceFamily = params.deviceFamily || 'Android';
+      const accessLevel = params.accessLevel || 'Allow';
+
+      return `# Configure Mobile Device Access Rule
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Configuring mobile device access rule..." -ForegroundColor Cyan
+    Write-Host "  Device Family: ${deviceFamily}" -ForegroundColor Gray
+    Write-Host "  Access Level: ${accessLevel}" -ForegroundColor Gray
+    
+    $RuleName = "${deviceFamily} Access Rule"
+    
+    # Check if rule exists
+    $ExistingRule = Get-ActiveSyncDeviceAccessRule | Where-Object { $_.QueryString -like "*${deviceFamily}*" }
+    
+    if ($ExistingRule) {
+        Set-ActiveSyncDeviceAccessRule -Identity $ExistingRule.Identity -AccessLevel ${accessLevel}
+        Write-Host "✓ Updated existing rule" -ForegroundColor Green
+    } else {
+        New-ActiveSyncDeviceAccessRule -Characteristic DeviceType -QueryString "${deviceFamily}" -AccessLevel ${accessLevel}
+        Write-Host "✓ Created new access rule" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "Current mobile device access rules:" -ForegroundColor Cyan
+    Get-ActiveSyncDeviceAccessRule | Format-Table Name, AccessLevel, Characteristic, QueryString -AutoSize
+    
+} catch {
+    Write-Error "Failed to configure mobile device access rule: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-transport-rule-compliance',
+    name: 'Create Transport Rule for Compliance',
+    category: 'Security & DLP',
+    description: 'Create mail flow rule for compliance requirements (disclaimers, encryption, blocking)',
+    instructions: `**How This Task Works:**
+This script creates an Exchange transport rule to enforce compliance requirements on email messages.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Understanding of mail flow and compliance needs
+
+**What You Need to Provide:**
+- Rule name and description
+- Conditions to match
+- Actions to take
+
+**What the Script Does:**
+1. Creates mail transport rule
+2. Sets conditions (sender, recipient, content)
+3. Defines actions (add disclaimer, encrypt, block, redirect)
+4. Enables the rule
+
+**Important Notes:**
+- Rules process in priority order
+- Test with specific users first
+- Can add disclaimers, encrypt sensitive mail
+- Monitor rule hits in message trace`,
+    parameters: [
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Add Legal Disclaimer' },
+      { id: 'ruleType', label: 'Rule Type', type: 'select', required: true, options: ['AddDisclaimer', 'EncryptMessage', 'BlockMessage', 'RedirectMessage'], defaultValue: 'AddDisclaimer' },
+      { id: 'senderDomain', label: 'Apply to Sender Domain', type: 'text', required: false, placeholder: 'contoso.com', description: 'Leave blank for all' },
+      { id: 'disclaimerText', label: 'Disclaimer Text', type: 'textarea', required: false, placeholder: 'This email contains confidential information...', description: 'For AddDisclaimer type' }
+    ],
+    scriptTemplate: (params) => {
+      const ruleName = escapePowerShellString(params.ruleName);
+      const ruleType = params.ruleType || 'AddDisclaimer';
+      const senderDomain = params.senderDomain ? escapePowerShellString(params.senderDomain) : '';
+      const disclaimerText = params.disclaimerText ? escapePowerShellString(params.disclaimerText) : 'This email contains confidential information.';
+
+      return `# Create Transport Rule for Compliance
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Creating transport rule: ${ruleName}" -ForegroundColor Cyan
+    
+    $RuleParams = @{
+        Name = "${ruleName}"
+        Enabled = \\$true
+        Priority = 0
+    }
+    
+    # Add sender condition if specified
+    ${senderDomain ? `$RuleParams.FromScope = "InOrganization"` : ''}
+    ${senderDomain ? `$RuleParams.SenderDomainIs = "${senderDomain}"` : ''}
+    
+    # Configure action based on rule type
+    switch ("${ruleType}") {
+        "AddDisclaimer" {
+            $RuleParams.ApplyHtmlDisclaimerText = "${disclaimerText}"
+            $RuleParams.ApplyHtmlDisclaimerLocation = "Append"
+            $RuleParams.ApplyHtmlDisclaimerFallbackAction = "Wrap"
+        }
+        "EncryptMessage" {
+            $RuleParams.ApplyRightsProtectionTemplate = "Encrypt"
+        }
+        "BlockMessage" {
+            $RuleParams.RejectMessageReasonText = "Message blocked by compliance policy"
+            $RuleParams.RejectMessageEnhancedStatusCode = "5.7.1"
+        }
+        "RedirectMessage" {
+            Write-Host "⚠️ Redirect requires -RedirectMessageTo parameter - add manually" -ForegroundColor Yellow
+        }
+    }
+    
+    New-TransportRule @RuleParams
+    
+    Write-Host "✓ Transport rule created successfully" -ForegroundColor Green
+    Write-Host "  Rule: ${ruleName}" -ForegroundColor Gray
+    Write-Host "  Type: ${ruleType}" -ForegroundColor Gray
+    ${senderDomain ? `Write-Host "  Scope: ${senderDomain}" -ForegroundColor Gray` : ''}
+    
+} catch {
+    Write-Error "Failed to create transport rule: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-remote-domain',
+    name: 'Configure Remote Domain Settings',
+    category: 'Mail Flow & Transport',
+    description: 'Configure remote domain settings for external email domains',
+    instructions: `**How This Task Works:**
+This script configures settings for how Exchange Online handles mail sent to external domains (remote domains).
+
+**Prerequisites:**
+- Exchange Administrator role
+- Understanding of remote domain requirements
+
+**What You Need to Provide:**
+- Domain name pattern (e.g., partner.com or *.gov)
+- Settings for out-of-office, delivery reports, etc.
+
+**What the Script Does:**
+1. Creates or updates remote domain configuration
+2. Sets allowed/blocked features
+3. Configures message format options
+
+**Important Notes:**
+- Default remote domain (*) applies to all external domains
+- Create specific domains to override defaults
+- Control out-of-office, read receipts, delivery reports
+- Useful for partner/vendor-specific policies`,
+    parameters: [
+      { id: 'domainName', label: 'Remote Domain', type: 'text', required: true, placeholder: 'partner.com or *.gov' },
+      { id: 'allowOOF', label: 'Allow Out-of-Office Messages', type: 'boolean', required: false, defaultValue: true },
+      { id: 'allowDeliveryReports', label: 'Allow Delivery Reports', type: 'boolean', required: false, defaultValue: true },
+      { id: 'allowAutomaticReplies', label: 'Allow Automatic Replies', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const domainName = escapePowerShellString(params.domainName);
+      const allowOOF = params.allowOOF !== false;
+      const allowDR = params.allowDeliveryReports !== false;
+      const allowAuto = params.allowAutomaticReplies === true;
+      const psOOF = allowOOF ? '$true' : '$false';
+      const psDR = allowDR ? '$true' : '$false';
+      const psAuto = allowAuto ? '$true' : '$false';
+
+      return `# Configure Remote Domain
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Configuring remote domain: ${domainName}" -ForegroundColor Cyan
+    
+    $RemoteDomain = Get-RemoteDomain | Where-Object { $_.DomainName -eq "${domainName}" }
+    
+    if ($RemoteDomain) {
+        Set-RemoteDomain -Identity $RemoteDomain.Identity ` +
+            `-AllowedOOFType ${allowOOF ? 'External' : 'None'} ` +
+            `-DeliveryReportEnabled ${psDR} ` +
+            `-AutoReplyEnabled ${psAuto}
+        Write-Host "✓ Updated existing remote domain" -ForegroundColor Green
+    } else {
+        New-RemoteDomain -Name "${domainName}" -DomainName "${domainName}" ` +
+            `-AllowedOOFType ${allowOOF ? 'External' : 'None'} ` +
+            `-DeliveryReportEnabled ${psDR} ` +
+            `-AutoReplyEnabled ${psAuto}
+        Write-Host "✓ Created new remote domain" -ForegroundColor Green
+    }
+    
+    Write-Host "  Domain: ${domainName}" -ForegroundColor Gray
+    Write-Host "  Out-of-Office: ${allowOOF}" -ForegroundColor Gray
+    Write-Host "  Delivery Reports: ${allowDR}" -ForegroundColor Gray
+    Write-Host "  Auto Replies: ${allowAuto}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure remote domain: $_"
+    exit 1
+}`;
+    }
   }
 ];

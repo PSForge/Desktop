@@ -10,6 +10,7 @@ import { ScriptWizardTab } from "@/components/script-wizard-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileCode, Sparkles, LayoutGrid, Wand2 } from "lucide-react";
 import { generatePowerShellScript } from "@/lib/script-generator";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ScriptBuilder() {
   const [location] = useLocation();
@@ -17,6 +18,7 @@ export default function ScriptBuilder() {
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [selectedGuiCategory, setSelectedGuiCategory] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Get tab from URL query parameter
   const defaultTab = useMemo(() => {
@@ -33,6 +35,11 @@ export default function ScriptBuilder() {
       script,
       savedAt: new Date().toISOString(),
     }));
+    
+    toast({
+      title: "Script auto-saved",
+      description: "Your script has been saved locally in your browser",
+    });
   };
 
   const handleExport = () => {

@@ -13,6 +13,7 @@ import {
   changePasswordSchema,
   adminCreateUserSchema,
   insertPlatformNotificationSchema,
+  saveScriptSchema,
   type ValidationResult,
   type SubscriptionStatus
 } from "@shared/schema";
@@ -431,22 +432,74 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
-  app.delete("/api/scripts/:id", async (req, res) => {
+  app.delete("/api/scripts/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const deleted = await storage.deleteScript(id);
+      const script = await storage.getScript(id);
       
-      if (!deleted) {
+      if (!script) {
         return res.status(404).json({
           error: "Script not found"
         });
       }
+
+      // Only allow users to delete their own scripts
+      if (script.userId !== req.user!.id) {
+        return res.status(403).json({
+          error: "Not authorized to delete this script"
+        });
+      }
+
+      const deleted = await storage.deleteScript(id);
 
       return res.status(204).send();
     } catch (error) {
       console.error("Error deleting script:", error);
       return res.status(500).json({
         error: "Internal server error while deleting script"
+      });
+    }
+  });
+
+  // User-specific script routes (authenticated)
+  app.post("/api/scripts/save", requireAuth, async (req, res) => {
+    try {
+      const parsed = saveScriptSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid script data",
+          details: parsed.error.errors
+        });
+      }
+
+      const { name, content, description } = parsed.data;
+      
+      const script = await storage.createScript({
+        userId: req.user!.id,
+        name,
+        content,
+        description,
+        commands: [], // Legacy field, not used for saved scripts
+      });
+
+      return res.status(201).json(script);
+    } catch (error) {
+      console.error("Error saving script:", error);
+      return res.status(500).json({
+        error: "Internal server error while saving script"
+      });
+    }
+  });
+
+  app.get("/api/scripts/user/me", requireAuth, async (req, res) => {
+    try {
+      const scripts = await storage.getUserScripts(req.user!.id);
+      return res.json(scripts);
+    } catch (error) {
+      console.error("Error fetching user scripts:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching scripts"
       });
     }
   });

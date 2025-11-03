@@ -4,7 +4,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth-context";
-import { getPlatformStats } from "@/lib/platform-stats";
 import { NotificationBanner } from "@/components/notification-banner";
 import logoTransparent from "@assets/Full Logo Transparent_1761565796152.png";
 import logoLight from "@assets/Full Logo_1761565796152.png";
@@ -34,7 +33,6 @@ import {
 
 export default function Home() {
   const { user } = useAuth();
-  const stats = getPlatformStats();
   
   const freeTierFeatures = [
     "Script Generator with 80+ PowerShell commands",
@@ -50,7 +48,7 @@ export default function Home() {
     "AI Assistant with OpenAI-powered chat",
     "Natural language command suggestions",
     "16 enterprise IT platforms unlocked",
-    `500+ automation tasks across 23 platforms`,
+    "506 automation tasks across 23 platforms",
     "Azure AD, Exchange, Teams, Intune",
     "MECM, SharePoint, Office 365",
     "Hyper-V, Windows Server & more",
@@ -188,11 +186,11 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto">
             <div className="text-center space-y-2">
-              <div className="text-3xl sm:text-4xl font-bold text-primary">{stats.totalTasks}</div>
+              <div className="text-3xl sm:text-4xl font-bold text-primary">506</div>
               <div className="text-sm text-muted-foreground">Automation Tasks</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl sm:text-4xl font-bold text-primary">{stats.totalCategories}</div>
+              <div className="text-3xl sm:text-4xl font-bold text-primary">23</div>
               <div className="text-sm text-muted-foreground">IT Platforms</div>
             </div>
             <div className="text-center space-y-2">
@@ -300,7 +298,7 @@ export default function Home() {
               Enterprise IT Platform Coverage
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Pro subscribers get access to 16 enterprise platforms with {stats.premiumTasks} pre-built automation tasks
+              Pro subscribers get access to 16 enterprise platforms with 415 pre-built automation tasks
             </p>
           </div>
 
@@ -413,7 +411,7 @@ export default function Home() {
               </div>
               <CardTitle>GUI Builder</CardTitle>
               <CardDescription>
-                No-code automation with {stats.totalTasks} pre-built tasks
+                No-code automation with 506 pre-built tasks
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">

@@ -28,7 +28,8 @@ import {
   Cpu,
   HardDrive,
   Users,
-  Settings
+  Settings,
+  Wand2
 } from "lucide-react";
 
 export default function Home() {
@@ -337,18 +338,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Three Building Methods */}
+      {/* Four Building Methods */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-            Three Ways to Build
+            Four Ways to Build
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Choose the workflow that matches your expertise and needs
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto">
           <Card className="hover-elevate transition-all">
             <CardHeader>
               <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
@@ -426,6 +427,35 @@ export default function Home() {
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
                 <span className="text-sm text-muted-foreground">Secure generation</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover-elevate transition-all border-primary/50">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
+                <Wand2 className="h-6 w-6 text-orange-500" />
+              </div>
+              <CardTitle className="flex items-center gap-2">
+                Script Wizard
+                <Badge variant="secondary" className="text-xs">New</Badge>
+              </CardTitle>
+              <CardDescription>
+                Bulk automation with CSV import and multi-platform support
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span className="text-sm text-muted-foreground">4-step guided wizard</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span className="text-sm text-muted-foreground">CSV upload for bulk tasks</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span className="text-sm text-muted-foreground">Security analysis built-in</span>
               </div>
             </CardContent>
           </Card>

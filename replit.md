@@ -3,8 +3,18 @@
 ## Overview
 PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 91 basic Windows management tasks, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 506 total automation tasks (415 premium + 91 free) across 23 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
-## Recent Changes (October 31, 2025)
+## Recent Changes (November 3, 2025)
 🚀 **PSFORGE 2.0 RELEASED** 🚀
+
+### Version 2.0.3 (November 3, 2025)
+- **User Script Management:**
+  - Save scripts to profile with custom name and description
+  - View all saved scripts on account page with metadata (date, size)
+  - Load saved scripts back into Monaco editor
+  - Delete unwanted scripts
+  - Seamless integration with export dialog (dual functionality: download .ps1 or save to profile)
+  - Server-side storage with user authentication
+  - Script transfer via localStorage for smooth editor loading
 
 ### Version 2.0.2 (October 31, 2025)
 - **Multi-Platform Enterprise Expansion:**
@@ -108,8 +118,8 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
   - escapePowerShellString() for all user inputs
   - Colored console output for better UX
 
-- **Known Issues:**
-  - Verification script has module import bug with MECM causing false "missing instructions" errors (tasks actually complete)
+- **Known Testing Limitations:**
+  - Playwright has difficulty typing into Monaco Editor using standard keyboard simulation - Monaco's virtual DOM requires special handling. Manual testing confirms save/load functionality works correctly.
 
 - **Application Status:** Workflow running successfully with HMR on port 5000
 
@@ -136,12 +146,13 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Feature Gating**: Premium features (AI Assistant, 16 enterprise GUI categories) are locked for free users with clear upgrade prompts and visual indicators.
 - **Scripting Features**:
     - **Command Library**: Over 80 PowerShell commands across various categories.
-    - **Script Editor**: Editable textarea with cursor-based command insertion.
+    - **Script Editor**: Monaco Editor (VS Code engine) with PowerShell syntax highlighting, code folding, auto-formatting, and cmdlet hover tooltips.
     - **Code Preview**: Syntax-highlighted PowerShell output.
     - **Validation Panel**: Real-time error and warning display.
-    - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting 461 automation tasks across 23 platforms (16 enterprise + 7 Windows management).
+    - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting 506 automation tasks across 23 platforms (16 enterprise + 7 Windows management).
     - **Script Wizard**: Bulk operations wizard supporting CSV import and multi-platform task automation.
-    - **Export**: Copy to clipboard and .ps1 file download with security analysis.
+    - **Export**: Download .ps1 file or save to profile with security analysis.
+    - **Script Management**: Save scripts with name/description, view all saved scripts, load scripts back into editor, delete scripts.
 - **Security Features (v2.0)**:
     - **Malicious Code Scanner**: Detects 15+ dangerous PowerShell patterns including encoded commands, COM objects, credential harvesting
     - **Script Integrity**: SHA-256 hashing for script verification

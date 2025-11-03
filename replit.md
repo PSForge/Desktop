@@ -1,14 +1,14 @@
 # PSForge - PowerShell Script Builder
 
 ## Overview
-PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 8 basic Windows management categories, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 779+ automation tasks across 23 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
+PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 8 basic Windows management categories, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 500+ automation tasks across 23 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
 ## Recent Changes (October 31, 2025)
 🚀 **PSFORGE 2.0 RELEASED** 🚀
 
 ### Version 2.0.2 (October 31, 2025)
 - **Multi-Platform Enterprise Expansion:**
-  - **Total Expansion**: +29 automation tasks across 3 critical platforms (779+ tasks total)
+  - **Total Expansion**: +29 automation tasks across 3 critical platforms (500+ tasks total)
   - **Exchange Online**: Expanded from 20 to 30 tasks (+10 tasks)
     - Mail Flow & Transport: Inbound connectors, accepted domains, remote domains
     - Migration & Compliance: Migration batches, archive enablement, eDiscovery cases

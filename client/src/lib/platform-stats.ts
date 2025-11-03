@@ -50,35 +50,8 @@ export function getPlatformStats() {
     securityManagementTasks.length +
     servicesTasks.length;
 
-  // Count unique platforms/categories
-  const allTasks = [
-    ...adTasks,
-    ...azureAdTasks,
-    ...azureResourceTasks,
-    ...exchangeOnlineTasks,
-    ...exchangeServerTasks,
-    ...hyperVTasks,
-    ...intuneTasks,
-    ...mecmTasks,
-    ...teamsTasks,
-    ...office365Tasks,
-    ...oneDriveTasks,
-    ...sharePointOnlineTasks,
-    ...sharePointOnPremTasks,
-    ...windows365Tasks,
-    ...windowsServerTasks,
-    ...powerPlatformTasks,
-    ...eventLogTasks,
-    ...fileSystemTasks,
-    ...networkingTasks,
-    ...processManagementTasks,
-    ...registryTasks,
-    ...securityManagementTasks,
-    ...servicesTasks,
-  ];
-
-  const uniqueCategories = new Set(allTasks.map(task => task.category));
-  const totalCategories = uniqueCategories.size;
+  // Count total platforms (23 total: 16 premium + 7 free)
+  const totalPlatforms = 23;
 
   // Premium task count (all tasks except free tier Windows management)
   const freeTierTasks = 
@@ -94,7 +67,7 @@ export function getPlatformStats() {
 
   return {
     totalTasks,
-    totalCategories,
+    totalCategories: totalPlatforms,
     premiumTasks,
     freeTierTasks,
   };

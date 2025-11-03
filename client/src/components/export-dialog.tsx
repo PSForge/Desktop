@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,8 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SecurityDashboard } from "@/components/security-dashboard";
+import { useAuth } from "@/lib/auth-context";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ExportDialogProps {
   open: boolean;
@@ -24,7 +28,35 @@ interface ExportDialogProps {
 
 export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
   const [filename, setFilename] = useState("script.ps1");
+  const [description, setDescription] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const scriptName = filename.replace(/\.ps1$/, '');
+      const response = await apiRequest("POST", "/api/scripts/save", {
+        name: scriptName,
+        content: code,
+        description: description || undefined,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Script saved",
+        description: "Your script has been saved to your profile",
+      });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Save failed",
+        description: error.message || "Could not save the script",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleExport = () => {
     try {
@@ -53,6 +85,18 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
     }
   };
 
+  const handleSaveToProfile = () => {
+    if (!filename.trim()) {
+      toast({
+        title: "Filename required",
+        description: "Please enter a filename for your script",
+        variant: "destructive",
+      });
+      return;
+    }
+    saveMutation.mutate();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh]" data-testid="dialog-export">
@@ -68,7 +112,7 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="filename">Filename</Label>
+            <Label htmlFor="filename">Script Name</Label>
             <Input
               id="filename"
               value={filename}
@@ -80,6 +124,20 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
               The .ps1 extension will be added automatically if not included
             </p>
           </div>
+
+          {user && (
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of what this script does..."
+                rows={2}
+                data-testid="input-script-description"
+              />
+            </div>
+          )}
 
           <div className="rounded-md border p-4 bg-muted/50">
             <div className="flex items-start gap-3">
@@ -121,7 +179,7 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
           </Tabs>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -129,12 +187,23 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
           >
             Cancel
           </Button>
+          {user && (
+            <Button
+              variant="outline"
+              onClick={handleSaveToProfile}
+              disabled={saveMutation.isPending}
+              data-testid="button-save-to-profile"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {saveMutation.isPending ? "Saving..." : "Save to Profile"}
+            </Button>
+          )}
           <Button
             onClick={handleExport}
             data-testid="button-export-confirm"
           >
             <Download className="h-4 w-4 mr-2" />
-            Export Script
+            Download .ps1
           </Button>
         </DialogFooter>
       </DialogContent>

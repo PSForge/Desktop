@@ -41,6 +41,20 @@ export default function ScriptBuilder() {
   };
 
   useEffect(() => {
+    // Check if loading a specific script from account page
+    const loadScript = localStorage.getItem('loadScript');
+    if (loadScript) {
+      try {
+        const scriptData = JSON.parse(loadScript);
+        setScript(scriptData.content);
+        localStorage.removeItem('loadScript'); // Clear after loading
+        return;
+      } catch (err) {
+        console.error('Failed to load script from account:', err);
+      }
+    }
+
+    // Otherwise, load auto-saved script
     const saved = localStorage.getItem('powershell-script');
     if (saved) {
       try {

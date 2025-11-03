@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { changePasswordSchema, type ChangePasswordData } from "@shared/schema";
+import { changePasswordSchema, type ChangePasswordData, type Script } from "@shared/schema";
 import { 
   User, 
   Mail, 
@@ -25,7 +25,11 @@ import {
   Sparkles,
   BarChart3,
   Lock,
-  Key
+  Key,
+  FileText,
+  Trash2,
+  FolderOpen,
+  Code2
 } from "lucide-react";
 
 export default function Account() {
@@ -33,6 +37,36 @@ export default function Account() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const { data: scripts, isLoading: scriptsLoading } = useQuery<Script[]>({
+    queryKey: ["/api/scripts/user/me"],
+    enabled: !!user,
+  });
+
+  const deleteScriptMutation = useMutation({
+    mutationFn: async (scriptId: string) => {
+      await apiRequest("DELETE", `/api/scripts/${scriptId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scripts/user/me"] });
+      toast({
+        title: "Script deleted",
+        description: "Your script has been deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Could not delete the script",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLoadScript = (script: Script) => {
+    localStorage.setItem('loadScript', JSON.stringify(script));
+    setLocation("/builder");
+  };
 
   const portalMutation = useMutation({
     mutationFn: async () => {
@@ -361,6 +395,87 @@ export default function Account() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Saved Scripts
+              </CardTitle>
+              <CardDescription>
+                Scripts you've saved from the builder
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {scriptsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                  Loading scripts...
+                </div>
+              ) : !scripts || scripts.length === 0 ? (
+                <div className="text-center py-8">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground mb-4">No saved scripts yet</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation("/builder")}
+                    data-testid="button-go-to-builder"
+                  >
+                    <Code2 className="h-4 w-4 mr-2" />
+                    Go to Script Builder
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {scripts.map((script) => (
+                    <div
+                      key={script.id}
+                      className="flex items-start gap-3 p-3 rounded-lg border hover-elevate"
+                      data-testid={`script-item-${script.id}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FileText className="h-4 w-4 text-primary shrink-0" />
+                          <h4 className="font-medium text-sm truncate" data-testid={`script-name-${script.id}`}>
+                            {script.name}
+                          </h4>
+                        </div>
+                        {script.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                            {script.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>{new Date(script.createdAt!).toLocaleDateString()}</span>
+                          <span>{(new Blob([script.content]).size / 1024).toFixed(1)} KB</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleLoadScript(script)}
+                          data-testid={`button-load-${script.id}`}
+                        >
+                          <Code2 className="h-3.5 w-3.5 mr-1" />
+                          Load
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => deleteScriptMutation.mutate(script.id!)}
+                          disabled={deleteScriptMutation.isPending}
+                          data-testid={`button-delete-${script.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

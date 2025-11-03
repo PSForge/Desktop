@@ -20,6 +20,7 @@ export interface IStorage {
   // Script management
   getScript(id: string): Promise<Script | undefined>;
   getAllScripts(): Promise<Script[]>;
+  getUserScripts(userId: string): Promise<Script[]>;
   createScript(script: InsertScript): Promise<Script>;
   updateScript(id: string, script: Partial<InsertScript>): Promise<Script | undefined>;
   deleteScript(id: string): Promise<boolean>;
@@ -114,6 +115,10 @@ export class MemStorage implements IStorage {
 
   async getAllScripts(): Promise<Script[]> {
     return Array.from(this.scripts.values());
+  }
+
+  async getUserScripts(userId: string): Promise<Script[]> {
+    return Array.from(this.scripts.values()).filter(script => script.userId === userId);
   }
 
   async createScript(insertScript: InsertScript): Promise<Script> {

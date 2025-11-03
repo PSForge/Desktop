@@ -62,9 +62,11 @@ export const scriptCommandSchema = z.object({
 
 export const scriptSchema = z.object({
   id: z.string().optional(),
+  userId: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
-  commands: z.array(scriptCommandSchema),
+  content: z.string(),
+  commands: z.array(scriptCommandSchema).optional(),
   createdAt: z.string().optional(),
 });
 
@@ -80,6 +82,11 @@ export const validationResultSchema = z.object({
 
 export const insertScriptCommandSchema = scriptCommandSchema.omit({ id: true });
 export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true });
+export const saveScriptSchema = z.object({
+  name: z.string().min(1, "Script name is required"),
+  content: z.string().min(1, "Script content is required"),
+  description: z.string().optional(),
+});
 export const insertValidationRequestSchema = z.object({
   code: z.string(),
 });
@@ -92,6 +99,7 @@ export type ValidationResult = z.infer<typeof validationResultSchema>;
 export type InsertScriptCommand = z.infer<typeof insertScriptCommandSchema>;
 export type InsertScript = z.infer<typeof insertScriptSchema>;
 export type InsertValidationRequest = z.infer<typeof insertValidationRequestSchema>;
+export type SaveScript = z.infer<typeof saveScriptSchema>;
 
 // User & Authentication Schemas
 export const userSchema = z.object({

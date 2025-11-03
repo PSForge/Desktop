@@ -30,18 +30,6 @@ export default function ScriptBuilder() {
     return 'script-generator';
   }, [location]);
 
-  const handleSave = () => {
-    localStorage.setItem('powershell-script', JSON.stringify({
-      script,
-      savedAt: new Date().toISOString(),
-    }));
-    
-    toast({
-      title: "Script auto-saved",
-      description: "Your script has been saved locally in your browser",
-    });
-  };
-
   const handleExport = () => {
     if (!script.trim()) return;
     setExportDialogOpen(true);
@@ -85,7 +73,6 @@ export default function ScriptBuilder() {
     <div className="min-h-screen md:h-screen flex flex-col bg-background">
       <Header
         onExport={handleExport}
-        onSave={handleSave}
         hasCommands={script.trim().length > 0}
       />
 

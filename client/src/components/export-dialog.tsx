@@ -103,10 +103,10 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Export PowerShell Script
+            Save PowerShell Script
           </DialogTitle>
           <DialogDescription>
-            Save your generated PowerShell script as a .ps1 file that can be executed on any Windows machine.
+            Save to your profile or download as a .ps1 file that can be executed on any Windows machine.
           </DialogDescription>
         </DialogHeader>
 

@@ -6,12 +6,37 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 ## Recent Changes
 🚀 **PSFORGE 2.0 RELEASED** 🚀
 
+### Version 2.0.5 (November 5, 2025)
+- **Production Password Reset System with Office 365 Email:**
+  - **Email Service Integration**:
+    - Integrated Office 365 Exchange SMTP for professional transactional emails
+    - Uses nodemailer with Office 365 (smtp.office365.com) on port 587 with STARTTLS
+    - Email verification on startup confirms SMTP configuration
+    - Configured with OFFICE365_EMAIL and OFFICE365_PASSWORD environment secrets
+  - **Professional Email Templates**:
+    - Beautifully designed HTML email with PSForge branding
+    - Gradient header, clear call-to-action button, security warnings
+    - Plain text fallback for email clients that don't support HTML
+    - Includes 1-hour expiration reminder and security best practices
+  - **Production-Ready UI**:
+    - Updated ForgotPassword page to show email confirmation instead of dev link
+    - Displays "Check Your Email" message with instructions
+    - "Try Another Email" option for easy re-submission
+    - Removed development mode link display for security
+  - **Security Best Practices**:
+    - Password reset emails sent via secure Office 365 SMTP
+    - Email enumeration prevention (always returns success message)
+    - Failed email sending logged server-side without revealing to user
+    - 1-hour token expiration clearly communicated to users
+  - **Status**: Production-ready password reset flow with email delivery ✅
+
 ### Version 2.0.4 (November 5, 2025)
 - **PostgreSQL Database Migration (CRITICAL FIX):**
   - **Problem Fixed**: User accounts and saved scripts were being lost on server restarts due to in-memory storage
   - **Solution**: Migrated from MemStorage to persistent PostgreSQL database
   - **Database Implementation**:
     - Created 8 tables: users, sessions, scripts, subscriptionPlans, userSubscriptions, subscriptionEvents, usageMetrics, platformNotifications
+    - Added passwordResetTokens table for secure password reset flow
     - Uses Drizzle ORM with node-postgres (pg) driver for reliability
     - Connection pool: 10 max connections, 10s timeout, keepAlive enabled
     - Scripts table includes `commands` JSON column to persist command arrays

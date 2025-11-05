@@ -339,48 +339,58 @@ export default function Account() {
             </Card>
           )}
 
-          {(isSubscriber || isAdmin) && subscription && (
+          {(isSubscriber || isAdmin) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5" />
-                  Subscription
+                  {subscription ? "Subscription" : "Billing"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Status</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge 
-                          variant={subscription.status === "active" ? "default" : "secondary"}
-                          data-testid="badge-subscription-status"
-                        >
-                          {subscription.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {subscription.currentPeriodEnd && (
+                {subscription && (
                   <>
-                    <Separator />
-                    <div className="flex items-center gap-3">
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Current Period Ends</p>
-                        <p className="text-sm text-muted-foreground" data-testid="text-period-end">
-                          {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Status</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge 
+                              variant={subscription.status === "active" ? "default" : "secondary"}
+                              data-testid="badge-subscription-status"
+                            >
+                              {subscription.status}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
+                    {subscription.currentPeriodEnd && (
+                      <>
+                        <Separator />
+                        <div className="flex items-center gap-3">
+                          <Settings className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Current Period Ends</p>
+                            <p className="text-sm text-muted-foreground" data-testid="text-period-end">
+                              {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <Separator />
                   </>
                 )}
 
-                <Separator />
+                {!subscription && (
+                  <p className="text-sm text-muted-foreground">
+                    {isAdmin ? "Manage your billing and payment settings" : "View and manage your subscription"}
+                  </p>
+                )}
 
                 <Button
                   variant="outline"

@@ -9,6 +9,8 @@ import Home from "@/pages/home";
 import ScriptBuilder from "@/pages/script-builder";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import Account from "@/pages/account";
 import AdminDashboard from "@/pages/admin";
 import NotFound from "@/pages/not-found";
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/builder" component={ScriptBuilder} />
       <Route path="/account" component={Account} />
       <Route path="/admin" component={AdminDashboard} />

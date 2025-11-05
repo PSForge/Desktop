@@ -88,6 +88,15 @@ export const platformNotifications = pgTable("platform_notifications", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const userRoles = ["free", "subscriber", "admin"] as const;
 export type UserRole = typeof userRoles[number];
 
@@ -310,6 +319,29 @@ export const platformNotificationSchema = z.object({
 
 export const insertPlatformNotificationSchema = platformNotificationSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
+// Password Reset Schemas
+export const passwordResetTokenSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  token: z.string(),
+  expiresAt: z.string(),
+  used: z.boolean(),
+  createdAt: z.string(),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 // Type exports
 export type User = z.infer<typeof userSchema>;
 export type Session = z.infer<typeof sessionSchema>;
@@ -325,6 +357,9 @@ export type AnalyticsOverview = z.infer<typeof analyticsOverviewSchema>;
 export type FeatureAccess = z.infer<typeof featureAccessSchema>;
 export type PlatformNotification = z.infer<typeof platformNotificationSchema>;
 export type InsertPlatformNotification = z.infer<typeof insertPlatformNotificationSchema>;
+export type PasswordResetToken = z.infer<typeof passwordResetTokenSchema>;
+export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
 // Basic categories accessible to free users
 export const freeTierCategories = [

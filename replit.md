@@ -3,8 +3,25 @@
 ## Overview
 PSForge is a professional web-based PowerShell script builder designed for IT technicians and system administrators. It offers visual PowerShell script creation through an intuitive GUI, providing real-time syntax generation, AI-powered command suggestions, parameter validation, error checking, and script export capabilities. It operates on a freemium model, offering a Free Tier with access to 80+ PowerShell commands and 91 basic Windows management tasks, and a Pro Tier ($5/month) which unlocks an AI Assistant and access to 506 total automation tasks (415 premium + 91 free) across 23 enterprise IT platform categories. The project aims to streamline PowerShell script development for IT professionals.
 
-## Recent Changes (November 3, 2025)
+## Recent Changes
 🚀 **PSFORGE 2.0 RELEASED** 🚀
+
+### Version 2.0.4 (November 5, 2025)
+- **PostgreSQL Database Migration (CRITICAL FIX):**
+  - **Problem Fixed**: User accounts and saved scripts were being lost on server restarts due to in-memory storage
+  - **Solution**: Migrated from MemStorage to persistent PostgreSQL database
+  - **Database Implementation**:
+    - Created 8 tables: users, sessions, scripts, subscriptionPlans, userSubscriptions, subscriptionEvents, usageMetrics, platformNotifications
+    - Uses Drizzle ORM with node-postgres (pg) driver for reliability
+    - Connection pool: 10 max connections, 10s timeout, keepAlive enabled
+    - Scripts table includes `commands` JSON column to persist command arrays
+  - **Data Persistence**:
+    - User accounts persist across restarts with session management
+    - Saved scripts persist with all command data intact (createScript fixed to include commands field)
+    - Admin account and premium subscription plan auto-seeded on startup
+    - All timestamps converted to ISO strings for API compatibility
+  - **Testing Results**: E2E test verified user creation, script saving with 2 commands, server restart, successful login, and script loading with all commands intact. Admin dashboard confirmed 2 total users.
+  - Architect-reviewed and approved ✅
 
 ### Version 2.0.3 (November 3, 2025)
 - **User Script Management:**

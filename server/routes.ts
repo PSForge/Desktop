@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
 import { getAIHelperResponse } from "./ai-helper";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
+import { sendPasswordResetEmail } from "./email-service";
 import { 
   insertScriptSchema, 
   insertValidationRequestSchema,
@@ -320,14 +321,22 @@ Sitemap: ${baseUrl}/sitemap.xml`;
 
       await storage.createPasswordResetToken(user.id, resetToken, expiresAt);
 
-      // For now, return the reset link in response (later can be sent via email)
+      // Generate reset URL
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.headers.host;
       const resetUrl = `${protocol}://${host}/reset-password?token=${resetToken}`;
 
+      // Send password reset email
+      try {
+        await sendPasswordResetEmail(email, resetUrl, user.name || undefined);
+        console.log(`Password reset email sent to: ${email}`);
+      } catch (emailError) {
+        console.error("Failed to send password reset email:", emailError);
+        // Don't reveal email sending failure to user for security
+      }
+
       return res.json({
-        message: "If an account exists with this email, a password reset link will be sent.",
-        resetLink: resetUrl // TODO: Send via email instead of returning in response
+        message: "If an account exists with this email, a password reset link has been sent to your inbox."
       });
     } catch (error) {
       console.error("Forgot password error:", error);

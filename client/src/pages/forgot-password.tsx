@@ -12,7 +12,7 @@ import logoImage from "@assets/Full Logo Transparent_1761559782392.png";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [resetLink, setResetLink] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,15 +33,11 @@ export default function ForgotPassword() {
         throw new Error(data.error || "Failed to send reset email");
       }
 
+      setEmailSent(true);
       toast({
-        title: "Reset link sent",
+        title: "Email Sent",
         description: data.message,
       });
-
-      // Show the reset link (temporary - will be sent via email later)
-      if (data.resetLink) {
-        setResetLink(data.resetLink);
-      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -79,54 +75,77 @@ export default function ForgotPassword() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@psforge.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  data-testid="input-email"
-                />
-              </div>
-
-              {resetLink && (
+              {!emailSent ? (
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@psforge.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    data-testid="input-email"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    We'll send you a password reset link to this email address
+                  </p>
+                </div>
+              ) : (
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Reset Link (Development Mode):</strong>
+                    <strong>Check Your Email</strong>
                     <br />
-                    <a 
-                      href={resetLink} 
-                      className="text-primary hover:underline break-all text-sm"
-                      data-testid="link-reset"
-                    >
-                      {resetLink}
-                    </a>
+                    <p className="mt-2">
+                      If an account exists with <strong>{email}</strong>, you will receive a password reset link shortly.
+                    </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      In production, this link would be sent to your email.
+                      The link will expire in 1 hour. Check your spam folder if you don't see it in your inbox.
                     </p>
                   </AlertDescription>
                 </Alert>
               )}
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading}
-                data-testid="button-send-reset-link"
-              >
-                {isLoading ? "Sending..." : "Send Reset Link"}
-              </Button>
-              <div className="text-sm text-center text-muted-foreground">
-                Remember your password?{" "}
-                <Link href="/login" className="text-primary hover:underline" data-testid="link-login">
-                  Log in
-                </Link>
-              </div>
+              {!emailSent ? (
+                <>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading}
+                    data-testid="button-send-reset-link"
+                  >
+                    {isLoading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                  <div className="text-sm text-center text-muted-foreground">
+                    Remember your password?{" "}
+                    <Link href="/login" className="text-primary hover:underline" data-testid="link-login">
+                      Log in
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full" 
+                    onClick={() => {
+                      setEmailSent(false);
+                      setEmail("");
+                    }}
+                    data-testid="button-try-another-email"
+                  >
+                    Try Another Email
+                  </Button>
+                  <div className="text-sm text-center text-muted-foreground">
+                    <Link href="/login" className="text-primary hover:underline" data-testid="link-login">
+                      Back to Login
+                    </Link>
+                  </div>
+                </>
+              )}
             </CardFooter>
           </form>
         </Card>

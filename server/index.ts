@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedAdminAccount } from "./seed-admin";
+import { verifyEmailConfig } from "./email-service";
 
 const app = express();
 app.use(express.json());
@@ -41,6 +42,7 @@ app.use((req, res, next) => {
 
 (async () => {
   await seedAdminAccount();
+  await verifyEmailConfig();
   
   const server = await registerRoutes(app);
 

@@ -11,6 +11,7 @@ import {
   subscriptionEvents,
   usageMetrics,
   platformNotifications,
+  passwordResetTokens,
   type User,
   type Session,
   type Script,
@@ -23,6 +24,7 @@ import {
   type SubscriptionStatus,
   type PlatformNotification,
   type InsertPlatformNotification,
+  type PasswordResetToken,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -421,5 +423,44 @@ export class DatabaseStorage implements IStorage {
       eq(platformNotifications.id, id)
     );
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Password Reset Tokens
+  async createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken> {
+    const result = await this.db.insert(passwordResetTokens).values({
+      userId,
+      token,
+      expiresAt,
+      used: false,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const result = await this.db.select().from(passwordResetTokens).where(
+      and(
+        eq(passwordResetTokens.token, token),
+        eq(passwordResetTokens.used, false),
+        gte(passwordResetTokens.expiresAt, new Date())
+      )
+    ).limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async markTokenAsUsed(token: string): Promise<boolean> {
+    const result = await this.db.update(passwordResetTokens).set({ used: true }).where(
+      eq(passwordResetTokens.token, token)
+    );
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async deleteExpiredResetTokens(): Promise<number> {
+    const result = await this.db.delete(passwordResetTokens).where(
+      or(
+        eq(passwordResetTokens.used, true),
+        sql`${passwordResetTokens.expiresAt} < NOW()`
+      )
+    );
+    return result.rowCount || 0;
   }
 }

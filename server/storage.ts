@@ -13,6 +13,7 @@ import {
   type SubscriptionStatus,
   type PlatformNotification,
   type InsertPlatformNotification,
+  type PasswordResetToken,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -67,6 +68,12 @@ export interface IStorage {
   createNotification(notification: InsertPlatformNotification): Promise<PlatformNotification>;
   updateNotification(id: string, updates: Partial<PlatformNotification>): Promise<PlatformNotification | undefined>;
   deleteNotification(id: string): Promise<boolean>;
+  
+  // Password Reset Tokens
+  createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markTokenAsUsed(token: string): Promise<boolean>;
+  deleteExpiredResetTokens(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {

@@ -15,6 +15,12 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://psforge.app/" />
     
+    <!-- URLs for Open Graph/Twitter -->
+    <meta property="og:url" content="https://psforge.app/" />
+    <meta property="og:image" content="https://psforge.app/og-image.png" />
+    <meta name="twitter:url" content="https://psforge.app/" />
+    <meta name="twitter:image" content="https://psforge.app/og-image.png" />
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="PSForge - Free PowerShell Script Builder & GUI Tool" />
@@ -32,6 +38,8 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "PSForge",
+      "url": "https://psforge.app",
+      "logo": "https://psforge.app/logo.png",
       "description": "Free PowerShell script builder with visual GUI and AI-powered assistance for Windows IT automation",
       "sameAs": []
     }
@@ -43,6 +51,7 @@
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "PSForge - PowerShell Script Builder",
+      "url": "https://psforge.app",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Web Browser",
       "description": "Free PowerShell script builder with visual GUI interface. Build automation scripts for Active Directory, Azure AD, Exchange Online, Microsoft Teams, Intune, MECM, SharePoint, Hyper-V, and Windows Server. 506 pre-built automation tasks with real-time validation and malicious code scanning.",
@@ -80,6 +89,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "PSForge Pro",
+      "url": "https://psforge.app",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Web Browser",
       "offers": {
@@ -95,6 +105,56 @@
         },
         "description": "Pro subscription with AI assistant and all enterprise features"
       }
+    }
+    </script>
+    
+    <!-- Structured Data - FAQ for Featured Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is PSForge?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "PSForge is a free PowerShell script builder with a visual GUI interface. It helps IT professionals build PowerShell automation scripts for Active Directory, Azure AD, Exchange, Microsoft Teams, Intune, MECM, SharePoint, Hyper-V, and Windows Server without writing code manually."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is PSForge free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! PSForge offers a free tier with 91 automation tasks covering 8 basic Windows management categories. The Pro tier ($5/month) unlocks 415 additional enterprise tasks and an AI-powered assistant."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What PowerShell tasks can PSForge automate?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "PSForge provides 506 automation tasks across 23 platforms including Active Directory, Azure AD (Entra ID), Exchange Online, Exchange Server, Microsoft Teams, SharePoint Online, Intune, MECM, Hyper-V, Windows Server, Office 365, OneDrive, and Power Platform."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does PSForge require PowerShell experience?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No! PSForge features a visual GUI builder where you select tasks and fill in parameters using forms. The tool generates professional PowerShell scripts automatically with proper error handling and security validation."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I export PowerShell scripts from PSForge?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! All scripts can be exported as .ps1 files or saved to your PSForge account. Scripts include malicious code scanning, SHA-256 integrity verification, and are ready to run on any Windows machine."
+          }
+        }
+      ]
     }
     </script>
     

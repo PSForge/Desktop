@@ -7,7 +7,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://psforge.app/</loc>
-    <lastmod>2025-10-27</lastmod>
+    <lastmod>2025-11-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -15,7 +15,7 @@
   <!-- Script Builder -->
   <url>
     <loc>https://psforge.app/builder</loc>
-    <lastmod>2025-10-27</lastmod>
+    <lastmod>2025-11-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -23,7 +23,7 @@
   <!-- Login Page -->
   <url>
     <loc>https://psforge.app/login</loc>
-    <lastmod>2025-10-27</lastmod>
+    <lastmod>2025-11-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -31,9 +31,17 @@
   <!-- Signup Page -->
   <url>
     <loc>https://psforge.app/signup</loc>
-    <lastmod>2025-10-27</lastmod>
+    <lastmod>2025-11-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+
+  <!-- Account Page -->
+  <url>
+    <loc>https://psforge.app/account</loc>
+    <lastmod>2025-11-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 
 </urlset>

@@ -11,12 +11,15 @@ import {
   insertUserSchema,
   loginSchema,
   changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   adminCreateUserSchema,
   insertPlatformNotificationSchema,
   saveScriptSchema,
   type ValidationResult,
   type SubscriptionStatus
 } from "@shared/schema";
+import { randomBytes } from "crypto";
 import { attachUser, requireAuth, requireSubscriber, requireAdmin } from "./middleware/auth";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -285,6 +288,93 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       console.error("Change password error:", error);
       return res.status(500).json({
         error: "Internal server error during password change"
+      });
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const parsed = forgotPasswordSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid email address",
+          details: parsed.error.errors
+        });
+      }
+
+      const { email } = parsed.data;
+      const user = await storage.getUserByEmail(email);
+
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.json({
+          message: "If an account exists with this email, a password reset link will be sent."
+        });
+      }
+
+      // Generate secure reset token
+      const resetToken = randomBytes(32).toString('hex');
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
+
+      await storage.createPasswordResetToken(user.id, resetToken, expiresAt);
+
+      // For now, return the reset link in response (later can be sent via email)
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers.host;
+      const resetUrl = `${protocol}://${host}/reset-password?token=${resetToken}`;
+
+      return res.json({
+        message: "If an account exists with this email, a password reset link will be sent.",
+        resetLink: resetUrl // TODO: Send via email instead of returning in response
+      });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      return res.status(500).json({
+        error: "Internal server error during password reset request"
+      });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const parsed = resetPasswordSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid reset password data",
+          details: parsed.error.errors
+        });
+      }
+
+      const { token, newPassword } = parsed.data;
+
+      // Validate token
+      const resetToken = await storage.getPasswordResetToken(token);
+      if (!resetToken) {
+        return res.status(400).json({
+          error: "Invalid or expired reset token"
+        });
+      }
+
+      // Hash new password and update user
+      const newPasswordHash = await hashPassword(newPassword);
+      await storage.updateUser(resetToken.userId, { passwordHash: newPasswordHash });
+
+      // Mark token as used
+      await storage.markTokenAsUsed(token);
+
+      // Clean up expired tokens
+      await storage.deleteExpiredResetTokens();
+
+      return res.json({
+        message: "Password reset successful. You can now login with your new password."
+      });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      return res.status(500).json({
+        error: "Internal server error during password reset"
       });
     }
   });

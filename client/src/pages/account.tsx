@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { changePasswordSchema, type ChangePasswordData, type Script } from "@shared/schema";
+import { changePasswordSchema, supportRequestSchema, type ChangePasswordData, type SupportRequestData, type Script } from "@shared/schema";
 import { 
   User, 
   Mail, 
@@ -29,7 +30,9 @@ import {
   FileText,
   Trash2,
   FolderOpen,
-  Code2
+  Code2,
+  MessageSquare,
+  Send
 } from "lucide-react";
 
 export default function Account() {
@@ -119,6 +122,39 @@ export default function Account() {
 
   const onPasswordSubmit = (data: ChangePasswordData) => {
     changePasswordMutation.mutate(data);
+  };
+
+  const supportForm = useForm<SupportRequestData>({
+    resolver: zodResolver(supportRequestSchema),
+    defaultValues: {
+      subject: "",
+      message: "",
+    },
+  });
+
+  const supportMutation = useMutation({
+    mutationFn: async (data: SupportRequestData) => {
+      const response = await apiRequest("POST", "/api/support/request", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: data.message || "Your support request has been sent successfully",
+      });
+      supportForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send support request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSupportSubmit = (data: SupportRequestData) => {
+    supportMutation.mutate(data);
   };
 
   const handleLogout = async () => {
@@ -405,6 +441,84 @@ export default function Account() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Support Request
+              </CardTitle>
+              <CardDescription>
+                Need help? Send us a message and we'll respond within 24 hours
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...supportForm}>
+                <form onSubmit={supportForm.handleSubmit(onSupportSubmit)} className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                    <Mail className="h-4 w-4" />
+                    <span>Sending from: <strong>{user.email}</strong></span>
+                  </div>
+
+                  <FormField
+                    control={supportForm.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Brief description of your issue"
+                            {...field}
+                            data-testid="input-support-subject"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={supportForm.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Message</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Please describe your issue or question in detail..."
+                            className="min-h-32 resize-none"
+                            {...field}
+                            data-testid="input-support-message"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button 
+                    type="submit" 
+                    disabled={supportMutation.isPending}
+                    className="w-full"
+                    data-testid="button-send-support-request"
+                  >
+                    {supportMutation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Sending Request...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Support Request
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

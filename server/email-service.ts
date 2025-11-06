@@ -165,10 +165,122 @@ This is an automated message from PSForge - PowerShell Script Builder
   await sendEmail({ to, subject, html, text });
 }
 
+export async function sendSupportRequestEmail(
+  userEmail: string,
+  userName: string | null,
+  subject: string,
+  message: string
+): Promise<void> {
+  const supportEmail = 'Support@psforge.app';
+  const emailSubject = `[PSForge Support] ${subject}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 8px 8px 0 0;
+        }
+        .content {
+          background: #ffffff;
+          padding: 30px;
+          border: 1px solid #e5e7eb;
+          border-top: none;
+        }
+        .user-info {
+          background: #f9fafb;
+          padding: 15px;
+          border-radius: 6px;
+          margin-bottom: 20px;
+          border-left: 4px solid #667eea;
+        }
+        .message-box {
+          background: #f3f4f6;
+          padding: 20px;
+          border-radius: 6px;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+        .footer {
+          background: #f9fafb;
+          padding: 20px;
+          text-align: center;
+          font-size: 12px;
+          color: #6b7280;
+          border: 1px solid #e5e7eb;
+          border-top: none;
+          border-radius: 0 0 8px 8px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1 style="margin: 0;">💬 New Support Request</h1>
+      </div>
+      <div class="content">
+        <div class="user-info">
+          <p style="margin: 0;"><strong>From:</strong> ${userName || 'User'} (${userEmail})</p>
+          <p style="margin: 5px 0 0 0;"><strong>Subject:</strong> ${subject}</p>
+        </div>
+        
+        <h3 style="margin-bottom: 10px;">Message:</h3>
+        <div class="message-box">
+${message}
+        </div>
+        
+        <p style="margin-top: 20px; font-size: 13px; color: #6b7280;">
+          To respond to this support request, reply directly to <a href="mailto:${userEmail}">${userEmail}</a>
+        </p>
+      </div>
+      <div class="footer">
+        <p>This is an automated message from PSForge - PowerShell Script Builder</p>
+        <p>© ${new Date().getFullYear()} PSForge. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+New Support Request
+
+From: ${userName || 'User'} (${userEmail})
+Subject: ${subject}
+
+Message:
+${message}
+
+---
+To respond to this support request, reply directly to ${userEmail}
+
+This is an automated message from PSForge - PowerShell Script Builder
+© ${new Date().getFullYear()} PSForge. All rights reserved.
+  `;
+
+  await sendEmail({ 
+    to: supportEmail, 
+    subject: emailSubject, 
+    html, 
+    text 
+  });
+}
+
 // Helper function to strip HTML tags for plain text version
 function stripHtml(html: string): string {
   return html
-    .replace(/<style[^>]*>.*?<\/style>/gs, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')
     .replace(/<[^>]+>/g, '')
     .replace(/\s+/g, ' ')
     .trim();

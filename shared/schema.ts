@@ -342,6 +342,11 @@ export const resetPasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+export const supportRequestSchema = z.object({
+  subject: z.string().min(1, "Subject is required").max(200, "Subject is too long"),
+  message: z.string().min(10, "Message must be at least 10 characters").max(5000, "Message is too long"),
+});
+
 // Type exports
 export type User = z.infer<typeof userSchema>;
 export type Session = z.infer<typeof sessionSchema>;
@@ -360,6 +365,7 @@ export type InsertPlatformNotification = z.infer<typeof insertPlatformNotificati
 export type PasswordResetToken = z.infer<typeof passwordResetTokenSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
+export type SupportRequestData = z.infer<typeof supportRequestSchema>;
 
 // Basic categories accessible to free users
 export const freeTierCategories = [

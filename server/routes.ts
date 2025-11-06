@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
 import { getAIHelperResponse } from "./ai-helper";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
-import { sendPasswordResetEmail } from "./email-service";
+import { sendPasswordResetEmail, sendSupportRequestEmail } from "./email-service";
 import { 
   insertScriptSchema, 
   insertValidationRequestSchema,
@@ -14,6 +14,7 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  supportRequestSchema,
   adminCreateUserSchema,
   insertPlatformNotificationSchema,
   saveScriptSchema,
@@ -384,6 +385,47 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       console.error("Reset password error:", error);
       return res.status(500).json({
         error: "Internal server error during password reset"
+      });
+    }
+  });
+
+  app.post("/api/support/request", requireAuth, async (req, res) => {
+    try {
+      const parsed = supportRequestSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid support request data",
+          details: parsed.error.errors
+        });
+      }
+
+      const { subject, message } = parsed.data;
+      const user = req.user!;
+
+      // Send support request email to Support@psforge.app
+      try {
+        await sendSupportRequestEmail(
+          user.email,
+          user.name,
+          subject,
+          message
+        );
+        console.log(`Support request sent from: ${user.email}, subject: ${subject}`);
+      } catch (emailError) {
+        console.error("Failed to send support request email:", emailError);
+        return res.status(500).json({
+          error: "Failed to send support request. Please try again later."
+        });
+      }
+
+      return res.json({
+        message: "Your support request has been sent successfully. Our team will respond within 24 hours."
+      });
+    } catch (error) {
+      console.error("Support request error:", error);
+      return res.status(500).json({
+        error: "Internal server error while processing support request"
       });
     }
   });

@@ -39,6 +39,31 @@ import { processManagementTasks } from '@/lib/process-management-tasks';
 import { registryTasks } from '@/lib/registry-tasks';
 import { securityManagementTasks } from '@/lib/security-management-tasks';
 import { servicesTasks } from '@/lib/services-tasks';
+import { vmwareTasks } from '@/lib/vmware-tasks';
+import { veeamTasks } from '@/lib/veeam-tasks';
+import { nutanixTasks } from '@/lib/nutanix-tasks';
+import { citrixTasks } from '@/lib/citrix-tasks';
+import { pdqTasks } from '@/lib/pdq-tasks';
+import { chocolateyTasks } from '@/lib/chocolatey-tasks';
+import { servicenowTasks } from '@/lib/servicenow-tasks';
+import { connectwiseTasks } from '@/lib/connectwise-tasks';
+import { awsTasks } from '@/lib/aws-tasks';
+import { gcpTasks } from '@/lib/gcp-tasks';
+import { crowdstrikeTasks } from '@/lib/crowdstrike-tasks';
+import { sophosTasks } from '@/lib/sophos-tasks';
+import { oktaTasks } from '@/lib/okta-tasks';
+import { duoTasks } from '@/lib/duo-tasks';
+import { fortinetTasks } from '@/lib/fortinet-tasks';
+import { ciscoTasks } from '@/lib/cisco-tasks';
+import { netappTasks } from '@/lib/netapp-tasks';
+import { jamfTasks } from '@/lib/jamf-tasks';
+import { slackTasks } from '@/lib/slack-tasks';
+import { zoomTasks } from '@/lib/zoom-tasks';
+import { githubTasks } from '@/lib/github-tasks';
+import { splunkTasks } from '@/lib/splunk-tasks';
+import { dockerTasks } from '@/lib/docker-tasks';
+import { jiraTasks } from '@/lib/jira-tasks';
+import { salesforceTasks } from '@/lib/salesforce-tasks';
 
 interface PlatformConfig {
   id: string;
@@ -74,6 +99,32 @@ const platforms: PlatformConfig[] = [
   { id: 'onedrive', name: 'OneDrive', description: 'OneDrive cloud storage', isPremium: true, tasks: oneDriveTasks },
   { id: 'windows365', name: 'Windows 365', description: 'Cloud PC management', isPremium: true, tasks: windows365Tasks },
   { id: 'windows-server', name: 'Windows Server', description: 'Server configuration and features', isPremium: true, tasks: windowsServerTasks },
+  // Version 3.0 Enterprise Platforms (All Pro-tier)
+  { id: 'vmware', name: 'VMware vSphere', description: 'VMware infrastructure automation', isPremium: true, tasks: vmwareTasks },
+  { id: 'veeam', name: 'Veeam Backup', description: 'Backup and recovery operations', isPremium: true, tasks: veeamTasks },
+  { id: 'nutanix', name: 'Nutanix AHV', description: 'Nutanix hyperconverged infrastructure', isPremium: true, tasks: nutanixTasks },
+  { id: 'citrix', name: 'Citrix Virtual Apps', description: 'Citrix XenApp and XenDesktop', isPremium: true, tasks: citrixTasks },
+  { id: 'pdq', name: 'PDQ Deploy/Inventory', description: 'Software deployment and inventory', isPremium: true, tasks: pdqTasks },
+  { id: 'chocolatey', name: 'Chocolatey/WinGet', description: 'Package management automation', isPremium: true, tasks: chocolateyTasks },
+  { id: 'servicenow', name: 'ServiceNow', description: 'ITSM and ticketing automation', isPremium: true, tasks: servicenowTasks },
+  { id: 'connectwise', name: 'ConnectWise', description: 'RMM and PSA automation', isPremium: true, tasks: connectwiseTasks },
+  { id: 'aws', name: 'Amazon AWS', description: 'AWS cloud resource management', isPremium: true, tasks: awsTasks },
+  { id: 'gcp', name: 'Google Cloud', description: 'GCP infrastructure automation', isPremium: true, tasks: gcpTasks },
+  { id: 'crowdstrike', name: 'CrowdStrike Falcon', description: 'Endpoint security automation', isPremium: true, tasks: crowdstrikeTasks },
+  { id: 'sophos', name: 'Sophos Central', description: 'Endpoint protection management', isPremium: true, tasks: sophosTasks },
+  { id: 'okta', name: 'Okta', description: 'Identity and access management', isPremium: true, tasks: oktaTasks },
+  { id: 'duo', name: 'Duo Security', description: 'Multi-factor authentication', isPremium: true, tasks: duoTasks },
+  { id: 'fortinet', name: 'Fortinet FortiGate', description: 'Firewall and network security', isPremium: true, tasks: fortinetTasks },
+  { id: 'cisco', name: 'Cisco Meraki', description: 'Network and wireless management', isPremium: true, tasks: ciscoTasks },
+  { id: 'netapp', name: 'NetApp ONTAP', description: 'Enterprise storage management', isPremium: true, tasks: netappTasks },
+  { id: 'jamf', name: 'JAMF Pro', description: 'Apple device management', isPremium: true, tasks: jamfTasks },
+  { id: 'slack', name: 'Slack', description: 'Team collaboration automation', isPremium: true, tasks: slackTasks },
+  { id: 'zoom', name: 'Zoom', description: 'Video conferencing automation', isPremium: true, tasks: zoomTasks },
+  { id: 'github', name: 'GitHub/GitLab', description: 'DevOps and repository automation', isPremium: true, tasks: githubTasks },
+  { id: 'splunk', name: 'Splunk/Datadog', description: 'Monitoring and analytics', isPremium: true, tasks: splunkTasks },
+  { id: 'docker', name: 'Docker/Kubernetes', description: 'Container orchestration', isPremium: true, tasks: dockerTasks },
+  { id: 'jira', name: 'Jira/Confluence', description: 'Project management automation', isPremium: true, tasks: jiraTasks },
+  { id: 'salesforce', name: 'Salesforce', description: 'CRM automation', isPremium: true, tasks: salesforceTasks },
 ];
 
 export function ScriptWizardTab() {

@@ -28,6 +28,31 @@ import { processManagementTasks, ProcessManagementTask } from "@/lib/process-man
 import { registryTasks, RegistryTask } from "@/lib/registry-tasks";
 import { securityManagementTasks, SecurityManagementTask } from "@/lib/security-management-tasks";
 import { servicesTasks, ServicesTask } from "@/lib/services-tasks";
+import { vmwareTasks, VMwareTask } from "@/lib/vmware-tasks";
+import { veeamTasks, VeeamTask } from "@/lib/veeam-tasks";
+import { nutanixTasks, NutanixTask } from "@/lib/nutanix-tasks";
+import { citrixTasks, CitrixTask } from "@/lib/citrix-tasks";
+import { pdqTasks, PDQTask } from "@/lib/pdq-tasks";
+import { chocolateyTasks, ChocolateyTask } from "@/lib/chocolatey-tasks";
+import { servicenowTasks, ServiceNowTask } from "@/lib/servicenow-tasks";
+import { connectwiseTasks, ConnectWiseTask } from "@/lib/connectwise-tasks";
+import { awsTasks, AWSTask } from "@/lib/aws-tasks";
+import { gcpTasks, GCPTask } from "@/lib/gcp-tasks";
+import { crowdstrikeTasks, CrowdStrikeTask } from "@/lib/crowdstrike-tasks";
+import { sophosTasks, SophosTask } from "@/lib/sophos-tasks";
+import { oktaTasks, OktaTask } from "@/lib/okta-tasks";
+import { duoTasks, DuoTask } from "@/lib/duo-tasks";
+import { fortinetTasks, FortinetTask } from "@/lib/fortinet-tasks";
+import { ciscoTasks, CiscoTask } from "@/lib/cisco-tasks";
+import { netappTasks, NetAppTask } from "@/lib/netapp-tasks";
+import { jamfTasks, JAMFTask } from "@/lib/jamf-tasks";
+import { slackTasks, SlackTask } from "@/lib/slack-tasks";
+import { zoomTasks, ZoomTask } from "@/lib/zoom-tasks";
+import { githubTasks, GitHubTask } from "@/lib/github-tasks";
+import { splunkTasks, SplunkTask } from "@/lib/splunk-tasks";
+import { dockerTasks, DockerTask } from "@/lib/docker-tasks";
+import { jiraTasks, JiraTask } from "@/lib/jira-tasks";
+import { salesforceTasks, SalesforceTask } from "@/lib/salesforce-tasks";
 import {
   FolderOpen,
   Network,
@@ -53,7 +78,17 @@ import {
   Grid3x3,
   DatabaseZap,
   Laptop,
-  Lock
+  Lock,
+  Building2,
+  Workflow,
+  CloudDownload,
+  Boxes,
+  Wallet,
+  Radio,
+  Container,
+  GitBranch,
+  BarChart3,
+  Landmark
 } from "lucide-react";
 
 interface CategoryConfig {
@@ -241,6 +276,206 @@ const categories: CategoryConfig[] = [
     description: "Server configuration and features",
     color: "text-lime-500",
     isPremium: true
+  },
+  {
+    id: "vmware",
+    name: "VMware vSphere",
+    icon: Server,
+    description: "VMware infrastructure automation",
+    color: "text-gray-500",
+    isPremium: true
+  },
+  {
+    id: "veeam",
+    name: "Veeam Backup",
+    icon: CloudDownload,
+    description: "Backup and recovery operations",
+    color: "text-emerald-500",
+    isPremium: true
+  },
+  {
+    id: "nutanix",
+    name: "Nutanix AHV",
+    icon: Boxes,
+    description: "Nutanix hyperconverged infrastructure",
+    color: "text-blue-400",
+    isPremium: true
+  },
+  {
+    id: "citrix",
+    name: "Citrix Virtual Apps",
+    icon: MonitorPlay,
+    description: "Citrix XenApp and XenDesktop",
+    color: "text-green-600",
+    isPremium: true
+  },
+  {
+    id: "pdq",
+    name: "PDQ Deploy/Inventory",
+    icon: Package,
+    description: "Software deployment and inventory",
+    color: "text-orange-500",
+    isPremium: true
+  },
+  {
+    id: "chocolatey",
+    name: "Chocolatey/WinGet",
+    icon: Package,
+    description: "Package management automation",
+    color: "text-brown-500",
+    isPremium: true
+  },
+  {
+    id: "servicenow",
+    name: "ServiceNow",
+    icon: Workflow,
+    description: "ITSM and ticketing automation",
+    color: "text-teal-700",
+    isPremium: true
+  },
+  {
+    id: "connectwise",
+    name: "ConnectWise",
+    icon: Workflow,
+    description: "RMM and PSA automation",
+    color: "text-red-600",
+    isPremium: true
+  },
+  {
+    id: "aws",
+    name: "Amazon AWS",
+    icon: Cloud,
+    description: "AWS cloud resource management",
+    color: "text-amber-600",
+    isPremium: true
+  },
+  {
+    id: "gcp",
+    name: "Google Cloud",
+    icon: CloudCog,
+    description: "GCP infrastructure automation",
+    color: "text-blue-500",
+    isPremium: true
+  },
+  {
+    id: "crowdstrike",
+    name: "CrowdStrike Falcon",
+    icon: Shield,
+    description: "Endpoint security automation",
+    color: "text-red-700",
+    isPremium: true
+  },
+  {
+    id: "sophos",
+    name: "Sophos Central",
+    icon: Shield,
+    description: "Endpoint protection management",
+    color: "text-blue-700",
+    isPremium: true
+  },
+  {
+    id: "okta",
+    name: "Okta",
+    icon: Lock,
+    description: "Identity and access management",
+    color: "text-indigo-700",
+    isPremium: true
+  },
+  {
+    id: "duo",
+    name: "Duo Security",
+    icon: Lock,
+    description: "Multi-factor authentication",
+    color: "text-green-700",
+    isPremium: true
+  },
+  {
+    id: "fortinet",
+    name: "Fortinet FortiGate",
+    icon: Shield,
+    description: "Firewall and network security",
+    color: "text-red-800",
+    isPremium: true
+  },
+  {
+    id: "cisco",
+    name: "Cisco Meraki",
+    icon: Radio,
+    description: "Network and wireless management",
+    color: "text-cyan-700",
+    isPremium: true
+  },
+  {
+    id: "netapp",
+    name: "NetApp ONTAP",
+    icon: HardDrive,
+    description: "Enterprise storage management",
+    color: "text-blue-800",
+    isPremium: true
+  },
+  {
+    id: "jamf",
+    name: "JAMF Pro",
+    icon: Smartphone,
+    description: "Apple device management",
+    color: "text-gray-700",
+    isPremium: true
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    icon: MessageSquare,
+    description: "Team collaboration automation",
+    color: "text-purple-700",
+    isPremium: true
+  },
+  {
+    id: "zoom",
+    name: "Zoom",
+    icon: MessageSquare,
+    description: "Video conferencing automation",
+    color: "text-blue-600",
+    isPremium: true
+  },
+  {
+    id: "github",
+    name: "GitHub/GitLab",
+    icon: GitBranch,
+    description: "DevOps and repository automation",
+    color: "text-gray-800",
+    isPremium: true
+  },
+  {
+    id: "splunk",
+    name: "Splunk/Datadog",
+    icon: BarChart3,
+    description: "Monitoring and analytics",
+    color: "text-orange-700",
+    isPremium: true
+  },
+  {
+    id: "docker",
+    name: "Docker/Kubernetes",
+    icon: Container,
+    description: "Container orchestration",
+    color: "text-cyan-600",
+    isPremium: true
+  },
+  {
+    id: "jira",
+    name: "Jira/Confluence",
+    icon: Workflow,
+    description: "Project management automation",
+    color: "text-blue-700",
+    isPremium: true
+  },
+  {
+    id: "salesforce",
+    name: "Salesforce",
+    icon: Landmark,
+    description: "CRM automation",
+    color: "text-sky-700",
+    isPremium: true
   }
 ];
 
@@ -313,6 +548,56 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     ? windows365Tasks
     : selectedCategory === 'windows-server'
     ? windowsServerTasks
+    : selectedCategory === 'vmware'
+    ? vmwareTasks
+    : selectedCategory === 'veeam'
+    ? veeamTasks
+    : selectedCategory === 'nutanix'
+    ? nutanixTasks
+    : selectedCategory === 'citrix'
+    ? citrixTasks
+    : selectedCategory === 'pdq'
+    ? pdqTasks
+    : selectedCategory === 'chocolatey'
+    ? chocolateyTasks
+    : selectedCategory === 'servicenow'
+    ? servicenowTasks
+    : selectedCategory === 'connectwise'
+    ? connectwiseTasks
+    : selectedCategory === 'aws'
+    ? awsTasks
+    : selectedCategory === 'gcp'
+    ? gcpTasks
+    : selectedCategory === 'crowdstrike'
+    ? crowdstrikeTasks
+    : selectedCategory === 'sophos'
+    ? sophosTasks
+    : selectedCategory === 'okta'
+    ? oktaTasks
+    : selectedCategory === 'duo'
+    ? duoTasks
+    : selectedCategory === 'fortinet'
+    ? fortinetTasks
+    : selectedCategory === 'cisco'
+    ? ciscoTasks
+    : selectedCategory === 'netapp'
+    ? netappTasks
+    : selectedCategory === 'jamf'
+    ? jamfTasks
+    : selectedCategory === 'slack'
+    ? slackTasks
+    : selectedCategory === 'zoom'
+    ? zoomTasks
+    : selectedCategory === 'github'
+    ? githubTasks
+    : selectedCategory === 'splunk'
+    ? splunkTasks
+    : selectedCategory === 'docker'
+    ? dockerTasks
+    : selectedCategory === 'jira'
+    ? jiraTasks
+    : selectedCategory === 'salesforce'
+    ? salesforceTasks
     : selectedCategory === 'event-logs'
     ? eventLogTasks
     : selectedCategory === 'file-system'

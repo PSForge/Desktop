@@ -16,9 +16,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { adminCreateUserSchema, type AdminCreateUserData } from "@shared/schema";
-import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus } from "lucide-react";
+import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";
@@ -57,6 +68,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const createUserForm = useForm<AdminCreateUserData>({
     resolver: zodResolver(adminCreateUserSchema),
@@ -125,6 +137,28 @@ export default function AdminDashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/admin/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+      toast({
+        title: "Success",
+        description: "User account deleted successfully",
+      });
+      setDeletingUserId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
         variant: "destructive",
       });
     },
@@ -503,8 +537,9 @@ export default function AdminDashboard() {
                 ))}
               </div>
             ) : users && users.length > 0 ? (
-              <div className="space-y-2">
-                {users.map((userData) => (
+              <ScrollArea className="h-[600px] pr-4">
+                <div className="space-y-2">
+                  {users.map((userData) => (
                   <div
                     key={userData.id}
                     className="flex flex-wrap items-center justify-between gap-2 p-4 border rounded-md hover-elevate"
@@ -567,20 +602,32 @@ export default function AdminDashboard() {
                           </Button>
                         </div>
                       ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingUserId(userData.id)}
-                          data-testid={`button-edit-role-${userData.id}`}
-                        >
-                          <Shield className="h-4 w-4 mr-2" />
-                          Change Role
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingUserId(userData.id)}
+                            data-testid={`button-edit-role-${userData.id}`}
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            Change Role
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setDeletingUserId(userData.id)}
+                            data-testid={`button-delete-${userData.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              </ScrollArea>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
                 No users found
@@ -591,6 +638,33 @@ export default function AdminDashboard() {
 
         <AdminNotificationsSection />
       </div>
+
+      <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user account? This action cannot be undone.
+              All user data, scripts, and subscriptions will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingUserId) {
+                  deleteUserMutation.mutate(deletingUserId);
+                }
+              }}
+              disabled={deleteUserMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

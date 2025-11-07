@@ -18,6 +18,7 @@ export interface OktaTask {
   description: string;
   parameters: OktaTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const oktaTasks: OktaTask[] = [
@@ -77,6 +78,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'okta-bulk-assign-app',
@@ -130,6 +133,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'okta-export-users',
@@ -177,5 +182,7 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

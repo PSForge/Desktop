@@ -18,6 +18,7 @@ export interface NutanixTask {
   description: string;
   parameters: NutanixTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const nutanixTasks: NutanixTask[] = [
@@ -64,6 +65,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'nutanix-create-vm',
@@ -115,6 +118,8 @@ try {
     Write-Error "Failed to create VM: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'nutanix-bulk-snapshot',
@@ -157,6 +162,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'nutanix-cluster-health',
@@ -200,5 +207,7 @@ try {
     Write-Error "Health check failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

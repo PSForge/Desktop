@@ -18,6 +18,7 @@ export interface PDQTask {
   description: string;
   parameters: PDQTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const pdqTasks: PDQTask[] = [
@@ -56,6 +57,8 @@ try {
     Write-Error "Deployment failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'pdq-create-package',
@@ -90,6 +93,8 @@ try {
     Write-Error "Failed to create package: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'pdq-inventory-scan',
@@ -125,6 +130,8 @@ try {
     Write-Error "Scan failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'pdq-export-software-report',
@@ -162,5 +169,7 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

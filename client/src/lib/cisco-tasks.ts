@@ -18,6 +18,7 @@ export interface CiscoTask {
   description: string;
   parameters: CiscoTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const ciscoTasks: CiscoTask[] = [
@@ -75,6 +76,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'meraki-export-client-list',
@@ -124,6 +127,8 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'cisco-ios-backup-config',
@@ -164,5 +169,7 @@ try {
     Write-Error "Backup failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

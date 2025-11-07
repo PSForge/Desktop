@@ -18,6 +18,7 @@ export interface ServiceNowTask {
   description: string;
   parameters: ServiceNowTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const servicenowTasks: ServiceNowTask[] = [
@@ -79,6 +80,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'snow-query-incidents',
@@ -130,6 +133,8 @@ ${exportPath ? `    $Incidents | Export-Csv -Path "${exportPath}" -NoTypeInforma
     Write-Error "Query failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'snow-update-cmdb',
@@ -183,5 +188,7 @@ try {
     Write-Error "Update failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

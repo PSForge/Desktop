@@ -1,0 +1,111 @@
+🖥️ VMware vSphere / ESXi / vCenter
+(Module: VMware.PowerCLI)
+Bulk Operations
+	• Bulk create / clone / power-on VMs from template
+	• Bulk move VMs between datastores or clusters
+	• Bulk snapshot creation or removal
+	• Bulk VM hardware version upgrade
+	• Bulk network reconfiguration (vNICs, port groups)
+Common Admin Tasks
+	• Create/modify/delete VMs
+	• Create templates and linked clones
+	• Manage snapshots (create, revert, consolidate)
+	• Power on/off/restart VMs
+	• Export VM configuration / inventory reports
+	• Configure resource pools, affinity rules
+	• Manage datastores (expand, mount, unmount)
+	• Configure vSwitches and distributed port groups
+	• Manage vCenter roles and permissions
+	• Monitor host health, uptime, performance
+
+💾 Veeam Backup & Replication
+(Module: VeeamPSSnapIn)
+Bulk Operations
+	• Bulk enable/disable backup jobs
+	• Bulk start/stop or reschedule jobs
+	• Bulk repository assignment or rebalancing
+	• Bulk retention setting updates
+	• Bulk restore point cleanup
+Common Admin Tasks
+	• Create/edit/delete backup and replication jobs
+	• Restore files, VMs, or application items
+	• Monitor job sessions and errors
+	• Verify backup integrity (SureBackup)
+	• Manage repositories and backup proxies
+	• Export backup job reports to CSV/HTML
+	• Configure email notifications and encryption
+
+🧑‍💻 Citrix Virtual Apps & Desktops
+(Modules: Citrix.Broker, Citrix.Host*, Citrix.MachineCreation)*
+Bulk Operations
+	• Bulk assign desktops or applications to users
+	• Bulk move machines between delivery groups
+	• Bulk enable/disable VDAs
+	• Bulk maintenance mode toggles
+	• Bulk policy updates
+Common Admin Tasks
+	• Create/modify/delete delivery groups
+	• Publish or unpublish applications
+	• Create/update machine catalogs
+	• Manage sessions (logoff/disconnect/reset)
+	• Monitor user sessions and load indices
+	• Collect license usage reports
+	• Backup and restore Citrix configurations
+
+🧠 Nutanix Prism / AOS
+(Module: NutanixCmdlets)
+Bulk Operations
+	• Bulk VM power actions
+	• Bulk snapshot creation/deletion
+	• Bulk clone VMs or protection domains
+	• Bulk host patch or upgrade actions
+Common Admin Tasks
+	• Create and configure VMs and storage containers
+	• Configure data protection policies
+	• Monitor cluster health and alerts
+	• Manage networks, VLANs, IPAM
+	• Manage capacity and deduplication settings
+	• Export performance metrics and reports
+
+🧰 PDQ Deploy & PDQ Inventory
+(Modules: PDQDeploy, PDQInventory)
+Bulk Operations
+	• Bulk software deployment jobs
+	• Bulk uninstall or update actions
+	• Bulk scan targets by collection or OU
+	• Bulk computer import from AD or CSV
+Common Admin Tasks
+	• Create/edit/delete deployment packages
+	• Schedule deployments
+	• Build dynamic collections for patch compliance
+	• Generate and export reports (software, hardware)
+	• Manage credentials and repository paths
+	• Integrate PDQ with AD groups or Intune devices
+
+🍫 Chocolatey / 🪟 Winget
+(Modules: ChocolateyGet, PSChoco, WinGetCLI wrappers)
+Bulk Operations
+	• Bulk software install/update/uninstall
+	• Bulk package verification and cleanup
+	• Bulk package export/import between systems
+Common Admin Tasks
+	• Search and install packages
+	• Create and publish private package repositories
+	• Approve or deny package updates
+	• Audit installed software and versions
+	• Schedule automatic updates or maintenance
+
+🧾 ServiceNow
+(Module: ServiceNowAPI)
+Bulk Operations
+	• Bulk incident creation/update/closure
+	• Bulk CMDB record updates
+	• Bulk change request creation
+	• Bulk user provisioning/deactivation
+Common Admin Tasks
+	• Create and update incidents, requests, and tasks
+	• Query CMDB assets and relationships
+	• Retrieve ticket statistics by priority or SLA
+	• Generate service performance reports
+	• Manage groups, roles, and user permissions
+Integrate ServiceNow tickets with event alerts

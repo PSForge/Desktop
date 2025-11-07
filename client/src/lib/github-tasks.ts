@@ -18,6 +18,7 @@ export interface GitHubTask {
   description: string;
   parameters: GitHubTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const githubTasks: GitHubTask[] = [
@@ -71,6 +72,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'github-create-release',
@@ -121,5 +124,7 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

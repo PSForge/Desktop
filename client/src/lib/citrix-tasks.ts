@@ -18,6 +18,7 @@ export interface CitrixTask {
   description: string;
   parameters: CitrixTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const citrixTasks: CitrixTask[] = [
@@ -62,6 +63,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'citrix-create-delivery-group',
@@ -106,6 +109,8 @@ try {
     Write-Error "Failed to create delivery group: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'citrix-publish-application',
@@ -144,6 +149,8 @@ try {
     Write-Error "Failed to publish application: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'citrix-manage-sessions',
@@ -186,6 +193,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'citrix-export-license-report',
@@ -228,5 +237,7 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

@@ -18,6 +18,7 @@ export interface GCPTask {
   description: string;
   parameters: GCPTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const gcpTasks: GCPTask[] = [
@@ -65,6 +66,8 @@ try {
     Write-Error "Operation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'gcp-create-vm',
@@ -108,6 +111,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'gcp-manage-storage-bucket',
@@ -142,5 +147,7 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

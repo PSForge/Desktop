@@ -18,6 +18,7 @@ export interface ChocolateyTask {
   description: string;
   parameters: ChocolateyTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const chocolateyTasks: ChocolateyTask[] = [
@@ -56,6 +57,8 @@ try {
     Write-Error "Installation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'choco-update-all',
@@ -79,6 +82,8 @@ try {
     Write-Error "Update failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'choco-export-list',
@@ -105,6 +110,8 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'winget-bulk-install',
@@ -141,6 +148,8 @@ try {
     Write-Error "Installation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'winget-update-all',
@@ -164,5 +173,7 @@ try {
     Write-Error "Update failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

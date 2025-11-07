@@ -18,6 +18,7 @@ export interface JAMFTask {
   description: string;
   parameters: JAMFTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const jamfTasks: JAMFTask[] = [
@@ -67,6 +68,8 @@ try {
     Write-Error "Deployment failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'jamf-export-inventory',
@@ -116,5 +119,7 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

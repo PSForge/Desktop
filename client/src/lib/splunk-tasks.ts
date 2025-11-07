@@ -18,6 +18,7 @@ export interface SplunkTask {
   description: string;
   parameters: SplunkTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const splunkTasks: SplunkTask[] = [
@@ -76,6 +77,8 @@ try {
     Write-Error "Search failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'splunk-create-alert',
@@ -122,5 +125,7 @@ try {
     Write-Error "Alert creation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

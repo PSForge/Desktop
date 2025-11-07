@@ -18,6 +18,7 @@ export interface JiraTask {
   description: string;
   parameters: JiraTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const jiraTasks: JiraTask[] = [
@@ -79,6 +80,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'jira-export-issues',
@@ -130,5 +133,7 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

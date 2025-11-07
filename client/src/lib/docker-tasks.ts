@@ -18,6 +18,7 @@ export interface DockerTask {
   description: string;
   parameters: DockerTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const dockerTasks: DockerTask[] = [
@@ -59,6 +60,8 @@ try {
     Write-Error "Operation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'docker-deploy-compose',
@@ -97,6 +100,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'kubectl-deploy-manifest',
@@ -135,5 +140,7 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

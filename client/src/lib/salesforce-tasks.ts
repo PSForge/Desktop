@@ -18,6 +18,7 @@ export interface SalesforceTask {
   description: string;
   parameters: SalesforceTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const salesforceTasks: SalesforceTask[] = [
@@ -76,6 +77,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'sf-export-accounts',
@@ -119,5 +122,7 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

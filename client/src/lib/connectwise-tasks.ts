@@ -18,6 +18,7 @@ export interface ConnectWiseTask {
   description: string;
   parameters: ConnectWiseTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const connectwiseTasks: ConnectWiseTask[] = [
@@ -61,6 +62,8 @@ try {
     Write-Error "Deployment failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'cw-query-agents',
@@ -102,6 +105,8 @@ try {
     Write-Error "Query failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'cw-create-ticket',
@@ -147,5 +152,7 @@ try {
     Write-Error "Ticket creation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

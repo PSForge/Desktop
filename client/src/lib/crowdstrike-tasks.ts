@@ -18,6 +18,7 @@ export interface CrowdStrikeTask {
   description: string;
   parameters: CrowdStrikeTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const crowdstrikeTasks: CrowdStrikeTask[] = [
@@ -55,6 +56,8 @@ try {
     Write-Error "Operation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'cs-query-detections',
@@ -99,6 +102,8 @@ try {
     Write-Error "Query failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'cs-get-host-details',
@@ -138,5 +143,7 @@ try {
     Write-Error "Query failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

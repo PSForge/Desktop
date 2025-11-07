@@ -18,6 +18,7 @@ export interface ZoomTask {
   description: string;
   parameters: ZoomTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const zoomTasks: ZoomTask[] = [
@@ -79,6 +80,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'zoom-schedule-meeting',
@@ -129,5 +132,7 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

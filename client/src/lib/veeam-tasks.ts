@@ -18,6 +18,7 @@ export interface VeeamTask {
   description: string;
   parameters: VeeamTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const veeamTasks: VeeamTask[] = [
@@ -66,7 +67,8 @@ ${action === 'Enable' ? `            $Job | Enable-VBRJob
 } finally {
     Disconnect-VBRServer
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'veeam-create-backup-job',
@@ -117,7 +119,8 @@ try {
 } finally {
     Disconnect-VBRServer
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'veeam-start-backup-job',
@@ -153,7 +156,8 @@ ${action === 'Start' ? `    Start-VBRJob -Job $Job
 } finally {
     Disconnect-VBRServer
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'veeam-restore-vm',
@@ -193,7 +197,8 @@ try {
 } finally {
     Disconnect-VBRServer
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'veeam-export-job-report',
@@ -241,6 +246,7 @@ try {
 } finally {
     Disconnect-VBRServer
 }`;
-    }
+    },
+    isPremium: true
   }
 ];

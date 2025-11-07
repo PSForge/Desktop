@@ -18,6 +18,7 @@ export interface FortinetTask {
   description: string;
   parameters: FortinetTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const fortinetTasks: FortinetTask[] = [
@@ -74,6 +75,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'fortigate-create-firewall-policy',
@@ -127,6 +130,8 @@ try {
     Write-Error "Policy creation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'fortigate-backup-config',
@@ -164,5 +169,7 @@ try {
     Write-Error "Backup failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

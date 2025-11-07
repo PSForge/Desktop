@@ -18,6 +18,7 @@ export interface DuoTask {
   description: string;
   parameters: DuoTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const duoTasks: DuoTask[] = [
@@ -61,6 +62,8 @@ try {
     Write-Error "Enrollment failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'duo-export-auth-logs',
@@ -103,5 +106,7 @@ try {
     Write-Error "Export failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

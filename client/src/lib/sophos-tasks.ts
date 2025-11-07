@@ -18,6 +18,7 @@ export interface SophosTask {
   description: string;
   parameters: SophosTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const sophosTasks: SophosTask[] = [
@@ -58,6 +59,8 @@ try {
     Write-Error "Operation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'sophos-get-alerts',
@@ -100,6 +103,8 @@ try {
     Write-Error "Query failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'sophos-manage-policy',
@@ -139,5 +144,7 @@ try {
     Write-Error "Policy assignment failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

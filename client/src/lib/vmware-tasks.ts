@@ -19,6 +19,7 @@ export interface VMwareTask {
   instructions?: string;
   parameters: VMwareTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const vmwareTasks: VMwareTask[] = [
@@ -91,7 +92,8 @@ try {
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'vmware-bulk-snapshot',
@@ -145,7 +147,8 @@ ${action === 'Create' ? `        Write-Host "Creating snapshot for: $VMName..." 
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'vmware-bulk-move-vms',
@@ -192,7 +195,8 @@ try {
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   },
   // COMMON ADMIN TASKS
   {
@@ -247,7 +251,8 @@ try {
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'vmware-power-control',
@@ -293,7 +298,8 @@ action === 'PowerOff' ? `        Stop-VM -VM $VM -Confirm:$false
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'vmware-export-inventory',
@@ -343,7 +349,8 @@ try {
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'vmware-configure-resource-pool',
@@ -385,7 +392,8 @@ try {
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   },
   {
     id: 'vmware-manage-datastores',
@@ -435,6 +443,7 @@ action === 'Unmount' ? `    $VMHosts = Get-VMHost
 } finally {
     Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
 }`;
-    }
+    },
+    isPremium: true
   }
 ];

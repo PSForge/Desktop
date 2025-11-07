@@ -18,6 +18,7 @@ export interface SlackTask {
   description: string;
   parameters: SlackTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const slackTasks: SlackTask[] = [
@@ -67,6 +68,8 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'slack-create-channel',
@@ -112,5 +115,7 @@ try {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

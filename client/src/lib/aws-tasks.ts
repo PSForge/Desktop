@@ -18,6 +18,7 @@ export interface AWSTask {
   description: string;
   parameters: AWSTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const awsTasks: AWSTask[] = [
@@ -60,6 +61,8 @@ action === 'Stop' ? `    Stop-EC2Instance -InstanceId $InstanceIds -Force
     Write-Error "Operation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'aws-create-ec2-instance',
@@ -106,6 +109,8 @@ try {
     Write-Error "Instance creation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'aws-manage-s3-bucket',
@@ -147,6 +152,8 @@ action === 'Enable Versioning' ? `    Write-S3BucketVersioning -BucketName "${bu
     Write-Error "Operation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'aws-create-iam-user',
@@ -189,5 +196,7 @@ ${createAccessKey ? `    # Create access key
     Write-Error "User creation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

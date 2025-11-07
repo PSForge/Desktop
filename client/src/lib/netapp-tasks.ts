@@ -18,6 +18,7 @@ export interface NetAppTask {
   description: string;
   parameters: NetAppTaskParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium: boolean;
 }
 
 export const netappTasks: NetAppTask[] = [
@@ -68,6 +69,8 @@ ${volumes.map(v => {
     Write-Error "Failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'netapp-create-cifs-share',
@@ -106,6 +109,8 @@ try {
     Write-Error "Share creation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   },
   {
     id: 'netapp-create-snapshot',
@@ -143,5 +148,7 @@ try {
     Write-Error "Snapshot creation failed: $_"
 }`;
     }
+  ,
+    isPremium: true
   }
 ];

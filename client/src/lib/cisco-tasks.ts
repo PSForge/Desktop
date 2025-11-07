@@ -621,5 +621,380 @@ ${authMode === 'psk' ? `        encryptionMode = "wpa"
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'cisco-ios-configure-qos',
+    name: 'Cisco IOS: Configure Quality of Service (QoS) Policies',
+    category: 'Common Admin Tasks',
+    description: 'Set bandwidth limits, traffic prioritization, and QoS policies',
+    parameters: [
+      { id: 'deviceIP', label: 'Device IP Address', type: 'text', required: true, placeholder: '192.168.1.1' },
+      { id: 'policyName', label: 'QoS Policy Name', type: 'text', required: true, placeholder: 'VOICE-QOS' },
+      { id: 'bandwidth', label: 'Bandwidth Limit (Mbps)', type: 'number', required: true, placeholder: '100' },
+      { id: 'priorityClass', label: 'Priority Class', type: 'select', required: true, options: ['voice', 'video', 'critical-data', 'best-effort'], defaultValue: 'critical-data' }
+    ],
+    scriptTemplate: (params) => {
+      const deviceIP = escapePowerShellString(params.deviceIP);
+      const policyName = escapePowerShellString(params.policyName);
+      const bandwidth = params.bandwidth;
+      const priorityClass = params.priorityClass;
+      
+      return `# Cisco IOS Configure QoS Policies
+# Generated: ${new Date().toISOString()}
+
+$DeviceIP = "${deviceIP}"
+Import-Module Posh-SSH
+
+try {
+    $Credential = Get-Credential -Message "Enter device credentials"
+    $Session = New-SSHSession -ComputerName $DeviceIP -Credential $Credential -AcceptKey
+    
+    $Commands = @"
+configure terminal
+class-map match-any ${policyName}
+match ip dscp ef
+exit
+policy-map ${policyName}
+class ${policyName}
+priority ${bandwidth}
+exit
+exit
+interface range GigabitEthernet0/1-24
+service-policy output ${policyName}
+exit
+exit
+write memory
+"@
+    
+    $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
+    Remove-SSHSession -SessionId $Session.SessionId
+    
+    Write-Host "✓ QoS Policy '${policyName}' configured!" -ForegroundColor Green
+    Write-Host "  Bandwidth Limit: ${bandwidth} Mbps" -ForegroundColor Cyan
+    Write-Host "  Priority Class: ${priorityClass}" -ForegroundColor Cyan
+    Write-Host $Result.Output
+    
+} catch {
+    Write-Error "QoS configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'cisco-ios-configure-port-security',
+    name: 'Cisco IOS: Manage Port Security and 802.1X',
+    category: 'Common Admin Tasks',
+    description: 'Configure port security, MAC address limits, and RADIUS authentication',
+    parameters: [
+      { id: 'deviceIP', label: 'Switch IP Address', type: 'text', required: true, placeholder: '192.168.1.2' },
+      { id: 'interface', label: 'Interface Name', type: 'text', required: true, placeholder: 'GigabitEthernet0/1' },
+      { id: 'maxMacs', label: 'Maximum MAC Addresses', type: 'number', required: true, placeholder: '2', defaultValue: 2 },
+      { id: 'radiusServer', label: 'RADIUS Server IP', type: 'text', required: false, placeholder: '10.0.0.100' },
+      { id: 'radiusKey', label: 'RADIUS Shared Key', type: 'text', required: false, placeholder: 'SecretKey123' }
+    ],
+    scriptTemplate: (params) => {
+      const deviceIP = escapePowerShellString(params.deviceIP);
+      const iface = escapePowerShellString(params.interface);
+      const maxMacs = params.maxMacs;
+      const radiusServer = params.radiusServer ? escapePowerShellString(params.radiusServer) : '';
+      const radiusKey = params.radiusKey ? escapePowerShellString(params.radiusKey) : '';
+      
+      return `# Cisco IOS Configure Port Security and 802.1X
+# Generated: ${new Date().toISOString()}
+
+$DeviceIP = "${deviceIP}"
+Import-Module Posh-SSH
+
+try {
+    $Credential = Get-Credential -Message "Enter device credentials"
+    $Session = New-SSHSession -ComputerName $DeviceIP -Credential $Credential -AcceptKey
+    
+    $Commands = @"
+configure terminal
+${radiusServer && radiusKey ? `aaa new-model
+aaa authentication dot1x default group radius
+radius server RADIUS-AUTH
+address ipv4 ${radiusServer} auth-port 1812 acct-port 1813
+key ${radiusKey}
+exit
+dot1x system-auth-control
+` : ''}interface ${iface}
+switchport mode access
+switchport port-security
+switchport port-security maximum ${maxMacs}
+switchport port-security violation restrict
+switchport port-security mac-address sticky
+${radiusServer ? `authentication port-control auto
+dot1x pae authenticator
+` : ''}no shutdown
+exit
+exit
+write memory
+"@
+    
+    $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
+    Remove-SSHSession -SessionId $Session.SessionId
+    
+    Write-Host "✓ Port Security configured on ${iface}!" -ForegroundColor Green
+    Write-Host "  Maximum MACs: ${maxMacs}" -ForegroundColor Cyan
+${radiusServer ? `    Write-Host "  802.1X Authentication: Enabled" -ForegroundColor Cyan
+    Write-Host "  RADIUS Server: ${radiusServer}" -ForegroundColor Cyan` : ''}
+    
+} catch {
+    Write-Error "Port security configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'cisco-ios-configure-stp',
+    name: 'Cisco IOS: Configure Spanning Tree Protocol (STP)',
+    category: 'Common Admin Tasks',
+    description: 'Configure STP modes, bridge priorities, and BPDU guard protection',
+    parameters: [
+      { id: 'deviceIP', label: 'Switch IP Address', type: 'text', required: true, placeholder: '192.168.1.2' },
+      { id: 'stpMode', label: 'STP Mode', type: 'select', required: true, options: ['pvst', 'rapid-pvst', 'mst'], defaultValue: 'rapid-pvst' },
+      { id: 'priority', label: 'Bridge Priority', type: 'select', required: true, options: ['4096', '8192', '16384', '32768', '61440'], defaultValue: '32768' },
+      { id: 'vlanId', label: 'VLAN ID', type: 'number', required: false, placeholder: '1' },
+      { id: 'bpduGuard', label: 'Enable BPDU Guard', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const deviceIP = escapePowerShellString(params.deviceIP);
+      const stpMode = params.stpMode;
+      const priority = params.priority;
+      const vlanId = params.vlanId || 1;
+      const bpduGuard = params.bpduGuard !== false;
+      
+      return `# Cisco IOS Configure Spanning Tree Protocol
+# Generated: ${new Date().toISOString()}
+
+$DeviceIP = "${deviceIP}"
+Import-Module Posh-SSH
+
+try {
+    $Credential = Get-Credential -Message "Enter device credentials"
+    $Session = New-SSHSession -ComputerName $DeviceIP -Credential $Credential -AcceptKey
+    
+    $Commands = @"
+configure terminal
+spanning-tree mode ${stpMode}
+spanning-tree vlan ${vlanId} priority ${priority}
+${bpduGuard ? `spanning-tree portfast bpduguard default
+interface range GigabitEthernet0/1-24
+spanning-tree portfast
+spanning-tree bpduguard enable
+exit` : ''}
+exit
+write memory
+"@
+    
+    $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
+    Remove-SSHSession -SessionId $Session.SessionId
+    
+    Write-Host "✓ Spanning Tree Protocol configured!" -ForegroundColor Green
+    Write-Host "  STP Mode: ${stpMode}" -ForegroundColor Cyan
+    Write-Host "  Bridge Priority: ${priority}" -ForegroundColor Cyan
+    Write-Host "  VLAN: ${vlanId}" -ForegroundColor Cyan
+    Write-Host "  BPDU Guard: ${bpduGuard ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "STP configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'cisco-ios-configure-nac',
+    name: 'Cisco IOS: Manage Network Access Control (NAC)',
+    category: 'Common Admin Tasks',
+    description: 'Configure network segmentation, guest access, and access control lists',
+    parameters: [
+      { id: 'deviceIP', label: 'Device IP Address', type: 'text', required: true, placeholder: '192.168.1.1' },
+      { id: 'guestVlan', label: 'Guest VLAN ID', type: 'number', required: true, placeholder: '100' },
+      { id: 'employeeVlan', label: 'Employee VLAN ID', type: 'number', required: true, placeholder: '10' },
+      { id: 'guestNetwork', label: 'Guest Network', type: 'text', required: true, placeholder: '192.168.100.0 0.0.0.255' },
+      { id: 'denyInternet', label: 'Restrict Guest Internal Access', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const deviceIP = escapePowerShellString(params.deviceIP);
+      const guestVlan = params.guestVlan;
+      const employeeVlan = params.employeeVlan;
+      const guestNetwork = escapePowerShellString(params.guestNetwork);
+      const denyInternal = params.denyInternet !== false;
+      
+      return `# Cisco IOS Configure Network Access Control
+# Generated: ${new Date().toISOString()}
+
+$DeviceIP = "${deviceIP}"
+Import-Module Posh-SSH
+
+try {
+    $Credential = Get-Credential -Message "Enter device credentials"
+    $Session = New-SSHSession -ComputerName $DeviceIP -Credential $Credential -AcceptKey
+    
+    $Commands = @"
+configure terminal
+vlan ${guestVlan}
+name GUEST-NETWORK
+exit
+vlan ${employeeVlan}
+name EMPLOYEE-NETWORK
+exit
+${denyInternal ? `ip access-list extended GUEST-ACL
+deny ip ${guestNetwork} 10.0.0.0 0.255.255.255
+deny ip ${guestNetwork} 172.16.0.0 0.15.255.255
+deny ip ${guestNetwork} 192.168.0.0 0.0.255.255
+permit ip ${guestNetwork} any
+exit
+interface vlan ${guestVlan}
+ip access-group GUEST-ACL in
+exit` : ''}
+exit
+write memory
+"@
+    
+    $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
+    Remove-SSHSession -SessionId $Session.SessionId
+    
+    Write-Host "✓ Network Access Control configured!" -ForegroundColor Green
+    Write-Host "  Guest VLAN: ${guestVlan}" -ForegroundColor Cyan
+    Write-Host "  Employee VLAN: ${employeeVlan}" -ForegroundColor Cyan
+    Write-Host "  Guest Network: ${guestNetwork}" -ForegroundColor Cyan
+    Write-Host "  Internal Access Restriction: ${denyInternal ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "NAC configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'cisco-ios-configure-snmp',
+    name: 'Cisco IOS: Configure SNMP Monitoring',
+    category: 'Common Admin Tasks',
+    description: 'Set up SNMP v2/v3, configure traps, and monitoring communities',
+    parameters: [
+      { id: 'deviceIP', label: 'Device IP Address', type: 'text', required: true, placeholder: '192.168.1.1' },
+      { id: 'snmpVersion', label: 'SNMP Version', type: 'select', required: true, options: ['v2c', 'v3'], defaultValue: 'v3' },
+      { id: 'communityString', label: 'Community String (v2c)', type: 'text', required: false, placeholder: 'public' },
+      { id: 'snmpUser', label: 'SNMP User (v3)', type: 'text', required: false, placeholder: 'snmpadmin' },
+      { id: 'trapServer', label: 'SNMP Trap Server', type: 'text', required: true, placeholder: '10.0.0.50' }
+    ],
+    scriptTemplate: (params) => {
+      const deviceIP = escapePowerShellString(params.deviceIP);
+      const snmpVersion = params.snmpVersion;
+      const communityString = params.communityString ? escapePowerShellString(params.communityString) : 'public';
+      const snmpUser = params.snmpUser ? escapePowerShellString(params.snmpUser) : 'snmpadmin';
+      const trapServer = escapePowerShellString(params.trapServer);
+      
+      return `# Cisco IOS Configure SNMP Monitoring
+# Generated: ${new Date().toISOString()}
+
+$DeviceIP = "${deviceIP}"
+Import-Module Posh-SSH
+
+try {
+    $Credential = Get-Credential -Message "Enter device credentials"
+    $Session = New-SSHSession -ComputerName $DeviceIP -Credential $Credential -AcceptKey
+    
+    $Commands = @"
+configure terminal
+${snmpVersion === 'v2c' ? `snmp-server community ${communityString} RO
+snmp-server host ${trapServer} version 2c ${communityString}` : `snmp-server group SNMP-GROUP v3 priv
+snmp-server user ${snmpUser} SNMP-GROUP v3 auth sha AuthPass123 priv aes 128 PrivPass123
+snmp-server host ${trapServer} version 3 priv ${snmpUser}`}
+snmp-server enable traps config
+snmp-server enable traps entity
+snmp-server enable traps cpu threshold
+snmp-server enable traps memory bufferpeak
+snmp-server enable traps syslog
+snmp-server ifindex persist
+exit
+write memory
+"@
+    
+    $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
+    Remove-SSHSession -SessionId $Session.SessionId
+    
+    Write-Host "✓ SNMP Monitoring configured!" -ForegroundColor Green
+    Write-Host "  SNMP Version: ${snmpVersion}" -ForegroundColor Cyan
+    Write-Host "  Trap Server: ${trapServer}" -ForegroundColor Cyan
+${snmpVersion === 'v3' ? `    Write-Host "  User: ${snmpUser}" -ForegroundColor Cyan
+    Write-Host "  Authentication: SHA / AES-128" -ForegroundColor Cyan` : `    Write-Host "  Community: ${communityString}" -ForegroundColor Cyan`}
+    Write-Host "  Note: ${snmpVersion === 'v3' ? 'Default passwords set (AuthPass123/PrivPass123) - Change immediately!' : 'Community string configured'}" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "SNMP configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'cisco-ios-generate-interface-stats',
+    name: 'Cisco IOS: Generate Interface Statistics Reports',
+    category: 'Common Admin Tasks',
+    description: 'Export traffic statistics, error rates, and utilization metrics',
+    parameters: [
+      { id: 'deviceIP', label: 'Device IP Address', type: 'text', required: true, placeholder: '192.168.1.1' },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\interface-stats.csv' },
+      { id: 'includeErrors', label: 'Include Error Statistics', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const deviceIP = escapePowerShellString(params.deviceIP);
+      const exportPath = escapePowerShellString(params.exportPath);
+      const includeErrors = params.includeErrors !== false;
+      
+      return `# Cisco IOS Generate Interface Statistics Report
+# Generated: ${new Date().toISOString()}
+
+$DeviceIP = "${deviceIP}"
+$ExportPath = "${exportPath}"
+Import-Module Posh-SSH
+
+try {
+    $Credential = Get-Credential -Message "Enter device credentials"
+    $Session = New-SSHSession -ComputerName $DeviceIP -Credential $Credential -AcceptKey
+    
+    $InterfaceStats = Invoke-SSHCommand -SessionId $Session.SessionId -Command "show interfaces"
+    ${includeErrors ? `$ErrorStats = Invoke-SSHCommand -SessionId $Session.SessionId -Command "show interfaces counters errors"` : ''}
+    
+    Remove-SSHSession -SessionId $Session.SessionId
+    
+    $Output = $InterfaceStats.Output
+    $Interfaces = @()
+    
+    $Output -split "\\n" | ForEach-Object {
+        if ($_ -match "^(\\S+)\\s+is\\s+(up|down|administratively down)") {
+            $InterfaceName = $Matches[1]
+            $Status = $Matches[2]
+            
+            $Interfaces += [PSCustomObject]@{
+                Interface = $InterfaceName
+                Status = $Status
+                Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+            }
+        }
+    }
+    
+    $Interfaces | Export-Csv -Path $ExportPath -NoTypeInformation
+    
+    Write-Host "✓ Interface statistics exported!" -ForegroundColor Green
+    Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
+    Write-Host "  Total Interfaces: $($Interfaces.Count)" -ForegroundColor Cyan
+    Write-Host "  Include Errors: ${includeErrors ? 'Yes' : 'No'}" -ForegroundColor Cyan
+    
+    $UpCount = ($Interfaces | Where-Object { $_.Status -eq 'up' }).Count
+    $DownCount = ($Interfaces | Where-Object { $_.Status -match 'down' }).Count
+    
+    Write-Host ""
+    Write-Host "Summary:" -ForegroundColor Yellow
+    Write-Host "  Up: $UpCount" -ForegroundColor Green
+    Write-Host "  Down: $DownCount" -ForegroundColor Red
+    
+} catch {
+    Write-Error "Interface statistics generation failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

@@ -660,5 +660,215 @@ try {
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'veeam-configure-backup-copy',
+    name: 'Configure Backup Copy Jobs',
+    category: 'Common Admin Tasks',
+    description: 'Set up backup copies to secondary repository for 3-2-1 rule',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'copyJobName', label: 'Backup Copy Job Name', type: 'text', required: true, placeholder: 'Copy-to-Offsite' },
+      { id: 'sourceJob', label: 'Source Backup Job', type: 'text', required: true, placeholder: 'Production-Backup' },
+      { id: 'targetRepository', label: 'Target Repository', type: 'text', required: true, placeholder: 'Offsite-Repository' },
+      { id: 'retentionDays', label: 'Retention (Days)', type: 'number', required: true, defaultValue: 30 }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const copyJobName = escapePowerShellString(params.copyJobName);
+      const sourceJob = escapePowerShellString(params.sourceJob);
+      const targetRepository = escapePowerShellString(params.targetRepository);
+      
+      return `# Configure Backup Copy Job
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    # Get source job and target repository
+    $SourceJob = Get-VBRJob -Name "${sourceJob}"
+    $TargetRepo = Get-VBRBackupRepository -Name "${targetRepository}"
+    
+    if (-not $SourceJob) {
+        throw "Source backup job '${sourceJob}' not found"
+    }
+    
+    if (-not $TargetRepo) {
+        throw "Target repository '${targetRepository}' not found"
+    }
+    
+    # Create backup copy job
+    Add-VBRBackupCopyJob \`
+        -Name "${copyJobName}" \`
+        -BackupJob $SourceJob \`
+        -TargetRepository $TargetRepo \`
+        -RetentionPolicy "Simple" \`
+        -RetentionPolicyDeleteDays ${params.retentionDays}
+    
+    Write-Host "✓ Backup copy job '${copyJobName}' created successfully!" -ForegroundColor Green
+    Write-Host "  Source Job: ${sourceJob}" -ForegroundColor Cyan
+    Write-Host "  Target Repository: ${targetRepository}" -ForegroundColor Cyan
+    Write-Host "  Retention: ${params.retentionDays} days" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "3-2-1 Rule Status: Enhanced with offsite copy" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to configure backup copy job: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'veeam-manage-tape-backup',
+    name: 'Manage Tape Backup Jobs',
+    category: 'Common Admin Tasks',
+    description: 'Create tape jobs, manage media pools, export to tape',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'tapeJobName', label: 'Tape Job Name', type: 'text', required: true, placeholder: 'Weekly-Tape-Backup' },
+      { id: 'sourceJob', label: 'Source Backup Job', type: 'text', required: true, placeholder: 'Production-Backup' },
+      { id: 'mediaPool', label: 'Media Pool Name', type: 'text', required: true, placeholder: 'Monthly-Tape-Pool' },
+      { id: 'retentionType', label: 'Retention Type', type: 'select', required: true, options: ['Days', 'Weeks', 'Months'], defaultValue: 'Months' }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const tapeJobName = escapePowerShellString(params.tapeJobName);
+      const sourceJob = escapePowerShellString(params.sourceJob);
+      const mediaPool = escapePowerShellString(params.mediaPool);
+      const retentionType = params.retentionType;
+      
+      return `# Manage Tape Backup Jobs
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    # Get source backup job
+    $SourceJob = Get-VBRJob -Name "${sourceJob}"
+    
+    if (-not $SourceJob) {
+        throw "Source backup job '${sourceJob}' not found"
+    }
+    
+    # Check if media pool exists, create if not
+    $MediaPool = Get-VBRTapeMediaPool -Name "${mediaPool}" -ErrorAction SilentlyContinue
+    
+    if (-not $MediaPool) {
+        Write-Host "Creating new media pool: ${mediaPool}" -ForegroundColor Yellow
+        $TapeLibrary = Get-VBRTapeLibrary | Select-Object -First 1
+        $MediaPool = Add-VBRTapeMediaPool -Library $TapeLibrary -Name "${mediaPool}"
+    }
+    
+    # Create tape backup job
+    Add-VBRTapeBackupJob \`
+        -Name "${tapeJobName}" \`
+        -BackupJob $SourceJob \`
+        -MediaPool $MediaPool \`
+        -RetentionType "${retentionType}"
+    
+    Write-Host "✓ Tape backup job '${tapeJobName}' created successfully!" -ForegroundColor Green
+    Write-Host "  Source Job: ${sourceJob}" -ForegroundColor Cyan
+    Write-Host "  Media Pool: ${mediaPool}" -ForegroundColor Cyan
+    Write-Host "  Retention: ${retentionType}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Tape Management Tips:" -ForegroundColor Yellow
+    Write-Host "  - Use Get-VBRTapeMediaPool to view media pools" -ForegroundColor Gray
+    Write-Host "  - Use Start-VBRTapeJob to run tape jobs manually" -ForegroundColor Gray
+    Write-Host "  - Use Get-VBRTapeBackupSession for job history" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure tape backup job: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'veeam-configure-replication',
+    name: 'Configure Replication Jobs',
+    category: 'Common Admin Tasks',
+    description: 'Set up VM replication for DR, configure failover plans',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'replicationJobName', label: 'Replication Job Name', type: 'text', required: true, placeholder: 'DR-Replication' },
+      { id: 'vmNames', label: 'VM Names (comma-separated)', type: 'textarea', required: true, placeholder: 'VM1, VM2, VM3' },
+      { id: 'targetHost', label: 'Target ESXi/Hyper-V Host', type: 'text', required: true, placeholder: 'dr-host.company.com' },
+      { id: 'restorePoints', label: 'Restore Points to Keep', type: 'number', required: true, defaultValue: 7 }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const replicationJobName = escapePowerShellString(params.replicationJobName);
+      const vmNamesRaw = (params.vmNames as string).split(',').map((n: string) => n.trim());
+      const targetHost = escapePowerShellString(params.targetHost);
+      
+      return `# Configure VM Replication Job
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    # Get target host
+    $TargetHost = Get-VBRServer -Name "${targetHost}"
+    
+    if (-not $TargetHost) {
+        throw "Target host '${targetHost}' not found. Add it first using Add-VBRServer."
+    }
+    
+    # Get VMs to replicate
+    $VMNames = @(${vmNamesRaw.map(n => `"${escapePowerShellString(n)}"`).join(', ')})
+    
+    $VMs = foreach ($VMName in $VMNames) {
+        $VM = Find-VBRViEntity -Name $VMName
+        if ($VM) {
+            Write-Host "✓ Found VM: $VMName" -ForegroundColor Green
+            $VM
+        } else {
+            Write-Host "⚠ VM not found: $VMName" -ForegroundColor Yellow
+        }
+    }
+    
+    if ($VMs.Count -eq 0) {
+        throw "No valid VMs found for replication"
+    }
+    
+    # Create replication job
+    Add-VBRViReplicaJob \`
+        -Name "${replicationJobName}" \`
+        -Entity $VMs \`
+        -Server $TargetHost \`
+        -RestorePoints ${params.restorePoints}
+    
+    Write-Host ""
+    Write-Host "✓ Replication job '${replicationJobName}' created successfully!" -ForegroundColor Green
+    Write-Host "  VMs to Replicate: $($VMs.Count)" -ForegroundColor Cyan
+    Write-Host "  Target Host: ${targetHost}" -ForegroundColor Cyan
+    Write-Host "  Restore Points: ${params.restorePoints}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Disaster Recovery Status:" -ForegroundColor Yellow
+    Write-Host "  - Replication configured for continuous DR protection" -ForegroundColor Gray
+    Write-Host "  - Use Start-VBRJob to run initial replication" -ForegroundColor Gray
+    Write-Host "  - Configure failover plans with Add-VBRFailoverPlan" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Failover Commands:" -ForegroundColor Cyan
+    Write-Host "  Test Failover: Start-VBRViReplicaFailoverTest" -ForegroundColor Gray
+    Write-Host "  Planned Failover: Start-VBRViReplicaPlannedFailover" -ForegroundColor Gray
+    Write-Host "  Failback: Start-VBRViReplicaFailback" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure replication job: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
   }
 ];

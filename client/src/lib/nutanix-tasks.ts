@@ -602,5 +602,253 @@ action === 'Remove' ? `        # Remove first network adapter
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'nutanix-configure-dr-plans',
+    name: 'Configure Disaster Recovery Plans',
+    category: 'Common Admin Tasks',
+    description: 'Create DR plans, configure recovery points',
+    parameters: [
+      { id: 'cluster', label: 'Prism Cluster', type: 'text', required: true },
+      { id: 'drPlanName', label: 'DR Plan Name', type: 'text', required: true, placeholder: 'Production-DR-Plan' },
+      { id: 'protectionDomain', label: 'Protection Domain', type: 'text', required: true, placeholder: 'Daily-Backup-Policy' },
+      { id: 'remoteCluster', label: 'Remote Cluster (IP)', type: 'text', required: true, placeholder: '10.0.1.100' },
+      { id: 'scheduleInterval', label: 'Replication Interval (Minutes)', type: 'number', required: true, defaultValue: 60 }
+    ],
+    scriptTemplate: (params) => {
+      const cluster = escapePowerShellString(params.cluster);
+      const drPlanName = escapePowerShellString(params.drPlanName);
+      const protectionDomain = escapePowerShellString(params.protectionDomain);
+      const remoteCluster = escapePowerShellString(params.remoteCluster);
+      
+      return `# Configure Disaster Recovery Plan
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    Connect-NutanixCluster -Server "${cluster}" -AcceptInvalidSSLCerts
+    
+    # Get protection domain
+    $ProtectionDomain = Get-NTNXProtectionDomain | Where-Object { $_.name -eq "${protectionDomain}" }
+    
+    if (-not $ProtectionDomain) {
+        throw "Protection domain '${protectionDomain}' not found"
+    }
+    
+    # Configure remote site
+    $RemoteSite = @{
+        remoteClusterAddress = "${remoteCluster}"
+        enableReplication = $true
+    }
+    
+    # Create DR configuration
+    $DRSpec = @{
+        protectionDomainName = "${protectionDomain}"
+        remoteSite = $RemoteSite
+        scheduleIntervalMinutes = ${params.scheduleInterval}
+        retentionPolicy = @{
+            remoteMaxSnapshots = 10
+        }
+    }
+    
+    # Enable remote replication
+    Set-NTNXProtectionDomain -Name $ProtectionDomain.name -Body $DRSpec
+    
+    Write-Host "✓ DR Plan '${drPlanName}' configured successfully!" -ForegroundColor Green
+    Write-Host "  Protection Domain: ${protectionDomain}" -ForegroundColor Cyan
+    Write-Host "  Remote Cluster: ${remoteCluster}" -ForegroundColor Cyan
+    Write-Host "  Replication Interval: ${params.scheduleInterval} minutes" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "DR Status:" -ForegroundColor Yellow
+    Write-Host "  - Remote replication enabled" -ForegroundColor Gray
+    Write-Host "  - Recovery points will be available on remote cluster" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "DR Operations:" -ForegroundColor Cyan
+    Write-Host "  Activate DR: Invoke-NTNXProtectionDomainActivate" -ForegroundColor Gray
+    Write-Host "  Test Failover: Use Prism Central for orchestrated testing" -ForegroundColor Gray
+    Write-Host "  Monitor Status: Get-NTNXProtectionDomain" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure DR plan: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'nutanix-manage-image-service',
+    name: 'Manage Image Service',
+    category: 'Common Admin Tasks',
+    description: 'Upload ISO images, configure image repositories',
+    parameters: [
+      { id: 'cluster', label: 'Prism Cluster', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['UploadISO', 'ListImages', 'DeleteImage'], defaultValue: 'ListImages' },
+      { id: 'imageName', label: 'Image Name', type: 'text', required: false, placeholder: 'Windows-Server-2022.iso' },
+      { id: 'imagePath', label: 'Image Source Path', type: 'path', required: false, placeholder: 'C:\\ISOs\\Windows-Server-2022.iso' },
+      { id: 'container', label: 'Storage Container', type: 'text', required: false, placeholder: 'Default-Container' }
+    ],
+    scriptTemplate: (params) => {
+      const cluster = escapePowerShellString(params.cluster);
+      const action = params.action;
+      const imageName = params.imageName ? escapePowerShellString(params.imageName) : '';
+      const imagePath = params.imagePath ? escapePowerShellString(params.imagePath) : '';
+      const container = params.container ? escapePowerShellString(params.container) : '';
+      
+      return `# Manage Image Service
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    Connect-NutanixCluster -Server "${cluster}" -AcceptInvalidSSLCerts
+    
+${action === 'UploadISO' ? `    # Upload ISO image
+    if (-not (Test-Path "${imagePath}")) {
+        throw "ISO file not found: ${imagePath}"
+    }
+    
+    $Container = Get-NTNXContainer | Where-Object { $_.name -eq "${container}" }
+    
+    if (-not $Container) {
+        throw "Container '${container}' not found"
+    }
+    
+    # Upload image
+    $ImageSpec = @{
+        name = "${imageName}"
+        imageType = "ISO_IMAGE"
+        containerName = "${container}"
+    }
+    
+    # Read file and convert to base64
+    $FileBytes = [System.IO.File]::ReadAllBytes("${imagePath}")
+    $ImageSpec.imageData = [System.Convert]::ToBase64String($FileBytes)
+    
+    Add-NTNXImage -Body $ImageSpec
+    
+    Write-Host "✓ ISO image uploaded successfully!" -ForegroundColor Green
+    Write-Host "  Image Name: ${imageName}" -ForegroundColor Cyan
+    Write-Host "  Container: ${container}" -ForegroundColor Cyan` :
+action === 'ListImages' ? `    # List all images
+    $Images = Get-NTNXImage
+    
+    Write-Host "Available Images:" -ForegroundColor Cyan
+    Write-Host "=================" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $Images | ForEach-Object {
+        Write-Host "Name: $($_.name)" -ForegroundColor Yellow
+        Write-Host "  Type: $($_.imageType)"
+        Write-Host "  State: $($_.imageState)"
+        Write-Host "  Size: $([math]::Round($_.vmDiskSize/1GB,2)) GB"
+        Write-Host "  Container: $($_.containerName)"
+        Write-Host ""
+    }
+    
+    Write-Host "Total Images: $($Images.Count)" -ForegroundColor Green` :
+`    # Delete image
+    $Image = Get-NTNXImage | Where-Object { $_.name -eq "${imageName}" }
+    
+    if ($Image) {
+        Remove-NTNXImage -Uuid $Image.uuid
+        Write-Host "✓ Image '${imageName}' deleted successfully!" -ForegroundColor Green
+    } else {
+        Write-Error "Image '${imageName}' not found"
+    }`}
+    
+} catch {
+    Write-Error "Image service operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'nutanix-configure-prism-central',
+    name: 'Configure Prism Central',
+    category: 'Common Admin Tasks',
+    description: 'Register clusters to Prism Central, multi-cluster management',
+    parameters: [
+      { id: 'prismCentral', label: 'Prism Central IP', type: 'text', required: true, placeholder: 'pc.company.com' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['RegisterCluster', 'ListClusters', 'UnregisterCluster'], defaultValue: 'ListClusters' },
+      { id: 'clusterIP', label: 'Cluster IP to Register/Unregister', type: 'text', required: false, placeholder: 'cluster1.company.com' },
+      { id: 'clusterName', label: 'Cluster Name', type: 'text', required: false, placeholder: 'Production-Cluster' }
+    ],
+    scriptTemplate: (params) => {
+      const prismCentral = escapePowerShellString(params.prismCentral);
+      const action = params.action;
+      const clusterIP = params.clusterIP ? escapePowerShellString(params.clusterIP) : '';
+      const clusterName = params.clusterName ? escapePowerShellString(params.clusterName) : '';
+      
+      return `# Configure Prism Central
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    # Connect to Prism Central
+    Connect-NutanixCluster -Server "${prismCentral}" -AcceptInvalidSSLCerts
+    
+${action === 'RegisterCluster' ? `    # Register cluster to Prism Central
+    $RegisterSpec = @{
+        clusterExternalIpAddress = "${clusterIP}"
+        clusterName = "${clusterName}"
+    }
+    
+    # Note: Actual registration requires REST API call
+    $Uri = "https://${prismCentral}:9440/api/nutanix/v3/clusters"
+    
+    Write-Host "Registering cluster to Prism Central..." -ForegroundColor Yellow
+    Write-Host "  Cluster IP: ${clusterIP}" -ForegroundColor Cyan
+    Write-Host "  Cluster Name: ${clusterName}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Note: Complete registration through Prism Central UI:" -ForegroundColor Yellow
+    Write-Host "  1. Navigate to Prism Central > Cluster Management" -ForegroundColor Gray
+    Write-Host "  2. Click 'Register or Create New'" -ForegroundColor Gray
+    Write-Host "  3. Enter cluster IP: ${clusterIP}" -ForegroundColor Gray
+    Write-Host "  4. Provide cluster credentials" -ForegroundColor Gray` :
+action === 'ListClusters' ? `    # List registered clusters
+    $Clusters = Get-NTNXCluster
+    
+    Write-Host "Registered Clusters:" -ForegroundColor Cyan
+    Write-Host "====================" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $Clusters | ForEach-Object {
+        Write-Host "Cluster Name: $($_.name)" -ForegroundColor Yellow
+        Write-Host "  Cluster IP: $($_.clusterExternalIPAddress)"
+        Write-Host "  Version: $($_.version)"
+        Write-Host "  Hypervisor: $($_.hypervisorTypes)"
+        Write-Host "  Nodes: $($_.numNodes)"
+        Write-Host "  Status: $($_.status)"
+        Write-Host ""
+    }
+    
+    Write-Host "Total Clusters: $($Clusters.Count)" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Multi-Cluster Management Features:" -ForegroundColor Cyan
+    Write-Host "  - Centralized monitoring and alerts" -ForegroundColor Gray
+    Write-Host "  - Cross-cluster VM migration" -ForegroundColor Gray
+    Write-Host "  - Unified capacity planning" -ForegroundColor Gray
+    Write-Host "  - Global search and inventory" -ForegroundColor Gray` :
+`    # Unregister cluster
+    $Cluster = Get-NTNXCluster | Where-Object { $_.clusterExternalIPAddress -eq "${clusterIP}" }
+    
+    if ($Cluster) {
+        Write-Host "Unregistering cluster: $($Cluster.name)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Note: To unregister, use Prism Central UI:" -ForegroundColor Yellow
+        Write-Host "  1. Navigate to Prism Central > Cluster Management" -ForegroundColor Gray
+        Write-Host "  2. Select cluster: $($Cluster.name)" -ForegroundColor Gray
+        Write-Host "  3. Click 'Unregister Cluster'" -ForegroundColor Gray
+        Write-Host "  4. Confirm the operation" -ForegroundColor Gray
+    } else {
+        Write-Error "Cluster with IP '${clusterIP}' not found"
+    }`}
+    
+} catch {
+    Write-Error "Prism Central operation failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

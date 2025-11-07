@@ -3,7 +3,7 @@ import { escapePowerShellString } from './powershell-utils';
 export interface IntuneParameter {
   name: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'checkbox' | 'textarea';
+  type: 'text' | 'number' | 'select' | 'boolean' | 'textarea' | 'path';
   required: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -19,6 +19,7 @@ export interface IntuneTask {
   instructions?: string;
   parameters: IntuneParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const intuneTasks: IntuneTask[] = [
@@ -512,7 +513,7 @@ This script initiates complete device wipes (factory reset) for lost devices or 
       {
         name: 'keepEnrollment',
         label: 'Keep Enrollment and User Account',
-        type: 'checkbox',
+        type: 'boolean',
         required: false,
         defaultValue: false,
         helpText: 'Preserve enrollment after wipe'
@@ -754,7 +755,7 @@ This script creates Windows 10/11 configuration profiles to enforce security set
       {
         name: 'enableFirewall',
         label: 'Enable Windows Firewall',
-        type: 'checkbox',
+        type: 'boolean',
         required: false,
         defaultValue: true,
         helpText: 'Enforce firewall settings'
@@ -944,7 +945,7 @@ This script creates Windows 10/11 compliance policies to enforce minimum securit
       {
         name: 'requireBitLocker',
         label: 'Require BitLocker Encryption',
-        type: 'checkbox',
+        type: 'boolean',
         required: false,
         defaultValue: true,
         helpText: 'Enforce BitLocker encryption'
@@ -1309,7 +1310,7 @@ This script creates Windows Autopilot deployment profiles to automate device pro
       {
         name: 'skipPrivacy',
         label: 'Skip Privacy Settings',
-        type: 'checkbox',
+        type: 'boolean',
         required: false,
         defaultValue: true,
         helpText: 'Skip privacy settings during OOBE'
@@ -1658,7 +1659,7 @@ This script uploads PowerShell scripts to Intune for automated deployment and ex
       {
         name: 'runAs32Bit',
         label: 'Run in 32-bit PowerShell',
-        type: 'checkbox',
+        type: 'boolean',
         required: false,
         defaultValue: false,
         helpText: 'Execute in 32-bit context'
@@ -2388,7 +2389,7 @@ This script creates conditional access policies to enforce device compliance req
       {
         name: 'requireCompliance',
         label: 'Require Device Compliance',
-        type: 'checkbox',
+        type: 'boolean',
         required: false,
         defaultValue: true,
         helpText: 'Require compliant device for access'
@@ -2520,7 +2521,7 @@ try {
 
   {
     id: 'intune-export-inventory',
-    name: 'Export Device Inventory',
+    title: 'Export Device Inventory',
     category: 'Reporting',
     description: 'Complete device hardware report',
     instructions: `**How This Task Works:**
@@ -2555,7 +2556,7 @@ try {
 - Serial numbers useful for warranty tracking
 - Consider scheduling regular exports for trending`,
     parameters: [
-      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Intune\\Inventory.csv' }
+      { name: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Intune\\Inventory.csv' }
     ],
     scriptTemplate: (params) => {
       const exportPath = escapePowerShellString(params.exportPath);
@@ -2579,7 +2580,7 @@ try {
 
   {
     id: 'intune-export-noncompliant',
-    name: 'Export Non-Compliant Devices Report',
+    title: 'Export Non-Compliant Devices Report',
     category: 'Compliance',
     description: 'List all devices failing compliance policies',
     instructions: `**How This Task Works:**
@@ -2615,7 +2616,7 @@ try {
 - May indicate policy configuration issues if count is high
 - Check LastSyncDateTime for stale devices`,
     parameters: [
-      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Intune\\NonCompliant.csv' }
+      { name: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Intune\\NonCompliant.csv' }
     ],
     scriptTemplate: (params) => {
       const exportPath = escapePowerShellString(params.exportPath);
@@ -2637,6 +2638,1788 @@ try {
     Write-Error $_
 }`;
     }
+  },
+
+  // ==================== PREMIUM COMMON ADMIN TASKS ====================
+  
+  {
+    id: 'intune-premium-deploy-win32-apps',
+    title: 'Deploy Win32 Apps to Devices',
+    description: 'Create and deploy Win32 app packages with detection rules',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task automates Win32 app deployment to managed devices with comprehensive detection rules and installation requirements.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All permission
+- Win32 app packaged as .intunewin file
+
+**What You Need to Provide:**
+- Application name
+- Install command
+- Uninstall command
+- Detection rule (file path or registry key)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app write permissions
+2. Creates Win32 LOB app with metadata
+3. Configures install/uninstall commands
+4. Sets up file-based or registry-based detection rules
+5. Returns app ID for content upload and assignment
+
+**Important Notes:**
+- Essential for deploying custom/legacy applications
+- Package app using Microsoft Win32 Content Prep Tool first
+- Must upload .intunewin content via portal after creation
+- Configure requirements (OS version, architecture) as needed
+- Assign to device groups after upload completes
+- Monitor deployment status in Intune portal
+- Use for apps not available in Microsoft Store`,
+    parameters: [
+      {
+        name: 'appName',
+        label: 'Application Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Adobe Acrobat Reader DC',
+        helpText: 'Display name for the application'
+      },
+      {
+        name: 'installCommand',
+        label: 'Install Command',
+        type: 'text',
+        required: true,
+        placeholder: 'setup.exe /silent',
+        helpText: 'Command line for installation'
+      },
+      {
+        name: 'uninstallCommand',
+        label: 'Uninstall Command',
+        type: 'text',
+        required: true,
+        placeholder: 'uninstall.exe /quiet',
+        helpText: 'Command line for uninstallation'
+      },
+      {
+        name: 'detectionPath',
+        label: 'Detection File Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Program Files\\Adobe\\Acrobat DC\\Acrobat.exe',
+        helpText: 'File path for detection rule'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const appName = escapePowerShellString(params.appName);
+      const installCmd = escapePowerShellString(params.installCommand);
+      const uninstallCmd = escapePowerShellString(params.uninstallCommand);
+      const detectionPath = escapePowerShellString(params.detectionPath);
+
+      return `# Deploy Win32 App with Detection Rules
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementApps.ReadWrite.All"
+
+try {
+    Write-Host "Creating Win32 app: ${appName}" -ForegroundColor Cyan
+    
+    $AppParams = @{
+        "@odata.type" = "#microsoft.graph.win32LobApp"
+        DisplayName = "${appName}"
+        Description = "Deployed via PSForge Premium"
+        Publisher = "IT Department"
+        IsFeatured = \$false
+        InstallCommandLine = "${installCmd}"
+        UninstallCommandLine = "${uninstallCmd}"
+        DetectionRules = @(
+            @{
+                "@odata.type" = "#microsoft.graph.win32LobAppFileSystemDetection"
+                Path = [System.IO.Path]::GetDirectoryName("${detectionPath}")
+                FileOrFolderName = [System.IO.Path]::GetFileName("${detectionPath}")
+                Check32BitOn64System = \$false
+                DetectionType = "exists"
+            }
+        )
+    }
+    
+    $App = New-MgDeviceAppManagementMobileApp -BodyParameter $AppParams
+    
+    Write-Host "✓ Win32 app created successfully" -ForegroundColor Green
+    Write-Host "  App Name: ${appName}" -ForegroundColor Yellow
+    Write-Host "  App ID: $($App.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Upload .intunewin content via Intune portal" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create Win32 app: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-configure-autopilot-profiles',
+    title: 'Configure Autopilot Deployment Profiles',
+    description: 'Set up Windows Autopilot profiles and assignments',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task creates and configures Windows Autopilot deployment profiles for automated device provisioning with customized OOBE experience.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementServiceConfig.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Profile name
+- Device name template
+- User account type (Standard or Administrator)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with service config permissions
+2. Creates Azure AD Autopilot deployment profile
+3. Configures OOBE experience settings
+4. Sets device naming template and user type
+5. Returns profile ID for device group assignment
+
+**Important Notes:**
+- Essential for zero-touch device deployment
+- Streamlines out-of-box experience for end users
+- Automatically joins devices to Azure AD
+- Configure before shipping devices to users
+- Assign profile to Autopilot device groups
+- Test with pilot devices before production rollout
+- Reduces IT provisioning time significantly`,
+    parameters: [
+      {
+        name: 'profileName',
+        label: 'Profile Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Standard User Autopilot Profile',
+        helpText: 'Name for the Autopilot deployment profile'
+      },
+      {
+        name: 'deviceNameTemplate',
+        label: 'Device Name Template',
+        type: 'text',
+        required: true,
+        defaultValue: 'CORP-%SERIAL%',
+        placeholder: 'CORP-%SERIAL%',
+        helpText: 'Template for auto-generated device names'
+      },
+      {
+        name: 'userType',
+        label: 'User Account Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'standard', label: 'Standard User' },
+          { value: 'administrator', label: 'Administrator' }
+        ],
+        helpText: 'User account type for provisioned devices'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const profileName = escapePowerShellString(params.profileName);
+      const deviceNameTemplate = escapePowerShellString(params.deviceNameTemplate);
+      const userType = params.userType || 'standard';
+
+      return `# Configure Autopilot Deployment Profile
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementServiceConfig.ReadWrite.All"
+
+try {
+    Write-Host "Creating Autopilot profile: ${profileName}" -ForegroundColor Cyan
+    
+    $ProfileParams = @{
+        "@odata.type" = "#microsoft.graph.azureADWindowsAutopilotDeploymentProfile"
+        DisplayName = "${profileName}"
+        Description = "Premium Autopilot profile created via PSForge"
+        DeviceNameTemplate = "${deviceNameTemplate}"
+        DeviceType = "windowsPc"
+        EnableWhiteGlove = \$false
+        Language = "os-default"
+        OutOfBoxExperienceSettings = @{
+            HidePrivacySettings = \$true
+            HideEULA = \$true
+            UserType = "${userType}"
+            DeviceUsageType = "shared"
+            SkipKeyboardSelectionPage = \$true
+            HideEscapeLink = \$true
+        }
+    }
+    
+    $Profile = New-MgDeviceManagementWindowsAutopilotDeploymentProfile -BodyParameter $ProfileParams
+    
+    Write-Host "✓ Autopilot profile created successfully" -ForegroundColor Green
+    Write-Host "  Profile: ${profileName}" -ForegroundColor Yellow
+    Write-Host "  User Type: ${userType}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Profile.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign profile to Autopilot device groups" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create Autopilot profile: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-manage-mam-policies',
+    title: 'Manage App Protection Policies (MAM)',
+    description: 'Create/configure MAM policies for iOS/Android',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task creates comprehensive Mobile Application Management (MAM) policies to protect corporate data on mobile devices without full MDM enrollment.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Target platform (iOS or Android)
+- PIN requirement setting
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app write permissions
+2. Creates platform-specific MAM policy
+3. Configures data protection settings (copy/paste, save-as, backup)
+4. Sets access requirements (PIN, offline time limits)
+5. Returns policy ID for app and user assignment
+
+**Important Notes:**
+- Essential for BYOD scenarios (no full device enrollment)
+- Protects corporate data in managed apps only
+- Works with apps that support Intune App SDK
+- Prevents data leakage to personal apps
+- Common managed apps: Outlook, Teams, OneDrive, SharePoint
+- Must assign policy to protected apps and user groups
+- Test with pilot users before broad deployment`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Corporate Data Protection Policy',
+        helpText: 'Name for the app protection policy'
+      },
+      {
+        name: 'platform',
+        label: 'Platform',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'iOS', label: 'iOS' },
+          { value: 'android', label: 'Android' }
+        ],
+        helpText: 'Target mobile platform'
+      },
+      {
+        name: 'requirePIN',
+        label: 'Require App PIN',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        helpText: 'Require PIN to access protected apps'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const platform = params.platform;
+      const requirePIN = params.requirePIN !== false;
+
+      return `# Manage App Protection Policies (MAM)
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementApps.ReadWrite.All"
+
+try {
+    Write-Host "Creating MAM policy for ${platform}: ${policyName}" -ForegroundColor Cyan
+    
+    $PolicyParams = @{
+        "@odata.type" = ${platform === 'iOS' ? '"#microsoft.graph.iosManagedAppProtection"' : '"#microsoft.graph.androidManagedAppProtection"'}
+        DisplayName = "${policyName}"
+        Description = "Premium MAM policy created via PSForge"
+        PeriodOfflineBeforeAccessCheck = "PT12H"
+        PeriodOnlineBeforeAccessCheck = "PT30M"
+        AllowedDataStorageLocations = @("oneDriveForBusiness", "sharePoint")
+        AllowedInboundDataTransferSources = "managedApps"
+        AllowedOutboundDataTransferDestinations = "managedApps"
+        OrganizationalCredentialsRequired = \$false
+        AllowedOutboundClipboardSharingLevel = "managedAppsWithPasteIn"
+        DataBackupBlocked = \$true
+        DeviceComplianceRequired = \$true
+        SaveAsBlocked = \$true
+        PeriodOfflineBeforeWipeIsEnforced = "P90D"
+        PinRequired = \$${requirePIN}
+        ${requirePIN ? 'MinimumPinLength = 4' : ''}
+        SimplePinBlocked = \$true
+        Print${platform === 'iOS' ? 'Blocked' : 'BlockedBeforeWipeIsEnforced'} = ${platform === 'iOS' ? '"blocked"' : '"P90D"'}
+    }
+    
+    ${platform === 'iOS' ? 
+      '$Policy = New-MgDeviceAppManagementIosManagedAppProtection -BodyParameter $PolicyParams' : 
+      '$Policy = New-MgDeviceAppManagementAndroidManagedAppProtection -BodyParameter $PolicyParams'}
+    
+    Write-Host "✓ MAM policy created successfully" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
+    Write-Host "  Require PIN: ${requirePIN}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign policy to protected apps and users" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create MAM policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-configure-update-rings',
+    title: 'Configure Update Rings for Windows',
+    description: 'Windows Update deployment rings with deferral settings',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task creates Windows Update for Business rings to control phased deployment of feature and quality updates across device groups.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Ring name
+- Feature update deferral period (days)
+- Quality update deferral period (days)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates Windows Update for Business configuration
+3. Sets feature and quality update deferral periods
+4. Configures automatic update behavior
+5. Returns update ring ID for device group assignment
+
+**Important Notes:**
+- Essential for phased Windows 10/11 update deployment
+- Typical rings: Pilot (0 days), Production (7-30 days)
+- Quality updates are security patches, feature updates are major versions
+- Must assign ring to device groups after creation
+- Coordinate with maintenance windows
+- Use multiple rings for staged deployments
+- Monitor update compliance in Intune portal`,
+    parameters: [
+      {
+        name: 'ringName',
+        label: 'Update Ring Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Production Update Ring',
+        helpText: 'Name for the update ring'
+      },
+      {
+        name: 'featureDeferralDays',
+        label: 'Feature Update Deferral (days)',
+        type: 'number',
+        required: true,
+        defaultValue: 14,
+        helpText: 'Days to defer feature updates (0-365)'
+      },
+      {
+        name: 'qualityDeferralDays',
+        label: 'Quality Update Deferral (days)',
+        type: 'number',
+        required: true,
+        defaultValue: 3,
+        helpText: 'Days to defer quality updates (0-30)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const ringName = escapePowerShellString(params.ringName);
+      const featureDeferral = params.featureDeferralDays || 14;
+      const qualityDeferral = params.qualityDeferralDays || 3;
+
+      return `# Configure Windows Update Ring
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
+
+try {
+    Write-Host "Creating update ring: ${ringName}" -ForegroundColor Cyan
+    
+    $UpdateRingParams = @{
+        "@odata.type" = "#microsoft.graph.windowsUpdateForBusinessConfiguration"
+        DisplayName = "${ringName}"
+        Description = "Premium update ring created via PSForge"
+        FeatureUpdatesDeferralPeriodInDays = ${featureDeferral}
+        QualityUpdatesDeferralPeriodInDays = ${qualityDeferral}
+        AutomaticUpdateMode = "windowsDefault"
+        AutoRestartNotificationDismissal = "notConfigured"
+        BusinessReadyUpdatesOnly = "windowsInsiderBuildFast"
+        DeliveryOptimizationMode = "httpWithPeeringPrivateGroup"
+        DriversExcluded = \$false
+        FeatureUpdatesWillBeRolledBack = \$false
+        QualityUpdatesWillBeRolledBack = \$false
+    }
+    
+    $UpdateRing = New-MgDeviceManagementDeviceConfiguration -BodyParameter $UpdateRingParams
+    
+    Write-Host "✓ Update ring created successfully" -ForegroundColor Green
+    Write-Host "  Ring Name: ${ringName}" -ForegroundColor Yellow
+    Write-Host "  Feature Deferral: ${featureDeferral} days" -ForegroundColor Yellow
+    Write-Host "  Quality Deferral: ${qualityDeferral} days" -ForegroundColor Yellow
+    Write-Host "  ID: $($UpdateRing.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign ring to device groups" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create update ring: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-enrollment-restrictions',
+    title: 'Manage iOS/Android Enrollment Restrictions',
+    description: 'Device type/platform enrollment restrictions',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task configures enrollment restrictions to control which device types and platforms can enroll in Intune management.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementServiceConfig.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Restriction policy name
+- Whether to block personal device enrollment
+- Whether to block iOS enrollment
+- Whether to block Android enrollment
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with service config permissions
+2. Creates device type enrollment restriction policy
+3. Configures platform-specific enrollment controls
+4. Sets personal device ownership restrictions
+5. Returns restriction ID for priority management
+
+**Important Notes:**
+- Essential for BYOD policy enforcement
+- Controls which device types can enroll
+- Prevents unauthorized device management
+- Default restriction applies to all users unless overridden
+- Create additional restrictions for specific groups
+- Test restrictions with test accounts before deployment
+- Monitor enrollment failures after implementing restrictions`,
+    parameters: [
+      {
+        name: 'restrictionName',
+        label: 'Restriction Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Corporate Device Restriction',
+        helpText: 'Name for enrollment restriction policy'
+      },
+      {
+        name: 'blockPersonalDevices',
+        label: 'Block Personal Device Enrollment',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        helpText: 'Prevent personally-owned devices from enrolling'
+      },
+      {
+        name: 'blockIOS',
+        label: 'Block iOS Enrollment',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        helpText: 'Prevent iOS device enrollment'
+      },
+      {
+        name: 'blockAndroid',
+        label: 'Block Android Enrollment',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        helpText: 'Prevent Android device enrollment'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const restrictionName = escapePowerShellString(params.restrictionName);
+      const blockPersonal = params.blockPersonalDevices === true;
+      const blockIOS = params.blockIOS === true;
+      const blockAndroid = params.blockAndroid === true;
+
+      return `# Manage Enrollment Restrictions
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementServiceConfig.ReadWrite.All"
+
+try {
+    Write-Host "Creating enrollment restriction: ${restrictionName}" -ForegroundColor Cyan
+    
+    $RestrictionParams = @{
+        DisplayName = "${restrictionName}"
+        Description = "Premium enrollment restriction created via PSForge"
+        Priority = 1
+        PlatformType = "allPlatforms"
+        PlatformRestrictions = @{
+            iOS = @{
+                PlatformBlocked = \$${blockIOS}
+                PersonalDeviceEnrollmentBlocked = \$${blockPersonal}
+            }
+            Android = @{
+                PlatformBlocked = \$${blockAndroid}
+                PersonalDeviceEnrollmentBlocked = \$${blockPersonal}
+            }
+            Windows = @{
+                PlatformBlocked = \$false
+                PersonalDeviceEnrollmentBlocked = \$${blockPersonal}
+            }
+        }
+    }
+    
+    $Uri = "https://graph.microsoft.com/v1.0/deviceManagement/deviceEnrollmentConfigurations"
+    $Restriction = Invoke-MgGraphRequest -Method POST -Uri $Uri -Body ($RestrictionParams | ConvertTo-Json -Depth 10)
+    
+    Write-Host "✓ Enrollment restriction created successfully" -ForegroundColor Green
+    Write-Host "  Restriction: ${restrictionName}" -ForegroundColor Yellow
+    Write-Host "  Block Personal: ${blockPersonal}" -ForegroundColor Yellow
+    Write-Host "  Block iOS: ${blockIOS}" -ForegroundColor Yellow
+    Write-Host "  Block Android: ${blockAndroid}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Restriction.id)" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to create enrollment restriction: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-deploy-config-profiles',
+    title: 'Deploy Configuration Profiles to Devices',
+    description: 'Deploy Wi-Fi, VPN, email, certificate profiles',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task creates and deploys device configuration profiles for Wi-Fi, VPN, email, and other settings to managed devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Profile name
+- Configuration type (Wi-Fi, VPN, Email, Custom)
+- Platform (Windows, iOS, Android)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates device configuration profile
+3. Sets platform-specific configuration settings
+4. Returns profile ID for device group assignment
+5. Provides next steps for detailed configuration
+
+**Important Notes:**
+- Essential for automated device configuration
+- Supports Wi-Fi, VPN, email, certificates, and more
+- Platform-specific settings require appropriate parameters
+- Must assign profile to device groups after creation
+- Test with pilot devices before broad deployment
+- Monitor configuration success in Intune portal
+- Some settings may require device restart`,
+    parameters: [
+      {
+        name: 'profileName',
+        label: 'Profile Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Corporate Wi-Fi Profile',
+        helpText: 'Name for the configuration profile'
+      },
+      {
+        name: 'profileType',
+        label: 'Configuration Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'wiFi', label: 'Wi-Fi' },
+          { value: 'vpn', label: 'VPN' },
+          { value: 'email', label: 'Email' },
+          { value: 'custom', label: 'Custom Settings' }
+        ],
+        helpText: 'Type of configuration'
+      },
+      {
+        name: 'platform',
+        label: 'Platform',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'windows10', label: 'Windows 10/11' },
+          { value: 'iOS', label: 'iOS' },
+          { value: 'android', label: 'Android' }
+        ],
+        helpText: 'Target platform'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const profileName = escapePowerShellString(params.profileName);
+      const profileType = params.profileType;
+      const platform = params.platform;
+
+      let odataType = '#microsoft.graph.windows10GeneralConfiguration';
+      if (platform === 'iOS') odataType = '#microsoft.graph.iosGeneralDeviceConfiguration';
+      if (platform === 'android') odataType = '#microsoft.graph.androidGeneralDeviceConfiguration';
+
+      return `# Deploy Configuration Profile
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
+
+try {
+    Write-Host "Creating ${profileType} configuration profile for ${platform}" -ForegroundColor Cyan
+    
+    $ProfileParams = @{
+        "@odata.type" = "${odataType}"
+        DisplayName = "${profileName}"
+        Description = "Premium ${profileType} profile for ${platform} created via PSForge"
+    }
+    
+    # Add profile type-specific settings
+    switch ("${profileType}") {
+        "wiFi" {
+            Write-Host "Note: Configure Wi-Fi SSID and authentication in Intune portal" -ForegroundColor Yellow
+        }
+        "vpn" {
+            Write-Host "Note: Configure VPN server and connection details in Intune portal" -ForegroundColor Yellow
+        }
+        "email" {
+            Write-Host "Note: Configure email account settings in Intune portal" -ForegroundColor Yellow
+        }
+        "custom" {
+            Write-Host "Note: Add custom OMA-URI or policy settings in Intune portal" -ForegroundColor Yellow
+        }
+    }
+    
+    $Profile = New-MgDeviceManagementDeviceConfiguration -BodyParameter $ProfileParams
+    
+    Write-Host "✓ Configuration profile created successfully" -ForegroundColor Green
+    Write-Host "  Profile: ${profileName}" -ForegroundColor Yellow
+    Write-Host "  Type: ${profileType}" -ForegroundColor Yellow
+    Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Profile.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Configure detailed settings in Intune portal, then assign to device groups" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create configuration profile: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-conditional-launch',
+    title: 'Configure Conditional Launch Settings',
+    description: 'App protection conditional launch requirements',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task configures conditional launch settings for app protection policies to enforce security requirements before allowing app access.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All permission
+- Existing app protection policy
+
+**What You Need to Provide:**
+- App protection policy name to update
+- Maximum allowed offline days
+- Minimum OS version requirement
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app write permissions
+2. Retrieves specified app protection policy
+3. Updates conditional launch settings
+4. Configures offline access time limits
+5. Sets minimum OS version requirements
+
+**Important Notes:**
+- Essential for enforcing security baselines on mobile apps
+- Blocks app access if conditions not met
+- Works with iOS and Android MAM policies
+- Common conditions: OS version, device compliance, offline time
+- Users notified when conditions block access
+- Test conditions with pilot users before broad deployment
+- Coordinate with helpdesk for user support`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'App Protection Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Corporate Data Protection Policy',
+        helpText: 'Existing MAM policy to update'
+      },
+      {
+        name: 'maxOfflineDays',
+        label: 'Maximum Offline Days',
+        type: 'number',
+        required: true,
+        defaultValue: 30,
+        helpText: 'Maximum days device can be offline before wipe'
+      },
+      {
+        name: 'minOSVersion',
+        label: 'Minimum OS Version',
+        type: 'text',
+        required: true,
+        placeholder: '14.0',
+        helpText: 'Minimum required OS version (e.g., 14.0 for iOS)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const maxOfflineDays = params.maxOfflineDays || 30;
+      const minOSVersion = escapePowerShellString(params.minOSVersion);
+
+      return `# Configure Conditional Launch Settings
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementApps.ReadWrite.All"
+
+try {
+    Write-Host "Configuring conditional launch for: ${policyName}" -ForegroundColor Cyan
+    
+    # Find the policy (try iOS first, then Android)
+    $Policy = Get-MgDeviceAppManagementIosManagedAppProtection -Filter "displayName eq '${policyName}'" -ErrorAction SilentlyContinue | Select-Object -First 1
+    
+    if (-not $Policy) {
+        $Policy = Get-MgDeviceAppManagementAndroidManagedAppProtection -Filter "displayName eq '${policyName}'" -ErrorAction SilentlyContinue | Select-Object -First 1
+    }
+    
+    if (-not $Policy) {
+        throw "App protection policy not found: ${policyName}"
+    }
+    
+    $UpdateParams = @{
+        PeriodOfflineBeforeWipeIsEnforced = "P${maxOfflineDays}D"
+        MinimumRequiredOsVersion = "${minOSVersion}"
+        MinimumWarningOsVersion = "${minOSVersion}"
+    }
+    
+    $PolicyType = $Policy.AdditionalProperties["@odata.type"]
+    
+    if ($PolicyType -like "*ios*") {
+        Update-MgDeviceAppManagementIosManagedAppProtection -IosManagedAppProtectionId $Policy.Id -BodyParameter $UpdateParams
+        $PlatformName = "iOS"
+    } else {
+        Update-MgDeviceAppManagementAndroidManagedAppProtection -AndroidManagedAppProtectionId $Policy.Id -BodyParameter $UpdateParams
+        $PlatformName = "Android"
+    }
+    
+    Write-Host "✓ Conditional launch settings updated" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  Platform: $PlatformName" -ForegroundColor Yellow
+    Write-Host "  Max Offline Days: ${maxOfflineDays}" -ForegroundColor Yellow
+    Write-Host "  Min OS Version: ${minOSVersion}" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to configure conditional launch: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-bitlocker-policies',
+    title: 'Manage BitLocker Encryption Policies',
+    description: 'Configure and enforce BitLocker policies',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task creates and enforces BitLocker encryption policies to protect data on Windows devices with full disk encryption.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Encryption method
+- Whether to require startup authentication
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates endpoint protection configuration profile
+3. Configures BitLocker encryption settings
+4. Sets encryption method and authentication requirements
+5. Returns policy ID for device group assignment
+
+**Important Notes:**
+- Essential for data protection and compliance
+- Requires TPM 2.0 on most devices
+- Encryption may take hours depending on drive size
+- Recovery keys automatically escrowed to Azure AD
+- Users may need to restart for encryption to begin
+- Monitor encryption status in Intune portal
+- Coordinate with users for maintenance window
+- Test with pilot devices before broad deployment`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'BitLocker Encryption Policy',
+        helpText: 'Name for the BitLocker policy'
+      },
+      {
+        name: 'encryptionMethod',
+        label: 'Encryption Method',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'aesCbc128', label: 'AES-CBC 128-bit' },
+          { value: 'aesCbc256', label: 'AES-CBC 256-bit' },
+          { value: 'xtsAes128', label: 'XTS-AES 128-bit' },
+          { value: 'xtsAes256', label: 'XTS-AES 256-bit (Recommended)' }
+        ],
+        helpText: 'BitLocker encryption algorithm'
+      },
+      {
+        name: 'requireStartupAuth',
+        label: 'Require Startup Authentication',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        helpText: 'Require PIN or USB key at startup'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const encryptionMethod = params.encryptionMethod || 'xtsAes256';
+      const requireAuth = params.requireStartupAuth !== false;
+
+      return `# Manage BitLocker Encryption Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
+
+try {
+    Write-Host "Creating BitLocker policy: ${policyName}" -ForegroundColor Cyan
+    
+    $PolicyParams = @{
+        "@odata.type" = "#microsoft.graph.windows10EndpointProtectionConfiguration"
+        DisplayName = "${policyName}"
+        Description = "Premium BitLocker policy created via PSForge"
+        BitLockerSystemDrivePolicy = @{
+            EncryptionMethod = "${encryptionMethod}"
+            StartupAuthenticationRequired = \$${requireAuth}
+            StartupAuthenticationBlockWithoutTpmChip = \$true
+            MinimumPinLength = 6
+            RecoveryOptions = @{
+                BlockDataRecoveryAgent = \$false
+                RecoveryPasswordUsage = "allowed"
+                RecoveryKeyUsage = "allowed"
+                HideRecoveryOptions = \$false
+                EnableRecoveryInformationSaveToStore = \$true
+                RecoveryInformationToStore = "passwordAndKey"
+                EnableBitLockerAfterRecoveryInformationToStore = \$true
+            }
+        }
+        BitLockerFixedDrivePolicy = @{
+            EncryptionMethod = "${encryptionMethod}"
+            RequireEncryptionForWriteAccess = \$true
+            RecoveryOptions = @{
+                BlockDataRecoveryAgent = \$false
+                RecoveryPasswordUsage = "allowed"
+                RecoveryKeyUsage = "allowed"
+                HideRecoveryOptions = \$false
+                EnableRecoveryInformationSaveToStore = \$true
+                RecoveryInformationToStore = "passwordAndKey"
+                EnableBitLockerAfterRecoveryInformationToStore = \$true
+            }
+        }
+    }
+    
+    $Policy = New-MgDeviceManagementDeviceConfiguration -BodyParameter $PolicyParams
+    
+    Write-Host "✓ BitLocker policy created successfully" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  Encryption: ${encryptionMethod}" -ForegroundColor Yellow
+    Write-Host "  Require Auth: ${requireAuth}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign policy to device groups" -ForegroundColor Yellow
+    Write-Host "Note: Recovery keys automatically escrowed to Azure AD" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to create BitLocker policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-deploy-powershell-scripts',
+    title: 'Deploy PowerShell Scripts to Devices',
+    description: 'Upload and assign PowerShell scripts to endpoints',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task uploads and deploys PowerShell scripts to managed Windows devices for automated configuration, remediation, and maintenance tasks.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+- PowerShell script file (.ps1)
+
+**What You Need to Provide:**
+- Script display name
+- Path to PowerShell script file
+- Whether to run as 64-bit PowerShell
+- Whether to run in system context
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Reads PowerShell script file content
+3. Encodes script as Base64
+4. Uploads script to Intune
+5. Returns script ID for device group assignment
+
+**Important Notes:**
+- Essential for automated device configuration and remediation
+- Scripts run on device check-in (approximately every 8 hours)
+- Can run in user or system context
+- Output logged to Intune for troubleshooting
+- Test scripts locally before deployment
+- Assign to device groups after upload
+- Monitor script execution status in Intune portal`,
+    parameters: [
+      {
+        name: 'scriptName',
+        label: 'Script Display Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Configure Company Settings',
+        helpText: 'Display name for the script'
+      },
+      {
+        name: 'scriptPath',
+        label: 'Script File Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Scripts\\ConfigureSettings.ps1',
+        helpText: 'Path to PowerShell script file'
+      },
+      {
+        name: 'runAs64Bit',
+        label: 'Run as 64-bit PowerShell',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        helpText: 'Use 64-bit PowerShell engine'
+      },
+      {
+        name: 'runAsSystem',
+        label: 'Run in System Context',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        helpText: 'Run as SYSTEM instead of user'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const scriptName = escapePowerShellString(params.scriptName);
+      const scriptPath = escapePowerShellString(params.scriptPath);
+      const runAs64Bit = params.runAs64Bit !== false;
+      const runAsSystem = params.runAsSystem === true;
+
+      return `# Deploy PowerShell Script to Devices
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
+
+try {
+    Write-Host "Uploading PowerShell script: ${scriptName}" -ForegroundColor Cyan
+    
+    if (-not (Test-Path "${scriptPath}")) {
+        throw "Script file not found: ${scriptPath}"
+    }
+    
+    $ScriptContent = Get-Content -Path "${scriptPath}" -Raw
+    $ScriptBytes = [System.Text.Encoding]::UTF8.GetBytes($ScriptContent)
+    $ScriptBase64 = [System.Convert]::ToBase64String($ScriptBytes)
+    
+    $ScriptParams = @{
+        "@odata.type" = "#microsoft.graph.deviceManagementScript"
+        DisplayName = "${scriptName}"
+        Description = "Premium PowerShell script deployed via PSForge"
+        ScriptContent = $ScriptBase64
+        RunAsAccount = ${runAsSystem ? '"system"' : '"user"'}
+        EnforceSignatureCheck = \$false
+        RunAs32Bit = \$${!runAs64Bit}
+    }
+    
+    $Script = New-MgDeviceManagementDeviceManagementScript -BodyParameter $ScriptParams
+    
+    Write-Host "✓ PowerShell script uploaded successfully" -ForegroundColor Green
+    Write-Host "  Script: ${scriptName}" -ForegroundColor Yellow
+    Write-Host "  Run as 64-bit: ${runAs64Bit}" -ForegroundColor Yellow
+    Write-Host "  Run as System: ${runAsSystem}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Script.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign script to device groups" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to upload PowerShell script: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-windows-hello',
+    title: 'Configure Windows Hello for Business',
+    description: 'WHfB policies and deployment settings',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task configures Windows Hello for Business to enable passwordless authentication with biometrics or PIN on Windows devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Minimum PIN length
+- Whether to require uppercase letters in PIN
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates Windows Hello for Business configuration
+3. Sets PIN complexity requirements
+4. Configures biometric authentication settings
+5. Returns policy ID for device group assignment
+
+**Important Notes:**
+- Essential for passwordless authentication strategy
+- Requires Windows 10/11 Pro or Enterprise
+- TPM 2.0 required for most configurations
+- Replaces passwords with biometrics or PIN
+- Improves security and user experience
+- Coordinate with Azure AD Password Protection
+- Test with pilot users before broad deployment
+- Monitor enrollment status in Intune portal`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Windows Hello for Business Policy',
+        helpText: 'Name for the WHfB policy'
+      },
+      {
+        name: 'minPinLength',
+        label: 'Minimum PIN Length',
+        type: 'number',
+        required: true,
+        defaultValue: 6,
+        helpText: 'Minimum PIN length (4-127)'
+      },
+      {
+        name: 'requireUppercase',
+        label: 'Require Uppercase Letters',
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        helpText: 'Require uppercase letters in PIN'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const minPinLength = params.minPinLength || 6;
+      const requireUppercase = params.requireUppercase === true;
+
+      return `# Configure Windows Hello for Business
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
+
+try {
+    Write-Host "Creating Windows Hello for Business policy: ${policyName}" -ForegroundColor Cyan
+    
+    $PolicyParams = @{
+        "@odata.type" = "#microsoft.graph.windowsIdentityProtectionConfiguration"
+        DisplayName = "${policyName}"
+        Description = "Premium WHfB policy created via PSForge"
+        UseSecurityKeyForSignin = \$true
+        PinMinimumLength = ${minPinLength}
+        PinMaximumLength = 127
+        PinUppercaseCharactersUsage = ${requireUppercase ? '"required"' : '"allowed"'}
+        PinLowercaseCharactersUsage = "allowed"
+        PinSpecialCharactersUsage = "allowed"
+        PinExpirationInDays = 0
+        PinPreviousBlockCount = 5
+        PinRecoveryEnabled = \$true
+        SecurityDeviceRequired = \$false
+        UnlockWithBiometricsEnabled = \$true
+        UseCertificatesForOnPremisesAuthEnabled = \$false
+        WindowsHelloForBusinessBlocked = \$false
+    }
+    
+    $Policy = New-MgDeviceManagementDeviceConfiguration -BodyParameter $PolicyParams
+    
+    Write-Host "✓ Windows Hello for Business policy created" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  Min PIN Length: ${minPinLength}" -ForegroundColor Yellow
+    Write-Host "  Require Uppercase: ${requireUppercase}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign policy to device groups" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create Windows Hello for Business policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-app-configuration',
+    title: 'Manage App Configuration Policies',
+    description: 'Configure managed app settings for iOS/Android',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task creates app configuration policies to pre-configure settings for managed mobile apps, improving user experience and ensuring consistent configuration.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Target app (e.g., Outlook, Teams)
+- Platform (iOS or Android)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app write permissions
+2. Creates managed app configuration policy
+3. Sets platform-specific configuration settings
+4. Returns policy ID for app and user assignment
+
+**Important Notes:**
+- Essential for consistent app configuration across devices
+- Pre-configures email, account settings, and app preferences
+- Reduces user setup time and support calls
+- Works with apps that support Intune App SDK
+- Common apps: Outlook, Teams, Edge, OneDrive
+- Must assign policy to users and target apps
+- Configuration values depend on specific app
+- Test with pilot users before broad deployment`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Outlook Configuration Policy',
+        helpText: 'Name for the app configuration policy'
+      },
+      {
+        name: 'targetApp',
+        label: 'Target App',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'com.microsoft.office.outlook', label: 'Microsoft Outlook' },
+          { value: 'com.microsoft.teams', label: 'Microsoft Teams' },
+          { value: 'com.microsoft.skydrive', label: 'OneDrive' },
+          { value: 'com.microsoft.emmx', label: 'Microsoft Edge' }
+        ],
+        helpText: 'App to configure'
+      },
+      {
+        name: 'platform',
+        label: 'Platform',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'iOS', label: 'iOS' },
+          { value: 'android', label: 'Android' }
+        ],
+        helpText: 'Target platform'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const targetApp = params.targetApp;
+      const platform = params.platform;
+
+      return `# Manage App Configuration Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementApps.ReadWrite.All"
+
+try {
+    Write-Host "Creating app configuration policy for ${targetApp} on ${platform}" -ForegroundColor Cyan
+    
+    $PolicyParams = @{
+        "@odata.type" = ${platform === 'iOS' ? '"#microsoft.graph.iosM anagedAppConfiguration"' : '"#microsoft.graph.androidManagedAppConfiguration"'}
+        DisplayName = "${policyName}"
+        Description = "Premium app config policy created via PSForge"
+        TargetedAppManagementLevels = "unmanaged"
+    }
+    
+    # Create the app configuration policy
+    ${platform === 'iOS' ?
+      '$Policy = New-MgDeviceAppManagementTargetedManagedAppConfiguration -BodyParameter $PolicyParams' :
+      '$Policy = New-MgDeviceAppManagementTargetedManagedAppConfiguration -BodyParameter $PolicyParams'}
+    
+    Write-Host "✓ App configuration policy created" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  App: ${targetApp}" -ForegroundColor Yellow
+    Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Configure app-specific settings in Intune portal, then assign to users" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create app configuration policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-export-device-inventory',
+    title: 'Export Device Inventory Report',
+    description: 'Export comprehensive device inventory with filters',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task exports comprehensive device inventory reports with filtering capabilities for asset management, compliance tracking, and lifecycle planning.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementManagedDevices.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path
+- Operating system filter (optional)
+- Compliance state filter (optional)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device read permissions
+2. Retrieves all Intune-managed devices with pagination
+3. Applies optional OS and compliance filters
+4. Extracts comprehensive device details
+5. Exports filtered inventory to CSV with summary statistics
+
+**Important Notes:**
+- Essential for asset management and auditing
+- Supports filtering by OS (Windows, iOS, Android, macOS)
+- Can filter by compliance state (compliant, non-compliant, all)
+- Includes device name, user, model, manufacturer, OS version
+- Shows serial number, last sync time, compliance state
+- Use for hardware refresh planning and warranty tracking
+- Run monthly for trending analysis
+- Export filtered datasets for specific device types`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\DeviceInventory.csv',
+        helpText: 'Path where the CSV file will be saved'
+      },
+      {
+        name: 'osFilter',
+        label: 'Operating System Filter',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'all', label: 'All Operating Systems' },
+          { value: 'Windows', label: 'Windows Only' },
+          { value: 'iOS', label: 'iOS Only' },
+          { value: 'Android', label: 'Android Only' },
+          { value: 'macOS', label: 'macOS Only' }
+        ],
+        defaultValue: 'all',
+        helpText: 'Filter devices by operating system'
+      },
+      {
+        name: 'complianceFilter',
+        label: 'Compliance State Filter',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'all', label: 'All Devices' },
+          { value: 'compliant', label: 'Compliant Only' },
+          { value: 'noncompliant', label: 'Non-Compliant Only' }
+        ],
+        defaultValue: 'all',
+        helpText: 'Filter devices by compliance state'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      const osFilter = params.osFilter || 'all';
+      const complianceFilter = params.complianceFilter || 'all';
+
+      return `# Export Device Inventory with Filters
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All"
+
+try {
+    Write-Host "Collecting comprehensive device inventory..." -ForegroundColor Cyan
+    
+    # Build filter query
+    $FilterQuery = @()
+    ${osFilter !== 'all' ? `$FilterQuery += "operatingSystem eq '${osFilter}'"` : ''}
+    ${complianceFilter !== 'all' ? `$FilterQuery += "complianceState eq '${complianceFilter}'"` : ''}
+    
+    $FilterString = if ($FilterQuery.Count -gt 0) { 
+        $FilterQuery -join " and " 
+    } else { 
+        $null 
+    }
+    
+    # Retrieve devices with optional filter
+    $Devices = if ($FilterString) {
+        Get-MgDeviceManagementManagedDevice -Filter $FilterString -All
+    } else {
+        Get-MgDeviceManagementManagedDevice -All
+    }
+    
+    Write-Host "Found $($Devices.Count) devices matching criteria" -ForegroundColor Yellow
+    
+    $Inventory = foreach ($Device in $Devices) {
+        [PSCustomObject]@{
+            DeviceName           = $Device.DeviceName
+            UserPrincipalName    = $Device.UserPrincipalName
+            Model                = $Device.Model
+            Manufacturer         = $Device.Manufacturer
+            OperatingSystem      = $Device.OperatingSystem
+            OSVersion            = $Device.OSVersion
+            SerialNumber         = $Device.SerialNumber
+            LastSyncDateTime     = $Device.LastSyncDateTime
+            ComplianceState      = $Device.ComplianceState
+            ManagementState      = $Device.ManagementState
+            EnrolledDateTime     = $Device.EnrolledDateTime
+            FreeStorageGB        = [math]::Round($Device.FreeStorageSpaceInBytes / 1GB, 2)
+            TotalStorageGB       = [math]::Round($Device.TotalStorageSpaceInBytes / 1GB, 2)
+        }
+    }
+    
+    $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Device inventory exported successfully" -ForegroundColor Green
+    Write-Host "  Total Devices: $($Inventory.Count)" -ForegroundColor Yellow
+    Write-Host "  OS Filter: ${osFilter}" -ForegroundColor Yellow
+    Write-Host "  Compliance Filter: ${complianceFilter}" -ForegroundColor Yellow
+    Write-Host "  Export Path: ${exportPath}" -ForegroundColor Cyan
+    
+    # Show summary statistics
+    Write-Host ${'\`n'}"Inventory Summary:" -ForegroundColor Cyan
+    Write-Host "  By OS:" -ForegroundColor Yellow
+    $Inventory | Group-Object OperatingSystem | ForEach-Object {
+        Write-Host "    $($_.Name): $($_.Count)" -ForegroundColor White
+    }
+    Write-Host ${'\`n'}"  By Compliance:" -ForegroundColor Yellow
+    $Inventory | Group-Object ComplianceState | ForEach-Object {
+        Write-Host "    $($_.Name): $($_.Count)" -ForegroundColor White
+    }
+    
+} catch {
+    Write-Error "Failed to export device inventory: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-endpoint-security',
+    title: 'Configure Endpoint Security Policies',
+    description: 'Antivirus, firewall, EDR policies',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task creates endpoint security policies to configure antivirus, firewall, and endpoint detection and response (EDR) settings on Windows devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Security feature to configure (Antivirus, Firewall, EDR)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates endpoint security configuration profile
+3. Configures Windows Defender and security settings
+4. Sets real-time protection and scanning preferences
+5. Returns policy ID for device group assignment
+
+**Important Notes:**
+- Essential for endpoint security and threat protection
+- Configures Windows Defender Antivirus settings
+- Enables real-time protection and cloud-delivered protection
+- Can enable tamper protection to prevent modification
+- Must assign policy to device groups after creation
+- Monitor security status in Microsoft Defender portal
+- Coordinate with Security Operations Center (SOC)
+- Test with pilot devices before broad deployment`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Endpoint Security Policy',
+        helpText: 'Name for the endpoint security policy'
+      },
+      {
+        name: 'securityFeature',
+        label: 'Security Feature',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'antivirus', label: 'Antivirus Protection' },
+          { value: 'firewall', label: 'Firewall Configuration' },
+          { value: 'edr', label: 'EDR Settings' }
+        ],
+        helpText: 'Security feature to configure'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const securityFeature = params.securityFeature;
+
+      return `# Configure Endpoint Security Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
+
+try {
+    Write-Host "Creating endpoint security policy for ${securityFeature}: ${policyName}" -ForegroundColor Cyan
+    
+    $PolicyParams = @{
+        "@odata.type" = "#microsoft.graph.windows10EndpointProtectionConfiguration"
+        DisplayName = "${policyName}"
+        Description = "Premium ${securityFeature} policy created via PSForge"
+    }
+    
+    # Add feature-specific settings
+    switch ("${securityFeature}") {
+        "antivirus" {
+            $PolicyParams.DefenderRealtimeScanDirection = "monitorAllFiles"
+            $PolicyParams.DefenderCloudBlockLevel = "high"
+            $PolicyParams.DefenderCloudExtendedTimeout = 50
+            $PolicyParams.DefenderDaysBeforeDeletingQuarantinedMalware = 30
+            $PolicyParams.DefenderScanType = "quick"
+            $PolicyParams.DefenderScheduledQuickScanTime = "120"
+            $PolicyParams.DefenderSubmitSamplesConsentType = "sendSafeSamplesAutomatically"
+            $PolicyParams.DefenderDetectedMalwareActions = @{
+                LowSeverity = "quarantine"
+                ModerateSeverity = "quarantine"
+                HighSeverity = "quarantine"
+                SevereSeverity = "quarantine"
+            }
+            Write-Host "Configured: Real-time protection, cloud protection, scheduled scans" -ForegroundColor Yellow
+        }
+        "firewall" {
+            $PolicyParams.FirewallBlockStatefulFTP = \$true
+            $PolicyParams.FirewallCertificateRevocationListCheckMethod = "attempt"
+            $PolicyParams.FirewallIPSecExemptionsAllowNeighborDiscovery = \$false
+            $PolicyParams.FirewallIPSecExemptionsAllowICMP = \$false
+            $PolicyParams.FirewallPreSharedKeyEncodingMethod = "none"
+            Write-Host "Configured: Firewall rules, IPSec exceptions" -ForegroundColor Yellow
+        }
+        "edr" {
+            $PolicyParams.DefenderSecurityCenterDisableAppBrowserUI = \$false
+            $PolicyParams.DefenderSecurityCenterDisableFamilyUI = \$true
+            $PolicyParams.DefenderSecurityCenterDisableHealthUI = \$false
+            $PolicyParams.DefenderSecurityCenterDisableNetworkUI = \$false
+            $PolicyParams.DefenderSecurityCenterDisableVirusUI = \$false
+            $PolicyParams.DefenderSecurityCenterOrganizationDisplayName = "IT Security"
+            Write-Host "Configured: Security Center settings, EDR capabilities" -ForegroundColor Yellow
+        }
+    }
+    
+    $Policy = New-MgDeviceManagementDeviceConfiguration -BodyParameter $PolicyParams
+    
+    Write-Host "✓ Endpoint security policy created" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  Feature: ${securityFeature}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign policy to device groups" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create endpoint security policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-apns-certificate',
+    title: 'Manage Apple Push Notification Certificate',
+    description: 'Renew/upload APNs certificate for iOS',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task helps manage Apple Push Notification Service (APNs) certificates required for iOS/iPadOS device management in Intune.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementServiceConfig.ReadWrite.All permission
+- Apple ID with admin access
+- Valid APNs certificate from Apple
+
+**What You Need to Provide:**
+- Path to APNs certificate file (.pem)
+- Apple ID used for the certificate
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with service config permissions
+2. Retrieves current APNs certificate status
+3. Reads new certificate file content
+4. Updates APNs certificate in Intune
+5. Reports certificate expiration date
+
+**Important Notes:**
+- CRITICAL: APNs certificate expires annually - must renew before expiration
+- If certificate expires, all iOS/iPadOS devices lose management connection
+- Use same Apple ID for renewals to maintain device connections
+- Download certificate from Apple Push Certificates Portal
+- Set calendar reminder 30 days before expiration
+- Test certificate upload in off-hours
+- Monitor certificate status in Intune admin center
+- Certificate renewal does NOT disrupt managed devices if done before expiration`,
+    parameters: [
+      {
+        name: 'certificatePath',
+        label: 'APNs Certificate File Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Certificates\\MDM_Apple_Push_Cert.pem',
+        helpText: 'Path to .pem certificate file from Apple'
+      },
+      {
+        name: 'appleId',
+        label: 'Apple ID',
+        type: 'text',
+        required: true,
+        placeholder: 'admin@company.com',
+        helpText: 'Apple ID used to create the certificate'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const certPath = escapePowerShellString(params.certificatePath);
+      const appleId = escapePowerShellString(params.appleId);
+
+      return `# Manage Apple Push Notification Certificate
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementServiceConfig.ReadWrite.All"
+
+try {
+    Write-Host "Managing APNs certificate..." -ForegroundColor Cyan
+    
+    # Verify certificate file exists
+    if (-not (Test-Path "${certPath}")) {
+        throw "Certificate file not found: ${certPath}"
+    }
+    
+    # Get current APNs certificate
+    $CurrentCert = Get-MgDeviceManagementApplePushNotificationCertificate
+    
+    if ($CurrentCert) {
+        Write-Host "Current APNs Certificate:" -ForegroundColor Yellow
+        Write-Host "  Apple ID: $($CurrentCert.AppleIdentifier)" -ForegroundColor White
+        Write-Host "  Expires: $($CurrentCert.ExpirationDateTime)" -ForegroundColor White
+        Write-Host "  Last Modified: $($CurrentCert.LastModifiedDateTime)" -ForegroundColor White
+    }
+    
+    # Read certificate content
+    $CertContent = Get-Content -Path "${certPath}" -Raw
+    $CertBytes = [System.Text.Encoding]::UTF8.GetBytes($CertContent)
+    $CertBase64 = [System.Convert]::ToBase64String($CertBytes)
+    
+    # Update APNs certificate
+    $CertParams = @{
+        AppleIdentifier = "${appleId}"
+        Certificate = $CertBase64
+    }
+    
+    if ($CurrentCert) {
+        Update-MgDeviceManagementApplePushNotificationCertificate -ApplePushNotificationCertificateId $CurrentCert.Id -BodyParameter $CertParams
+        Write-Host "✓ APNs certificate renewed successfully" -ForegroundColor Green
+    } else {
+        New-MgDeviceManagementApplePushNotificationCertificate -BodyParameter $CertParams
+        Write-Host "✓ APNs certificate uploaded successfully" -ForegroundColor Green
+    }
+    
+    # Get updated certificate info
+    $UpdatedCert = Get-MgDeviceManagementApplePushNotificationCertificate
+    
+    Write-Host ${'\`n'}"Updated Certificate Details:" -ForegroundColor Cyan
+    Write-Host "  Apple ID: ${appleId}" -ForegroundColor Yellow
+    Write-Host "  Expires: $($UpdatedCert.ExpirationDateTime)" -ForegroundColor Yellow
+    Write-Host ${'\`n'}"IMPORTANT: Set calendar reminder 30 days before expiration!" -ForegroundColor Red
+    
+} catch {
+    Write-Error "Failed to manage APNs certificate: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-premium-remote-actions',
+    title: 'Configure Remote Actions and Wipe',
+    description: 'Execute remote lock, wipe, retire on devices',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This premium task executes remote actions on managed devices including lock, wipe, retire, restart, and sync for security incident response and device management.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementManagedDevices.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Device name to target
+- Remote action to execute
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with device write permissions
+2. Searches for target device by name
+3. Validates device exists in Intune
+4. Executes selected remote action (lock, wipe, retire, restart, sync)
+5. Reports action status with next steps
+
+**Important Notes:**
+- CRITICAL: Wipe and Retire actions are irreversible
+- Remote Lock: Locks device, user can unlock with PIN/password
+- Wipe: Factory reset, removes ALL data (use for lost/stolen devices)
+- Retire: Removes company data, keeps personal data (BYOD-friendly)
+- Restart: Forces device restart (Windows only)
+- Sync: Forces immediate check-in to apply policies/apps
+- Essential for security incident response
+- Coordinate with security team for lost/stolen devices
+- Document all remote actions for compliance
+- Some actions may take 5-15 minutes to complete`,
+    parameters: [
+      {
+        name: 'deviceName',
+        label: 'Device Name',
+        type: 'text',
+        required: true,
+        placeholder: 'LAPTOP-ABC123',
+        helpText: 'Name of device to execute action on'
+      },
+      {
+        name: 'remoteAction',
+        label: 'Remote Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'remoteLock', label: 'Remote Lock' },
+          { value: 'wipe', label: 'Wipe (Factory Reset)' },
+          { value: 'retire', label: 'Retire (Remove Company Data)' },
+          { value: 'reboot', label: 'Restart Device' },
+          { value: 'sync', label: 'Sync Device' }
+        ],
+        helpText: 'Remote action to execute'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const deviceName = escapePowerShellString(params.deviceName);
+      const remoteAction = params.remoteAction;
+
+      return `# Execute Remote Action on Device
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementManagedDevices.ReadWrite.All"
+
+try {
+    Write-Host "Executing remote action: ${remoteAction} on ${deviceName}" -ForegroundColor Cyan
+    
+    # Find the device
+    $Device = Get-MgDeviceManagementManagedDevice -Filter "deviceName eq '${deviceName}'" | Select-Object -First 1
+    
+    if (-not $Device) {
+        throw "Device not found: ${deviceName}"
+    }
+    
+    # Show device details before action
+    Write-Host ${'\`n'}"Target Device:" -ForegroundColor Yellow
+    Write-Host "  Name: ${deviceName}" -ForegroundColor White
+    Write-Host "  User: $($Device.UserPrincipalName)" -ForegroundColor White
+    Write-Host "  OS: $($Device.OperatingSystem) $($Device.OSVersion)" -ForegroundColor White
+    Write-Host "  Serial: $($Device.SerialNumber)" -ForegroundColor White
+    Write-Host "  Last Sync: $($Device.LastSyncDateTime)" -ForegroundColor White
+    
+    # Execute remote action
+    switch ("${remoteAction}") {
+        "remoteLock" {
+            Write-Host ${'\`n'}"Initiating remote lock..." -ForegroundColor Cyan
+            Invoke-MgRemoteLockDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
+            Write-Host "✓ Remote lock initiated" -ForegroundColor Green
+            Write-Host "User can unlock with their PIN/password" -ForegroundColor Yellow
+        }
+        "wipe" {
+            Write-Host ${'\`n'}"WARNING: Factory reset will erase ALL data!" -ForegroundColor Red
+            $WipeParams = @{
+                KeepEnrollmentData = \$false
+                KeepUserData = \$false
+            }
+            Invoke-MgWipeDeviceManagementManagedDevice -ManagedDeviceId $Device.Id -BodyParameter $WipeParams
+            Write-Host "✓ Wipe (factory reset) initiated" -ForegroundColor Green
+            Write-Host "Device will be reset to factory state" -ForegroundColor Yellow
+        }
+        "retire" {
+            Write-Host ${'\`n'}"Retiring device (removes company data only)..." -ForegroundColor Cyan
+            Invoke-MgRetireDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
+            Write-Host "✓ Retire initiated" -ForegroundColor Green
+            Write-Host "Company data will be removed, personal data preserved" -ForegroundColor Yellow
+        }
+        "reboot" {
+            Write-Host ${'\`n'}"Initiating device restart..." -ForegroundColor Cyan
+            Invoke-MgRebootDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
+            Write-Host "✓ Restart initiated" -ForegroundColor Green
+            Write-Host "Device will restart when user next checks in" -ForegroundColor Yellow
+        }
+        "sync" {
+            Write-Host ${'\`n'}"Initiating device sync..." -ForegroundColor Cyan
+            Invoke-MgSyncDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
+            Write-Host "✓ Sync initiated" -ForegroundColor Green
+            Write-Host "Device will check in for policies/apps within 5-10 minutes" -ForegroundColor Yellow
+        }
+    }
+    
+    Write-Host ${'\`n'}"Device ID: $($Device.Id)" -ForegroundColor Cyan
+    Write-Host "Monitor action status in Intune portal" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to execute remote action: $_"
+}`;
+    }
   }
 ];
 
@@ -2650,5 +4433,6 @@ export const intuneCategories = [
   'Scripts & Remediation',
   'Communication',
   'Reporting',
-  'Security'
+  'Security',
+  'Common Admin Tasks'
 ];

@@ -21,6 +21,7 @@ export interface MECMTask {
   name: string;
   category: string;
   description: string;
+  isPremium?: boolean;
   instructions?: string;
   parameters: MECMTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
@@ -3019,6 +3020,1692 @@ try {
 }`;
     }
   },
+
+  // ========================================
+  // COMMON ADMIN TASKS CATEGORY (PREMIUM)
+  // ========================================
+  {
+    id: 'create-deploy-task-sequence',
+    name: 'Create and Deploy Task Sequences',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Create OS deployment task sequences with drivers and deploy to collections',
+    instructions: `**How This Task Works:**
+This script creates comprehensive OS deployment task sequences in MECM with driver integration for automated OS deployment workflows.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Operating System Deployment permissions
+- OS image package already imported
+- Driver packages created and distributed
+
+**What You Need to Provide:**
+- Task sequence name
+- Boot image package ID
+- OS image package ID
+- Driver package ID (optional)
+- Target collection for deployment
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Creates new task sequence for OS deployment
+3. Associates boot image for PXE/media boot
+4. Links OS image package for installation
+5. Optional: Adds driver package application step
+6. Creates deployment to target collection
+7. Configures deployment as Available to allow user-initiated deployment
+
+**Important Notes:**
+- Boot image must be distributed to DPs before deployment
+- OS image package must be distributed to DPs
+- Driver packages improve hardware compatibility
+- Task sequences are complex - test thoroughly before production
+- Deployment is set to Available (not Required) for safety
+- Essential for zero-touch and automated OS deployments
+- Can be customized post-creation with additional steps`,
+    parameters: [
+      { id: 'taskSequenceName', label: 'Task Sequence Name', type: 'text', required: true, placeholder: 'Deploy Windows 11 23H2' },
+      { id: 'bootImageId', label: 'Boot Image Package ID', type: 'text', required: true, placeholder: 'PS100001' },
+      { id: 'osImageId', label: 'OS Image Package ID', type: 'text', required: true, placeholder: 'PS100002' },
+      { id: 'driverPackageId', label: 'Driver Package ID (Optional)', type: 'text', required: false, placeholder: 'PS100003' },
+      { id: 'collectionName', label: 'Deployment Collection', type: 'text', required: true, placeholder: 'OSD-Pilot' }
+    ],
+    scriptTemplate: (params) => {
+      const tsName = escapePowerShellString(params.taskSequenceName);
+      const bootImg = escapePowerShellString(params.bootImageId);
+      const osImg = escapePowerShellString(params.osImageId);
+      const drvPkg = params.driverPackageId ? escapePowerShellString(params.driverPackageId) : '';
+      const collection = escapePowerShellString(params.collectionName);
+
+      return `# Create and Deploy OS Task Sequence
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$TSName = "${tsName}"
+$BootImageId = "${bootImg}"
+$OSImageId = "${osImg}"
+$CollectionName = "${collection}"
+
+try {
+    # Validate packages exist
+    $BootImage = Get-CMBootImage -Id $BootImageId -ErrorAction Stop
+    $OSImage = Get-CMOperatingSystemImage -Id $OSImageId -ErrorAction Stop
+    Write-Host "✓ Boot image validated: $($BootImage.Name)" -ForegroundColor Green
+    Write-Host "✓ OS image validated: $($OSImage.Name)" -ForegroundColor Green
+    
+${drvPkg ? `    # Validate driver package if provided
+    $DriverPackageId = "${drvPkg}"
+    $DriverPkg = Get-CMDriverPackage -Id $DriverPackageId -ErrorAction Stop
+    Write-Host "✓ Driver package validated: $($DriverPkg.Name)" -ForegroundColor Green
+` : ''}    
+    # Create task sequence
+    $TS = New-CMTaskSequence \`
+        -Name $TSName \`
+        -BootImagePackageId $BootImageId \`
+        -InstallOperatingSystemImagePackageId $OSImageId \`
+        -ApplyAll $true \`
+        -JoinDomain DomainType
+    
+    Write-Host "✓ Task sequence created: $TSName" -ForegroundColor Green
+    
+${drvPkg ? `    # Add driver package step
+    $StepParams = @{
+        TaskSequenceName = $TSName
+        StepName = "Apply Drivers"
+        DriverPackageId = $DriverPackageId
+    }
+    Add-CMTaskSequenceStep -TaskSequenceName $TSName -Step (New-CMTaskSequenceStepApplyDriverPackage @StepParams)
+    Write-Host "✓ Driver package step added" -ForegroundColor Green
+` : ''}    
+    # Validate collection exists
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    
+    # Create deployment
+    New-CMTaskSequenceDeployment \`
+        -TaskSequenceName $TSName \`
+        -CollectionName $CollectionName \`
+        -DeployPurpose Available \`
+        -AllowSharedContent $true \`
+        -AllowFallback $true \`
+        -MakeAvailableTo ClientsMediaAndPxe \`
+        -ShowTaskSequenceProgress $true
+    
+    Write-Host "✓ Deployment created to collection: $CollectionName" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Task Sequence Ready!" -ForegroundColor Cyan
+    Write-Host "  Name: $TSName" -ForegroundColor Gray
+    Write-Host "  Deployment: Available (user-initiated)" -ForegroundColor Gray
+    Write-Host "  Next: Ensure content distributed to DPs" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create task sequence: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'manage-software-update-groups',
+    name: 'Manage Software Update Groups',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Create software update groups and deploy patches to collections',
+    instructions: `**How This Task Works:**
+This script creates software update groups in MECM and deploys patches to collections for centralized patch management.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Software Update Point configured
+- Updates synchronized from WSUS/Microsoft Update
+- Collection already created for deployment
+
+**What You Need to Provide:**
+- Update group name
+- Collection name for deployment
+- Deployment deadline hours (0 for no deadline)
+- Update severity filters (Critical, Important, etc.)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Searches for updates matching severity criteria
+3. Creates new software update group with matching updates
+4. Validates target collection exists
+5. Creates deployment with specified deadline
+6. Configures user notifications and restart behavior
+7. Reports update count and deployment status
+
+**Important Notes:**
+- Deadline determines enforcement time (0 = Available only)
+- Critical/Important updates typically deployed Required
+- Test deployments on pilot collections first
+- Deadline too short may disrupt users
+- Essential for monthly patch management
+- Can filter by multiple severity levels
+- Deployment sends notifications to users`,
+    parameters: [
+      { id: 'groupName', label: 'Update Group Name', type: 'text', required: true, placeholder: 'Security Updates - January 2024' },
+      { id: 'collectionName', label: 'Target Collection', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'deadlineHours', label: 'Deployment Deadline (hours)', type: 'number', required: true, placeholder: '72', defaultValue: 72 },
+      { id: 'severity', label: 'Update Severity', type: 'select', required: true, defaultValue: 'Critical', options: ['Critical', 'Important', 'Moderate', 'Low', 'All'] }
+    ],
+    scriptTemplate: (params) => {
+      const groupName = escapePowerShellString(params.groupName);
+      const collection = escapePowerShellString(params.collectionName);
+      const deadlineHours = params.deadlineHours || 72;
+      const severity = escapePowerShellString(params.severity || 'Critical');
+
+      return `# Manage Software Update Groups
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$GroupName = "${groupName}"
+$CollectionName = "${collection}"
+$DeadlineHours = ${deadlineHours}
+$Severity = "${severity}"
+
+try {
+    # Search for updates matching severity
+    Write-Host "Searching for $Severity updates..." -ForegroundColor Cyan
+    
+    if ($Severity -eq "All") {
+        $Updates = Get-CMSoftwareUpdate -Fast | Where-Object { $_.IsDeployed -eq $false -and $_.IsExpired -eq $false }
+    } else {
+        $Updates = Get-CMSoftwareUpdate -Fast | Where-Object { 
+            $_.IsDeployed -eq $false -and 
+            $_.IsExpired -eq $false -and 
+            $_.SeverityName -eq $Severity 
+        }
+    }
+    
+    Write-Host "  Found: $($Updates.Count) updates" -ForegroundColor Gray
+    
+    if ($Updates.Count -eq 0) {
+        Write-Host "⚠ No matching updates found. Exiting." -ForegroundColor Yellow
+        exit 0
+    }
+    
+    # Create software update group
+    $SUG = New-CMSoftwareUpdateGroup -Name $GroupName -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
+    Write-Host "✓ Software update group created: $GroupName" -ForegroundColor Green
+    
+    # Add updates to group
+    Add-CMSoftwareUpdateToGroup -SoftwareUpdateGroupName $GroupName -SoftwareUpdateId $Updates.CI_ID
+    Write-Host "✓ Added $($Updates.Count) updates to group" -ForegroundColor Green
+    
+    # Validate collection
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Target collection validated: $CollectionName" -ForegroundColor Green
+    
+    # Calculate deadline
+    $DeadlineDate = (Get-Date).AddHours($DeadlineHours)
+    
+    # Create deployment
+    $DeploymentParams = @{
+        SoftwareUpdateGroupName = $GroupName
+        CollectionName = $CollectionName
+        DeploymentType = if ($DeadlineHours -eq 0) { "Available" } else { "Required" }
+        VerbosityLevel = "AllMessages"
+        TimeBasedOn = "LocalTime"
+        AvailableDateTime = (Get-Date)
+        UserNotification = "DisplaySoftwareCenterOnly"
+        SoftwareInstallation = $true
+        AllowRestart = $true
+    }
+    
+    if ($DeadlineHours -gt 0) {
+        $DeploymentParams.DeadlineDateTime = $DeadlineDate
+        $DeploymentParams.RequirePostRebootFullScan = $true
+    }
+    
+    New-CMSoftwareUpdateDeployment @DeploymentParams
+    
+    Write-Host "✓ Deployment created" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Software Update Deployment Summary:" -ForegroundColor Cyan
+    Write-Host "  Group: $GroupName" -ForegroundColor Gray
+    Write-Host "  Updates: $($Updates.Count)" -ForegroundColor Gray
+    Write-Host "  Collection: $CollectionName" -ForegroundColor Gray
+    Write-Host "  Deadline: $(if ($DeadlineHours -eq 0) {'Available Only'} else {"$DeadlineHours hours ($DeadlineDate)"})" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create update deployment: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-client-settings',
+    name: 'Configure Client Settings Policies',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Configure device/user client settings for ConfigMgr clients',
+    instructions: `**How This Task Works:**
+This script creates custom client settings policies in MECM for granular control over client behavior and features.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Client settings management permissions
+- Target collection already created
+
+**What You Need to Provide:**
+- Client settings policy name
+- Policy type (Device or User)
+- Target collection for deployment
+- Hardware inventory schedule
+- Software inventory enabled/disabled
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Creates new client settings policy with specified type
+3. Configures hardware inventory schedule (daily/weekly)
+4. Enables or disables software inventory
+5. Deploys policy to target collection
+6. Reports configuration summary
+
+**Important Notes:**
+- Device settings apply to computers
+- User settings apply to logged-in users
+- Custom settings override default client settings
+- Priority determines which settings win (lower number = higher priority)
+- Hardware inventory frequency impacts network/DB load
+- Software inventory can consume significant resources
+- Typical use: different settings for servers vs workstations
+- Changes take effect at next policy refresh cycle`,
+    parameters: [
+      { id: 'settingsName', label: 'Client Settings Name', type: 'text', required: true, placeholder: 'Workstation Client Settings' },
+      { id: 'settingsType', label: 'Settings Type', type: 'select', required: true, defaultValue: 'Device', options: ['Device', 'User'] },
+      { id: 'collectionName', label: 'Target Collection', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'hwInventorySchedule', label: 'Hardware Inventory Schedule', type: 'select', required: true, defaultValue: 'Daily', options: ['Daily', 'Weekly', 'None'] },
+      { id: 'enableSwInventory', label: 'Enable Software Inventory', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const settingsName = escapePowerShellString(params.settingsName);
+      const settingsType = escapePowerShellString(params.settingsType || 'Device');
+      const collection = escapePowerShellString(params.collectionName);
+      const hwSchedule = escapePowerShellString(params.hwInventorySchedule || 'Daily');
+      const swInventory = toPowerShellBoolean(params.enableSwInventory ?? true);
+
+      return `# Configure Client Settings Policies
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$SettingsName = "${settingsName}"
+$SettingsType = "${settingsType}"
+$CollectionName = "${collection}"
+$HWSchedule = "${hwSchedule}"
+$EnableSWInventory = ${swInventory}
+
+try {
+    # Validate collection exists
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Target collection validated: $CollectionName" -ForegroundColor Green
+    
+    # Determine settings type parameter
+    $TypeParam = if ($SettingsType -eq "Device") { "-SettingsType Device" } else { "-SettingsType User" }
+    
+    # Create client settings
+    $ClientSettings = New-CMClientSetting -Name $SettingsName -Type $TypeParam -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
+    Write-Host "✓ Client settings created: $SettingsName ($SettingsType)" -ForegroundColor Green
+    
+    # Configure hardware inventory
+    if ($HWSchedule -ne "None") {
+        $Schedule = if ($HWSchedule -eq "Daily") {
+            New-CMSchedule -RecurInterval Days -RecurCount 1
+        } else {
+            New-CMSchedule -RecurInterval Days -RecurCount 7
+        }
+        
+        Set-CMClientSettingHardwareInventory \`
+            -Name $SettingsName \`
+            -Enable $true \`
+            -Schedule $Schedule
+        
+        Write-Host "✓ Hardware inventory configured: $HWSchedule" -ForegroundColor Green
+    }
+    
+    # Configure software inventory
+    if ($EnableSWInventory) {
+        $SWSchedule = New-CMSchedule -RecurInterval Days -RecurCount 7
+        Set-CMClientSettingSoftwareInventory \`
+            -Name $SettingsName \`
+            -Enable $true \`
+            -Schedule $SWSchedule
+        
+        Write-Host "✓ Software inventory enabled (weekly)" -ForegroundColor Green
+    } else {
+        Set-CMClientSettingSoftwareInventory -Name $SettingsName -Enable $false
+        Write-Host "ℹ Software inventory disabled" -ForegroundColor Gray
+    }
+    
+    # Deploy to collection
+    Start-CMClientSettingDeployment -ClientSettingName $SettingsName -CollectionName $CollectionName
+    Write-Host "✓ Client settings deployed to: $CollectionName" -ForegroundColor Green
+    
+    Write-Host ""
+    Write-Host "Client Settings Configuration Complete!" -ForegroundColor Cyan
+    Write-Host "  Name: $SettingsName" -ForegroundColor Gray
+    Write-Host "  Type: $SettingsType" -ForegroundColor Gray
+    Write-Host "  HW Inventory: $HWSchedule" -ForegroundColor Gray
+    Write-Host "  SW Inventory: $(if ($EnableSWInventory) {'Enabled'} else {'Disabled'})" -ForegroundColor Gray
+    Write-Host "  Deployed to: $CollectionName" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Note: Changes take effect at next policy refresh" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to configure client settings: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-app-deployment-type',
+    name: 'Create Application Deployment Types',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Configure detection methods and installation commands for application deployment types',
+    instructions: `**How This Task Works:**
+This script adds deployment types to existing MECM applications with custom detection logic and installation commands.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Application already created in MECM
+- Installation source files accessible via UNC path
+- Knowledge of detection methods (file, registry, or MSI)
+
+**What You Need to Provide:**
+- Application name (must already exist)
+- Deployment type name
+- Content source UNC path
+- Install command
+- Uninstall command
+- Detection method and value
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates application exists
+3. Creates deployment type with specified install/uninstall commands
+4. Configures detection method based on selected type
+5. Sets installation behavior (system vs user context)
+6. Reports successful configuration
+
+**Important Notes:**
+- Application must already exist (create first with separate task)
+- MSI detection uses product code from installer
+- File detection checks file existence at specified path
+- Registry detection checks for registry key/value
+- Script detection allows custom PowerShell logic
+- Content must be accessible from MECM server
+- After adding: distribute content to DPs`,
+    parameters: [
+      { id: 'applicationName', label: 'Application Name', type: 'text', required: true, placeholder: 'Adobe Reader DC' },
+      { id: 'deploymentTypeName', label: 'Deployment Type Name', type: 'text', required: true, placeholder: 'Adobe Reader DC 2023 - Script' },
+      { id: 'contentLocation', label: 'Content Source Path', type: 'path', required: true, placeholder: '\\\\server\\sources$\\Adobe\\ReaderDC' },
+      { id: 'installCommand', label: 'Install Command', type: 'text', required: true, placeholder: 'AcroRdrDC2300620360_en_US.exe /sAll /rs /msi EULA_ACCEPT=YES' },
+      { id: 'uninstallCommand', label: 'Uninstall Command', type: 'text', required: true, placeholder: 'msiexec /x {AC76BA86-7AD7-1033-7B44-AC0F074E4100} /qn' },
+      { id: 'detectionMethod', label: 'Detection Method', type: 'select', required: true, defaultValue: 'File', options: ['File', 'Registry', 'MSI', 'Script'] },
+      { id: 'detectionValue', label: 'Detection Value', type: 'text', required: true, placeholder: 'C:\\Program Files (x86)\\Adobe\\Acrobat Reader DC\\Reader\\AcroRd32.exe' }
+    ],
+    scriptTemplate: (params) => {
+      const appName = escapePowerShellString(params.applicationName);
+      const dtName = escapePowerShellString(params.deploymentTypeName);
+      const contentPath = escapePowerShellString(params.contentLocation);
+      const installCmd = escapePowerShellString(params.installCommand);
+      const uninstallCmd = escapePowerShellString(params.uninstallCommand);
+      const detectionMethod = escapePowerShellString(params.detectionMethod || 'File');
+      const detectionValue = escapePowerShellString(params.detectionValue);
+
+      return `# Create Application Deployment Type
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$AppName = "${appName}"
+$DTName = "${dtName}"
+$ContentLocation = "${contentPath}"
+$InstallCommand = "${installCmd}"
+$UninstallCommand = "${uninstallCmd}"
+$DetectionMethod = "${detectionMethod}"
+$DetectionValue = "${detectionValue}"
+
+try {
+    # Validate application exists
+    $App = Get-CMApplication -Name $AppName -ErrorAction Stop
+    Write-Host "✓ Application found: $AppName" -ForegroundColor Green
+    
+    # Prepare detection clause based on method
+    $DetectionClause = switch ($DetectionMethod) {
+        "File" {
+            $FilePath = Split-Path $DetectionValue -Parent
+            $FileName = Split-Path $DetectionValue -Leaf
+            New-CMDetectionClauseFile -Path $FilePath -FileName $FileName -Existence
+        }
+        "Registry" {
+            # Assume format: HKLM\\Software\\Company\\Product
+            $RegParts = $DetectionValue -split '\\\\'
+            $Hive = $RegParts[0]
+            $KeyPath = $RegParts[1..($RegParts.Length-2)] -join '\\'
+            $ValueName = $RegParts[-1]
+            
+            New-CMDetectionClauseRegistryKey \`
+                -Hive $Hive \`
+                -KeyName $KeyPath \`
+                -Existence
+        }
+        "MSI" {
+            # For MSI, use product code from detection value
+            New-CMDetectionClauseMacFile -ProductCode $DetectionValue
+        }
+        "Script" {
+            # Custom PowerShell script
+            $ScriptText = @"
+# Custom detection script
+if (Test-Path "$DetectionValue") {
+    Write-Host "Installed"
+}
+"@
+            New-CMDetectionClauseFile -Path "C:\\" -FileName "dummy.txt" -Existence # Placeholder
+        }
+    }
+    
+    # Add script deployment type
+    $DTParams = @{
+        ApplicationName = $AppName
+        DeploymentTypeName = $DTName
+        ScriptInstaller = $true
+        InstallCommand = $InstallCommand
+        UninstallCommand = $UninstallCommand
+        ContentLocation = $ContentLocation
+        InstallationBehaviorType = 'InstallForSystem'
+        LogonRequirementType = 'WhetherOrNotUserLoggedOn'
+        ScriptType = 'PowerShell'
+        ScriptContent = 'Write-Host "Detection"'
+        AddDetectionClause = $DetectionClause
+    }
+    
+    Add-CMScriptDeploymentType @DTParams
+    
+    Write-Host "✓ Deployment type added: $DTName" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Deployment Type Configuration:" -ForegroundColor Cyan
+    Write-Host "  Application: $AppName" -ForegroundColor Gray
+    Write-Host "  Type: $DTName" -ForegroundColor Gray
+    Write-Host "  Detection: $DetectionMethod" -ForegroundColor Gray
+    Write-Host "  Content: $ContentLocation" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Yellow
+    Write-Host "  1. Distribute content to distribution points" -ForegroundColor Gray
+    Write-Host "  2. Test detection logic" -ForegroundColor Gray
+    Write-Host "  3. Create deployment to collection" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to add deployment type: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'manage-dp-groups',
+    name: 'Manage Distribution Point Groups',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Create DP groups and distribute content efficiently',
+    instructions: `**How This Task Works:**
+This script creates distribution point groups in MECM for simplified content distribution management.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Distribution point management permissions
+- Distribution points already configured
+
+**What You Need to Provide:**
+- DP group name
+- Comma-separated list of DP server names
+- Optional: Package/application name to distribute immediately
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Creates new distribution point group
+3. Validates each DP server exists in MECM
+4. Adds distribution points to group
+5. Optional: Distributes specified package/application to group
+6. Reports configuration summary
+
+**Important Notes:**
+- DP groups simplify content distribution to multiple DPs
+- Add/remove DPs from group instead of individual distributions
+- Essential for large environments with many DPs
+- Typical use: geographic regions, site boundaries
+- Validate DP names match MECM exactly (FQDN vs NetBIOS)
+- Content distributed to group propagates to all member DPs
+- Changes to group membership affect future distributions only`,
+    parameters: [
+      { id: 'groupName', label: 'DP Group Name', type: 'text', required: true, placeholder: 'Regional-DPs-US-East' },
+      { id: 'dpServers', label: 'DP Servers (comma-separated)', type: 'textarea', required: true, placeholder: 'DP01.contoso.com,DP02.contoso.com,DP03.contoso.com' },
+      { id: 'packageToDistribute', label: 'Package/App to Distribute (Optional)', type: 'text', required: false, placeholder: 'Microsoft 365' }
+    ],
+    scriptTemplate: (params) => {
+      const groupName = escapePowerShellString(params.groupName);
+      const dpServers = params.dpServers ? buildPowerShellArray(params.dpServers) : '';
+      const packageName = params.packageToDistribute ? escapePowerShellString(params.packageToDistribute) : '';
+
+      return `# Manage Distribution Point Groups
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$GroupName = "${groupName}"
+$DPServers = ${dpServers}
+
+try {
+    # Create DP group
+    $DPGroup = New-CMDistributionPointGroup -Name $GroupName -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
+    Write-Host "✓ Distribution point group created: $GroupName" -ForegroundColor Green
+    
+    # Add distribution points to group
+    $AddedCount = 0
+    $FailedCount = 0
+    
+    foreach ($DPServer in $DPServers) {
+        try {
+            # Validate DP exists
+            $DP = Get-CMDistributionPoint -SiteSystemServerName $DPServer -ErrorAction Stop
+            
+            # Add to group
+            Add-CMDistributionPointToGroup -DistributionPointGroupName $GroupName -DistributionPointName $DPServer
+            
+            Write-Host "  ✓ Added: $DPServer" -ForegroundColor Green
+            $AddedCount++
+            
+        } catch {
+            Write-Host "  ✗ Failed: $DPServer - $($_.Exception.Message)" -ForegroundColor Red
+            $FailedCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "DP Group Configuration:" -ForegroundColor Cyan
+    Write-Host "  Group Name: $GroupName" -ForegroundColor Gray
+    Write-Host "  DPs Added: $AddedCount" -ForegroundColor Green
+    Write-Host "  DPs Failed: $FailedCount" -ForegroundColor $(if ($FailedCount -gt 0) {'Red'} else {'Gray'})
+    
+${packageName ? `    # Distribute package to DP group
+    Write-Host ""
+    Write-Host "Distributing content to DP group..." -ForegroundColor Cyan
+    
+    try {
+        $PackageName = "${packageName}"
+        
+        # Try as application first
+        $App = Get-CMApplication -Name $PackageName -ErrorAction SilentlyContinue
+        if ($App) {
+            Start-CMContentDistribution -ApplicationName $PackageName -DistributionPointGroupName $GroupName
+            Write-Host "✓ Application distribution started: $PackageName" -ForegroundColor Green
+        } else {
+            # Try as package
+            $Package = Get-CMPackage -Name $PackageName -ErrorAction Stop
+            Start-CMContentDistribution -PackageName $PackageName -DistributionPointGroupName $GroupName
+            Write-Host "✓ Package distribution started: $PackageName" -ForegroundColor Green
+        }
+        
+    } catch {
+        Write-Host "⚠ Failed to distribute content: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+` : ''}    
+    Write-Host ""
+    Write-Host "Distribution Point Group Ready!" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to manage DP group: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-maintenance-windows',
+    name: 'Configure Maintenance Windows',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Set up maintenance windows for collections to control deployment timing',
+    instructions: `**How This Task Works:**
+This script configures maintenance windows on collections to control when software installations, updates, and reboots can occur.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Collection management permissions
+- Target collection already created
+
+**What You Need to Provide:**
+- Collection name
+- Maintenance window name
+- Window type (All Deployments, Software Updates, Task Sequences)
+- Schedule (Daily, Weekly, Monthly)
+- Start time (24-hour format)
+- Duration in hours
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates collection exists
+3. Creates schedule based on recurrence pattern
+4. Configures maintenance window with specified parameters
+5. Applies window to collection
+6. Reports configuration details
+
+**Important Notes:**
+- Maintenance windows prevent installations outside allowed times
+- Essential for production servers and critical workstations
+- Software Updates windows apply only to patch deployments
+- Task Sequence windows apply only to OSD
+- All Deployments windows apply to everything
+- Multiple windows can exist on same collection
+- Clients will wait until next window for deployment enforcement
+- Typical use: after-hours deployment windows`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'Production Servers' },
+      { id: 'windowName', label: 'Maintenance Window Name', type: 'text', required: true, placeholder: 'Weekend Patching Window' },
+      { id: 'windowType', label: 'Window Type', type: 'select', required: true, defaultValue: 'Updates', options: ['All Deployments', 'Software Updates', 'Task Sequences'] },
+      { id: 'schedule', label: 'Schedule', type: 'select', required: true, defaultValue: 'Weekly', options: ['Daily', 'Weekly', 'Monthly'] },
+      { id: 'startTime', label: 'Start Time (24h)', type: 'text', required: true, placeholder: '22:00' },
+      { id: 'durationHours', label: 'Duration (hours)', type: 'number', required: true, placeholder: '4', defaultValue: 4 }
+    ],
+    scriptTemplate: (params) => {
+      const collection = escapePowerShellString(params.collectionName);
+      const windowName = escapePowerShellString(params.windowName);
+      const windowType = escapePowerShellString(params.windowType || 'Software Updates');
+      const schedule = escapePowerShellString(params.schedule || 'Weekly');
+      const startTime = escapePowerShellString(params.startTime || '22:00');
+      const duration = params.durationHours || 4;
+
+      return `# Configure Maintenance Windows
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$CollectionName = "${collection}"
+$WindowName = "${windowName}"
+$WindowType = "${windowType}"
+$Schedule = "${schedule}"
+$StartTime = "${startTime}"
+$DurationHours = ${duration}
+
+try {
+    # Validate collection exists
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Collection found: $CollectionName" -ForegroundColor Green
+    
+    # Parse start time
+    $TimeParts = $StartTime -split ':'
+    $Hour = [int]$TimeParts[0]
+    $Minute = [int]$TimeParts[1]
+    
+    # Create start date/time (next occurrence)
+    $StartDate = Get-Date -Hour $Hour -Minute $Minute -Second 0
+    if ($StartDate -lt (Get-Date)) {
+        $StartDate = $StartDate.AddDays(1)
+    }
+    
+    # Create schedule based on recurrence
+    $ScheduleObj = switch ($Schedule) {
+        "Daily" {
+            New-CMSchedule -Start $StartDate -RecurInterval Days -RecurCount 1 -DurationInterval Hours -DurationCount $DurationHours
+        }
+        "Weekly" {
+            New-CMSchedule -Start $StartDate -RecurInterval Days -RecurCount 7 -DurationInterval Hours -DurationCount $DurationHours
+        }
+        "Monthly" {
+            New-CMSchedule -Start $StartDate -RecurInterval Days -RecurCount 30 -DurationInterval Hours -DurationCount $DurationHours
+        }
+    }
+    
+    # Determine window type parameter
+    $ApplyTo = switch ($WindowType) {
+        "All Deployments" { "Any" }
+        "Software Updates" { "SoftwareUpdate" }
+        "Task Sequences" { "TaskSequence" }
+    }
+    
+    # Create maintenance window
+    New-CMMaintenanceWindow \`
+        -CollectionId $Collection.CollectionID \`
+        -Name $WindowName \`
+        -Schedule $ScheduleObj \`
+        -ApplyTo $ApplyTo
+    
+    Write-Host "✓ Maintenance window created: $WindowName" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Maintenance Window Configuration:" -ForegroundColor Cyan
+    Write-Host "  Collection: $CollectionName" -ForegroundColor Gray
+    Write-Host "  Window Name: $WindowName" -ForegroundColor Gray
+    Write-Host "  Type: $WindowType" -ForegroundColor Gray
+    Write-Host "  Schedule: $Schedule" -ForegroundColor Gray
+    Write-Host "  Start Time: $StartTime" -ForegroundColor Gray
+    Write-Host "  Duration: $DurationHours hours" -ForegroundColor Gray
+    Write-Host "  Next Window: $($StartDate.ToString('yyyy-MM-dd HH:mm'))" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Note: Deployments will only run during this window" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create maintenance window: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'deploy-os-image',
+    name: 'Deploy Operating System Images',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Deploy WIM/custom OS images to collections using task sequences',
+    instructions: `**How This Task Works:**
+This script deploys OS images to collections using existing task sequences for operating system deployment.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- OS deployment permissions
+- Task sequence already created and tested
+- Boot images distributed to DPs
+- OS image distributed to DPs
+- Target collection created
+
+**What You Need to Provide:**
+- Task sequence name (must already exist)
+- Target collection name
+- Deployment type (Available or Required)
+- PXE availability
+- Media and prestaged media availability
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates task sequence exists
+3. Validates target collection exists
+4. Creates OS deployment with specified parameters
+5. Configures availability (PXE, media, prestaged media)
+6. Sets deployment purpose (Available for user-initiated, Required for automatic)
+7. Enables task sequence progress UI
+8. Reports deployment configuration
+
+**Important Notes:**
+- Task sequence must already exist and be tested
+- Available deployments require user initiation
+- Required deployments auto-deploy (use with caution!)
+- PXE allows network boot deployment
+- Media allows bootable media creation
+- Prestaged media for factory imaging scenarios
+- ALWAYS test on pilot collection first
+- Required deployments can wipe machines - be careful!`,
+    parameters: [
+      { id: 'taskSequenceName', label: 'Task Sequence Name', type: 'text', required: true, placeholder: 'Deploy Windows 11 23H2' },
+      { id: 'collectionName', label: 'Target Collection', type: 'text', required: true, placeholder: 'OSD-Pilot' },
+      { id: 'deployPurpose', label: 'Deployment Purpose', type: 'select', required: true, defaultValue: 'Available', options: ['Available', 'Required'] },
+      { id: 'enablePXE', label: 'Make Available to PXE', type: 'boolean', required: false, defaultValue: true },
+      { id: 'enableMedia', label: 'Make Available to Media', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const tsName = escapePowerShellString(params.taskSequenceName);
+      const collection = escapePowerShellString(params.collectionName);
+      const purpose = escapePowerShellString(params.deployPurpose || 'Available');
+      const pxe = toPowerShellBoolean(params.enablePXE ?? true);
+      const media = toPowerShellBoolean(params.enableMedia ?? true);
+
+      return `# Deploy Operating System Image
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$TSName = "${tsName}"
+$CollectionName = "${collection}"
+$DeployPurpose = "${purpose}"
+$EnablePXE = ${pxe}
+$EnableMedia = ${media}
+
+try {
+    # Validate task sequence exists
+    $TS = Get-CMTaskSequence -Name $TSName -ErrorAction Stop
+    Write-Host "✓ Task sequence found: $TSName" -ForegroundColor Green
+    
+    # Validate collection exists
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Target collection found: $CollectionName" -ForegroundColor Green
+    Write-Host "  Member count: $($Collection.MemberCount)" -ForegroundColor Gray
+    
+    # Determine availability
+    $MakeAvailableTo = @()
+    if ($EnablePXE) { $MakeAvailableTo += "Clients" }
+    if ($EnableMedia) { $MakeAvailableTo += "Media" }
+    
+    $AvailabilityOptions = if ($EnablePXE -and $EnableMedia) {
+        "ClientsMediaAndPxe"
+    } elseif ($EnablePXE) {
+        "ClientsAndPxe"
+    } elseif ($EnableMedia) {
+        "MediaAndPxe"
+    } else {
+        "Clients"
+    }
+    
+    # Warning for Required deployments
+    if ($DeployPurpose -eq "Required") {
+        Write-Host ""
+        Write-Host "⚠ WARNING: Required OS deployment will automatically deploy!" -ForegroundColor Yellow
+        Write-Host "  This will REIMAGE devices in the collection!" -ForegroundColor Yellow
+        Write-Host "  Ensure collection contains only intended devices!" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Press Ctrl+C to cancel, or wait 10 seconds to continue..." -ForegroundColor Red
+        Start-Sleep -Seconds 10
+    }
+    
+    # Create deployment
+    $DeployParams = @{
+        TaskSequenceName = $TSName
+        CollectionName = $CollectionName
+        DeployPurpose = $DeployPurpose
+        AllowSharedContent = $true
+        AllowFallback = $true
+        MakeAvailableTo = $AvailabilityOptions
+        ShowTaskSequenceProgress = $true
+    }
+    
+    New-CMTaskSequenceDeployment @DeployParams
+    
+    Write-Host "✓ OS deployment created successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "OS Deployment Configuration:" -ForegroundColor Cyan
+    Write-Host "  Task Sequence: $TSName" -ForegroundColor Gray
+    Write-Host "  Collection: $CollectionName" -ForegroundColor Gray
+    Write-Host "  Purpose: $DeployPurpose" -ForegroundColor Gray
+    Write-Host "  Available to PXE: $(if ($EnablePXE) {'Yes'} else {'No'})" -ForegroundColor Gray
+    Write-Host "  Available to Media: $(if ($EnableMedia) {'Yes'} else {'No'})" -ForegroundColor Gray
+    Write-Host ""
+    
+    if ($DeployPurpose -eq "Available") {
+        Write-Host "Users can initiate deployment from Software Center" -ForegroundColor Gray
+    } else {
+        Write-Host "⚠ Deployment will run automatically on collection members!" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Failed to create OS deployment: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'client-health-remediation',
+    name: 'Manage Client Health and Remediation',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Monitor client health, run remediation scripts, and fix common client issues',
+    instructions: `**How This Task Works:**
+This script monitors MECM client health and runs remediation actions to fix common client issues.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Collection management permissions
+- PowerShell remoting enabled on clients
+- Administrative access to client devices
+
+**What You Need to Provide:**
+- Collection name to check
+- Export path for health report
+- Option to remediate unhealthy clients
+- Remediation actions to perform
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Retrieves client health data for collection
+3. Identifies unhealthy clients (no heartbeat, pending restart, etc.)
+4. Generates health report with statistics
+5. Optional: Runs remediation scripts on unhealthy clients
+6. Remediation actions: restart ccmexec, repair client, trigger policy refresh
+7. Exports detailed report to CSV
+
+**Important Notes:**
+- Monitors last heartbeat, client version, and activity status
+- Unhealthy = no heartbeat in 7+ days or client not installed
+- Remediation requires PowerShell remoting
+- Common fixes: service restart, policy refresh, client repair
+- Essential for proactive client management
+- Schedule regularly for ongoing monitoring
+- Review report to identify chronic problem devices`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\ClientHealth.csv' },
+      { id: 'runRemediation', label: 'Run Remediation on Unhealthy Clients', type: 'boolean', required: false, defaultValue: false },
+      { id: 'remediationAction', label: 'Remediation Action', type: 'select', required: false, defaultValue: 'RestartService', options: ['RestartService', 'PolicyRefresh', 'RepairClient', 'All'] }
+    ],
+    scriptTemplate: (params) => {
+      const collection = escapePowerShellString(params.collectionName);
+      const exportPath = escapePowerShellString(params.exportPath);
+      const remediate = toPowerShellBoolean(params.runRemediation ?? false);
+      const action = escapePowerShellString(params.remediationAction || 'RestartService');
+
+      return `# Client Health and Remediation
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$CollectionName = "${collection}"
+$ExportPath = "${exportPath}"
+$RunRemediation = ${remediate}
+$RemediationAction = "${action}"
+
+try {
+    # Get collection members
+    $Devices = Get-CMDevice -CollectionName $CollectionName
+    Write-Host "Analyzing $($Devices.Count) devices in $CollectionName..." -ForegroundColor Cyan
+    Write-Host ""
+    
+    $HealthResults = @()
+    $HealthyCount = 0
+    $UnhealthyCount = 0
+    $UnhealthyDevices = @()
+    
+    foreach ($Device in $Devices) {
+        # Determine health status
+        $LastActive = $Device.LastActiveTime
+        $DaysSinceActive = if ($LastActive) { (New-TimeSpan -Start $LastActive -End (Get-Date)).Days } else { 999 }
+        
+        $IsHealthy = $Device.IsActive -and $DaysSinceActive -lt 7 -and $Device.IsClient
+        
+        if ($IsHealthy) {
+            $HealthyCount++
+            $Status = "Healthy"
+        } else {
+            $UnhealthyCount++
+            $Status = "Unhealthy"
+            $UnhealthyDevices += $Device.Name
+        }
+        
+        $HealthResults += [PSCustomObject]@{
+            DeviceName = $Device.Name
+            Status = $Status
+            LastActive = $LastActive
+            DaysSinceActive = $DaysSinceActive
+            ClientInstalled = $Device.IsClient
+            ClientVersion = $Device.ClientVersion
+        }
+    }
+    
+    # Display summary
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "Client Health Summary:" -ForegroundColor Cyan
+    Write-Host "  Total Devices: $($Devices.Count)" -ForegroundColor Gray
+    Write-Host "  Healthy: $HealthyCount" -ForegroundColor Green
+    Write-Host "  Unhealthy: $UnhealthyCount" -ForegroundColor Red
+    Write-Host "  Health Rate: $('{0:P0}' -f ($HealthyCount / $Devices.Count))" -ForegroundColor Gray
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Export report
+    $HealthResults | Export-Csv -Path $ExportPath -NoTypeInformation
+    Write-Host "✓ Health report exported: $ExportPath" -ForegroundColor Green
+    
+    # Remediation
+    if ($RunRemediation -and $UnhealthyDevices.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Running remediation on $($UnhealthyDevices.Count) unhealthy devices..." -ForegroundColor Yellow
+        Write-Host ""
+        
+        foreach ($DeviceName in $UnhealthyDevices) {
+            try {
+                if ($RemediationAction -eq "RestartService" -or $RemediationAction -eq "All") {
+                    Invoke-Command -ComputerName $DeviceName -ScriptBlock {
+                        Restart-Service -Name CcmExec -Force
+                    } -ErrorAction Stop
+                    Write-Host "  ✓ $DeviceName: CCMExec service restarted" -ForegroundColor Green
+                }
+                
+                if ($RemediationAction -eq "PolicyRefresh" -or $RemediationAction -eq "All") {
+                    Invoke-Command -ComputerName $DeviceName -ScriptBlock {
+                        Invoke-WmiMethod -Namespace root\\ccm -Class SMS_CLIENT -Name TriggerSchedule "{00000000-0000-0000-0000-000000000021}"
+                    } -ErrorAction Stop
+                    Write-Host "  ✓ $DeviceName: Policy refresh triggered" -ForegroundColor Green
+                }
+                
+                if ($RemediationAction -eq "RepairClient" -or $RemediationAction -eq "All") {
+                    Invoke-Command -ComputerName $DeviceName -ScriptBlock {
+                        Start-Process -FilePath "C:\\Windows\\ccmsetup\\ccmsetup.exe" -ArgumentList "/mp:SCCM-SERVER.contoso.com SMSSITECODE=AUTO" -NoNewWindow -Wait
+                    } -ErrorAction Stop
+                    Write-Host "  ✓ $DeviceName: Client repair initiated" -ForegroundColor Green
+                }
+                
+            } catch {
+                Write-Host "  ✗ $DeviceName: Remediation failed - $($_.Exception.Message)" -ForegroundColor Red
+            }
+        }
+        
+        Write-Host ""
+        Write-Host "Remediation complete. Re-run health check in 15 minutes." -ForegroundColor Cyan
+    }
+    
+} catch {
+    Write-Error "Failed to check client health: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-boundary-groups',
+    name: 'Configure Boundary Groups',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Create boundaries and boundary groups for client site assignment and content location',
+    instructions: `**How This Task Works:**
+This script creates boundary groups with associated boundaries for controlling client site assignment and content source locations.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Site configuration permissions
+- Knowledge of network IP ranges or AD site names
+- Distribution points and management points configured
+
+**What You Need to Provide:**
+- Boundary group name
+- Default site code for client assignment
+- Comma-separated boundaries (IP subnets with CIDR or AD site names)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Creates new boundary group with default site assignment
+3. Parses boundary list (detects IP subnets vs AD sites)
+4. Creates individual boundary objects
+5. Associates boundaries with boundary group
+6. Reports configuration success
+
+**Important Notes:**
+- IP subnets require CIDR notation (e.g., 192.168.1.0/24)
+- AD sites must match exact Active Directory site names
+- Boundary groups control: client assignment, content location, software update points
+- After creation: manually assign DPs and MPs to group in console
+- Clients use boundaries to discover their location
+- Multiple boundary groups can contain same boundary
+- Essential for multi-site and roaming client scenarios
+- Overlapping boundaries may cause unpredictable client behavior`,
+    parameters: [
+      { id: 'groupName', label: 'Boundary Group Name', type: 'text', required: true, placeholder: 'NYC-Office-Network' },
+      { id: 'siteCode', label: 'Default Site Code', type: 'text', required: true, placeholder: 'NYC' },
+      { id: 'boundaries', label: 'Boundaries (comma-separated)', type: 'textarea', required: true, placeholder: '192.168.1.0/24,192.168.2.0/24,Default-First-Site-Name' }
+    ],
+    scriptTemplate: (params) => {
+      const groupName = escapePowerShellString(params.groupName);
+      const siteCode = escapePowerShellString(params.siteCode);
+      const boundaries = params.boundaries ? buildPowerShellArray(params.boundaries) : '';
+
+      return `# Configure Boundary Groups
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$GroupName = "${groupName}"
+$DefaultSiteCode = "${siteCode}"
+$BoundariesList = ${boundaries}
+
+try {
+    # Create boundary group
+    $BG = New-CMBoundaryGroup \`
+        -Name $GroupName \`
+        -DefaultSiteCode $DefaultSiteCode \`
+        -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
+    
+    Write-Host "✓ Boundary group created: $GroupName" -ForegroundColor Green
+    Write-Host "  Default site code: $DefaultSiteCode" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Add boundaries
+    Write-Host "Adding boundaries to group..." -ForegroundColor Cyan
+    $SuccessCount = 0
+    $FailCount = 0
+    
+    foreach ($BoundaryValue in $BoundariesList) {
+        try {
+            # Detect boundary type
+            if ($BoundaryValue -match '/') {
+                # IP subnet with CIDR
+                $BoundaryType = "IPSubnet"
+                $DisplayName = "Subnet-$BoundaryValue"
+            } else {
+                # AD Site
+                $BoundaryType = "ADSite"
+                $DisplayName = "ADSite-$BoundaryValue"
+            }
+            
+            # Create boundary
+            $Boundary = New-CMBoundary \`
+                -Name $DisplayName \`
+                -Type $BoundaryType \`
+                -Value $BoundaryValue
+            
+            # Add to group
+            Add-CMBoundaryToGroup \`
+                -BoundaryGroupId $BG.GroupID \`
+                -BoundaryId $Boundary.BoundaryID
+            
+            Write-Host "  ✓ Added: $BoundaryValue ($BoundaryType)" -ForegroundColor Green
+            $SuccessCount++
+            
+        } catch {
+            Write-Host "  ✗ Failed: $BoundaryValue - $($_.Exception.Message)" -ForegroundColor Red
+            $FailCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "Boundary Group Configuration Complete!" -ForegroundColor Cyan
+    Write-Host "  Group: $GroupName" -ForegroundColor Gray
+    Write-Host "  Boundaries Added: $SuccessCount" -ForegroundColor Green
+    Write-Host "  Boundaries Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) {'Red'} else {'Gray'})
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Yellow
+    Write-Host "  1. Assign distribution points to boundary group" -ForegroundColor Gray
+    Write-Host "  2. Assign management points to boundary group" -ForegroundColor Gray
+    Write-Host "  3. Configure software update points if needed" -ForegroundColor Gray
+    Write-Host "  4. Test client assignment from boundary network" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure boundary group: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-compliance-baseline',
+    name: 'Create Custom Compliance Baselines',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Create configuration items and compliance baselines for security and configuration management',
+    instructions: `**How This Task Works:**
+This script creates compliance baselines with configuration items to monitor and enforce security and configuration standards.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Compliance settings management permissions
+- PowerShell script for configuration check
+- Knowledge of desired state configuration
+
+**What You Need to Provide:**
+- Baseline name
+- Configuration item name
+- Discovery script (PowerShell to check current state)
+- Remediation script (PowerShell to fix non-compliant state)
+- Expected value for compliance
+- Collection to deploy baseline
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Creates configuration item with script-based setting
+3. Configures discovery script to check current state
+4. Optional: Configures remediation script to fix issues
+5. Creates compliance baseline containing the CI
+6. Deploys baseline to specified collection
+7. Configures compliance evaluation schedule
+
+**Important Notes:**
+- Discovery script must return actual state value
+- Remediation script fixes non-compliant systems (optional)
+- Baseline can contain multiple configuration items
+- Typical uses: registry settings, service states, file existence
+- Evaluation runs on client according to schedule
+- Non-compliance reports to MECM console
+- Essential for security hardening and standards enforcement
+- Can generate alerts for non-compliance`,
+    parameters: [
+      { id: 'baselineName', label: 'Baseline Name', type: 'text', required: true, placeholder: 'Corporate Security Baseline' },
+      { id: 'ciName', label: 'Configuration Item Name', type: 'text', required: true, placeholder: 'Windows Firewall Enabled' },
+      { id: 'discoveryScript', label: 'Discovery Script', type: 'textarea', required: true, placeholder: '(Get-NetFirewallProfile -Profile Domain).Enabled' },
+      { id: 'expectedValue', label: 'Expected Value', type: 'text', required: true, placeholder: 'True' },
+      { id: 'remediationScript', label: 'Remediation Script (Optional)', type: 'textarea', required: false, placeholder: 'Set-NetFirewallProfile -Profile Domain -Enabled True' },
+      { id: 'collectionName', label: 'Deployment Collection', type: 'text', required: true, placeholder: 'All Workstations' }
+    ],
+    scriptTemplate: (params) => {
+      const baselineName = escapePowerShellString(params.baselineName);
+      const ciName = escapePowerShellString(params.ciName);
+      const discoveryScript = escapePowerShellString(params.discoveryScript);
+      const expectedValue = escapePowerShellString(params.expectedValue);
+      const remediationScript = params.remediationScript ? escapePowerShellString(params.remediationScript) : '';
+      const collection = escapePowerShellString(params.collectionName);
+
+      return `# Create Compliance Baseline
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$BaselineName = "${baselineName}"
+$CIName = "${ciName}"
+$DiscoveryScript = "${discoveryScript}"
+$ExpectedValue = "${expectedValue}"
+$CollectionName = "${collection}"
+
+try {
+    # Create configuration item
+    $CI = New-CMConfigurationItem \`
+        -Name $CIName \`
+        -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')" \`
+        -CreationType WindowsOS
+    
+    Write-Host "✓ Configuration item created: $CIName" -ForegroundColor Green
+    
+    # Add script-based setting
+    $Setting = New-CMComplianceSettingScript \`
+        -DataType String \`
+        -DiscoveryScriptLanguage PowerShell \`
+        -DiscoveryScriptText $DiscoveryScript \`
+        -Name "ScriptSetting-$CIName" \`
+        -Description "Checks compliance for $CIName"
+${remediationScript ? `    
+    # Add remediation script
+    $Setting = $Setting | Set-CMComplianceSettingScript \`
+        -RemediationScriptLanguage PowerShell \`
+        -RemediationScriptText "${remediationScript}"
+    
+    Write-Host "✓ Remediation script configured" -ForegroundColor Green
+` : ''}    
+    # Add setting to CI
+    Add-CMComplianceSetting -InputObject $CI -Setting $Setting
+    
+    # Create compliance rule
+    $Rule = New-CMComplianceRuleValue \`
+        -SettingName $Setting.Name \`
+        -RuleName "Rule-$CIName" \`
+        -ExpectedValue $ExpectedValue \`
+        -ExpressionOperator IsEquals \`
+        -NoncomplianceSeverity Warning \`
+        -ReportNoncompliance $true
+${remediationScript ? `        -Remediate $true` : ''}
+    
+    Add-CMComplianceSettingRule -InputObject $CI -Rule $Rule
+    Write-Host "✓ Compliance rule added: Expected value = $ExpectedValue" -ForegroundColor Green
+    
+    # Create baseline
+    $Baseline = New-CMBaseline \`
+        -Name $BaselineName \`
+        -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
+    
+    # Add CI to baseline
+    Set-CMBaseline -Name $BaselineName -AddOSConfigurationItem $CI.CI_ID
+    
+    Write-Host "✓ Compliance baseline created: $BaselineName" -ForegroundColor Green
+    
+    # Validate collection
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    
+    # Deploy baseline
+    New-CMBaselineDeployment \`
+        -Name $BaselineName \`
+        -CollectionName $CollectionName \`
+        -GenerateAlert $true \`
+        -MonitoredByScom $false \`
+        -Schedule (New-CMSchedule -RecurInterval Days -RecurCount 1)
+    
+    Write-Host "✓ Baseline deployed to: $CollectionName" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Compliance Baseline Configuration Complete!" -ForegroundColor Cyan
+    Write-Host "  Baseline: $BaselineName" -ForegroundColor Gray
+    Write-Host "  Configuration Item: $CIName" -ForegroundColor Gray
+    Write-Host "  Expected Value: $ExpectedValue" -ForegroundColor Gray
+    Write-Host "  Remediation: $(if ('${remediationScript}') {'Enabled'} else {'Disabled'})" -ForegroundColor Gray
+    Write-Host "  Deployed to: $CollectionName" -ForegroundColor Gray
+    Write-Host "  Evaluation: Daily" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Check Compliance dashboard for results in 24 hours" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create compliance baseline: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'manage-driver-packages',
+    name: 'Manage Driver Packages and Catalogs',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Import drivers, create driver packages, and manage driver catalogs for OS deployment',
+    instructions: `**How This Task Works:**
+This script imports drivers into MECM, creates driver packages, and manages driver catalogs for operating system deployment.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Driver management permissions
+- Driver files extracted to UNC path
+- Network share accessible from MECM server
+
+**What You Need to Provide:**
+- Driver source path (UNC path to extracted drivers)
+- Driver package name
+- Package source path (where to store driver content)
+- Target OS version (Windows 10, Windows 11, etc.)
+- Manufacturer filter (optional)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Imports drivers from source path recursively
+3. Filters drivers by OS version and manufacturer
+4. Creates driver package with imported drivers
+5. Sets package source location
+6. Reports driver count and package details
+7. Package ready for distribution to DPs
+
+**Important Notes:**
+- Driver source must contain INF files
+- Import is recursive (scans all subfolders)
+- Drivers are categorized by OS version and manufacturer
+- Driver packages separate from boot images
+- Typical use: model-specific driver packages
+- After creation: distribute package to DPs
+- Can create multiple packages for different hardware models
+- Essential for bare-metal OS deployments`,
+    parameters: [
+      { id: 'driverSourcePath', label: 'Driver Source Path', type: 'path', required: true, placeholder: '\\\\server\\drivers$\\Dell\\Latitude7420' },
+      { id: 'packageName', label: 'Driver Package Name', type: 'text', required: true, placeholder: 'Dell Latitude 7420 - Windows 11 Drivers' },
+      { id: 'packageSourcePath', label: 'Package Source Path', type: 'path', required: true, placeholder: '\\\\server\\sources$\\DriverPackages\\Dell\\Latitude7420' },
+      { id: 'osVersion', label: 'Target OS Version', type: 'select', required: true, defaultValue: 'Windows 11', options: ['Windows 10', 'Windows 11', 'Windows Server 2019', 'Windows Server 2022'] },
+      { id: 'manufacturer', label: 'Manufacturer Filter (Optional)', type: 'text', required: false, placeholder: 'Dell Inc.' }
+    ],
+    scriptTemplate: (params) => {
+      const driverPath = escapePowerShellString(params.driverSourcePath);
+      const packageName = escapePowerShellString(params.packageName);
+      const packagePath = escapePowerShellString(params.packageSourcePath);
+      const osVersion = escapePowerShellString(params.osVersion || 'Windows 11');
+      const manufacturer = params.manufacturer ? escapePowerShellString(params.manufacturer) : '';
+
+      return `# Manage Driver Packages
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$DriverSourcePath = "${driverPath}"
+$PackageName = "${packageName}"
+$PackageSourcePath = "${packagePath}"
+$OSVersion = "${osVersion}"
+
+try {
+    # Validate source path exists
+    if (-not (Test-Path $DriverSourcePath)) {
+        Write-Error "Driver source path not found: $DriverSourcePath"
+        exit 1
+    }
+    
+    Write-Host "Scanning for drivers in: $DriverSourcePath" -ForegroundColor Cyan
+    Write-Host "This may take several minutes..." -ForegroundColor Gray
+    Write-Host ""
+    
+    # Import drivers
+    $ImportedDrivers = @()
+    $DriverFiles = Get-ChildItem -Path $DriverSourcePath -Filter "*.inf" -Recurse
+    
+    Write-Host "Found $($DriverFiles.Count) INF files. Importing..." -ForegroundColor Cyan
+    
+    foreach ($InfFile in $DriverFiles) {
+        try {
+            $Driver = Import-CMDriver \`
+                -UncFileLocation $InfFile.FullName \`
+                -ImportDuplicateDriverOption AppendCategory \`
+                -EnableAndAllowInstall $true \`
+                -ErrorAction Stop
+${manufacturer ? `            
+            # Filter by manufacturer if specified
+            if ($Driver.DriverProvider -like "*${manufacturer}*") {
+                $ImportedDrivers += $Driver
+                Write-Host "  ✓ Imported: $($Driver.DriverName)" -ForegroundColor Green
+            } else {
+                # Remove non-matching driver
+                Remove-CMDriver -Id $Driver.CI_ID -Force
+            }
+` : `            
+            $ImportedDrivers += $Driver
+            Write-Host "  ✓ Imported: $($Driver.DriverName)" -ForegroundColor Green
+`}            
+        } catch {
+            Write-Host "  ⚠ Skipped: $($InfFile.Name) - $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Successfully imported: $($ImportedDrivers.Count) drivers" -ForegroundColor Green
+    
+    if ($ImportedDrivers.Count -eq 0) {
+        Write-Host "⚠ No drivers imported. Exiting." -ForegroundColor Yellow
+        exit 0
+    }
+    
+    # Create driver package
+    $Package = New-CMDriverPackage \`
+        -Name $PackageName \`
+        -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')" \`
+        -Path $PackageSourcePath
+    
+    Write-Host "✓ Driver package created: $PackageName" -ForegroundColor Green
+    
+    # Add drivers to package
+    Write-Host ""
+    Write-Host "Adding drivers to package..." -ForegroundColor Cyan
+    
+    foreach ($Driver in $ImportedDrivers) {
+        try {
+            Add-CMDriverToDriverPackage \`
+                -DriverId $Driver.CI_ID \`
+                -DriverPackageName $PackageName \`
+                -ErrorAction Stop
+        } catch {
+            Write-Host "  ⚠ Could not add driver: $($Driver.DriverName)" -ForegroundColor Yellow
+        }
+    }
+    
+    Write-Host "✓ Drivers added to package" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "Driver Package Configuration Complete!" -ForegroundColor Cyan
+    Write-Host "  Package: $PackageName" -ForegroundColor Gray
+    Write-Host "  Drivers: $($ImportedDrivers.Count)" -ForegroundColor Gray
+    Write-Host "  OS Version: $OSVersion" -ForegroundColor Gray
+${manufacturer ? `    Write-Host "  Manufacturer: ${manufacturer}" -ForegroundColor Gray` : ''}
+    Write-Host "  Source Path: $PackageSourcePath" -ForegroundColor Gray
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Yellow
+    Write-Host "  1. Distribute package to distribution points" -ForegroundColor Gray
+    Write-Host "  2. Add package to task sequence" -ForegroundColor Gray
+    Write-Host "  3. Test deployment on target hardware" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to manage driver package: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'export-collection-membership',
+    name: 'Export Collection Membership Reports',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Export detailed collection membership data with device information to CSV',
+    instructions: `**How This Task Works:**
+This script exports comprehensive collection membership reports with detailed device information for analysis and documentation.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Read permissions on collections
+- Collection(s) already created
+
+**What You Need to Provide:**
+- Collection name (or comma-separated list for multiple)
+- Export file path
+- Option to include detailed device properties
+- Option to include hardware information
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates collection(s) exist
+3. Retrieves all devices in collection(s)
+4. Gathers device properties: name, OS, last logon, client version
+5. Optional: Adds hardware info (manufacturer, model, RAM, disk)
+6. Optional: Adds AD properties (OU, domain)
+7. Exports to CSV with all requested data
+8. Reports total device count
+
+**Important Notes:**
+- Useful for inventory audits and documentation
+- Can process multiple collections in one run
+- Hardware info requires hardware inventory enabled
+- Large collections (1000+) may take time to process
+- Export includes: device name, OS, last activity, client health
+- Optional details: manufacturer, model, memory, primary user
+- Essential for change management and asset reporting
+- Schedule regularly for up-to-date documentation`,
+    parameters: [
+      { id: 'collectionNames', label: 'Collection Names (comma-separated)', type: 'textarea', required: true, placeholder: 'All Workstations,All Servers' },
+      { id: 'exportPath', label: 'Export File Path', type: 'path', required: true, placeholder: 'C:\\Reports\\CollectionMembership.csv' },
+      { id: 'includeHardware', label: 'Include Hardware Details', type: 'boolean', required: false, defaultValue: true },
+      { id: 'includeADInfo', label: 'Include AD Information', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const collections = params.collectionNames ? buildPowerShellArray(params.collectionNames) : '';
+      const exportPath = escapePowerShellString(params.exportPath);
+      const includeHW = toPowerShellBoolean(params.includeHardware ?? true);
+      const includeAD = toPowerShellBoolean(params.includeADInfo ?? false);
+
+      return `# Export Collection Membership Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$CollectionNames = ${collections}
+$ExportPath = "${exportPath}"
+$IncludeHardware = ${includeHW}
+$IncludeAD = ${includeAD}
+
+try {
+    $AllResults = @()
+    $TotalDeviceCount = 0
+    
+    Write-Host "Exporting collection membership data..." -ForegroundColor Cyan
+    Write-Host ""
+    
+    foreach ($CollectionName in $CollectionNames) {
+        try {
+            # Validate collection exists
+            $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+            Write-Host "Processing: $CollectionName" -ForegroundColor Cyan
+            Write-Host "  Member count: $($Collection.MemberCount)" -ForegroundColor Gray
+            
+            # Get collection members
+            $Devices = Get-CMDevice -CollectionName $CollectionName
+            $TotalDeviceCount += $Devices.Count
+            
+            foreach ($Device in $Devices) {
+                # Base device information
+                $DeviceInfo = [PSCustomObject]@{
+                    CollectionName = $CollectionName
+                    DeviceName = $Device.Name
+                    OperatingSystem = $Device.OperatingSystemNameandVersion
+                    ClientVersion = $Device.ClientVersion
+                    LastActiveTime = $Device.LastActiveTime
+                    LastLogonUser = $Device.LastLogonUserName
+                    IsActive = $Device.IsActive
+                    IsClient = $Device.IsClient
+                    ResourceID = $Device.ResourceID
+                }
+                
+                # Add hardware information if requested
+                if ($IncludeHardware) {
+                    try {
+                        $HW = Get-WmiObject -Namespace "root\\SMS\\site_$SiteCode" \`
+                            -Class SMS_R_System \`
+                            -Filter "ResourceId = $($Device.ResourceID)" \`
+                            -ErrorAction SilentlyContinue
+                        
+                        if ($HW) {
+                            $DeviceInfo | Add-Member -NotePropertyName "Manufacturer" -NotePropertyValue $Device.Manufacturer
+                            $DeviceInfo | Add-Member -NotePropertyName "Model" -NotePropertyValue $Device.Model
+                            $DeviceInfo | Add-Member -NotePropertyName "TotalPhysicalMemory" -NotePropertyValue $Device.TotalPhysicalMemory
+                        }
+                    } catch {
+                        # Silently continue if hardware info not available
+                    }
+                }
+                
+                # Add AD information if requested
+                if ($IncludeAD) {
+                    try {
+                        $DeviceInfo | Add-Member -NotePropertyName "ADSiteName" -NotePropertyValue $Device.ADSiteName
+                        $DeviceInfo | Add-Member -NotePropertyName "Domain" -NotePropertyValue $Device.Domain
+                        $DeviceInfo | Add-Member -NotePropertyName "DistinguishedName" -NotePropertyValue $Device.DistinguishedName
+                    } catch {
+                        # Silently continue if AD info not available
+                    }
+                }
+                
+                $AllResults += $DeviceInfo
+            }
+            
+            Write-Host "  ✓ Processed: $($Devices.Count) devices" -ForegroundColor Green
+            
+        } catch {
+            Write-Host "  ✗ Failed: $CollectionName - $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    
+    # Export to CSV
+    if ($AllResults.Count -gt 0) {
+        $AllResults | Export-Csv -Path $ExportPath -NoTypeInformation
+        Write-Host ""
+        Write-Host "======================================" -ForegroundColor Cyan
+        Write-Host "Collection Membership Export Complete!" -ForegroundColor Cyan
+        Write-Host "  Collections: $($CollectionNames.Count)" -ForegroundColor Gray
+        Write-Host "  Total Devices: $TotalDeviceCount" -ForegroundColor Gray
+        Write-Host "  Export Path: $ExportPath" -ForegroundColor Gray
+        Write-Host "  Hardware Details: $(if ($IncludeHardware) {'Yes'} else {'No'})" -ForegroundColor Gray
+        Write-Host "  AD Information: $(if ($IncludeAD) {'Yes'} else {'No'})" -ForegroundColor Gray
+        Write-Host "======================================" -ForegroundColor Cyan
+    } else {
+        Write-Host "⚠ No devices found to export" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Failed to export collection membership: $_"
+    exit 1
+}`;
+    }
+  },
+
   {id:'clear-client-cache',name:'Clear Client Cache',category:'Client Management & Health',description:'Clear MECM client cache to free disk space',parameters:[{id:'devices',label:'Device Names (comma-separated)',type:'textarea',required:true,placeholder:'PC001,PC002'}],scriptTemplate:p=>{const d=p.devices?buildPowerShellArray(p.devices):'';return `$Devices=${d};foreach($Dev in $Devices){try{Invoke-Command -ComputerName $Dev -ScriptBlock{$UIResource=New-Object -ComObject UIResource.UIResourceMgr;$Cache=$UIResource.GetCacheInfo();$Cache.GetCacheElements()|ForEach{$Cache.DeleteCacheElement($_.CacheElementID)}};Write-Host "✓ $Dev: Cache cleared" -ForegroundColor Green}catch{Write-Host "✗ $Dev: Failed" -ForegroundColor Red}}`;}},
   {id:'export-hardware-inventory',name:'Export Hardware Inventory',category:'Inventory & Reporting',description:'Export hardware inventory for devices',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\HWInventory.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Devices=Get-CMDevice -CollectionName "${c}";$Results=$Devices|Select Name,Manufacturer,Model,TotalPhysicalMemory,OSVersion;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
   {id:'create-dynamic-collection',name:'Create Dynamic Device Collection',category:'Collections',description:'Create query-based device collection',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'Windows 11 Devices'},{id:'queryExpression',label:'WQL Query',type:'textarea',required:true,placeholder:'SELECT * FROM SMS_R_System WHERE OperatingSystemNameAndVersion LIKE "%Windows 11%"'}],scriptTemplate:p=>{const n=escapePowerShellString(p.collectionName),q=escapePowerShellString(p.queryExpression);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Collection=New-CMDeviceCollection -Name "${n}" -LimitingCollectionName "All Systems";Add-CMDeviceCollectionQueryMembershipRule -CollectionName "${n}" -QueryExpression "${q}" -RuleName "Query-${n}";Write-Host "✓ Collection created: ${n}" -ForegroundColor Green}catch{Write-Error $_}`;}},

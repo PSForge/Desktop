@@ -19,6 +19,7 @@ export interface PowerPlatformTask {
   instructions?: string;
   parameters: PowerPlatformParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const powerPlatformTasks: PowerPlatformTask[] = [

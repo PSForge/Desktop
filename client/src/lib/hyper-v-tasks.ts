@@ -19,6 +19,7 @@ export interface HyperVTask {
   instructions?: string;
   parameters: HyperVParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const hyperVTasks: HyperVTask[] = [

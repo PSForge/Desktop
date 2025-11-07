@@ -25,6 +25,7 @@ export interface ADTask {
   parameters: ADTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const adTasks: ADTask[] = [

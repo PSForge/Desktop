@@ -19,6 +19,7 @@ export interface WindowsServerTask {
   instructions?: string;
   parameters: WindowsServerParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const windowsServerTasks: WindowsServerTask[] = [

@@ -1023,5 +1023,355 @@ try {
 }`;
     },
     isPremium: true
+  },
+
+  {
+    id: 'kubectl-manage-namespaces',
+    name: 'Manage Kubernetes Namespaces',
+    category: 'Common Admin Tasks',
+    description: 'Create, delete, and configure resource quotas for namespaces',
+    parameters: [
+      { id: 'namespaceName', label: 'Namespace Name', type: 'text', required: true, placeholder: 'production' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create', 'Delete', 'SetQuota'], defaultValue: 'Create' },
+      { id: 'cpuLimit', label: 'CPU Limit (for SetQuota)', type: 'text', required: false, placeholder: '4', defaultValue: '4' },
+      { id: 'memoryLimit', label: 'Memory Limit (for SetQuota)', type: 'text', required: false, placeholder: '8Gi', defaultValue: '8Gi' }
+    ],
+    scriptTemplate: (params) => {
+      const namespaceName = escapePowerShellString(params.namespaceName);
+      const action = params.action;
+      const cpuLimit = params.cpuLimit || '4';
+      const memoryLimit = params.memoryLimit || '8Gi';
+      
+      return `# Kubernetes Manage Namespaces
+# Generated: ${new Date().toISOString()}
+
+$Namespace = "${namespaceName}"
+
+try {
+    ${action === 'Create' ? `
+    Write-Host "Creating namespace: $Namespace..." -ForegroundColor Cyan
+    kubectl create namespace $Namespace
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Namespace created successfully!" -ForegroundColor Green
+        kubectl get namespace $Namespace
+    }` : action === 'Delete' ? `
+    $Confirm = Read-Host "Delete namespace $Namespace? This will delete ALL resources. Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Deleting namespace: $Namespace..." -ForegroundColor Yellow
+        kubectl delete namespace $Namespace
+        Write-Host "✓ Namespace deleted" -ForegroundColor Green
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        exit
+    }` : `
+    Write-Host "Setting resource quota for namespace: $Namespace..." -ForegroundColor Cyan
+    
+    $QuotaYaml = @"
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quota
+  namespace: $Namespace
+spec:
+  hard:
+    requests.cpu: "${cpuLimit}"
+    requests.memory: "${memoryLimit}"
+    limits.cpu: "${cpuLimit}"
+    limits.memory: "${memoryLimit}"
+"@
+    
+    $QuotaYaml | kubectl apply -f -
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Resource quota configured successfully!" -ForegroundColor Green
+        kubectl get resourcequota -n $Namespace
+    }`}
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'kubectl-configure-network-policies',
+    name: 'Configure Kubernetes Network Policies',
+    category: 'Common Admin Tasks',
+    description: 'Define pod-to-pod communication rules for network isolation',
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'deny-all-ingress' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: true, placeholder: 'production' },
+      { id: 'policyType', label: 'Policy Type', type: 'select', required: true, options: ['DenyAllIngress', 'AllowSpecificPod', 'AllowFromNamespace'], defaultValue: 'DenyAllIngress' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const namespace = escapePowerShellString(params.namespace);
+      const policyType = params.policyType;
+      
+      let policyYaml = '';
+      if (policyType === 'DenyAllIngress') {
+        policyYaml = `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ${policyName}
+  namespace: ${namespace}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress`;
+      } else if (policyType === 'AllowSpecificPod') {
+        policyYaml = `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ${policyName}
+  namespace: ${namespace}
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: backend`;
+      } else {
+        policyYaml = `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ${policyName}
+  namespace: ${namespace}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: trusted`;
+      }
+      
+      return `# Configure Kubernetes Network Policies
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating network policy: ${policyName}..." -ForegroundColor Cyan
+    
+    $PolicyYaml = @"
+${policyYaml}
+"@
+    
+    $PolicyYaml | kubectl apply -f -
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Network policy created successfully!" -ForegroundColor Green
+        kubectl get networkpolicy -n ${namespace}
+    } else {
+        Write-Error "Failed to create network policy"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'kubectl-manage-jobs-cronjobs',
+    name: 'Manage Kubernetes Jobs and CronJobs',
+    category: 'Common Admin Tasks',
+    description: 'Create batch jobs and scheduled tasks',
+    parameters: [
+      { id: 'jobType', label: 'Job Type', type: 'select', required: true, options: ['Job', 'CronJob'], defaultValue: 'Job' },
+      { id: 'jobName', label: 'Job Name', type: 'text', required: true, placeholder: 'backup-job' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: true, placeholder: 'default' },
+      { id: 'image', label: 'Container Image', type: 'text', required: true, placeholder: 'busybox' },
+      { id: 'command', label: 'Command', type: 'text', required: true, placeholder: 'echo Hello World' },
+      { id: 'schedule', label: 'Schedule (for CronJob)', type: 'text', required: false, placeholder: '0 2 * * *', defaultValue: '0 2 * * *' }
+    ],
+    scriptTemplate: (params) => {
+      const jobType = params.jobType;
+      const jobName = escapePowerShellString(params.jobName);
+      const namespace = escapePowerShellString(params.namespace);
+      const image = escapePowerShellString(params.image);
+      const command = escapePowerShellString(params.command);
+      const schedule = params.schedule || '0 2 * * *';
+      
+      return `# Kubernetes Manage Jobs and CronJobs
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating ${jobType}: ${jobName}..." -ForegroundColor Cyan
+    
+    ${jobType === 'Job' ? `
+    $JobYaml = @"
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${jobName}
+  namespace: ${namespace}
+spec:
+  template:
+    spec:
+      containers:
+      - name: job-container
+        image: ${image}
+        command: ["sh", "-c", "${command}"]
+      restartPolicy: Never
+  backoffLimit: 4
+"@
+    ` : `
+    $JobYaml = @"
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ${jobName}
+  namespace: ${namespace}
+spec:
+  schedule: "${schedule}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cron-container
+            image: ${image}
+            command: ["sh", "-c", "${command}"]
+          restartPolicy: OnFailure
+"@
+    `}
+    
+    $JobYaml | kubectl apply -f -
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ ${jobType} created successfully!" -ForegroundColor Green
+        ${jobType === 'Job' ? 'kubectl get jobs -n $namespace' : 'kubectl get cronjobs -n $namespace'}
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'kubectl-configure-hpa',
+    name: 'Configure Horizontal Pod Autoscaler (HPA)',
+    category: 'Common Admin Tasks',
+    description: 'Set up auto-scaling based on CPU/memory metrics',
+    parameters: [
+      { id: 'hpaName', label: 'HPA Name', type: 'text', required: true, placeholder: 'web-app-hpa' },
+      { id: 'deploymentName', label: 'Deployment Name', type: 'text', required: true, placeholder: 'web-app' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: true, placeholder: 'default' },
+      { id: 'minReplicas', label: 'Min Replicas', type: 'number', required: true, defaultValue: 2 },
+      { id: 'maxReplicas', label: 'Max Replicas', type: 'number', required: true, defaultValue: 10 },
+      { id: 'cpuPercent', label: 'Target CPU %', type: 'number', required: true, defaultValue: 70 }
+    ],
+    scriptTemplate: (params) => {
+      const hpaName = escapePowerShellString(params.hpaName);
+      const deploymentName = escapePowerShellString(params.deploymentName);
+      const namespace = escapePowerShellString(params.namespace);
+      
+      return `# Configure Horizontal Pod Autoscaler
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating HPA: ${hpaName}..." -ForegroundColor Cyan
+    
+    kubectl autoscale deployment ${deploymentName} \`
+        --name ${hpaName} \`
+        --namespace ${namespace} \`
+        --min ${params.minReplicas} \`
+        --max ${params.maxReplicas} \`
+        --cpu-percent ${params.cpuPercent}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ HPA configured successfully!" -ForegroundColor Green
+        Write-Host "  Min Replicas: ${params.minReplicas}" -ForegroundColor Cyan
+        Write-Host "  Max Replicas: ${params.maxReplicas}" -ForegroundColor Cyan
+        Write-Host "  Target CPU: ${params.cpuPercent}%" -ForegroundColor Cyan
+        
+        Write-Host ""
+        kubectl get hpa -n ${namespace}
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'kubectl-manage-service-mesh',
+    name: 'Manage Kubernetes Service Mesh',
+    category: 'Common Admin Tasks',
+    description: 'Deploy Istio or Linkerd for microservices',
+    parameters: [
+      { id: 'meshType', label: 'Service Mesh', type: 'select', required: true, options: ['Istio', 'Linkerd'], defaultValue: 'Istio' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Install', 'Check Status'], defaultValue: 'Install' }
+    ],
+    scriptTemplate: (params) => {
+      const meshType = params.meshType;
+      const action = params.action;
+      
+      return `# Manage Kubernetes Service Mesh
+# Generated: ${new Date().toISOString()}
+
+try {
+    ${action === 'Install' ? `
+    Write-Host "Installing ${meshType} service mesh..." -ForegroundColor Cyan
+    
+    ${meshType === 'Istio' ? `
+    # Download and install Istio
+    Write-Host "Downloading Istio..." -ForegroundColor Yellow
+    curl -L https://istio.io/downloadIstio | sh -
+    
+    Write-Host "Installing Istio..." -ForegroundColor Cyan
+    cd istio-*
+    ./bin/istioctl install --set profile=demo -y
+    
+    # Enable sidecar injection
+    kubectl label namespace default istio-injection=enabled
+    
+    Write-Host "✓ Istio installed successfully!" -ForegroundColor Green
+    Write-Host "  Verify with: kubectl get pods -n istio-system" -ForegroundColor Cyan
+    ` : `
+    # Download and install Linkerd
+    Write-Host "Downloading Linkerd CLI..." -ForegroundColor Yellow
+    curl -sL https://run.linkerd.io/install | sh
+    
+    Write-Host "Installing Linkerd..." -ForegroundColor Cyan
+    linkerd install | kubectl apply -f -
+    
+    # Wait for installation
+    linkerd check
+    
+    Write-Host "✓ Linkerd installed successfully!" -ForegroundColor Green
+    Write-Host "  Verify with: linkerd check" -ForegroundColor Cyan
+    `}
+    ` : `
+    Write-Host "Checking ${meshType} status..." -ForegroundColor Cyan
+    
+    ${meshType === 'Istio' ? `
+    kubectl get pods -n istio-system
+    Write-Host ""
+    istioctl version
+    ` : `
+    linkerd check
+    `}
+    `}
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

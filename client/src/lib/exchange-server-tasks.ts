@@ -2521,5 +2521,684 @@ try {
     exit 1
 }`;
     }
+  },
+
+  {
+    id: 'configure-dag-network-compression',
+    name: 'Configure DAG Network Compression',
+    category: 'High Availability',
+    description: 'Configure network compression and encryption for DAG replication traffic',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures compression and encryption settings for Database Availability Group replication networks.
+
+**Prerequisites:**
+- Exchange Administrator role
+- DAG already configured
+- Understanding of network requirements
+
+**What You Need to Provide:**
+- DAG name
+- Network name
+- Compression and encryption settings
+
+**What the Script Does:**
+1. Retrieves DAG network configuration
+2. Configures compression settings
+3. Configures encryption settings
+4. Verifies changes
+
+**Important Notes:**
+- Compression reduces bandwidth usage
+- Encryption protects replication data
+- May impact replication performance
+- Balance security with performance needs`,
+    parameters: [
+      { id: 'dagName', label: 'DAG Name', type: 'text', required: true, placeholder: 'DAG01' },
+      { id: 'networkName', label: 'DAG Network Name', type: 'text', required: true, placeholder: 'MapiDagNetwork' },
+      { id: 'enableCompression', label: 'Enable Compression', type: 'boolean', required: true, defaultValue: true },
+      { id: 'enableEncryption', label: 'Enable Encryption', type: 'boolean', required: true, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const dagName = escapePowerShellString(params.dagName);
+      const networkName = escapePowerShellString(params.networkName);
+      const compression = params.enableCompression !== false;
+      const encryption = params.enableEncryption !== false;
+
+      return `# Configure DAG Network Compression
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Configuring DAG network: ${networkName}" -ForegroundColor Cyan
+    
+    Set-DatabaseAvailabilityGroupNetwork -Identity "${dagName}\\\\${networkName}" \`
+        -ReplicationEnabled \\$true \`
+        -NetworkCompression ${compression ? 'Enabled' : 'Disabled'} \`
+        -NetworkEncryption ${encryption ? 'Enabled' : 'Disabled'}
+    
+    Write-Host "✓ DAG network configured successfully" -ForegroundColor Green
+    Write-Host "  DAG: ${dagName}" -ForegroundColor Gray
+    Write-Host "  Network: ${networkName}" -ForegroundColor Gray
+    Write-Host "  Compression: ${compression ? 'Enabled' : 'Disabled'}" -ForegroundColor Gray
+    Write-Host "  Encryption: ${encryption ? 'Enabled' : 'Disabled'}" -ForegroundColor Gray
+    
+    $Network = Get-DatabaseAvailabilityGroupNetwork -Identity "${dagName}\\\\${networkName}"
+    Write-Host "  Current Settings:" -ForegroundColor Cyan
+    Write-Host "    Compression: $($Network.ReplicationNetworkCompression)" -ForegroundColor Gray
+    Write-Host "    Encryption: $($Network.ReplicationNetworkEncryption)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure DAG network: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-mailbox-database-circular-logging',
+    name: 'Configure Mailbox Database Circular Logging',
+    category: 'Database Management',
+    description: 'Enable or disable circular logging for mailbox databases',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures circular logging for Exchange mailbox databases to manage transaction log growth.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Understanding of backup strategy
+- Planned database dismount window
+
+**What You Need to Provide:**
+- Database name
+- Enable or disable circular logging
+
+**What the Script Does:**
+1. Dismounts the database
+2. Enables or disables circular logging
+3. Mounts the database
+4. Verifies configuration
+
+**Important Notes:**
+- DISABLES log-based backups when enabled
+- Reduces disk space for logs
+- NOT recommended for production if using backups
+- Requires database dismount (causes downtime)
+- Use only in dev/test or with snapshot backups`,
+    parameters: [
+      { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'DB01' },
+      { id: 'enableCircularLogging', label: 'Enable Circular Logging', type: 'boolean', required: true, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const dbName = escapePowerShellString(params.databaseName);
+      const enable = params.enableCircularLogging === true;
+
+      return `# Configure Mailbox Database Circular Logging
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Configuring circular logging for: ${dbName}" -ForegroundColor Cyan
+    Write-Host "⚠️ This will dismount the database temporarily!" -ForegroundColor Yellow
+    Read-Host "Press Enter to continue or Ctrl+C to cancel"
+    
+    # Dismount database
+    Write-Host "Dismounting database..." -ForegroundColor Yellow
+    Dismount-Database -Identity "${dbName}" -Confirm:\\$false
+    
+    # Configure circular logging
+    Set-MailboxDatabase -Identity "${dbName}" -CircularLoggingEnabled $${enable ? 'true' : 'false'}
+    
+    Write-Host "✓ Circular logging ${enable ? 'enabled' : 'disabled'}" -ForegroundColor Green
+    
+    # Mount database
+    Write-Host "Mounting database..." -ForegroundColor Yellow
+    Mount-Database -Identity "${dbName}"
+    
+    Write-Host "✓ Database mounted successfully" -ForegroundColor Green
+    Write-Host "  Database: ${dbName}" -ForegroundColor Gray
+    Write-Host "  Circular Logging: ${enable ? 'Enabled' : 'Disabled'}" -ForegroundColor Gray
+    
+    ${enable ? `Write-Host ""
+    Write-Host "⚠️ WARNING: Circular logging is now ENABLED" -ForegroundColor Yellow
+    Write-Host "  - Transaction log backups will NOT truncate logs" -ForegroundColor Yellow
+    Write-Host "  - Only full/incremental database backups supported" -ForegroundColor Yellow
+    Write-Host "  - NOT recommended for production environments" -ForegroundColor Yellow` : ''}
+    
+} catch {
+    Write-Error "Failed to configure circular logging: $_"
+    Write-Host "Attempting to mount database..." -ForegroundColor Yellow
+    Mount-Database -Identity "${dbName}" -ErrorAction SilentlyContinue
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-send-receive-connectors-bulk',
+    name: 'Configure Multiple Send/Receive Connectors',
+    category: 'Mail Flow',
+    description: 'Bulk configure send and receive connectors for mail routing',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates multiple send and receive connectors for routing mail to different destinations or accepting mail from different sources.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Hub Transport server access
+- Understanding of mail routing
+
+**What You Need to Provide:**
+- Connector type (Send or Receive)
+- Server name
+- Smart host or remote IPs
+- Address spaces or permissions
+
+**What the Script Does:**
+1. Creates send or receive connector
+2. Configures routing or acceptance rules
+3. Sets permissions and authentication
+4. Enables the connector
+
+**Important Notes:**
+- Send connectors route outbound mail
+- Receive connectors accept inbound mail
+- Configure permissions carefully
+- Test mail flow after creation`,
+    parameters: [
+      { id: 'serverName', label: 'Server Name', type: 'text', required: true, placeholder: 'EXCH01' },
+      { id: 'connectorType', label: 'Connector Type', type: 'select', required: true, options: ['Send', 'Receive'], defaultValue: 'Send' },
+      { id: 'connectorName', label: 'Connector Name', type: 'text', required: true, placeholder: 'To Partner Domain' },
+      { id: 'smartHost', label: 'Smart Host (for Send)', type: 'text', required: false, placeholder: 'smtp.partner.com' },
+      { id: 'remoteIPs', label: 'Remote IPs (for Receive)', type: 'text', required: false, placeholder: '192.168.1.100' }
+    ],
+    scriptTemplate: (params) => {
+      const serverName = escapePowerShellString(params.serverName);
+      const connectorType = params.connectorType || 'Send';
+      const connectorName = escapePowerShellString(params.connectorName);
+      const smartHost = params.smartHost ? escapePowerShellString(params.smartHost) : '';
+      const remoteIPs = params.remoteIPs ? escapePowerShellString(params.remoteIPs) : '';
+
+      return `# Configure Send/Receive Connectors
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Creating ${connectorType} connector: ${connectorName}" -ForegroundColor Cyan
+    
+    ${connectorType === 'Send' ? `
+    # Create Send Connector
+    New-SendConnector -Name "${connectorName}" \`
+        -AddressSpaces "*" \`
+        -SourceTransportServers "${serverName}" \`
+        ${smartHost ? `-SmartHosts "${smartHost}" \`` : ''}
+        -DNSRoutingEnabled $${smartHost ? 'false' : 'true'} \`
+        -UseExternalDNSServersEnabled \\$false
+    
+    Write-Host "✓ Send connector created" -ForegroundColor Green
+    ${smartHost ? `Write-Host "  Smart Host: ${smartHost}" -ForegroundColor Gray` : ''}` :
+    `
+    # Create Receive Connector
+    New-ReceiveConnector -Name "${connectorName}" \`
+        -Server "${serverName}" \`
+        -Bindings "0.0.0.0:25" \`
+        -RemoteIPRanges ${remoteIPs ? `"${remoteIPs}"` : '"0.0.0.0-255.255.255.255"'} \`
+        -PermissionGroups AnonymousUsers
+    
+    Write-Host "✓ Receive connector created" -ForegroundColor Green
+    ${remoteIPs ? `Write-Host "  Remote IPs: ${remoteIPs}" -ForegroundColor Gray` : `Write-Host "  Remote IPs: All (0.0.0.0-255.255.255.255)" -ForegroundColor Gray`}`}
+    
+    Write-Host "  Server: ${serverName}" -ForegroundColor Gray
+    Write-Host "  Connector: ${connectorName}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create connector: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-accepted-domains-bulk',
+    name: 'Configure Multiple Accepted Domains',
+    category: 'Mail Flow',
+    description: 'Add and configure multiple accepted domains for the Exchange organization',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures accepted domains to allow Exchange to receive mail for multiple domains.
+
+**Prerequisites:**
+- Exchange Organization Management role
+- DNS records configured for domains
+- Understanding of domain types
+
+**What You Need to Provide:**
+- Domain names (comma-separated)
+- Domain type (Authoritative, InternalRelay, or ExternalRelay)
+
+**What the Script Does:**
+1. Processes each domain in the list
+2. Creates accepted domain entry
+3. Sets domain type appropriately
+4. Verifies configuration
+
+**Important Notes:**
+- Authoritative: Organization is final destination
+- InternalRelay: Relay to internal mail server
+- ExternalRelay: Relay to external mail server
+- Requires proper DNS MX records`,
+    parameters: [
+      { id: 'domains', label: 'Domain Names (comma-separated)', type: 'textarea', required: true, placeholder: 'contoso.com, fabrikam.com, northwind.com' },
+      { id: 'domainType', label: 'Domain Type', type: 'select', required: true, options: ['Authoritative', 'InternalRelay', 'ExternalRelay'], defaultValue: 'Authoritative' }
+    ],
+    scriptTemplate: (params) => {
+      const domainsRaw = (params.domains as string).split(',').map((d: string) => d.trim());
+      const domainType = params.domainType || 'Authoritative';
+
+      return `# Configure Multiple Accepted Domains
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    $Domains = @(${domainsRaw.map(d => `"${escapePowerShellString(d)}"`).join(', ')})
+    $DomainType = "${domainType}"
+    
+    Write-Host "Adding $($Domains.Count) accepted domains as type: $DomainType" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $SuccessCount = 0
+    $FailCount = 0
+    
+    foreach ($Domain in $Domains) {
+        try {
+            $Existing = Get-AcceptedDomain -Identity $Domain -ErrorAction SilentlyContinue
+            
+            if ($Existing) {
+                Set-AcceptedDomain -Identity $Domain -DomainType $DomainType
+                Write-Host "✓ Updated: $Domain" -ForegroundColor Green
+            } else {
+                New-AcceptedDomain -Name $Domain -DomainName $Domain -DomainType $DomainType
+                Write-Host "✓ Added: $Domain" -ForegroundColor Green
+            }
+            
+            $SuccessCount++
+        } catch {
+            Write-Host "✗ Failed: $Domain - $_" -ForegroundColor Red
+            $FailCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Total Domains: $($Domains.Count)" -ForegroundColor Gray
+    Write-Host "Successful: $SuccessCount" -ForegroundColor Green
+    Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Red' } else { 'Gray' })
+    Write-Host "Domain Type: $DomainType" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Bulk operation failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-content-filter-agent',
+    name: 'Configure Content Filter Anti-Spam Settings',
+    category: 'Security',
+    description: 'Configure content filtering and SCL thresholds for anti-spam protection',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures the Content Filter agent to block or quarantine spam based on SCL (Spam Confidence Level) ratings.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Edge Transport or Hub Transport server
+- Anti-spam agents enabled
+
+**What You Need to Provide:**
+- SCL thresholds for reject and quarantine
+- Actions to take for different SCL levels
+- Allowed/blocked phrases (optional)
+
+**What the Script Does:**
+1. Configures SCL thresholds
+2. Sets reject and quarantine levels
+3. Configures custom phrases
+4. Enables content filtering
+
+**Important Notes:**
+- SCL ranges from 0-9 (0=not spam, 9=definitely spam)
+- Typical reject threshold: 7-9
+- Typical quarantine threshold: 5-6
+- Test settings before production use`,
+    parameters: [
+      { id: 'sclRejectThreshold', label: 'SCL Reject Threshold', type: 'number', required: true, placeholder: '7', description: 'Reject messages with SCL >= this value' },
+      { id: 'sclQuarantineThreshold', label: 'SCL Quarantine Threshold', type: 'number', required: true, placeholder: '5', description: 'Quarantine messages with SCL >= this value' },
+      { id: 'enableBypassedSenders', label: 'Enable Bypassed Senders List', type: 'boolean', required: true, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const rejectThreshold = params.sclRejectThreshold || 7;
+      const quarantineThreshold = params.sclQuarantineThreshold || 5;
+      const enableBypass = params.enableBypassedSenders !== false;
+
+      return `# Configure Content Filter Anti-Spam Settings
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Configuring Content Filter agent..." -ForegroundColor Cyan
+    
+    Set-ContentFilterConfig \`
+        -SCLRejectEnabled \\$true \`
+        -SCLRejectThreshold ${rejectThreshold} \`
+        -SCLQuarantineEnabled \\$true \`
+        -SCLQuarantineThreshold ${quarantineThreshold} \`
+        -BypassedSenders ${enableBypass ? '$null' : '@()'} \`
+        -Enabled \\$true
+    
+    Write-Host "✓ Content filtering configured successfully" -ForegroundColor Green
+    Write-Host "  SCL Reject Threshold: ${rejectThreshold}" -ForegroundColor Gray
+    Write-Host "  SCL Quarantine Threshold: ${quarantineThreshold}" -ForegroundColor Gray
+    Write-Host "  Bypassed Senders: ${enableBypass ? 'Enabled' : 'Disabled'}" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "SCL Rating Guide:" -ForegroundColor Cyan
+    Write-Host "  0-1: Not spam" -ForegroundColor Gray
+    Write-Host "  2-4: Probably not spam" -ForegroundColor Gray
+    Write-Host "  5-6: Uncertain (quarantine)" -ForegroundColor Yellow
+    Write-Host "  7-9: Spam (reject)" -ForegroundColor Red
+    
+    $Config = Get-ContentFilterConfig
+    Write-Host ""
+    Write-Host "Current Configuration:" -ForegroundColor Cyan
+    Write-Host "  Enabled: $($Config.Enabled)" -ForegroundColor Gray
+    Write-Host "  Reject at SCL: $($Config.SCLRejectThreshold)" -ForegroundColor Gray
+    Write-Host "  Quarantine at SCL: $($Config.SCLQuarantineThreshold)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure content filter: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-mailbox-audit-retention',
+    name: 'Configure Mailbox Audit Log Retention',
+    category: 'Compliance & Auditing',
+    description: 'Set mailbox audit log age limit for compliance and retention policies',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures how long mailbox audit logs are retained before being automatically purged.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Mailbox auditing already enabled
+- Understanding of compliance requirements
+
+**What You Need to Provide:**
+- Retention period in days
+- Apply to all mailboxes or specific mailbox
+
+**What the Script Does:**
+1. Configures audit log age limit
+2. Applies to organization or specific mailbox
+3. Verifies retention settings
+
+**Important Notes:**
+- Default retention: 90 days
+- Maximum retention: 24,855 days (~68 years)
+- Logs auto-purge after age limit
+- Consider compliance requirements
+- Longer retention uses more storage`,
+    parameters: [
+      { id: 'retentionDays', label: 'Retention Period (Days)', type: 'number', required: true, placeholder: '365', description: 'How long to keep audit logs' },
+      { id: 'targetMailbox', label: 'Target Mailbox (Optional)', type: 'email', required: false, placeholder: 'Leave blank for all mailboxes' }
+    ],
+    scriptTemplate: (params) => {
+      const retentionDays = params.retentionDays || 365;
+      const targetMailbox = params.targetMailbox ? escapePowerShellString(params.targetMailbox) : '';
+
+      return `# Configure Mailbox Audit Log Retention
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Configuring audit log retention: ${retentionDays} days" -ForegroundColor Cyan
+    
+    ${targetMailbox ? `
+    # Configure specific mailbox
+    Set-Mailbox -Identity "${targetMailbox}" -AuditLogAgeLimit ${retentionDays}.00:00:00
+    
+    Write-Host "✓ Audit log retention configured" -ForegroundColor Green
+    Write-Host "  Mailbox: ${targetMailbox}" -ForegroundColor Gray
+    Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Gray
+    
+    $Mailbox = Get-Mailbox -Identity "${targetMailbox}"
+    Write-Host "  Current Setting: $($Mailbox.AuditLogAgeLimit)" -ForegroundColor Gray` :
+    `
+    # Configure all mailboxes
+    $Mailboxes = Get-Mailbox -ResultSize Unlimited
+    
+    Write-Host "Configuring $($Mailboxes.Count) mailboxes..." -ForegroundColor Yellow
+    
+    $Count = 0
+    foreach ($Mailbox in $Mailboxes) {
+        Set-Mailbox -Identity $Mailbox.Identity -AuditLogAgeLimit ${retentionDays}.00:00:00
+        $Count++
+        if ($Count % 50 -eq 0) {
+            Write-Host "  Processed $Count mailboxes..." -ForegroundColor Gray
+        }
+    }
+    
+    Write-Host "✓ Audit log retention configured for all mailboxes" -ForegroundColor Green
+    Write-Host "  Mailboxes Updated: $($Mailboxes.Count)" -ForegroundColor Gray
+    Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Gray`}
+    
+    Write-Host ""
+    Write-Host "Retention Policy:" -ForegroundColor Cyan
+    Write-Host "  Logs older than ${retentionDays} days will be automatically purged" -ForegroundColor Yellow
+    Write-Host "  Consider compliance requirements before reducing retention" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to configure audit retention: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-outlook-anywhere',
+    name: 'Configure Outlook Anywhere (RPC over HTTP)',
+    category: 'Client Access',
+    description: 'Enable and configure Outlook Anywhere for remote client access',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script enables and configures Outlook Anywhere (RPC over HTTP) to allow external Outlook clients to connect to Exchange.
+
+**Prerequisites:**
+- Exchange Administrator role
+- SSL certificate installed
+- External hostname configured
+- IIS with RPC over HTTP feature
+
+**What You Need to Provide:**
+- Server name
+- External hostname
+- Authentication method
+- SSL requirements
+
+**What the Script Does:**
+1. Enables Outlook Anywhere
+2. Configures external hostname
+3. Sets authentication methods
+4. Configures SSL requirements
+5. Restarts IIS
+
+**Important Notes:**
+- Required for external Outlook connectivity
+- Requires valid SSL certificate
+- Configure firewall for port 443
+- Modern auth recommended over basic auth`,
+    parameters: [
+      { id: 'serverName', label: 'Server Name', type: 'text', required: true, placeholder: 'EXCH01' },
+      { id: 'externalHostname', label: 'External Hostname', type: 'text', required: true, placeholder: 'mail.contoso.com' },
+      { id: 'authMethod', label: 'Authentication Method', type: 'select', required: true, options: ['Basic', 'NTLM', 'Negotiate'], defaultValue: 'NTLM' },
+      { id: 'requireSSL', label: 'Require SSL', type: 'boolean', required: true, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const serverName = escapePowerShellString(params.serverName);
+      const externalHostname = escapePowerShellString(params.externalHostname);
+      const authMethod = params.authMethod || 'NTLM';
+      const requireSSL = params.requireSSL !== false;
+
+      return `# Configure Outlook Anywhere
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Configuring Outlook Anywhere on ${serverName}" -ForegroundColor Cyan
+    
+    # Enable Outlook Anywhere
+    Enable-OutlookAnywhere -Server "${serverName}" \`
+        -ExternalHostname "${externalHostname}" \`
+        -ExternalClientsRequireSsl $${requireSSL ? 'true' : 'false'} \`
+        -InternalHostname "${externalHostname}" \`
+        -InternalClientsRequireSsl $${requireSSL ? 'true' : 'false'} \`
+        -DefaultAuthenticationMethod ${authMethod}
+    
+    Write-Host "✓ Outlook Anywhere enabled successfully" -ForegroundColor Green
+    Write-Host "  Server: ${serverName}" -ForegroundColor Gray
+    Write-Host "  External Hostname: ${externalHostname}" -ForegroundColor Gray
+    Write-Host "  Authentication: ${authMethod}" -ForegroundColor Gray
+    Write-Host "  SSL Required: ${requireSSL}" -ForegroundColor Gray
+    
+    # Restart IIS to apply changes
+    Write-Host ""
+    Write-Host "Restarting IIS..." -ForegroundColor Yellow
+    Invoke-Command -ComputerName "${serverName}" -ScriptBlock { iisreset /noforce }
+    
+    Write-Host "✓ IIS restarted successfully" -ForegroundColor Green
+    
+    Write-Host ""
+    Write-Host "Client Configuration:" -ForegroundColor Cyan
+    Write-Host "  Server: ${externalHostname}" -ForegroundColor Gray
+    Write-Host "  Port: 443 (HTTPS)" -ForegroundColor Gray
+    Write-Host "  Encryption: ${requireSSL ? 'Required' : 'Optional'}" -ForegroundColor Gray
+    
+    ${authMethod === 'Basic' ? `Write-Host ""
+    Write-Host "⚠️ WARNING: Basic authentication selected" -ForegroundColor Yellow
+    Write-Host "  Consider using NTLM or Negotiate for better security" -ForegroundColor Yellow` : ''}
+    
+} catch {
+    Write-Error "Failed to configure Outlook Anywhere: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-address-list-segmentation',
+    name: 'Configure Address List Segmentation (ABP)',
+    category: 'Organization Configuration',
+    description: 'Create Address Book Policy for multi-tenant address list segmentation',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates Address Book Policies to segment the Global Address List for multi-tenant scenarios or organizational separation.
+
+**Prerequisites:**
+- Exchange Organization Management role
+- Address lists already created
+- Understanding of ABP requirements
+
+**What You Need to Provide:**
+- Policy name
+- Address lists to include
+- Global Address List
+- Room list
+
+**What the Script Does:**
+1. Creates Address Book Policy
+2. Associates address lists
+3. Configures GAL and room list
+4. Enables the policy
+
+**Important Notes:**
+- Limits what users see in address book
+- Required for multi-tenant deployments
+- Users only see filtered contacts
+- Apply ABP to mailboxes after creation`,
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'Contoso ABP' },
+      { id: 'addressListName', label: 'Address List Name', type: 'text', required: true, placeholder: 'Contoso Users' },
+      { id: 'galName', label: 'Global Address List Name', type: 'text', required: true, placeholder: 'Contoso GAL' },
+      { id: 'roomListName', label: 'Room List Name', type: 'text', required: true, placeholder: 'Contoso Rooms' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const addressList = escapePowerShellString(params.addressListName);
+      const gal = escapePowerShellString(params.galName);
+      const roomList = escapePowerShellString(params.roomListName);
+
+      return `# Configure Address Book Policy
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+
+try {
+    Write-Host "Creating Address Book Policy: ${policyName}" -ForegroundColor Cyan
+    
+    # Verify required components exist
+    Write-Host "Verifying address lists..." -ForegroundColor Yellow
+    
+    $AL = Get-AddressList -Identity "${addressList}" -ErrorAction SilentlyContinue
+    $GAL = Get-GlobalAddressList -Identity "${gal}" -ErrorAction SilentlyContinue
+    $RL = Get-AddressList -Identity "${roomList}" -ErrorAction SilentlyContinue
+    
+    if (-not $AL) {
+        Write-Error "Address list not found: ${addressList}"
+        exit 1
+    }
+    if (-not $GAL) {
+        Write-Error "Global address list not found: ${gal}"
+        exit 1
+    }
+    if (-not $RL) {
+        Write-Error "Room list not found: ${roomList}"
+        exit 1
+    }
+    
+    # Create Address Book Policy
+    New-AddressBookPolicy -Name "${policyName}" \`
+        -AddressLists "${addressList}" \`
+        -GlobalAddressList "${gal}" \`
+        -RoomList "${roomList}" \`
+        -OfflineAddressBook "\\Default Offline Address Book"
+    
+    Write-Host "✓ Address Book Policy created successfully" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Gray
+    Write-Host "  Address List: ${addressList}" -ForegroundColor Gray
+    Write-Host "  GAL: ${gal}" -ForegroundColor Gray
+    Write-Host "  Room List: ${roomList}" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "  1. Apply policy to mailboxes:" -ForegroundColor Gray
+    Write-Host "     Set-Mailbox -Identity <user> -AddressBookPolicy '${policyName}'" -ForegroundColor Gray
+    Write-Host "  2. Users will see filtered address book after policy applied" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create Address Book Policy: $_"
+    exit 1
+}`;
+    }
   }
 ];

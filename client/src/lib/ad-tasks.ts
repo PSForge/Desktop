@@ -4387,5 +4387,678 @@ try {
     exit 1
 }`;
     }
+  },
+
+  // ==================== PREMIUM TASKS ====================
+  {
+    id: 'ad-config-replication',
+    name: 'Configure AD Replication',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Force replication, monitor replication status',
+    instructions: `**How This Task Works:**
+This script manages Active Directory replication for ensuring domain controller synchronization and monitoring replication health.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or Enterprise Admin permissions
+- Multiple domain controllers in environment
+- Network connectivity between DCs
+
+**What You Need to Provide:**
+- Source domain controller
+- Target domain controller (optional, for specific replication)
+- Action (Force Replication, Check Status, or View Replication Partners)
+
+**What the Script Does:**
+- Forces replication between domain controllers
+- Checks replication status and health
+- Displays replication partners and schedules
+- Reports any replication errors or delays
+
+**Important Notes:**
+- Essential for ensuring AD data consistency
+- Force replication after critical changes
+- Monitor for replication failures
+- Replication delays can cause authentication issues
+- Check after DC promotions or GPO changes
+- Typical interval: 15 minutes between DCs in same site
+- Verify replication after schema changes
+- Use for troubleshooting authentication problems`,
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Force Replication', 'Check Status', 'View Partners'], defaultValue: 'Check Status' },
+      { id: 'sourceDC', label: 'Source Domain Controller', type: 'text', required: true, placeholder: 'DC01' },
+      { id: 'targetDC', label: 'Target DC (optional)', type: 'text', required: false, placeholder: 'DC02' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const sourceDC = escapePowerShellString(params.sourceDC);
+      const targetDC = params.targetDC ? escapePowerShellString(params.targetDC) : '';
+
+      return `# Configure AD Replication
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "AD Replication operation: ${action}" -ForegroundColor Cyan
+    Write-Host "  Source DC: ${sourceDC}" -ForegroundColor Gray
+    ${targetDC ? `Write-Host "  Target DC: ${targetDC}" -ForegroundColor Gray` : ''}
+    
+    switch ("${action}") {
+        "Force Replication" {
+            Write-Host "Forcing replication..." -ForegroundColor Cyan
+            
+            ${targetDC ? `
+            # Replicate to specific target
+            repadmin /replicate ${targetDC} ${sourceDC} DC=contoso,DC=com
+            Write-Host "✓ Replication triggered: ${sourceDC} → ${targetDC}" -ForegroundColor Green
+            ` : `
+            # Replicate to all partners
+            repadmin /syncall ${sourceDC} /AdeP
+            Write-Host "✓ Replication triggered to all partners" -ForegroundColor Green
+            `}
+        }
+        
+        "Check Status" {
+            Write-Host "Checking replication status..." -ForegroundColor Cyan
+            
+            # Get replication summary
+            $RepSum = repadmin /replsum ${sourceDC}
+            Write-Host $RepSum
+            
+            Write-Host ""
+            Write-Host "Detailed replication status:" -ForegroundColor Cyan
+            Get-ADReplicationPartnerMetadata -Target ${sourceDC} | Select-Object Partner, LastReplicationSuccess, LastReplicationResult | Format-Table -AutoSize
+        }
+        
+        "View Partners" {
+            Write-Host "Retrieving replication partners..." -ForegroundColor Cyan
+            
+            Get-ADReplicationConnection -Filter * | Where-Object { $_.ReplicateFromDirectoryServer -like "*${sourceDC}*" } | Select-Object Name, ReplicateFromDirectoryServer, ReplicateToDirectoryServer | Format-Table -AutoSize
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage AD replication: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ad-manage-sites-subnets',
+    name: 'Manage AD Sites and Subnets',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Create sites, subnets, site links',
+    instructions: `**How This Task Works:**
+This script manages Active Directory sites and subnets for optimizing replication and client authentication across geographic locations.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Enterprise Admin permissions
+- Understanding of network topology
+- IP subnet information
+
+**What You Need to Provide:**
+- Action (Create Site, Create Subnet, Create Site Link, or List All)
+- Site name
+- Subnet CIDR notation (for subnet creation)
+- Site link name and cost (for site link creation)
+
+**What the Script Does:**
+- Creates AD sites for physical locations
+- Associates subnets with sites
+- Creates site links for replication control
+- Configures replication schedules and costs
+- Reports configuration success
+
+**Important Notes:**
+- Essential for multi-site Active Directory
+- Sites improve authentication performance
+- Subnets determine client site membership
+- Site links control replication topology
+- Lower cost = preferred replication path
+- Configure sites before deploying DCs
+- Typical use: branch offices, data centers
+- Match sites to physical network topology`,
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Site', 'Create Subnet', 'Create Site Link', 'List All'], defaultValue: 'List All' },
+      { id: 'siteName', label: 'Site Name', type: 'text', required: false, placeholder: 'BranchOffice-NYC' },
+      { id: 'subnetCIDR', label: 'Subnet (CIDR)', type: 'text', required: false, placeholder: '192.168.1.0/24' },
+      { id: 'siteLinkName', label: 'Site Link Name', type: 'text', required: false, placeholder: 'HQ-NYC-Link' },
+      { id: 'siteLinkCost', label: 'Site Link Cost', type: 'number', required: false, defaultValue: 100, placeholder: '100' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const siteName = params.siteName ? escapePowerShellString(params.siteName) : '';
+      const subnetCIDR = params.subnetCIDR ? escapePowerShellString(params.subnetCIDR) : '';
+      const siteLinkName = params.siteLinkName ? escapePowerShellString(params.siteLinkName) : '';
+      const siteLinkCost = params.siteLinkCost || 100;
+
+      return `# Manage AD Sites and Subnets
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "AD Sites management: ${action}" -ForegroundColor Cyan
+    
+    switch ("${action}") {
+        "Create Site" {
+            ${siteName ? `
+            Write-Host "Creating AD site: ${siteName}" -ForegroundColor Cyan
+            
+            New-ADReplicationSite -Name "${siteName}"
+            Write-Host "✓ Site created: ${siteName}" -ForegroundColor Green
+            
+            # Display site details
+            Get-ADReplicationSite -Identity "${siteName}" | Select-Object Name, Created | Format-List
+            ` : `
+            Write-Error "Site name is required for Create Site action"
+            `}
+        }
+        
+        "Create Subnet" {
+            ${subnetCIDR && siteName ? `
+            Write-Host "Creating subnet: ${subnetCIDR}" -ForegroundColor Cyan
+            Write-Host "  Associated with site: ${siteName}" -ForegroundColor Gray
+            
+            New-ADReplicationSubnet -Name "${subnetCIDR}" -Site "${siteName}"
+            Write-Host "✓ Subnet created and associated with ${siteName}" -ForegroundColor Green
+            
+            # Display subnet details
+            Get-ADReplicationSubnet -Identity "${subnetCIDR}" | Select-Object Name, Site | Format-List
+            ` : `
+            Write-Error "Subnet CIDR and Site name are required for Create Subnet action"
+            `}
+        }
+        
+        "Create Site Link" {
+            ${siteLinkName ? `
+            Write-Host "Creating site link: ${siteLinkName}" -ForegroundColor Cyan
+            Write-Host "  Cost: ${siteLinkCost}" -ForegroundColor Gray
+            
+            # Note: This requires specifying sites to link
+            Write-Host "⚠ Manual configuration required:" -ForegroundColor Yellow
+            Write-Host "  Use Active Directory Sites and Services console" -ForegroundColor Gray
+            Write-Host "  or specify sites with:" -ForegroundColor Gray
+            Write-Host "  New-ADReplicationSiteLink -Name ${siteLinkName} -SitesIncluded Site1,Site2 -Cost ${siteLinkCost}" -ForegroundColor Gray
+            ` : `
+            Write-Error "Site link name is required for Create Site Link action"
+            `}
+        }
+        
+        "List All" {
+            Write-Host "Listing all sites and subnets..." -ForegroundColor Cyan
+            
+            Write-Host ""
+            Write-Host "=== Sites ===" -ForegroundColor Yellow
+            Get-ADReplicationSite -Filter * | Select-Object Name, Created | Format-Table -AutoSize
+            
+            Write-Host ""
+            Write-Host "=== Subnets ===" -ForegroundColor Yellow
+            Get-ADReplicationSubnet -Filter * | Select-Object Name, Site, Created | Format-Table -AutoSize
+            
+            Write-Host ""
+            Write-Host "=== Site Links ===" -ForegroundColor Yellow
+            Get-ADReplicationSiteLink -Filter * | Select-Object Name, Cost, ReplicationFrequencyInMinutes | Format-Table -AutoSize
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage sites and subnets: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ad-config-gpo-preferences',
+    name: 'Configure Group Policy Preferences',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Deploy mapped drives, printers, shortcuts',
+    instructions: `**How This Task Works:**
+This script provides guidance for configuring Group Policy Preferences to deploy mapped drives, printers, and shortcuts to users and computers.
+
+**Prerequisites:**
+- Group Policy Management Console (GPMC) installed
+- Domain Admin or GPO management permissions
+- Target OU structure created
+- UNC paths accessible for drive mappings
+
+**What You Need to Provide:**
+- GPO name to configure
+- Preference type (Mapped Drive, Printer, or Shortcut)
+- Target path or printer UNC
+- Drive letter or location
+
+**What the Script Does:**
+- Provides guidance for GPO Preferences configuration
+- Shows PowerShell commands for GPO creation
+- Displays examples for common preference items
+- Recommends item-level targeting
+
+**Important Notes:**
+- Essential for standardizing user environments
+- Preferences apply to users or computers
+- Item-level targeting enables conditional application
+- Mapped drives visible in File Explorer
+- Printers auto-install for users
+- Shortcuts deploy to desktop/start menu
+- Typical use: departmental file shares, network printers
+- Test GPO in pilot OU before broad deployment`,
+    parameters: [
+      { id: 'gpoName', label: 'GPO Name', type: 'text', required: true, placeholder: 'User Environment Settings' },
+      { id: 'preferenceType', label: 'Preference Type', type: 'select', required: true, options: ['Mapped Drive', 'Printer', 'Shortcut', 'Registry'], defaultValue: 'Mapped Drive' },
+      { id: 'targetPath', label: 'Target Path/UNC', type: 'text', required: false, placeholder: '\\\\server\\share or \\\\server\\printer' }
+    ],
+    scriptTemplate: (params) => {
+      const gpoName = escapePowerShellString(params.gpoName);
+      const prefType = params.preferenceType;
+      const targetPath = params.targetPath ? escapePowerShellString(params.targetPath) : '';
+
+      return `# Configure Group Policy Preferences
+# Generated: ${new Date().toISOString()}
+
+Import-Module GroupPolicy
+
+try {
+    Write-Host "Configuring GPO Preferences..." -ForegroundColor Cyan
+    Write-Host "  GPO: ${gpoName}" -ForegroundColor Gray
+    Write-Host "  Type: ${prefType}" -ForegroundColor Gray
+    ${targetPath ? `Write-Host "  Target: ${targetPath}" -ForegroundColor Gray` : ''}
+    
+    # Check if GPO exists, create if needed
+    $GPO = Get-GPO -Name "${gpoName}" -ErrorAction SilentlyContinue
+    if (-not $GPO) {
+        Write-Host "Creating new GPO: ${gpoName}" -ForegroundColor Cyan
+        $GPO = New-GPO -Name "${gpoName}"
+        Write-Host "✓ GPO created" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "⚠ Group Policy Preferences must be configured using GPMC" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Steps to configure ${prefType}:" -ForegroundColor Cyan
+    
+    switch ("${prefType}") {
+        "Mapped Drive" {
+            Write-Host "1. Open Group Policy Management Console (gpmc.msc)" -ForegroundColor Gray
+            Write-Host "2. Edit GPO: ${gpoName}" -ForegroundColor Gray
+            Write-Host "3. Navigate to: User Configuration > Preferences > Windows Settings > Drive Maps" -ForegroundColor Gray
+            Write-Host "4. Right-click > New > Mapped Drive" -ForegroundColor Gray
+            ${targetPath ? `Write-Host "5. Location: ${targetPath}" -ForegroundColor Gray` : ''}
+            Write-Host "6. Assign drive letter and action (Create/Update/Replace)" -ForegroundColor Gray
+            Write-Host "7. Configure item-level targeting if needed" -ForegroundColor Gray
+        }
+        
+        "Printer" {
+            Write-Host "1. Open Group Policy Management Console (gpmc.msc)" -ForegroundColor Gray
+            Write-Host "2. Edit GPO: ${gpoName}" -ForegroundColor Gray
+            Write-Host "3. Navigate to: User Configuration > Preferences > Control Panel Settings > Printers" -ForegroundColor Gray
+            Write-Host "4. Right-click > New > Shared Printer" -ForegroundColor Gray
+            ${targetPath ? `Write-Host "5. Share path: ${targetPath}" -ForegroundColor Gray` : ''}
+            Write-Host "6. Select action (Create/Update/Replace)" -ForegroundColor Gray
+            Write-Host "7. Set as default printer if needed" -ForegroundColor Gray
+        }
+        
+        "Shortcut" {
+            Write-Host "1. Open Group Policy Management Console (gpmc.msc)" -ForegroundColor Gray
+            Write-Host "2. Edit GPO: ${gpoName}" -ForegroundColor Gray
+            Write-Host "3. Navigate to: User Configuration > Preferences > Windows Settings > Shortcuts" -ForegroundColor Gray
+            Write-Host "4. Right-click > New > Shortcut" -ForegroundColor Gray
+            Write-Host "5. Specify target path and shortcut location" -ForegroundColor Gray
+            Write-Host "6. Choose location (Desktop, Start Menu, etc.)" -ForegroundColor Gray
+        }
+        
+        "Registry" {
+            Write-Host "1. Open Group Policy Management Console (gpmc.msc)" -ForegroundColor Gray
+            Write-Host "2. Edit GPO: ${gpoName}" -ForegroundColor Gray
+            Write-Host "3. Navigate to: Computer/User Configuration > Preferences > Windows Settings > Registry" -ForegroundColor Gray
+            Write-Host "4. Right-click > New > Registry Item" -ForegroundColor Gray
+            Write-Host "5. Configure key path, value name, and data" -ForegroundColor Gray
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "After configuration:" -ForegroundColor Cyan
+    Write-Host "1. Link GPO to target OU" -ForegroundColor Gray
+    Write-Host "2. Test with 'gpupdate /force' on client" -ForegroundColor Gray
+    Write-Host "3. Verify preference applied using 'gpresult /r'" -ForegroundColor Gray
+    
+    # Display GPO info
+    Write-Host ""
+    Write-Host "GPO Details:" -ForegroundColor Cyan
+    $GPO | Select-Object DisplayName, Id, GpoStatus | Format-List
+    
+} catch {
+    Write-Error "Failed to configure GPO preferences: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ad-manage-trusts',
+    name: 'Manage AD Trusts',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Create, verify, remove domain trusts',
+    instructions: `**How This Task Works:**
+This script manages Active Directory trust relationships between domains for enabling cross-domain authentication and resource access.
+
+**Prerequisites:**
+- Enterprise Admin permissions in both domains
+- Network connectivity between domains
+- DNS resolution between domains
+- Firewall rules allowing AD traffic
+
+**What You Need to Provide:**
+- Action (Create Trust, Verify Trust, or Remove Trust)
+- Source domain name
+- Target domain name
+- Trust direction (One-way or Two-way)
+- Trust type (External, Forest, or Shortcut)
+
+**What the Script Does:**
+- Creates trust relationship between domains
+- Verifies trust health and connectivity
+- Removes trust relationships
+- Reports trust configuration and status
+
+**Important Notes:**
+- Essential for multi-domain/multi-forest environments
+- Forest trusts enable complete resource access
+- External trusts for non-forest domains
+- One-way trusts: source trusts target
+- Two-way trusts: mutual trust
+- Verify trust after creation
+- Typical use: mergers, resource forests
+- Test cross-domain access after trust creation`,
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Trust', 'Verify Trust', 'Remove Trust'], defaultValue: 'Verify Trust' },
+      { id: 'sourceDomain', label: 'Source Domain', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'targetDomain', label: 'Target Domain', type: 'text', required: false, placeholder: 'fabrikam.com' },
+      { id: 'trustDirection', label: 'Trust Direction', type: 'select', required: false, options: ['Bidirectional', 'Inbound', 'Outbound'], defaultValue: 'Bidirectional' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const sourceDomain = escapePowerShellString(params.sourceDomain);
+      const targetDomain = params.targetDomain ? escapePowerShellString(params.targetDomain) : '';
+      const direction = params.trustDirection || 'Bidirectional';
+
+      return `# Manage AD Trusts
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "AD Trust management: ${action}" -ForegroundColor Cyan
+    Write-Host "  Source Domain: ${sourceDomain}" -ForegroundColor Gray
+    ${targetDomain ? `Write-Host "  Target Domain: ${targetDomain}" -ForegroundColor Gray` : ''}
+    
+    switch ("${action}") {
+        "Create Trust" {
+            ${targetDomain ? `
+            Write-Host "Creating trust relationship..." -ForegroundColor Cyan
+            Write-Host "  Direction: ${direction}" -ForegroundColor Gray
+            
+            Write-Host "⚠ Trust creation requires manual steps:" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "1. Ensure DNS resolution between domains" -ForegroundColor Gray
+            Write-Host "   Test: nslookup ${targetDomain}" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "2. Use Active Directory Domains and Trusts console:" -ForegroundColor Gray
+            Write-Host "   - Right-click ${sourceDomain} > Properties > Trusts" -ForegroundColor Gray
+            Write-Host "   - Click 'New Trust'" -ForegroundColor Gray
+            Write-Host "   - Enter target domain: ${targetDomain}" -ForegroundColor Gray
+            Write-Host "   - Select direction: ${direction}" -ForegroundColor Gray
+            Write-Host "   - Choose trust type (Forest/External)" -ForegroundColor Gray
+            Write-Host "   - Provide credentials for ${targetDomain}" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "3. Verify trust after creation:" -ForegroundColor Gray
+            Write-Host "   netdom trust ${sourceDomain} /domain:${targetDomain} /verify" -ForegroundColor Gray
+            ` : `
+            Write-Error "Target domain is required for Create Trust action"
+            `}
+        }
+        
+        "Verify Trust" {
+            ${targetDomain ? `
+            Write-Host "Verifying trust relationship..." -ForegroundColor Cyan
+            
+            # Test trust using netdom
+            $TrustTest = netdom trust ${sourceDomain} /domain:${targetDomain} /verify 2>&1
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Trust is healthy and operational" -ForegroundColor Green
+            } else {
+                Write-Host "✗ Trust verification failed" -ForegroundColor Red
+            }
+            
+            Write-Host ""
+            Write-Host "Trust Test Output:" -ForegroundColor Cyan
+            Write-Host $TrustTest
+            
+            # Get trust details
+            Write-Host ""
+            Write-Host "Trust Details:" -ForegroundColor Cyan
+            Get-ADTrust -Filter "Target -eq '${targetDomain}'" | Select-Object Name, Direction, TrustType, Created | Format-List
+            ` : `
+            Write-Error "Target domain is required for Verify Trust action"
+            `}
+        }
+        
+        "Remove Trust" {
+            ${targetDomain ? `
+            Write-Host "⚠ WARNING: Removing trust relationship!" -ForegroundColor Red
+            Write-Host "  This will break cross-domain access" -ForegroundColor Yellow
+            
+            $Confirm = Read-Host "Type 'REMOVE' to confirm trust removal"
+            
+            if ($Confirm -eq 'REMOVE') {
+                Write-Host "Removing trust..." -ForegroundColor Cyan
+                
+                # Remove trust
+                Get-ADTrust -Filter "Target -eq '${targetDomain}'" | Remove-ADTrust -Confirm:$false
+                
+                Write-Host "✓ Trust removed from ${sourceDomain}" -ForegroundColor Green
+                Write-Host "⚠ Also remove trust from ${targetDomain} side" -ForegroundColor Yellow
+            } else {
+                Write-Host "Trust removal cancelled" -ForegroundColor Yellow
+            }
+            ` : `
+            Write-Error "Target domain is required for Remove Trust action"
+            `}
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage AD trust: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ad-generate-security-reports',
+    name: 'Generate AD Security Reports',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    description: 'Export privileged accounts, password policy compliance',
+    instructions: `**How This Task Works:**
+This script generates comprehensive Active Directory security reports for auditing privileged access, password policies, and account security.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or auditing permissions
+- Access to domain controllers
+- CSV export path accessible
+
+**What You Need to Provide:**
+- Report type (Privileged Accounts, Password Policy, Inactive Accounts, or All)
+- CSV export file path
+
+**What the Script Does:**
+- Exports privileged account memberships
+- Reports password policy compliance
+- Identifies inactive or disabled accounts
+- Finds accounts with non-expiring passwords
+- Reports users with admin rights
+- Exports detailed security report to CSV
+
+**Important Notes:**
+- Essential for security audits and compliance
+- Review privileged accounts monthly
+- Enforce password policies consistently
+- Remove excessive admin permissions
+- Disable unused privileged accounts
+- Monitor for unauthorized privilege escalation
+- Typical use: compliance audits, security reviews
+- Schedule monthly security reports`,
+    parameters: [
+      { id: 'reportType', label: 'Report Type', type: 'select', required: true, options: ['Privileged Accounts', 'Password Policy', 'Inactive Accounts', 'All Security'], defaultValue: 'All Security' },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'text', required: true, placeholder: 'C:\\Reports\\ADSecurityReport.csv' },
+      { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: false, defaultValue: 90, placeholder: '90' }
+    ],
+    scriptTemplate: (params) => {
+      const reportType = params.reportType;
+      const exportPath = escapePowerShellString(params.exportPath);
+      const inactiveDays = params.inactiveDays || 90;
+
+      return `# Generate AD Security Reports
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    Write-Host "Generating AD security report: ${reportType}" -ForegroundColor Cyan
+    
+    $SecurityReport = @()
+    $Date = Get-Date
+    
+    if ("${reportType}" -eq "Privileged Accounts" -or "${reportType}" -eq "All Security") {
+        Write-Host "Collecting privileged account information..." -ForegroundColor Cyan
+        
+        # Get privileged groups
+        $PrivilegedGroups = @(
+            "Domain Admins",
+            "Enterprise Admins",
+            "Schema Admins",
+            "Administrators",
+            "Account Operators",
+            "Backup Operators",
+            "Server Operators",
+            "Print Operators"
+        )
+        
+        foreach ($Group in $PrivilegedGroups) {
+            $Members = Get-ADGroupMember -Identity $Group -ErrorAction SilentlyContinue
+            
+            foreach ($Member in $Members) {
+                $User = Get-ADUser -Identity $Member.SamAccountName -Properties LastLogonDate, PasswordLastSet, PasswordNeverExpires
+                
+                $SecurityReport += [PSCustomObject]@{
+                    ReportType          = "Privileged Account"
+                    Account             = $User.SamAccountName
+                    DisplayName         = $User.Name
+                    PrivilegedGroup     = $Group
+                    Enabled             = $User.Enabled
+                    LastLogon           = $User.LastLogonDate
+                    PasswordLastSet     = $User.PasswordLastSet
+                    PasswordNeverExpires = $User.PasswordNeverExpires
+                }
+            }
+        }
+        
+        Write-Host "✓ Collected $($SecurityReport.Count) privileged account records" -ForegroundColor Green
+    }
+    
+    if ("${reportType}" -eq "Password Policy" -or "${reportType}" -eq "All Security") {
+        Write-Host "Checking password policy compliance..." -ForegroundColor Cyan
+        
+        # Get users with password issues
+        $PolicyViolations = Get-ADUser -Filter {Enabled -eq $true} -Properties PasswordNeverExpires, PasswordLastSet |
+            Where-Object { $_.PasswordNeverExpires -eq $true }
+        
+        foreach ($User in $PolicyViolations) {
+            $SecurityReport += [PSCustomObject]@{
+                ReportType          = "Password Policy Violation"
+                Account             = $User.SamAccountName
+                DisplayName         = $User.Name
+                Issue               = "Password Never Expires"
+                PasswordLastSet     = $User.PasswordLastSet
+                LastLogon           = $null
+                PrivilegedGroup     = $null
+                Enabled             = $User.Enabled
+                PasswordNeverExpires = $true
+            }
+        }
+        
+        Write-Host "✓ Found $($PolicyViolations.Count) password policy violations" -ForegroundColor Yellow
+    }
+    
+    if ("${reportType}" -eq "Inactive Accounts" -or "${reportType}" -eq "All Security") {
+        Write-Host "Identifying inactive accounts..." -ForegroundColor Cyan
+        
+        $InactiveCutoff = $Date.AddDays(-${inactiveDays})
+        $InactiveUsers = Search-ADAccount -UsersOnly -AccountInactive -TimeSpan ([TimeSpan]::FromDays(${inactiveDays})) |
+            Get-ADUser -Properties LastLogonDate, MemberOf
+        
+        foreach ($User in $InactiveUsers) {
+            # Check if user is in privileged group
+            $IsPrivileged = $false
+            foreach ($Group in $User.MemberOf) {
+                if ($Group -match "Domain Admins|Enterprise Admins|Schema Admins|Administrators") {
+                    $IsPrivileged = $true
+                    break
+                }
+            }
+            
+            if ($IsPrivileged) {
+                $SecurityReport += [PSCustomObject]@{
+                    ReportType          = "Inactive Privileged Account"
+                    Account             = $User.SamAccountName
+                    DisplayName         = $User.Name
+                    Issue               = "Inactive for ${inactiveDays}+ days"
+                    LastLogon           = $User.LastLogonDate
+                    DaysInactive        = ($Date - $User.LastLogonDate).Days
+                    Enabled             = $User.Enabled
+                    PrivilegedGroup     = "Yes"
+                    PasswordNeverExpires = $null
+                    PasswordLastSet     = $null
+                }
+            }
+        }
+        
+        Write-Host "✓ Found $($InactiveUsers.Count) inactive accounts (${inactiveDays}+ days)" -ForegroundColor Yellow
+    }
+    
+    # Export report
+    $SecurityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host ""
+    Write-Host "✓ Security report exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Display summary
+    Write-Host ""
+    Write-Host "=== Security Report Summary ===" -ForegroundColor Cyan
+    Write-Host "Total Records: $($SecurityReport.Count)" -ForegroundColor Gray
+    
+    $SecurityReport | Group-Object ReportType | ForEach-Object {
+        Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "⚠ RECOMMENDATIONS:" -ForegroundColor Yellow
+    Write-Host "1. Review all privileged accounts monthly" -ForegroundColor Gray
+    Write-Host "2. Disable/remove inactive privileged accounts immediately" -ForegroundColor Gray
+    Write-Host "3. Enforce password expiration for all accounts" -ForegroundColor Gray
+    Write-Host "4. Implement least privilege access model" -ForegroundColor Gray
+    Write-Host "5. Enable MFA for all privileged accounts" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to generate security report: $_"
+}`;
+    }
   }
 ];

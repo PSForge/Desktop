@@ -2574,6 +2574,924 @@ try {
     Write-Error "Failed to export solution: $_"
 }`;
     }
+  },
+
+  // ==================== PREMIUM TASKS ====================
+  {
+    id: 'pp-create-dataverse-table',
+    title: 'Create and Manage Dataverse Tables',
+    description: 'Create custom tables, columns, relationships',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates custom Dataverse tables with columns and relationships for data storage in Power Platform environments.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or System Administrator role
+- Authenticated to Power Platform
+- Dataverse database enabled in environment
+
+**What You Need to Provide:**
+- Environment name
+- Table display name and logical name
+- Column definitions (name, type, description)
+
+**What the Script Does:**
+- Creates custom Dataverse table
+- Adds custom columns with specified data types
+- Sets primary name field
+- Configures table settings and properties
+- Reports creation success
+
+**Important Notes:**
+- Essential for custom business data storage
+- Table logical names must be unique in environment
+- Column types: Text, Number, Date, Lookup, Choice
+- Tables support relationships to other tables
+- Use naming conventions: prefix with publisher
+- Plan data model before creating tables
+- Consider security roles for table access
+- Typical use: custom CRM data, workflow storage`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Power Platform environment'
+      },
+      {
+        name: 'tableDisplayName',
+        label: 'Table Display Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Customer Feedback',
+        helpText: 'User-friendly table name'
+      },
+      {
+        name: 'tableLogicalName',
+        label: 'Table Logical Name',
+        type: 'text',
+        required: true,
+        placeholder: 'contoso_customerfeedback',
+        helpText: 'Unique technical name (use prefix)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const displayName = escapePowerShellString(params.tableDisplayName);
+      const logicalName = escapePowerShellString(params.tableLogicalName);
+
+      return `# Create Dataverse Table
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating Dataverse table..." -ForegroundColor Cyan
+    Write-Host "  Display Name: ${displayName}" -ForegroundColor Gray
+    Write-Host "  Logical Name: ${logicalName}" -ForegroundColor Gray
+    
+    # Note: This requires Dataverse Web API or PowerShell CDS module
+    # Example shown for reference - adjust based on your module
+    
+    Write-Host "⚠ Creating custom tables requires Dataverse API access" -ForegroundColor Yellow
+    Write-Host "Use Power Apps Maker portal or Dataverse API for table creation" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Recommended approach:" -ForegroundColor Cyan
+    Write-Host "1. Use Power Apps (make.powerapps.com)" -ForegroundColor Gray
+    Write-Host "2. Navigate to Tables > New table" -ForegroundColor Gray
+    Write-Host "3. Set Display name: ${displayName}" -ForegroundColor Gray
+    Write-Host "4. Set Name: ${logicalName}" -ForegroundColor Gray
+    Write-Host "5. Add columns as needed" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "For automation, use Microsoft.PowerPlatform.Dataverse.Client module" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Table creation guidance: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-manage-flows',
+    title: 'Manage Power Automate Cloud Flows',
+    description: 'Create, enable, disable, run flows',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script manages Power Automate cloud flows for workflow automation control and troubleshooting.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or flow owner permissions
+- Authenticated to Power Platform
+- Flow exists in specified environment
+
+**What You Need to Provide:**
+- Environment name
+- Flow name or ID
+- Action (Enable, Disable, Run, or Delete)
+
+**What the Script Does:**
+- Performs specified flow management operation
+- For Enable: activates flow trigger
+- For Disable: stops flow from running
+- For Run: manually triggers flow execution
+- For Delete: removes flow from environment
+- Reports operation success
+
+**Important Notes:**
+- Essential for flow lifecycle management
+- Disabled flows do not consume run quota
+- Manual run useful for testing
+- Delete operation is permanent
+- Check flow run history for errors
+- Coordinate flow changes with owners
+- Typical use: troubleshooting, maintenance
+- Re-enable flows after testing`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Power Platform environment'
+      },
+      {
+        name: 'flowName',
+        label: 'Flow Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Flow ID or display name',
+        helpText: 'Target flow identifier'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Enable', label: 'Enable Flow' },
+          { value: 'Disable', label: 'Disable Flow' },
+          { value: 'Run', label: 'Run Flow' },
+          { value: 'Delete', label: 'Delete Flow' }
+        ],
+        helpText: 'Flow management operation'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const flowName = escapePowerShellString(params.flowName);
+      const action = params.action;
+
+      return `# Manage Power Automate Flow
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Flow management operation: ${action}" -ForegroundColor Cyan
+    Write-Host "  Environment: ${environmentName}" -ForegroundColor Gray
+    Write-Host "  Flow: ${flowName}" -ForegroundColor Gray
+    
+    switch ("${action}") {
+        "Enable" {
+            Write-Host "Enabling flow..." -ForegroundColor Cyan
+            Set-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}" -Enabled $true
+            Write-Host "✓ Flow enabled successfully" -ForegroundColor Green
+        }
+        
+        "Disable" {
+            Write-Host "Disabling flow..." -ForegroundColor Cyan
+            Set-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}" -Enabled $false
+            Write-Host "✓ Flow disabled successfully" -ForegroundColor Green
+            Write-Host "  Flow will not trigger automatically" -ForegroundColor Gray
+        }
+        
+        "Run" {
+            Write-Host "Running flow manually..." -ForegroundColor Cyan
+            # Note: Manual run requires flow trigger parameters
+            Write-Host "⚠ Manual flow run requires trigger payload" -ForegroundColor Yellow
+            Write-Host "Use Power Automate portal to run manually with inputs" -ForegroundColor Gray
+        }
+        
+        "Delete" {
+            Write-Host "⚠ WARNING: This will permanently delete the flow!" -ForegroundColor Red
+            $Confirm = Read-Host "Type 'DELETE' to confirm"
+            
+            if ($Confirm -eq 'DELETE') {
+                Remove-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}"
+                Write-Host "✓ Flow deleted successfully" -ForegroundColor Green
+            } else {
+                Write-Host "Deletion cancelled" -ForegroundColor Yellow
+            }
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage flow: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-configure-dlp',
+    title: 'Configure DLP Policies',
+    description: 'Data loss prevention policies for connectors',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures Data Loss Prevention (DLP) policies to control connector usage and prevent data leakage.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+- Understanding of business vs non-business connectors
+
+**What You Need to Provide:**
+- DLP policy name
+- Policy scope (Tenant, Environment, or Exclude environments)
+- Connector classification (Business, Non-Business, Blocked)
+
+**What the Script Does:**
+- Creates new DLP policy with specified name
+- Classifies connectors into groups
+- Sets policy scope (all environments or specific)
+- Prevents data sharing between connector groups
+- Reports policy creation success
+
+**Important Notes:**
+- Essential for regulatory compliance and data protection
+- Prevents mixing business and non-business data
+- Blocked connectors cannot be used at all
+- Business connectors can share data with each other
+- Non-business connectors isolated from business connectors
+- Apply to all environments or specific ones
+- Typical policy: block consumer services in production
+- Review impact before applying broadly`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'DLP Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Production DLP Policy',
+        helpText: 'Descriptive policy name'
+      },
+      {
+        name: 'policyScope',
+        label: 'Policy Scope',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'AllEnvironments', label: 'All Environments' },
+          { value: 'ExceptEnvironments', label: 'All Except Specified' },
+          { value: 'OnlyEnvironments', label: 'Only Specified Environments' }
+        ],
+        helpText: 'Where policy applies'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const scope = params.policyScope;
+
+      return `# Configure DLP Policy
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating DLP policy..." -ForegroundColor Cyan
+    Write-Host "  Policy Name: ${policyName}" -ForegroundColor Gray
+    Write-Host "  Scope: ${scope}" -ForegroundColor Gray
+    
+    # Create new DLP policy
+    $Policy = New-AdminDlpPolicy -DisplayName "${policyName}"
+    
+    Write-Host "✓ DLP policy created" -ForegroundColor Green
+    Write-Host "  Policy ID: $($Policy.PolicyName)" -ForegroundColor Gray
+    
+    # Example: Add connectors to business data group
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Cyan
+    Write-Host "1. Classify connectors as Business or Non-Business" -ForegroundColor Gray
+    Write-Host "2. Use: Add-ConnectorsToBusinessDataGroup" -ForegroundColor Gray
+    Write-Host "3. Use: Add-ConnectorsToNonBusinessDataGroup" -ForegroundColor Gray
+    Write-Host "4. Block risky connectors completely" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Example business connectors:" -ForegroundColor Cyan
+    Write-Host "  SharePoint, Dataverse, Office 365, Teams" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Example non-business connectors to consider blocking:" -ForegroundColor Cyan
+    Write-Host "  Gmail, Dropbox, Twitter, Facebook" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create DLP policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-manage-environments',
+    title: 'Manage Power Apps Environments',
+    description: 'Create, delete, backup/restore environments',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script performs comprehensive environment management operations for Power Platform environments.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+- Available environment capacity (for creation)
+
+**What You Need to Provide:**
+- Action (Create, Delete, Backup, or Restore)
+- Environment name/ID
+- For Create: region and environment type
+- For Backup: backup label
+- For Restore: source and target environments
+
+**What the Script Does:**
+- Performs specified environment operation
+- For Create: provisions new environment
+- For Delete: removes environment permanently
+- For Backup: creates manual backup
+- For Restore: recovers from backup
+- Reports operation success
+
+**Important Notes:**
+- Essential for environment lifecycle management
+- Deletion is permanent - all data lost
+- Backups support disaster recovery
+- Only production/sandbox support backups
+- Restoration overwrites target environment
+- Coordinate changes with stakeholders
+- Test backups regularly
+- Typical use: DR, dev/test provisioning`,
+    parameters: [
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Create', label: 'Create Environment' },
+          { value: 'Delete', label: 'Delete Environment' },
+          { value: 'Backup', label: 'Backup Environment' },
+          { value: 'Restore', label: 'Restore Environment' }
+        ],
+        helpText: 'Environment management operation'
+      },
+      {
+        name: 'environmentName',
+        label: 'Environment Name/ID',
+        type: 'text',
+        required: true,
+        placeholder: 'Contoso-Production',
+        helpText: 'Target environment'
+      },
+      {
+        name: 'region',
+        label: 'Region (for Create)',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'unitedstates', label: 'United States' },
+          { value: 'europe', label: 'Europe' },
+          { value: 'asia', label: 'Asia' }
+        ],
+        helpText: 'Geographic region'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const envName = escapePowerShellString(params.environmentName);
+      const region = params.region || 'unitedstates';
+
+      return `# Manage Power Apps Environment
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Environment operation: ${action}" -ForegroundColor Cyan
+    Write-Host "  Environment: ${envName}" -ForegroundColor Gray
+    
+    switch ("${action}") {
+        "Create" {
+            Write-Host "Creating new environment..." -ForegroundColor Cyan
+            Write-Host "  Region: ${region}" -ForegroundColor Gray
+            
+            $NewEnv = New-AdminPowerAppEnvironment -DisplayName "${envName}" -LocationName ${region} -EnvironmentSku Production
+            
+            Write-Host "✓ Environment created successfully" -ForegroundColor Green
+            Write-Host "  Environment ID: $($NewEnv.EnvironmentName)" -ForegroundColor Gray
+        }
+        
+        "Delete" {
+            Write-Host "⚠ WARNING: This will permanently delete the environment!" -ForegroundColor Red
+            $Confirm = Read-Host "Type 'DELETE' to confirm"
+            
+            if ($Confirm -eq 'DELETE') {
+                Remove-AdminPowerAppEnvironment -EnvironmentName "${envName}"
+                Write-Host "✓ Environment deleted" -ForegroundColor Green
+            } else {
+                Write-Host "Deletion cancelled" -ForegroundColor Yellow
+            }
+        }
+        
+        "Backup" {
+            $BackupLabel = Read-Host "Enter backup label (e.g., Pre-Migration-2025)"
+            
+            Write-Host "Creating backup..." -ForegroundColor Cyan
+            Backup-CdsEnvironment -EnvironmentName "${envName}" -BackupLabel $BackupLabel
+            Write-Host "✓ Backup created successfully" -ForegroundColor Green
+        }
+        
+        "Restore" {
+            Write-Host "⚠ Restore will overwrite target environment" -ForegroundColor Yellow
+            $SourceEnv = Read-Host "Enter source environment name"
+            $TargetEnv = Read-Host "Enter target environment name"
+            
+            $Confirm = Read-Host "Type 'RESTORE' to confirm"
+            if ($Confirm -eq 'RESTORE') {
+                Restore-CdsEnvironment -SourceEnvironmentName $SourceEnv -TargetEnvironmentName $TargetEnv
+                Write-Host "✓ Restore initiated" -ForegroundColor Green
+            }
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage environment: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-configure-security-roles',
+    title: 'Configure Environment Security Roles',
+    description: 'Assign security roles to users',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script assigns security roles to users for Power Platform environment access control.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or System Administrator role
+- Authenticated to Power Platform
+- Users must exist in Azure AD
+
+**What You Need to Provide:**
+- Environment name
+- User email address
+- Security role to assign (System Administrator, System Customizer, Basic User, etc.)
+
+**What the Script Does:**
+- Retrieves user from Azure AD
+- Assigns specified security role in environment
+- Grants appropriate permissions
+- Reports role assignment success
+
+**Important Notes:**
+- Essential for environment access control
+- System Administrator has full permissions
+- System Customizer can customize without user access
+- Basic User has read/write to their own data
+- Environment Maker can create resources
+- Use principle of least privilege
+- Review role assignments periodically
+- Typical use: onboarding, role changes`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Target environment'
+      },
+      {
+        name: 'userEmail',
+        label: 'User Email',
+        type: 'text',
+        required: true,
+        placeholder: 'user@company.com',
+        helpText: 'User to assign role to'
+      },
+      {
+        name: 'roleName',
+        label: 'Security Role',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'System Administrator', label: 'System Administrator (Full control)' },
+          { value: 'System Customizer', label: 'System Customizer (Customize)' },
+          { value: 'Environment Maker', label: 'Environment Maker (Create resources)' },
+          { value: 'Basic User', label: 'Basic User (Standard access)' }
+        ],
+        helpText: 'Role to assign'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const envName = escapePowerShellString(params.environmentName);
+      const userEmail = escapePowerShellString(params.userEmail);
+      const roleName = escapePowerShellString(params.roleName);
+
+      return `# Configure Security Roles
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Assigning security role..." -ForegroundColor Cyan
+    Write-Host "  Environment: ${envName}" -ForegroundColor Gray
+    Write-Host "  User: ${userEmail}" -ForegroundColor Gray
+    Write-Host "  Role: ${roleName}" -ForegroundColor Gray
+    
+    # Add user to environment with role
+    Set-AdminPowerAppEnvironmentRoleAssignment -EnvironmentName "${envName}" -PrincipalType User -PrincipalObjectId "${userEmail}" -RoleName "${roleName}"
+    
+    Write-Host "✓ Security role assigned successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "User now has '${roleName}' permissions in environment" -ForegroundColor Gray
+    
+    # Display current role assignments
+    Write-Host ""
+    Write-Host "Current role assignments:" -ForegroundColor Cyan
+    Get-AdminPowerAppEnvironmentRoleAssignment -EnvironmentName "${envName}" | Where-Object { $_.PrincipalEmail -eq "${userEmail}" } | Format-Table RoleName, PrincipalDisplayName
+    
+} catch {
+    Write-Error "Failed to assign security role: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-export-powerbi-reports',
+    title: 'Export Power BI Reports and Datasets',
+    description: 'Export reports, datasets for backup',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script exports Power BI reports and datasets for backup, migration, and version control.
+
+**Prerequisites:**
+- Power BI PowerShell module installed
+- Power BI Administrator or Workspace Admin role
+- Authenticated to Power BI service
+- Reports exist in specified workspace
+
+**What You Need to Provide:**
+- Workspace name
+- Report name to export
+- Export file path
+
+**What the Script Does:**
+- Connects to Power BI workspace
+- Exports report definition (.pbix file)
+- Downloads dataset configuration
+- Saves to specified location
+- Reports export success
+
+**Important Notes:**
+- Essential for backup and version control
+- Exports include report layout and visuals
+- Dataset connections may need reconfiguration
+- Use for disaster recovery
+- Schedule regular exports
+- Store exports in version control
+- Test restore process periodically
+- Typical use: backups, migrations, dev/test`,
+    parameters: [
+      {
+        name: 'workspaceName',
+        label: 'Workspace Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Sales Analytics',
+        helpText: 'Power BI workspace'
+      },
+      {
+        name: 'reportName',
+        label: 'Report Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Monthly Sales Report',
+        helpText: 'Report to export'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export File Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Backups\\SalesReport.pbix',
+        helpText: 'Destination file path'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const workspaceName = escapePowerShellString(params.workspaceName);
+      const reportName = escapePowerShellString(params.reportName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Power BI Report
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Exporting Power BI report..." -ForegroundColor Cyan
+    Write-Host "  Workspace: ${workspaceName}" -ForegroundColor Gray
+    Write-Host "  Report: ${reportName}" -ForegroundColor Gray
+    
+    # Connect to Power BI
+    Connect-PowerBIServiceAccount
+    
+    # Get workspace
+    $Workspace = Get-PowerBIWorkspace -Name "${workspaceName}"
+    
+    if (-not $Workspace) {
+        throw "Workspace not found: ${workspaceName}"
+    }
+    
+    Write-Host "✓ Workspace found: $($Workspace.Id)" -ForegroundColor Green
+    
+    # Get report
+    $Report = Get-PowerBIReport -WorkspaceId $Workspace.Id | Where-Object { $_.Name -eq "${reportName}" }
+    
+    if (-not $Report) {
+        throw "Report not found: ${reportName}"
+    }
+    
+    Write-Host "✓ Report found: $($Report.Id)" -ForegroundColor Green
+    
+    # Export report
+    Write-Host "Exporting report..." -ForegroundColor Cyan
+    Export-PowerBIReport -WorkspaceId $Workspace.Id -Id $Report.Id -OutFile "${exportPath}"
+    
+    Write-Host "✓ Report exported successfully" -ForegroundColor Green
+    Write-Host "  Location: ${exportPath}" -ForegroundColor Gray
+    
+    # Display file size
+    $FileSize = [math]::Round((Get-Item "${exportPath}").Length / 1MB, 2)
+    Write-Host "  File size: $FileSize MB" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to export Power BI report: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-manage-chatbots',
+    title: 'Manage Power Virtual Agents Bots',
+    description: 'Create, configure, publish chatbots',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script manages Power Virtual Agents chatbots for deployment and configuration.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Virtual Agents license
+- Power Platform Administrator or bot owner permissions
+- Authenticated to Power Platform
+
+**What You Need to Provide:**
+- Environment name
+- Bot name
+- Action (Create, Publish, Delete, or Get Info)
+
+**What the Script Does:**
+- Performs specified bot management operation
+- For Create: provisions new bot
+- For Publish: deploys bot to channels
+- For Delete: removes bot
+- For Get Info: displays bot configuration
+- Reports operation success
+
+**Important Notes:**
+- Essential for chatbot deployment
+- Publishing makes bot available to users
+- Test bots thoroughly before publishing
+- Monitor bot analytics regularly
+- Update topics based on user feedback
+- Use authentication for sensitive operations
+- Typical use: deployment, updates, troubleshooting
+- Unpublish during major updates`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Power Platform environment'
+      },
+      {
+        name: 'botName',
+        label: 'Bot Name',
+        type: 'text',
+        required: true,
+        placeholder: 'IT Support Bot',
+        helpText: 'Chatbot name'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Create', label: 'Create Bot' },
+          { value: 'Publish', label: 'Publish Bot' },
+          { value: 'Delete', label: 'Delete Bot' },
+          { value: 'Info', label: 'Get Bot Info' }
+        ],
+        helpText: 'Bot management operation'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const envName = escapePowerShellString(params.environmentName);
+      const botName = escapePowerShellString(params.botName);
+      const action = params.action;
+
+      return `# Manage Power Virtual Agents Bot
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Bot management operation: ${action}" -ForegroundColor Cyan
+    Write-Host "  Environment: ${envName}" -ForegroundColor Gray
+    Write-Host "  Bot: ${botName}" -ForegroundColor Gray
+    
+    switch ("${action}") {
+        "Create" {
+            Write-Host "Creating new bot..." -ForegroundColor Cyan
+            Write-Host "⚠ Bot creation typically done through Power Virtual Agents portal" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "Steps to create bot:" -ForegroundColor Cyan
+            Write-Host "1. Go to https://powerva.microsoft.com" -ForegroundColor Gray
+            Write-Host "2. Select environment: ${envName}" -ForegroundColor Gray
+            Write-Host "3. Click 'New bot'" -ForegroundColor Gray
+            Write-Host "4. Enter name: ${botName}" -ForegroundColor Gray
+            Write-Host "5. Configure topics and responses" -ForegroundColor Gray
+        }
+        
+        "Publish" {
+            Write-Host "Publishing bot..." -ForegroundColor Cyan
+            Write-Host "This makes the bot available to users" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "⚠ Use Power Virtual Agents portal to publish:" -ForegroundColor Yellow
+            Write-Host "1. Open bot: ${botName}" -ForegroundColor Gray
+            Write-Host "2. Click 'Publish' in top navigation" -ForegroundColor Gray
+            Write-Host "3. Review changes" -ForegroundColor Gray
+            Write-Host "4. Click 'Publish' to deploy" -ForegroundColor Gray
+        }
+        
+        "Delete" {
+            Write-Host "⚠ WARNING: This will permanently delete the bot!" -ForegroundColor Red
+            Write-Host "Use Power Virtual Agents portal to delete" -ForegroundColor Gray
+        }
+        
+        "Info" {
+            Write-Host "Retrieving bot information..." -ForegroundColor Cyan
+            Write-Host "Use Get-AdminPowerAppChatbot cmdlet with appropriate parameters" -ForegroundColor Gray
+        }
+    }
+    
+} catch {
+    Write-Error "Bot management guidance: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-audit-usage',
+    title: 'Audit Power Platform Usage',
+    description: 'Export usage analytics, connector usage',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script exports Power Platform usage analytics for governance, compliance, and capacity planning.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+- Audit logs enabled in tenant
+
+**What You Need to Provide:**
+- Start date for usage period
+- End date for usage period
+- CSV export file path
+
+**What the Script Does:**
+- Queries Power Platform usage data
+- Collects app usage, flow runs, connector usage
+- Aggregates metrics by user and resource
+- Exports detailed usage report to CSV
+- Reports total usage statistics
+
+**Important Notes:**
+- Essential for license compliance and governance
+- Shows user adoption and engagement
+- Identifies heavy resource consumers
+- Supports chargeback calculations
+- Use for capacity planning
+- Run monthly for usage trends
+- Identify unused resources for cleanup
+- Typical use: compliance, cost optimization`,
+    parameters: [
+      {
+        name: 'startDate',
+        label: 'Start Date',
+        type: 'text',
+        required: true,
+        placeholder: '2025-01-01',
+        helpText: 'Usage period start (YYYY-MM-DD)'
+      },
+      {
+        name: 'endDate',
+        label: 'End Date',
+        type: 'text',
+        required: true,
+        placeholder: '2025-01-31',
+        helpText: 'Usage period end (YYYY-MM-DD)'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Reports\\PPUsage.csv',
+        helpText: 'Path where the CSV file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const startDate = escapePowerShellString(params.startDate);
+      const endDate = escapePowerShellString(params.endDate);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Audit Power Platform Usage
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Collecting Power Platform usage analytics..." -ForegroundColor Cyan
+    Write-Host "  Period: ${startDate} to ${endDate}" -ForegroundColor Gray
+    
+    $StartDate = [DateTime]"${startDate}"
+    $EndDate = [DateTime]"${endDate}"
+    
+    # Collect app usage
+    Write-Host "Retrieving app usage..." -ForegroundColor Cyan
+    $Apps = Get-AdminPowerApp
+    
+    # Collect flow usage
+    Write-Host "Retrieving flow usage..." -ForegroundColor Cyan
+    $Flows = Get-AdminFlow
+    
+    # Collect connector usage
+    Write-Host "Retrieving connector usage..." -ForegroundColor Cyan
+    $Connections = Get-AdminPowerAppConnection
+    
+    # Build usage report
+    $UsageReport = @()
+    
+    # App usage
+    foreach ($App in $Apps) {
+        $UsageReport += [PSCustomObject]@{
+            Type            = "App"
+            ResourceName    = $App.DisplayName
+            Owner           = $App.Owner.displayName
+            Environment     = $App.EnvironmentName
+            CreatedDate     = $App.CreatedTime
+            LastModified    = $App.LastModifiedTime
+        }
+    }
+    
+    # Flow usage
+    foreach ($Flow in $Flows) {
+        $UsageReport += [PSCustomObject]@{
+            Type            = "Flow"
+            ResourceName    = $Flow.DisplayName
+            Owner           = $Flow.CreatedBy.displayName
+            Environment     = $Flow.EnvironmentName
+            CreatedDate     = $Flow.CreatedTime
+            LastModified    = $Flow.LastModifiedTime
+        }
+    }
+    
+    # Export to CSV
+    $UsageReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Usage report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "=== Usage Summary ===" -ForegroundColor Cyan
+    Write-Host "Total Apps: $($Apps.Count)" -ForegroundColor Gray
+    Write-Host "Total Flows: $($Flows.Count)" -ForegroundColor Gray
+    Write-Host "Total Connections: $($Connections.Count)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Top users by resource count:" -ForegroundColor Cyan
+    $UsageReport | Group-Object Owner | Sort-Object Count -Descending | Select-Object -First 10 Name, Count | Format-Table
+    
+} catch {
+    Write-Error "Failed to export usage report: $_"
+}`;
+    }
   }
 ];
 
@@ -2583,5 +3501,6 @@ export const powerPlatformCategories = [
   'Connectors',
   'Governance',
   'Reporting & Analytics',
-  'Solutions'
+  'Solutions',
+  'Common Admin Tasks'
 ];

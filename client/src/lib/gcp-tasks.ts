@@ -1240,5 +1240,234 @@ action === 'Delete Load Balancer' ? `    Write-Host "Deleting load balancer comp
     }
   ,
     isPremium: true
+  },
+
+  {
+    id: 'gcp-configure-cloud-sql-backup',
+    name: 'Configure Cloud SQL Automated Backups',
+    category: 'Database Management',
+    description: 'Configure automated backup settings for Cloud SQL instances',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true, placeholder: 'my-project-id' },
+      { id: 'instanceName', label: 'Instance Name', type: 'text', required: true, placeholder: 'my-sql-instance' },
+      { id: 'backupStartTime', label: 'Backup Start Time', type: 'text', required: true, placeholder: '02:00' },
+      { id: 'retentionDays', label: 'Retention (Days)', type: 'number', required: true, placeholder: '7' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const instanceName = escapePowerShellString(params.instanceName);
+      const startTime = escapePowerShellString(params.backupStartTime);
+      const retention = params.retentionDays || 7;
+
+      return `# Configure Cloud SQL Automated Backups
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project "${project}"
+    
+    gcloud sql instances patch "${instanceName}" \`
+        --backup-start-time="${startTime}" \`
+        --retained-backups-count=${retention} \`
+        --enable-bin-log
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Cloud SQL backups configured" -ForegroundColor Green
+        Write-Host "  Instance: ${instanceName}" -ForegroundColor Cyan
+        Write-Host "  Start Time: ${startTime}" -ForegroundColor Cyan
+        Write-Host "  Retention: ${retention} days" -ForegroundColor Cyan
+    }
+    
+} catch {
+    Write-Error "Cloud SQL backup configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'gcp-manage-iam-service-account',
+    name: 'Create and Configure IAM Service Account',
+    category: 'Security & IAM',
+    description: 'Create service account and assign IAM roles for automation',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true, placeholder: 'my-project-id' },
+      { id: 'accountName', label: 'Service Account Name', type: 'text', required: true, placeholder: 'my-automation-sa' },
+      { id: 'displayName', label: 'Display Name', type: 'text', required: true, placeholder: 'Automation Service Account' },
+      { id: 'role', label: 'IAM Role', type: 'select', required: true, options: ['roles/editor', 'roles/viewer', 'roles/compute.admin', 'roles/storage.admin'], defaultValue: 'roles/viewer' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const accountName = escapePowerShellString(params.accountName);
+      const displayName = escapePowerShellString(params.displayName);
+      const role = params.role || 'roles/viewer';
+
+      return `# Create and Configure IAM Service Account
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project "${project}"
+    
+    # Create service account
+    gcloud iam service-accounts create "${accountName}" \`
+        --display-name="${displayName}"
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Service account created: ${accountName}" -ForegroundColor Green
+        
+        # Assign role
+        $ServiceAccountEmail = "${accountName}@${project}.iam.gserviceaccount.com"
+        
+        gcloud projects add-iam-policy-binding "${project}" \`
+            --member="serviceAccount:$ServiceAccountEmail" \`
+            --role="${role}"
+        
+        Write-Host "✓ Role assigned: ${role}" -ForegroundColor Green
+        Write-Host "  Service Account: $ServiceAccountEmail" -ForegroundColor Cyan
+    }
+    
+} catch {
+    Write-Error "Service account creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'gcp-configure-vpc-peering',
+    name: 'Create VPC Network Peering Connection',
+    category: 'Networking',
+    description: 'Establish VPC peering between two networks for private communication',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true, placeholder: 'my-project-id' },
+      { id: 'network1', label: 'Network 1', type: 'text', required: true, placeholder: 'vpc-network-1' },
+      { id: 'network2', label: 'Network 2', type: 'text', required: true, placeholder: 'vpc-network-2' },
+      { id: 'peeringName', label: 'Peering Connection Name', type: 'text', required: true, placeholder: 'prod-to-dev-peering' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const network1 = escapePowerShellString(params.network1);
+      const network2 = escapePowerShellString(params.network2);
+      const peeringName = escapePowerShellString(params.peeringName);
+
+      return `# Create VPC Network Peering Connection
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project "${project}"
+    
+    # Create peering from network1 to network2
+    gcloud compute networks peerings create "${peeringName}" \`
+        --network="${network1}" \`
+        --peer-network="${network2}" \`
+        --auto-create-routes
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ VPC peering connection created" -ForegroundColor Green
+        Write-Host "  Peering Name: ${peeringName}" -ForegroundColor Cyan
+        Write-Host "  Network 1: ${network1}" -ForegroundColor Cyan
+        Write-Host "  Network 2: ${network2}" -ForegroundColor Cyan
+        Write-Host "  Auto Routes: Enabled" -ForegroundColor Cyan
+    }
+    
+} catch {
+    Write-Error "VPC peering creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'gcp-manage-bigquery-dataset',
+    name: 'Create and Configure BigQuery Dataset',
+    category: 'Big Data & Analytics',
+    description: 'Create BigQuery dataset with access controls and expiration settings',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true, placeholder: 'my-project-id' },
+      { id: 'datasetId', label: 'Dataset ID', type: 'text', required: true, placeholder: 'my_analytics_dataset' },
+      { id: 'location', label: 'Location', type: 'select', required: true, options: ['US', 'EU', 'asia-northeast1', 'europe-west1'], defaultValue: 'US' },
+      { id: 'defaultTableExpiration', label: 'Default Table Expiration (Hours)', type: 'number', required: false, placeholder: '2160' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const datasetId = escapePowerShellString(params.datasetId);
+      const location = params.location || 'US';
+      const expiration = params.defaultTableExpiration;
+
+      return `# Create and Configure BigQuery Dataset
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project "${project}"
+    
+    # Create dataset
+    $CreateCmd = "gcloud bigquery datasets create ${datasetId} --location=${location}"
+    ${expiration ? `$CreateCmd += " --default-table-expiration=${expiration * 3600}"` : ''}
+    
+    Invoke-Expression $CreateCmd
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ BigQuery dataset created successfully" -ForegroundColor Green
+        Write-Host "  Dataset ID: ${datasetId}" -ForegroundColor Cyan
+        Write-Host "  Location: ${location}" -ForegroundColor Cyan
+        ${expiration ? `Write-Host "  Table Expiration: ${expiration} hours" -ForegroundColor Cyan` : ''}
+        
+        Write-Host ""
+        Write-Host "Query your dataset with:" -ForegroundColor Yellow
+        Write-Host "bq query --use_legacy_sql=false 'SELECT * FROM \`${project}.${datasetId}.table_name\` LIMIT 10'" -ForegroundColor Cyan
+    }
+    
+} catch {
+    Write-Error "BigQuery dataset creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'gcp-configure-cloud-cdn',
+    name: 'Enable and Configure Cloud CDN',
+    category: 'Content Delivery',
+    description: 'Enable Cloud CDN for backend service to cache content globally',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true, placeholder: 'my-project-id' },
+      { id: 'backendService', label: 'Backend Service Name', type: 'text', required: true, placeholder: 'my-backend-service' },
+      { id: 'cacheMode', label: 'Cache Mode', type: 'select', required: true, options: ['CACHE_ALL_STATIC', 'USE_ORIGIN_HEADERS', 'FORCE_CACHE_ALL'], defaultValue: 'CACHE_ALL_STATIC' },
+      { id: 'maxTtl', label: 'Max TTL (Seconds)', type: 'number', required: true, placeholder: '3600' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const backendService = escapePowerShellString(params.backendService);
+      const cacheMode = params.cacheMode || 'CACHE_ALL_STATIC';
+      const maxTtl = params.maxTtl || 3600;
+
+      return `# Enable and Configure Cloud CDN
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project "${project}"
+    
+    # Enable Cloud CDN on backend service
+    gcloud compute backend-services update "${backendService}" \`
+        --enable-cdn \`
+        --cache-mode=${cacheMode} \`
+        --client-ttl=${maxTtl} \`
+        --max-ttl=${maxTtl} \`
+        --global
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Cloud CDN enabled successfully" -ForegroundColor Green
+        Write-Host "  Backend Service: ${backendService}" -ForegroundColor Cyan
+        Write-Host "  Cache Mode: ${cacheMode}" -ForegroundColor Cyan
+        Write-Host "  Max TTL: ${maxTtl} seconds" -ForegroundColor Cyan
+        
+        Write-Host ""
+        Write-Host "⚠️ CDN cache may take a few minutes to warm up" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Cloud CDN configuration failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

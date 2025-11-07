@@ -771,5 +771,309 @@ try {
 }`;
     },
     isPremium: true
+  },
+
+  {
+    id: 'vmware-configure-vmotion',
+    name: 'Configure vMotion and Storage vMotion',
+    category: 'Common Admin Tasks',
+    description: 'Migrate VMs across hosts and datastores',
+    isPremium: true,
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'vmName', label: 'VM Name', type: 'text', required: true },
+      { id: 'migrationType', label: 'Migration Type', type: 'select', required: true, options: ['vMotion', 'Storage vMotion', 'Both'], defaultValue: 'vMotion' },
+      { id: 'targetHost', label: 'Target Host (for vMotion)', type: 'text', required: false, placeholder: 'esxi-host02.company.com' },
+      { id: 'targetDatastore', label: 'Target Datastore (for Storage vMotion)', type: 'text', required: false, placeholder: 'Datastore02' }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const vmName = escapePowerShellString(params.vmName);
+      const migrationType = params.migrationType;
+      const targetHost = params.targetHost ? escapePowerShellString(params.targetHost) : '';
+      const targetDatastore = params.targetDatastore ? escapePowerShellString(params.targetDatastore) : '';
+      
+      return `# Configure vMotion and Storage vMotion
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $VM = Get-VM -Name "${vmName}"
+    
+    ${migrationType === 'vMotion' ? `
+    $TargetHost = Get-VMHost -Name "${targetHost}"
+    Move-VM -VM $VM -Destination $TargetHost
+    Write-Host "✓ VM migrated to host: ${targetHost}" -ForegroundColor Green
+    ` : migrationType === 'Storage vMotion' ? `
+    $TargetDatastore = Get-Datastore -Name "${targetDatastore}"
+    Move-VM -VM $VM -Datastore $TargetDatastore
+    Write-Host "✓ VM storage migrated to: ${targetDatastore}" -ForegroundColor Green
+    ` : `
+    $TargetHost = Get-VMHost -Name "${targetHost}"
+    $TargetDatastore = Get-Datastore -Name "${targetDatastore}"
+    Move-VM -VM $VM -Destination $TargetHost -Datastore $TargetDatastore
+    Write-Host "✓ VM and storage migrated successfully" -ForegroundColor Green
+    `}
+    
+} catch {
+    Write-Error "Migration failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    }
+  },
+
+  {
+    id: 'vmware-manage-tags',
+    name: 'Manage vSphere Tags and Categories',
+    category: 'Common Admin Tasks',
+    description: 'Create tags for organization and automation',
+    isPremium: true,
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['CreateCategory', 'CreateTag', 'AssignTag'], defaultValue: 'CreateCategory' },
+      { id: 'categoryName', label: 'Category Name', type: 'text', required: false, placeholder: 'Environment' },
+      { id: 'tagName', label: 'Tag Name', type: 'text', required: false, placeholder: 'Production' },
+      { id: 'vmName', label: 'VM Name (for AssignTag)', type: 'text', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const action = params.action;
+      const categoryName = params.categoryName ? escapePowerShellString(params.categoryName) : '';
+      const tagName = params.tagName ? escapePowerShellString(params.tagName) : '';
+      const vmName = params.vmName ? escapePowerShellString(params.vmName) : '';
+      
+      return `# Manage vSphere Tags and Categories
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    ${action === 'CreateCategory' ? `
+    New-TagCategory -Name "${categoryName}" -Cardinality "Single" -EntityType "VirtualMachine"
+    Write-Host "✓ Tag category created: ${categoryName}" -ForegroundColor Green
+    ` : action === 'CreateTag' ? `
+    $Category = Get-TagCategory -Name "${categoryName}"
+    New-Tag -Name "${tagName}" -Category $Category
+    Write-Host "✓ Tag created: ${tagName}" -ForegroundColor Green
+    ` : `
+    $Tag = Get-Tag -Name "${tagName}"
+    $VM = Get-VM -Name "${vmName}"
+    New-TagAssignment -Entity $VM -Tag $Tag
+    Write-Host "✓ Tag '${tagName}' assigned to VM: ${vmName}" -ForegroundColor Green
+    `}
+    
+} catch {
+    Write-Error "Tag operation failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    }
+  },
+
+  {
+    id: 'vmware-configure-drs',
+    name: 'Configure DRS (Distributed Resource Scheduler)',
+    category: 'Common Admin Tasks',
+    description: 'Enable DRS and set automation levels',
+    isPremium: true,
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'cluster', label: 'Cluster Name', type: 'text', required: true },
+      { id: 'automationLevel', label: 'Automation Level', type: 'select', required: true, options: ['Manual', 'PartiallyAutomated', 'FullyAutomated'], defaultValue: 'FullyAutomated' },
+      { id: 'migrationThreshold', label: 'Migration Threshold (1-5)', type: 'number', required: true, defaultValue: 3 }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const cluster = escapePowerShellString(params.cluster);
+      const automationLevel = params.automationLevel;
+      
+      return `# Configure DRS (Distributed Resource Scheduler)
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $Cluster = Get-Cluster -Name "${cluster}"
+    
+    Set-Cluster -Cluster $Cluster \`
+        -DrsEnabled:$true \`
+        -DrsAutomationLevel "${automationLevel}" \`
+        -DrsMigrationThreshold ${params.migrationThreshold} \`
+        -Confirm:$false
+    
+    Write-Host "✓ DRS configured successfully" -ForegroundColor Green
+    Write-Host "  Cluster: ${cluster}" -ForegroundColor Cyan
+    Write-Host "  Automation Level: ${automationLevel}" -ForegroundColor Cyan
+    Write-Host "  Migration Threshold: ${params.migrationThreshold}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "DRS configuration failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    }
+  },
+
+  {
+    id: 'vmware-manage-esxi-networking',
+    name: 'Manage ESXi Host Networking',
+    category: 'Common Admin Tasks',
+    description: 'Configure vmkernel adapters and vMotion networks',
+    isPremium: true,
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'vmHost', label: 'ESXi Host', type: 'text', required: true },
+      { id: 'portGroup', label: 'Port Group Name', type: 'text', required: true, placeholder: 'vMotion-Network' },
+      { id: 'ipAddress', label: 'IP Address', type: 'text', required: true, placeholder: '192.168.1.100' },
+      { id: 'subnetMask', label: 'Subnet Mask', type: 'text', required: true, placeholder: '255.255.255.0' }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const vmHost = escapePowerShellString(params.vmHost);
+      const portGroup = escapePowerShellString(params.portGroup);
+      const ipAddress = escapePowerShellString(params.ipAddress);
+      const subnetMask = escapePowerShellString(params.subnetMask);
+      
+      return `# Manage ESXi Host Networking
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $VMHost = Get-VMHost -Name "${vmHost}"
+    
+    # Create vmkernel adapter
+    New-VMHostNetworkAdapter \`
+        -VMHost $VMHost \`
+        -PortGroup "${portGroup}" \`
+        -VirtualSwitch (Get-VirtualSwitch -VMHost $VMHost | Select-Object -First 1) \`
+        -IP "${ipAddress}" \`
+        -SubnetMask "${subnetMask}" \`
+        -VMotionEnabled:$true
+    
+    Write-Host "✓ vmkernel adapter configured" -ForegroundColor Green
+    Write-Host "  Host: ${vmHost}" -ForegroundColor Cyan
+    Write-Host "  IP: ${ipAddress}" -ForegroundColor Cyan
+    Write-Host "  Port Group: ${portGroup}" -ForegroundColor Cyan
+    Write-Host "  vMotion: Enabled" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Networking configuration failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    }
+  },
+
+  {
+    id: 'vmware-configure-vsphere-ha',
+    name: 'Configure vSphere HA (High Availability)',
+    category: 'Common Admin Tasks',
+    description: 'Enable HA and configure admission control',
+    isPremium: true,
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'cluster', label: 'Cluster Name', type: 'text', required: true },
+      { id: 'admissionControl', label: 'Admission Control', type: 'select', required: true, options: ['Enabled', 'Disabled'], defaultValue: 'Enabled' },
+      { id: 'failoverLevel', label: 'Host Failures Cluster Tolerates', type: 'number', required: true, defaultValue: 1 }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const cluster = escapePowerShellString(params.cluster);
+      const admissionControl = params.admissionControl === 'Enabled';
+      
+      return `# Configure vSphere HA (High Availability)
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $Cluster = Get-Cluster -Name "${cluster}"
+    
+    Set-Cluster -Cluster $Cluster \`
+        -HAEnabled:$true \`
+        -HAAdmissionControlEnabled:${admissionControl} \`
+        -HAFailoverLevel ${params.failoverLevel} \`
+        -Confirm:$false
+    
+    Write-Host "✓ vSphere HA configured successfully" -ForegroundColor Green
+    Write-Host "  Cluster: ${cluster}" -ForegroundColor Cyan
+    Write-Host "  Admission Control: ${params.admissionControl}" -ForegroundColor Cyan
+    Write-Host "  Failover Level: ${params.failoverLevel}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "HA configuration failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    }
+  },
+
+  {
+    id: 'vmware-generate-capacity-reports',
+    name: 'Generate vCenter Capacity Reports',
+    category: 'Common Admin Tasks',
+    description: 'Export resource utilization and capacity planning data',
+    isPremium: true,
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\vCenter-Capacity.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Generate vCenter Capacity Reports
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $Clusters = Get-Cluster
+    
+    $CapacityReport = $Clusters | ForEach-Object {
+        $Cluster = $_
+        $Hosts = $Cluster | Get-VMHost
+        $VMs = $Cluster | Get-VM
+        
+        [PSCustomObject]@{
+            Cluster = $Cluster.Name
+            TotalHosts = $Hosts.Count
+            TotalVMs = $VMs.Count
+            TotalCPU_GHz = [math]::Round(($Hosts | Measure-Object -Property CpuTotalMhz -Sum).Sum / 1000, 2)
+            UsedCPU_GHz = [math]::Round(($Hosts | Measure-Object -Property CpuUsageMhz -Sum).Sum / 1000, 2)
+            TotalMemory_GB = [math]::Round(($Hosts | Measure-Object -Property MemoryTotalGB -Sum).Sum, 2)
+            UsedMemory_GB = [math]::Round(($Hosts | Measure-Object -Property MemoryUsageGB -Sum).Sum, 2)
+            CPUUsage_Percent = [math]::Round((($Hosts | Measure-Object -Property CpuUsageMhz -Sum).Sum / ($Hosts | Measure-Object -Property CpuTotalMhz -Sum).Sum) * 100, 2)
+            MemoryUsage_Percent = [math]::Round((($Hosts | Measure-Object -Property MemoryUsageGB -Sum).Sum / ($Hosts | Measure-Object -Property MemoryTotalGB -Sum).Sum) * 100, 2)
+        }
+    }
+    
+    $CapacityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Capacity report exported to: ${exportPath}" -ForegroundColor Green
+    
+    $CapacityReport | Format-Table -AutoSize
+    
+} catch {
+    Write-Error "Report generation failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    }
   }
 ];

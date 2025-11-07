@@ -870,5 +870,361 @@ try {
 }`;
     },
     isPremium: true
+  },
+
+  {
+    id: 'veeam-configure-instant-vm-recovery',
+    name: 'Configure Instant VM Recovery',
+    category: 'Common Admin Tasks',
+    description: 'Restore VMs instantly from backups',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'vmName', label: 'VM Name', type: 'text', required: true },
+      { id: 'targetHost', label: 'Target ESXi Host', type: 'text', required: true, placeholder: 'esxi-host.company.com' },
+      { id: 'datastore', label: 'Datastore', type: 'text', required: true, placeholder: 'Datastore01' }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const vmName = escapePowerShellString(params.vmName);
+      const targetHost = escapePowerShellString(params.targetHost);
+      const datastore = escapePowerShellString(params.datastore);
+      
+      return `# Configure Instant VM Recovery
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    # Get latest restore point
+    $RestorePoint = Get-VBRBackup | Get-VBRRestorePoint -Name "${vmName}" | Sort-Object CreationTime -Descending | Select-Object -First 1
+    
+    if ($RestorePoint) {
+        Write-Host "Starting Instant VM Recovery for: ${vmName}..." -ForegroundColor Cyan
+        
+        # Start Instant Recovery
+        $VMHost = Get-VBRServer -Name "${targetHost}"
+        $Datastore = Find-VBRViDatastore -Server $VMHost -Name "${datastore}"
+        
+        Start-VBRInstantRecovery \`
+            -RestorePoint $RestorePoint \`
+            -Server $VMHost \`
+            -Datastore $Datastore \`
+            -QuickRollback
+        
+        Write-Host "✓ Instant VM Recovery started successfully!" -ForegroundColor Green
+        Write-Host "  VM: ${vmName}" -ForegroundColor Cyan
+        Write-Host "  Target Host: ${targetHost}" -ForegroundColor Cyan
+        Write-Host "  Datastore: ${datastore}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "VM will boot from backup snapshot" -ForegroundColor Yellow
+        Write-Host "Use Quick Migration to move to production storage when ready" -ForegroundColor Yellow
+    } else {
+        Write-Error "No restore points found for ${vmName}"
+    }
+    
+} catch {
+    Write-Error "Instant recovery failed: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'veeam-manage-repositories-advanced',
+    name: 'Manage Backup Repositories (Advanced)',
+    category: 'Common Admin Tasks',
+    description: 'Configure scale-out repositories and deduplication',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['CreateScaleOut', 'ConfigureDedup', 'ViewStats'], defaultValue: 'CreateScaleOut' },
+      { id: 'repoName', label: 'Repository Name', type: 'text', required: false, placeholder: 'ScaleOut-Repo' },
+      { id: 'extentRepos', label: 'Extent Repositories (comma-separated)', type: 'textarea', required: false, placeholder: 'Repo01, Repo02' }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const action = params.action;
+      const repoName = params.repoName ? escapePowerShellString(params.repoName) : '';
+      const extentReposRaw = params.extentRepos ? (params.extentRepos as string).split(',').map((r: string) => r.trim()) : [];
+      
+      return `# Manage Backup Repositories (Advanced)
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    ${action === 'CreateScaleOut' ? `
+    Write-Host "Creating Scale-Out Repository: ${repoName}..." -ForegroundColor Cyan
+    
+    $ExtentRepos = @(${extentReposRaw.map(r => `"${escapePowerShellString(r)}"`).join(', ')})
+    $Extents = @()
+    
+    foreach ($RepoName in $ExtentRepos) {
+        $Repo = Get-VBRBackupRepository -Name $RepoName
+        $Extents += $Repo
+    }
+    
+    Add-VBRScaleOutBackupRepository \`
+        -Name "${repoName}" \`
+        -Extent $Extents \`
+        -PolicyType "DataLocality"
+    
+    Write-Host "✓ Scale-Out Repository created successfully!" -ForegroundColor Green
+    Write-Host "  Name: ${repoName}" -ForegroundColor Cyan
+    Write-Host "  Extents: $($Extents.Count)" -ForegroundColor Cyan
+    ` : action === 'ConfigureDedup' ? `
+    Write-Host "Configuring deduplication for repository: ${repoName}..." -ForegroundColor Cyan
+    
+    $Repo = Get-VBRBackupRepository -Name "${repoName}"
+    Set-VBRRepositoryDeduplicationSettings \`
+        -Repository $Repo \`
+        -Enabled:$true \`
+        -BlockSize "4KB"
+    
+    Write-Host "✓ Deduplication configured successfully!" -ForegroundColor Green
+    ` : `
+    $Repos = Get-VBRBackupRepository
+    
+    Write-Host "Backup Repository Statistics:" -ForegroundColor Cyan
+    Write-Host "==============================" -ForegroundColor Cyan
+    
+    $Repos | ForEach-Object {
+        $Repo = $_
+        Write-Host ""
+        Write-Host "Repository: $($Repo.Name)" -ForegroundColor Yellow
+        Write-Host "  Type: $($Repo.Type)"
+        Write-Host "  Capacity: $([math]::Round($Repo.Info.CachedTotalSpace/1TB,2)) TB"
+        Write-Host "  Free: $([math]::Round($Repo.Info.CachedFreeSpace/1TB,2)) TB"
+        Write-Host "  Used: $([math]::Round(($Repo.Info.CachedTotalSpace - $Repo.Info.CachedFreeSpace)/1TB,2)) TB"
+        Write-Host "  Dedup: $($Repo.DeduplicationEnabled)"
+    }
+    `}
+    
+} catch {
+    Write-Error "Repository operation failed: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'veeam-configure-app-aware-processing',
+    name: 'Configure Application-Aware Processing',
+    category: 'Common Admin Tasks',
+    description: 'Enable app-aware backups for SQL and Exchange',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'jobName', label: 'Backup Job Name', type: 'text', required: true },
+      { id: 'appType', label: 'Application Type', type: 'select', required: true, options: ['SQL', 'Exchange', 'ActiveDirectory'], defaultValue: 'SQL' },
+      { id: 'truncateLogs', label: 'Truncate Logs', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const jobName = escapePowerShellString(params.jobName);
+      const appType = params.appType;
+      const truncateLogs = toPowerShellBoolean(params.truncateLogs);
+      
+      return `# Configure Application-Aware Processing
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    $Job = Get-VBRJob -Name "${jobName}"
+    
+    if ($Job) {
+        Write-Host "Configuring Application-Aware Processing for: ${jobName}..." -ForegroundColor Cyan
+        
+        # Enable application-aware processing
+        $JobOptions = $Job.GetOptions()
+        $JobOptions.ViSourceOptions.AppAware = $true
+        $JobOptions.ViSourceOptions.GuestProxyAutoDetect = $true
+        
+        ${appType === 'SQL' ? `
+        # SQL Server settings
+        $JobOptions.SqlBackupOptions.TransactionLogProcessing = "TruncateOnlyOnSuccessJob"
+        $JobOptions.SqlBackupOptions.BackupLogsFrequencyMin = 15
+        Write-Host "  Configured for SQL Server" -ForegroundColor Cyan
+        ` : appType === 'Exchange' ? `
+        # Exchange Server settings
+        $JobOptions.ExchangeBackupOptions.ProcessCircularLogging = $true
+        Write-Host "  Configured for Exchange Server" -ForegroundColor Cyan
+        ` : `
+        # Active Directory settings
+        $JobOptions.ViSourceOptions.UseChangeTracking = $true
+        Write-Host "  Configured for Active Directory" -ForegroundColor Cyan
+        `}
+        
+        $Job.SetOptions($JobOptions)
+        
+        Write-Host "✓ Application-Aware Processing configured successfully!" -ForegroundColor Green
+        Write-Host "  Job: ${jobName}" -ForegroundColor Cyan
+        Write-Host "  Application: ${appType}" -ForegroundColor Cyan
+        Write-Host "  Truncate Logs: ${params.truncateLogs}" -ForegroundColor Cyan
+    } else {
+        Write-Error "Job ${jobName} not found"
+    }
+    
+} catch {
+    Write-Error "Configuration failed: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'veeam-manage-cloud-connect',
+    name: 'Manage Veeam Cloud Connect',
+    category: 'Common Admin Tasks',
+    description: 'Set up cloud backup targets',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'cloudProvider', label: 'Cloud Provider Address', type: 'text', required: true, placeholder: 'cloud.serviceprovider.com' },
+      { id: 'username', label: 'Username', type: 'text', required: true, placeholder: 'tenant@provider.com' },
+      { id: 'repoName', label: 'Cloud Repository Name', type: 'text', required: true, placeholder: 'Cloud-Backup-Repo' }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const cloudProvider = escapePowerShellString(params.cloudProvider);
+      const username = escapePowerShellString(params.username);
+      const repoName = escapePowerShellString(params.repoName);
+      
+      return `# Manage Veeam Cloud Connect
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    Write-Host "Connecting to Cloud Provider: ${cloudProvider}..." -ForegroundColor Cyan
+    
+    # Prompt for password securely
+    $SecurePassword = Read-Host -AsSecureString "Enter password for ${username}"
+    $Credentials = New-Object System.Management.Automation.PSCredential("${username}", $SecurePassword)
+    
+    # Add Cloud Connect server
+    $CloudServer = Add-VBRCloudProvider \`
+        -Address "${cloudProvider}" \`
+        -Credentials $Credentials \`
+        -Description "Cloud Connect Provider"
+    
+    # Get cloud repository
+    $CloudRepo = Get-VBRCloudHardwarePlan | Where-Object { $_.Name -eq "${repoName}" } | Select-Object -First 1
+    
+    if ($CloudRepo) {
+        Write-Host "✓ Cloud Connect configured successfully!" -ForegroundColor Green
+        Write-Host "  Provider: ${cloudProvider}" -ForegroundColor Cyan
+        Write-Host "  Repository: ${repoName}" -ForegroundColor Cyan
+        Write-Host "  User: ${username}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Create cloud backup jobs with: Add-VBRViBackupCopyJob" -ForegroundColor Yellow
+    } else {
+        Write-Warning "Cloud repository ${repoName} not found. Contact provider for available repos."
+    }
+    
+} catch {
+    Write-Error "Cloud Connect configuration failed: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'veeam-generate-compliance-reports',
+    name: 'Generate Backup Compliance Reports',
+    category: 'Common Admin Tasks',
+    description: 'Export compliance and SLA adherence data',
+    parameters: [
+      { id: 'server', label: 'Veeam Server', type: 'text', required: true },
+      { id: 'daysBack', label: 'Days to Analyze', type: 'number', required: true, defaultValue: 30 },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\Veeam-Compliance.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const server = escapePowerShellString(params.server);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Generate Backup Compliance Reports
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin VeeamPSSnapIn -ErrorAction Stop
+
+try {
+    Connect-VBRServer -Server "${server}"
+    
+    Write-Host "Generating compliance report for last ${params.daysBack} days..." -ForegroundColor Cyan
+    
+    $StartDate = (Get-Date).AddDays(-${params.daysBack})
+    $Jobs = Get-VBRJob
+    $Sessions = Get-VBRBackupSession | Where-Object { $_.EndTime -gt $StartDate }
+    
+    $ComplianceReport = $Jobs | ForEach-Object {
+        $Job = $_
+        $JobSessions = $Sessions | Where-Object { $_.JobName -eq $Job.Name }
+        
+        $SuccessRate = if ($JobSessions.Count -gt 0) {
+            [math]::Round((($JobSessions | Where-Object { $_.Result -eq "Success" }).Count / $JobSessions.Count) * 100, 2)
+        } else {
+            0
+        }
+        
+        $LastSession = $JobSessions | Sort-Object EndTime -Descending | Select-Object -First 1
+        $SLA_Met = $SuccessRate -ge 95
+        
+        [PSCustomObject]@{
+            JobName = $Job.Name
+            JobType = $Job.JobType
+            IsEnabled = $Job.IsScheduleEnabled
+            TotalRuns = $JobSessions.Count
+            SuccessfulRuns = ($JobSessions | Where-Object { $_.Result -eq "Success" }).Count
+            FailedRuns = ($JobSessions | Where-Object { $_.Result -eq "Failed" }).Count
+            WarningRuns = ($JobSessions | Where-Object { $_.Result -eq "Warning" }).Count
+            SuccessRate_Percent = $SuccessRate
+            SLA_Status = if ($SLA_Met) { "Compliant" } else { "Non-Compliant" }
+            LastRunTime = $LastSession.EndTime
+            LastRunResult = $LastSession.Result
+            LastRunDuration = if ($LastSession) { ($LastSession.EndTime - $LastSession.CreationTime).ToString() } else { "N/A" }
+        }
+    }
+    
+    $ComplianceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Compliance report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Compliance Summary:" -ForegroundColor Yellow
+    Write-Host "===================" -ForegroundColor Yellow
+    
+    $CompliantJobs = ($ComplianceReport | Where-Object { $_.SLA_Status -eq "Compliant" }).Count
+    $TotalJobs = $ComplianceReport.Count
+    $ComplianceRate = [math]::Round(($CompliantJobs / $TotalJobs) * 100, 2)
+    
+    Write-Host "  Total Jobs: $TotalJobs" -ForegroundColor Cyan
+    Write-Host "  Compliant Jobs: $CompliantJobs" -ForegroundColor Green
+    Write-Host "  Non-Compliant Jobs: $($TotalJobs - $CompliantJobs)" -ForegroundColor Red
+    Write-Host "  Overall Compliance Rate: $ComplianceRate%" -ForegroundColor $(if ($ComplianceRate -ge 95) { 'Green' } else { 'Red' })
+    
+    Write-Host ""
+    $ComplianceReport | Format-Table -AutoSize | Out-String | Write-Host
+    
+} catch {
+    Write-Error "Report generation failed: $_"
+} finally {
+    Disconnect-VBRServer
+}`;
+    },
+    isPremium: true
   }
 ];

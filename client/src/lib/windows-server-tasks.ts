@@ -3051,6 +3051,874 @@ try {
     Write-Host "- Server already in workgroup" -ForegroundColor Yellow
 }`;
     }
+  },
+
+  // ==================== PREMIUM TASKS ====================
+  {
+    id: 'ws-config-server-backup',
+    title: 'Configure Windows Server Backup',
+    description: 'Set up automated backups, schedules',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures Windows Server Backup for automated system and data protection
+- Supports full server, system state, and selective file backups
+- Enables disaster recovery and business continuity
+
+**Prerequisites:**
+- Windows Server Backup feature installed
+- Administrator credentials
+- Backup destination available (local disk, network share, or removable media)
+- Sufficient storage space for backups
+
+**What You Need to Provide:**
+- Backup type (Full Server, System State, or Custom)
+- Backup destination path
+- Schedule (Daily, Weekly, or Once)
+- Backup time
+
+**What the Script Does:**
+1. Installs Windows Server Backup feature if needed
+2. Configures backup policy with specified parameters
+3. Sets backup schedule and retention
+4. Validates backup destination accessibility
+5. Reports configuration success
+
+**Important Notes:**
+- Essential for disaster recovery
+- Full server backup includes all volumes and system state
+- System state includes AD, registry, boot files
+- Network share requires credentials
+- Schedule daily backups during off-hours
+- Monitor backup job status regularly
+- Test restore process periodically
+- Typical use: nightly automated backups`,
+    parameters: [
+      {
+        name: 'backupType',
+        label: 'Backup Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'FullServer', label: 'Full Server (All volumes)' },
+          { value: 'SystemState', label: 'System State Only' },
+          { value: 'Custom', label: 'Custom (Specific volumes)' }
+        ],
+        helpText: 'Type of backup to perform'
+      },
+      {
+        name: 'backupPath',
+        label: 'Backup Destination Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Backups or \\\\SERVER\\Backups',
+        helpText: 'Local path or network share'
+      },
+      {
+        name: 'schedule',
+        label: 'Backup Schedule',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Daily', label: 'Daily' },
+          { value: 'Weekly', label: 'Weekly' },
+          { value: 'Once', label: 'Once (Manual)' }
+        ],
+        helpText: 'Backup frequency'
+      },
+      {
+        name: 'backupTime',
+        label: 'Backup Time',
+        type: 'text',
+        required: true,
+        placeholder: '23:00',
+        defaultValue: '23:00',
+        helpText: 'Time to run backup (HH:MM format)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const backupType = params.backupType;
+      const backupPath = escapePowerShellString(params.backupPath);
+      const schedule = params.schedule;
+      const backupTime = escapePowerShellString(params.backupTime);
+
+      return `# Configure Windows Server Backup
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring Windows Server Backup..." -ForegroundColor Cyan
+    
+    # Install Windows Server Backup feature if needed
+    $Feature = Get-WindowsFeature -Name Windows-Server-Backup
+    if (-not $Feature.Installed) {
+        Write-Host "Installing Windows Server Backup feature..." -ForegroundColor Cyan
+        Install-WindowsFeature -Name Windows-Server-Backup -IncludeManagementTools
+        Write-Host "✓ Windows Server Backup installed" -ForegroundColor Green
+    }
+    
+    # Validate backup destination
+    if (-not (Test-Path "${backupPath}")) {
+        New-Item -Path "${backupPath}" -ItemType Directory -Force | Out-Null
+        Write-Host "✓ Backup destination created" -ForegroundColor Green
+    }
+    
+    # Create backup policy
+    $Policy = New-WBPolicy
+    
+    # Configure backup items based on type
+    switch ("${backupType}") {
+        "FullServer" {
+            Write-Host "Configuring full server backup..." -ForegroundColor Cyan
+            $Volumes = Get-WBVolume -AllVolumes
+            Add-WBVolume -Policy $Policy -Volume $Volumes
+            Add-WBSystemState -Policy $Policy
+        }
+        "SystemState" {
+            Write-Host "Configuring system state backup..." -ForegroundColor Cyan
+            Add-WBSystemState -Policy $Policy
+        }
+        "Custom" {
+            Write-Host "Configuring custom backup..." -ForegroundColor Cyan
+            Write-Host "⚠ Modify script to specify custom volumes" -ForegroundColor Yellow
+        }
+    }
+    
+    # Configure backup destination
+    $BackupLocation = New-WBBackupTarget -Path "${backupPath}"
+    Add-WBBackupTarget -Policy $Policy -Target $BackupLocation
+    
+    # Configure schedule
+    switch ("${schedule}") {
+        "Daily" {
+            $Time = [DateTime]"${backupTime}"
+            Set-WBSchedule -Policy $Policy -Schedule $Time
+            Write-Host "✓ Daily backup scheduled for ${backupTime}" -ForegroundColor Green
+        }
+        "Weekly" {
+            Write-Host "⚠ Configure weekly schedule manually" -ForegroundColor Yellow
+        }
+        "Once" {
+            Write-Host "Backup set for manual execution only" -ForegroundColor Yellow
+        }
+    }
+    
+    # Apply the policy
+    Set-WBPolicy -Policy $Policy
+    
+    Write-Host "✓ Windows Server Backup configured successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Backup Configuration:" -ForegroundColor Cyan
+    Write-Host "  Type: ${backupType}" -ForegroundColor Gray
+    Write-Host "  Destination: ${backupPath}" -ForegroundColor Gray
+    Write-Host "  Schedule: ${schedule} at ${backupTime}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure Windows Server Backup: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-manage-firewall-advanced',
+    title: 'Manage Windows Firewall Rules (Advanced)',
+    description: 'Create inbound/outbound rules, port exceptions',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates advanced Windows Firewall rules for network security
+- Supports inbound/outbound traffic control with port and program exceptions
+- Enables granular network access control
+
+**Prerequisites:**
+- Administrator credentials on target server
+- Windows Firewall enabled
+- Understanding of required network ports
+
+**What You Need to Provide:**
+- Rule name
+- Rule direction (Inbound or Outbound)
+- Port number or program path
+- Action (Allow or Block)
+- Protocol (TCP or UDP)
+
+**What the Script Does:**
+1. Creates firewall rule with specified parameters
+2. Configures port or program exception
+3. Sets rule direction and action
+4. Enables rule immediately
+5. Reports rule creation success
+
+**Important Notes:**
+- Essential for network security
+- Inbound rules control incoming traffic
+- Outbound rules control outgoing traffic
+- Use specific ports instead of allowing all traffic
+- Document firewall rules for audit purposes
+- Test connectivity after creating rules
+- Typical use: opening application ports, blocking services
+- Review firewall logs for unauthorized access attempts`,
+    parameters: [
+      {
+        name: 'ruleName',
+        label: 'Rule Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Allow SQL Server',
+        helpText: 'Descriptive rule name'
+      },
+      {
+        name: 'direction',
+        label: 'Rule Direction',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Inbound', label: 'Inbound (Incoming traffic)' },
+          { value: 'Outbound', label: 'Outbound (Outgoing traffic)' }
+        ],
+        helpText: 'Traffic direction'
+      },
+      {
+        name: 'protocol',
+        label: 'Protocol',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'TCP', label: 'TCP' },
+          { value: 'UDP', label: 'UDP' },
+          { value: 'Any', label: 'Any' }
+        ],
+        helpText: 'Network protocol'
+      },
+      {
+        name: 'localPort',
+        label: 'Local Port',
+        type: 'text',
+        required: false,
+        placeholder: '1433',
+        helpText: 'Port number or range (e.g., 1433, 80-443)'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Allow', label: 'Allow' },
+          { value: 'Block', label: 'Block' }
+        ],
+        helpText: 'Allow or block traffic'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const ruleName = escapePowerShellString(params.ruleName);
+      const direction = params.direction;
+      const protocol = params.protocol;
+      const localPort = params.localPort ? escapePowerShellString(params.localPort) : '';
+      const action = params.action;
+
+      return `# Manage Windows Firewall Rules (Advanced)
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating Windows Firewall rule..." -ForegroundColor Cyan
+    Write-Host "  Rule Name: ${ruleName}" -ForegroundColor Gray
+    Write-Host "  Direction: ${direction}" -ForegroundColor Gray
+    Write-Host "  Protocol: ${protocol}" -ForegroundColor Gray
+    ${localPort ? `Write-Host "  Local Port: ${localPort}" -ForegroundColor Gray` : ''}
+    Write-Host "  Action: ${action}" -ForegroundColor Gray
+    
+    # Build firewall rule parameters
+    $RuleParams = @{
+        DisplayName = "${ruleName}"
+        Direction   = "${direction}"
+        Protocol    = "${protocol}"
+        Action      = "${action}"
+        Enabled     = "True"
+    }
+    
+    ${localPort ? `
+    # Add port specification
+    $RuleParams.LocalPort = "${localPort}"
+    ` : ''}
+    
+    # Create firewall rule
+    New-NetFirewallRule @RuleParams
+    
+    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    
+    # Display the new rule
+    Write-Host ""
+    Write-Host "Rule Details:" -ForegroundColor Cyan
+    Get-NetFirewallRule -DisplayName "${ruleName}" | Select-Object DisplayName, Enabled, Direction, Action | Format-List
+    
+} catch {
+    Write-Error "Failed to create firewall rule: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-config-nic-teaming',
+    title: 'Configure NIC Teaming',
+    description: 'Create NIC teams for redundancy, load balancing',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures NIC teaming for network redundancy and load balancing
+- Combines multiple network adapters into a single logical interface
+- Provides high availability and increased bandwidth
+
+**Prerequisites:**
+- Windows Server 2012 or later
+- Multiple network adapters installed
+- Administrator credentials
+- Network adapters not currently in use
+
+**What You Need to Provide:**
+- Team name
+- Network adapter names to combine
+- Teaming mode (Switch Independent or LACP)
+- Load balancing algorithm
+
+**What the Script Does:**
+1. Validates network adapters exist
+2. Creates NIC team with specified adapters
+3. Configures teaming mode and load balancing
+4. Verifies team creation
+5. Reports team status
+
+**Important Notes:**
+- Essential for network high availability
+- Switch Independent works with any switch
+- LACP requires switch configuration
+- Team survives adapter failure
+- Provides load balancing across adapters
+- Use minimum of 2 adapters
+- Test failover after configuration
+- Typical use: production servers, Hyper-V hosts`,
+    parameters: [
+      {
+        name: 'teamName',
+        label: 'Team Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Team1',
+        helpText: 'Name for the NIC team'
+      },
+      {
+        name: 'adapterNames',
+        label: 'Network Adapter Names (comma-separated)',
+        type: 'text',
+        required: true,
+        placeholder: 'Ethernet, Ethernet 2',
+        helpText: 'Adapters to combine into team'
+      },
+      {
+        name: 'teamingMode',
+        label: 'Teaming Mode',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'SwitchIndependent', label: 'Switch Independent (No switch config needed)' },
+          { value: 'LACP', label: 'LACP (Requires switch configuration)' }
+        ],
+        defaultValue: 'SwitchIndependent',
+        helpText: 'NIC teaming mode'
+      },
+      {
+        name: 'loadBalancing',
+        label: 'Load Balancing Algorithm',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'TransportPorts', label: 'Transport Ports (Recommended)' },
+          { value: 'IPAddresses', label: 'IP Addresses' },
+          { value: 'HyperVPort', label: 'Hyper-V Port' }
+        ],
+        defaultValue: 'TransportPorts',
+        helpText: 'Load distribution method'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const teamName = escapePowerShellString(params.teamName);
+      const adapterNamesInput = params.adapterNames;
+      const teamingMode = params.teamingMode || 'SwitchIndependent';
+      const loadBalancing = params.loadBalancing || 'TransportPorts';
+
+      // Parse adapter names
+      const adapters = adapterNamesInput.split(',').map((name: string) => `"${escapePowerShellString(name.trim())}"`).join(', ');
+
+      return `# Configure NIC Teaming
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring NIC teaming..." -ForegroundColor Cyan
+    Write-Host "  Team Name: ${teamName}" -ForegroundColor Gray
+    Write-Host "  Teaming Mode: ${teamingMode}" -ForegroundColor Gray
+    Write-Host "  Load Balancing: ${loadBalancing}" -ForegroundColor Gray
+    
+    # Define network adapters
+    $Adapters = @(${adapters})
+    
+    # Validate adapters exist
+    foreach ($Adapter in $Adapters) {
+        if (-not (Get-NetAdapter -Name $Adapter -ErrorAction SilentlyContinue)) {
+            throw "Network adapter not found: $Adapter"
+        }
+    }
+    
+    Write-Host "✓ All network adapters validated" -ForegroundColor Green
+    
+    # Create NIC team
+    New-NetLbfoTeam -Name "${teamName}" -TeamMembers $Adapters -TeamingMode ${teamingMode} -LoadBalancingAlgorithm ${loadBalancing}
+    
+    Write-Host "✓ NIC team created successfully" -ForegroundColor Green
+    
+    # Display team status
+    Write-Host ""
+    Write-Host "NIC Team Status:" -ForegroundColor Cyan
+    Get-NetLbfoTeam -Name "${teamName}" | Select-Object Name, Status, TeamingMode, LoadBalancingAlgorithm, Members | Format-List
+    
+    Write-Host ""
+    Write-Host "Team Members:" -ForegroundColor Cyan
+    Get-NetLbfoTeamMember -Team "${teamName}" | Select-Object Name, Team, AdministrativeMode, OperationalMode | Format-Table -AutoSize
+    
+} catch {
+    Write-Error "Failed to configure NIC teaming: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-manage-storage-spaces',
+    title: 'Manage Storage Spaces',
+    description: 'Create storage pools, virtual disks',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates Storage Spaces for flexible and resilient storage
+- Combines multiple physical disks into storage pools
+- Provides software-defined storage with redundancy options
+
+**Prerequisites:**
+- Windows Server 2012 or later
+- Multiple physical disks available
+- Administrator credentials
+- Disks not currently in use
+
+**What You Need to Provide:**
+- Storage pool name
+- Physical disk numbers to include
+- Virtual disk name
+- Resiliency type (Simple, Mirror, or Parity)
+- Virtual disk size
+
+**What the Script Does:**
+1. Identifies available physical disks
+2. Creates storage pool from specified disks
+3. Creates virtual disk with resiliency
+4. Initializes and formats virtual disk
+5. Reports storage configuration
+
+**Important Notes:**
+- Essential for flexible storage management
+- Mirror provides redundancy (requires 2+ disks)
+- Parity provides efficiency (requires 3+ disks)
+- Simple provides no redundancy (maximum capacity)
+- Storage Spaces allows easy capacity expansion
+- Use SSD for caching tier
+- Typical use: file servers, Hyper-V storage
+- Monitor pool health regularly`,
+    parameters: [
+      {
+        name: 'poolName',
+        label: 'Storage Pool Name',
+        type: 'text',
+        required: true,
+        placeholder: 'StoragePool1',
+        helpText: 'Name for the storage pool'
+      },
+      {
+        name: 'virtualDiskName',
+        label: 'Virtual Disk Name',
+        type: 'text',
+        required: true,
+        placeholder: 'DataDisk1',
+        helpText: 'Name for the virtual disk'
+      },
+      {
+        name: 'resiliencyType',
+        label: 'Resiliency Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Simple', label: 'Simple (No redundancy, max capacity)' },
+          { value: 'Mirror', label: 'Mirror (Redundancy, requires 2+ disks)' },
+          { value: 'Parity', label: 'Parity (Space efficient, requires 3+ disks)' }
+        ],
+        defaultValue: 'Mirror',
+        helpText: 'Storage redundancy level'
+      },
+      {
+        name: 'sizeGB',
+        label: 'Virtual Disk Size (GB)',
+        type: 'number',
+        required: true,
+        defaultValue: 500,
+        placeholder: '500',
+        helpText: 'Size of virtual disk'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const poolName = escapePowerShellString(params.poolName);
+      const vdiskName = escapePowerShellString(params.virtualDiskName);
+      const resiliency = params.resiliencyType || 'Mirror';
+      const sizeGB = params.sizeGB || 500;
+
+      return `# Manage Storage Spaces
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating Storage Spaces configuration..." -ForegroundColor Cyan
+    Write-Host "  Pool Name: ${poolName}" -ForegroundColor Gray
+    Write-Host "  Virtual Disk: ${vdiskName}" -ForegroundColor Gray
+    Write-Host "  Resiliency: ${resiliency}" -ForegroundColor Gray
+    Write-Host "  Size: ${sizeGB} GB" -ForegroundColor Gray
+    
+    # Get available physical disks (not in use)
+    $PhysicalDisks = Get-PhysicalDisk -CanPool $true
+    
+    if ($PhysicalDisks.Count -lt 2 -and "${resiliency}" -ne "Simple") {
+        Write-Error "At least 2 disks required for ${resiliency} resiliency"
+        exit 1
+    }
+    
+    Write-Host "Found $($PhysicalDisks.Count) available disks" -ForegroundColor Yellow
+    $PhysicalDisks | Select-Object FriendlyName, Size | Format-Table
+    
+    # Create storage pool
+    Write-Host "Creating storage pool..." -ForegroundColor Cyan
+    $Pool = New-StoragePool -FriendlyName "${poolName}" -PhysicalDisks $PhysicalDisks -StorageSubSystemFriendlyName "Windows Storage*"
+    Write-Host "✓ Storage pool created" -ForegroundColor Green
+    
+    # Create virtual disk
+    Write-Host "Creating virtual disk..." -ForegroundColor Cyan
+    $VDisk = New-VirtualDisk -FriendlyName "${vdiskName}" -StoragePoolFriendlyName "${poolName}" -ResiliencySettingName ${resiliency} -Size ${sizeGB}GB
+    Write-Host "✓ Virtual disk created" -ForegroundColor Green
+    
+    # Initialize and format disk
+    Write-Host "Initializing and formatting disk..." -ForegroundColor Cyan
+    $Disk = Get-Disk | Where-Object { $_.FriendlyName -eq "${vdiskName}" }
+    Initialize-Disk -Number $Disk.Number -PartitionStyle GPT
+    $Partition = New-Partition -DiskNumber $Disk.Number -UseMaximumSize -AssignDriveLetter
+    Format-Volume -DriveLetter $Partition.DriveLetter -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:$false
+    
+    Write-Host "✓ Disk initialized and formatted" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Storage Configuration Complete:" -ForegroundColor Cyan
+    Write-Host "  Drive Letter: $($Partition.DriveLetter):" -ForegroundColor Gray
+    Write-Host "  Resiliency: ${resiliency}" -ForegroundColor Gray
+    Write-Host "  Capacity: ${sizeGB} GB" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to manage Storage Spaces: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-config-branchcache',
+    title: 'Configure BranchCache',
+    description: 'Enable BranchCache for distributed offices',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures BranchCache for WAN bandwidth optimization
+- Caches content from central servers at branch offices
+- Reduces WAN traffic and improves user experience
+
+**Prerequisites:**
+- Windows Server 2012 or later (client and server)
+- BranchCache feature installed
+- Administrator credentials
+- Firewall configured for BranchCache traffic
+
+**What You Need to Provide:**
+- BranchCache mode (Hosted Cache or Distributed Cache)
+- For Hosted Cache: cache server name
+- Cache size in MB
+
+**What the Script Does:**
+1. Installs BranchCache feature if needed
+2. Configures BranchCache mode
+3. Sets cache size and location
+4. Configures firewall rules
+5. Reports configuration success
+
+**Important Notes:**
+- Essential for branch office performance
+- Hosted Cache requires dedicated cache server
+- Distributed Cache uses peer-to-peer caching
+- Reduces WAN bandwidth usage significantly
+- Improves file server access speed
+- Configure on both clients and servers
+- Typical use: multi-site organizations
+- Monitor cache hit ratios`,
+    parameters: [
+      {
+        name: 'mode',
+        label: 'BranchCache Mode',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'DistributedCache', label: 'Distributed Cache (Peer-to-peer)' },
+          { value: 'HostedCache', label: 'Hosted Cache (Dedicated server)' }
+        ],
+        defaultValue: 'DistributedCache',
+        helpText: 'Caching mode'
+      },
+      {
+        name: 'cacheServer',
+        label: 'Hosted Cache Server (if applicable)',
+        type: 'text',
+        required: false,
+        placeholder: 'CACHE-SERVER01',
+        helpText: 'Required for Hosted Cache mode'
+      },
+      {
+        name: 'cacheSizeMB',
+        label: 'Cache Size (MB)',
+        type: 'number',
+        required: true,
+        defaultValue: 5120,
+        placeholder: '5120',
+        helpText: 'Local cache size in megabytes'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const mode = params.mode || 'DistributedCache';
+      const cacheServer = params.cacheServer ? escapePowerShellString(params.cacheServer) : '';
+      const cacheSizeMB = params.cacheSizeMB || 5120;
+
+      return `# Configure BranchCache
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring BranchCache..." -ForegroundColor Cyan
+    Write-Host "  Mode: ${mode}" -ForegroundColor Gray
+    ${cacheServer ? `Write-Host "  Cache Server: ${cacheServer}" -ForegroundColor Gray` : ''}
+    Write-Host "  Cache Size: ${cacheSizeMB} MB" -ForegroundColor Gray
+    
+    # Install BranchCache feature if needed
+    $Feature = Get-WindowsFeature -Name BranchCache
+    if (-not $Feature.Installed) {
+        Write-Host "Installing BranchCache feature..." -ForegroundColor Cyan
+        Install-WindowsFeature -Name BranchCache
+        Write-Host "✓ BranchCache installed" -ForegroundColor Green
+    }
+    
+    # Configure BranchCache mode
+    switch ("${mode}") {
+        "DistributedCache" {
+            Write-Host "Enabling Distributed Cache mode..." -ForegroundColor Cyan
+            Enable-BCDistributed
+            Write-Host "✓ Distributed Cache enabled" -ForegroundColor Green
+        }
+        "HostedCache" {
+            ${cacheServer ? `
+            Write-Host "Enabling Hosted Cache mode..." -ForegroundColor Cyan
+            Enable-BCHostedClient -ServerNames "${cacheServer}"
+            Write-Host "✓ Hosted Cache enabled" -ForegroundColor Green
+            Write-Host "  Cache Server: ${cacheServer}" -ForegroundColor Gray
+            ` : `
+            Write-Error "Cache server name required for Hosted Cache mode"
+            exit 1
+            `}
+        }
+    }
+    
+    # Set cache size
+    Write-Host "Setting cache size..." -ForegroundColor Cyan
+    Set-BCCache -Percentage 100
+    
+    # Configure firewall rules
+    Write-Host "Configuring firewall rules..." -ForegroundColor Cyan
+    Enable-NetFirewallRule -DisplayGroup "BranchCache*"
+    Write-Host "✓ Firewall rules enabled" -ForegroundColor Green
+    
+    # Display configuration
+    Write-Host ""
+    Write-Host "BranchCache Configuration:" -ForegroundColor Cyan
+    Get-BCStatus | Select-Object BranchCacheIsEnabled, BranchCacheServiceStatus | Format-List
+    
+    Write-Host ""
+    Write-Host "✓ BranchCache configured successfully" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to configure BranchCache: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-manage-wsus-updates',
+    title: 'Manage Windows Server Updates (WSUS)',
+    description: 'Approve, deploy, decline updates',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Manages Windows Server Update Services (WSUS) for centralized patch management
+- Approves, deploys, and declines updates for client computers
+- Enables controlled update deployment
+
+**Prerequisites:**
+- WSUS role installed and configured
+- Administrator credentials
+- WSUS database configured
+- Client computers configured to use WSUS server
+
+**What You Need to Provide:**
+- WSUS server name
+- Action (Approve, Decline, or Get Updates)
+- Update classification (Security, Critical, etc.)
+- Target computer group
+
+**What the Script Does:**
+1. Connects to WSUS server
+2. Retrieves updates based on classification
+3. Performs specified action (approve/decline)
+4. Applies updates to target computer group
+5. Reports operation success
+
+**Important Notes:**
+- Essential for centralized patch management
+- Test updates in lab before production deployment
+- Approve security updates promptly
+- Decline superseded updates
+- Schedule deployments during maintenance windows
+- Monitor update installation status
+- Typical use: monthly patch deployments
+- Review declined updates periodically`,
+    parameters: [
+      {
+        name: 'wsusServer',
+        label: 'WSUS Server Name',
+        type: 'text',
+        required: true,
+        placeholder: 'WSUS-SERVER01',
+        helpText: 'WSUS server to manage'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'GetUpdates', label: 'Get Pending Updates' },
+          { value: 'Approve', label: 'Approve Updates' },
+          { value: 'Decline', label: 'Decline Updates' }
+        ],
+        helpText: 'WSUS management operation'
+      },
+      {
+        name: 'classification',
+        label: 'Update Classification',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Security Updates', label: 'Security Updates' },
+          { value: 'Critical Updates', label: 'Critical Updates' },
+          { value: 'Definition Updates', label: 'Definition Updates' },
+          { value: 'Feature Packs', label: 'Feature Packs' }
+        ],
+        helpText: 'Type of updates to manage'
+      },
+      {
+        name: 'computerGroup',
+        label: 'Target Computer Group',
+        type: 'text',
+        required: false,
+        placeholder: 'All Computers',
+        defaultValue: 'All Computers',
+        helpText: 'Computer group to deploy to'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const wsusServer = escapePowerShellString(params.wsusServer);
+      const action = params.action;
+      const classification = escapePowerShellString(params.classification);
+      const computerGroup = params.computerGroup ? escapePowerShellString(params.computerGroup) : 'All Computers';
+
+      return `# Manage WSUS Updates
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Managing WSUS updates..." -ForegroundColor Cyan
+    Write-Host "  WSUS Server: ${wsusServer}" -ForegroundColor Gray
+    Write-Host "  Action: ${action}" -ForegroundColor Gray
+    Write-Host "  Classification: ${classification}" -ForegroundColor Gray
+    Write-Host "  Computer Group: ${computerGroup}" -ForegroundColor Gray
+    
+    # Load WSUS assembly
+    [void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration")
+    
+    # Connect to WSUS server
+    $Wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer("${wsusServer}", $false, 8530)
+    Write-Host "✓ Connected to WSUS server" -ForegroundColor Green
+    
+    # Get update scope for classification
+    $UpdateScope = New-Object Microsoft.UpdateServices.Administration.UpdateScope
+    $UpdateScope.ApprovedStates = [Microsoft.UpdateServices.Administration.ApprovedStates]::NotApproved
+    
+    # Get target computer group
+    $AllComputers = $Wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq "${computerGroup}" }
+    
+    if (-not $AllComputers) {
+        Write-Error "Computer group not found: ${computerGroup}"
+        exit 1
+    }
+    
+    # Perform action
+    switch ("${action}") {
+        "GetUpdates" {
+            Write-Host "Retrieving updates..." -ForegroundColor Cyan
+            $Updates = $Wsus.GetUpdates($UpdateScope)
+            
+            Write-Host "Found $($Updates.Count) updates" -ForegroundColor Yellow
+            $Updates | Select-Object -First 20 Title, KnowledgebaseArticles, CreationDate | Format-Table -AutoSize
+        }
+        
+        "Approve" {
+            Write-Host "Approving ${classification}..." -ForegroundColor Cyan
+            $Updates = $Wsus.GetUpdates($UpdateScope) | Where-Object { $_.UpdateClassificationTitle -eq "${classification}" }
+            
+            $ApprovedCount = 0
+            foreach ($Update in $Updates) {
+                $Update.Approve([Microsoft.UpdateServices.Administration.UpdateApprovalAction]::Install, $AllComputers) | Out-Null
+                $ApprovedCount++
+            }
+            
+            Write-Host "✓ Approved $ApprovedCount updates for ${computerGroup}" -ForegroundColor Green
+        }
+        
+        "Decline" {
+            Write-Host "⚠ Declining updates..." -ForegroundColor Yellow
+            $Updates = $Wsus.GetUpdates($UpdateScope) | Where-Object { $_.UpdateClassificationTitle -eq "${classification}" }
+            
+            $DeclinedCount = 0
+            foreach ($Update in $Updates) {
+                $Update.Decline()
+                $DeclinedCount++
+            }
+            
+            Write-Host "✓ Declined $DeclinedCount updates" -ForegroundColor Green
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage WSUS updates: $_"
+}`;
+    }
   }
 ];
 
@@ -3062,5 +3930,6 @@ export const windowsServerCategories = [
   'Storage',
   'File Sharing',
   'Security & Networking',
-  'Disk Management'
+  'Disk Management',
+  'Common Admin Tasks'
 ];

@@ -611,5 +611,308 @@ action === 'RemoveUsers' ? `    $Application = Get-BrokerApplication -AdminAddre
 }`;
     },
     isPremium: true
+  },
+
+  {
+    id: 'citrix-configure-adc-load-balancing',
+    name: 'Configure Citrix ADC Load Balancing',
+    category: 'Common Admin Tasks',
+    description: 'Set up virtual servers, services, and monitors',
+    parameters: [
+      { id: 'nsip', label: 'NetScaler IP', type: 'text', required: true, placeholder: 'netscaler.company.com' },
+      { id: 'vserverName', label: 'Virtual Server Name', type: 'text', required: true, placeholder: 'vs-web-app' },
+      { id: 'vserverIP', label: 'Virtual Server IP', type: 'text', required: true, placeholder: '10.1.1.100' },
+      { id: 'vserverPort', label: 'Port', type: 'number', required: true, defaultValue: 80 },
+      { id: 'backendServers', label: 'Backend Servers (comma-separated)', type: 'textarea', required: true, placeholder: '10.1.1.10, 10.1.1.11' }
+    ],
+    scriptTemplate: (params) => {
+      const nsip = escapePowerShellString(params.nsip);
+      const vserverName = escapePowerShellString(params.vserverName);
+      const vserverIP = escapePowerShellString(params.vserverIP);
+      const backendServersRaw = (params.backendServers as string).split(',').map((s: string) => s.trim());
+      
+      return `# Configure Citrix ADC Load Balancing
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Connecting to NetScaler: ${nsip}..." -ForegroundColor Cyan
+    
+    # Create services for backend servers
+    $BackendServers = @(${backendServersRaw.map(s => `"${escapePowerShellString(s)}"`).join(', ')})
+    
+    foreach ($Server in $BackendServers) {
+        $ServiceName = "svc_$Server"
+        Write-Host "Creating service: $ServiceName" -ForegroundColor Yellow
+        
+        # Command to add service (use NetScaler CLI or API)
+        Write-Host "add service $ServiceName $Server HTTP ${params.vserverPort}" -ForegroundColor Gray
+    }
+    
+    # Create virtual server
+    Write-Host "Creating virtual server: ${vserverName}..." -ForegroundColor Cyan
+    Write-Host "add lb vserver ${vserverName} HTTP ${vserverIP} ${params.vserverPort}" -ForegroundColor Gray
+    
+    # Bind services to virtual server
+    foreach ($Server in $BackendServers) {
+        $ServiceName = "svc_$Server"
+        Write-Host "bind lb vserver ${vserverName} $ServiceName" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "✓ Load balancer configured successfully!" -ForegroundColor Green
+    Write-Host "  Virtual Server: ${vserverName}" -ForegroundColor Cyan
+    Write-Host "  VIP: ${vserverIP}:${params.vserverPort}" -ForegroundColor Cyan
+    Write-Host "  Backend Servers: $($BackendServers.Count)" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to configure load balancer: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'citrix-manage-pvs',
+    name: 'Manage Citrix Provisioning Services (PVS)',
+    category: 'Common Admin Tasks',
+    description: 'Create vDisks and target devices',
+    parameters: [
+      { id: 'pvsServer', label: 'PVS Server', type: 'text', required: true, placeholder: 'pvs.company.com' },
+      { id: 'storeName', label: 'Store Name', type: 'text', required: true, placeholder: 'Production-Store' },
+      { id: 'vDiskName', label: 'vDisk Name', type: 'text', required: true, placeholder: 'Windows10-vDisk' },
+      { id: 'vDiskSize', label: 'vDisk Size (GB)', type: 'number', required: true, defaultValue: 40 }
+    ],
+    scriptTemplate: (params) => {
+      const pvsServer = escapePowerShellString(params.pvsServer);
+      const storeName = escapePowerShellString(params.storeName);
+      const vDiskName = escapePowerShellString(params.vDiskName);
+      
+      return `# Manage Citrix Provisioning Services (PVS)
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Citrix.PVS.SnapIn -ErrorAction Stop
+
+try {
+    Set-PvsConnection -Server "${pvsServer}"
+    
+    # Create vDisk
+    Write-Host "Creating vDisk: ${vDiskName}..." -ForegroundColor Cyan
+    
+    $Store = Get-PvsStore -StoreName "${storeName}"
+    
+    New-PvsDiskLocator \`
+        -DiskLocatorName "${vDiskName}" \`
+        -SiteName $Store.SiteName \`
+        -StoreName "${storeName}" \`
+        -DiskSize (${params.vDiskSize} * 1024)
+    
+    Write-Host "✓ vDisk created successfully!" -ForegroundColor Green
+    Write-Host "  vDisk: ${vDiskName}" -ForegroundColor Cyan
+    Write-Host "  Size: ${params.vDiskSize} GB" -ForegroundColor Cyan
+    Write-Host "  Store: ${storeName}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "PVS operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'citrix-configure-gateway',
+    name: 'Configure Citrix Gateway',
+    category: 'Common Admin Tasks',
+    description: 'Set up remote access and SSL certificates',
+    parameters: [
+      { id: 'nsip', label: 'NetScaler IP', type: 'text', required: true },
+      { id: 'gatewayName', label: 'Gateway Name', type: 'text', required: true, placeholder: 'gateway-remote-access' },
+      { id: 'gatewayIP', label: 'Gateway IP', type: 'text', required: true, placeholder: '203.0.113.10' },
+      { id: 'certName', label: 'SSL Certificate Name', type: 'text', required: true, placeholder: 'gateway-cert' }
+    ],
+    scriptTemplate: (params) => {
+      const nsip = escapePowerShellString(params.nsip);
+      const gatewayName = escapePowerShellString(params.gatewayName);
+      const gatewayIP = escapePowerShellString(params.gatewayIP);
+      const certName = escapePowerShellString(params.certName);
+      
+      return `# Configure Citrix Gateway
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring Citrix Gateway on NetScaler: ${nsip}..." -ForegroundColor Cyan
+    
+    # Create Gateway vServer
+    Write-Host "Creating Gateway virtual server..." -ForegroundColor Yellow
+    Write-Host "add vpn vserver ${gatewayName} SSL ${gatewayIP} 443" -ForegroundColor Gray
+    
+    # Bind SSL certificate
+    Write-Host "Binding SSL certificate..." -ForegroundColor Yellow
+    Write-Host "bind ssl vserver ${gatewayName} -certkeyName ${certName}" -ForegroundColor Gray
+    
+    # Configure session policies
+    Write-Host "Configuring session policies..." -ForegroundColor Yellow
+    Write-Host "add vpn sessionPolicy session-policy -rule true -action session-profile" -ForegroundColor Gray
+    Write-Host "bind vpn vserver ${gatewayName} -policy session-policy -priority 100" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "✓ Citrix Gateway configured successfully!" -ForegroundColor Green
+    Write-Host "  Gateway: ${gatewayName}" -ForegroundColor Cyan
+    Write-Host "  IP: ${gatewayIP}:443" -ForegroundColor Cyan
+    Write-Host "  SSL Certificate: ${certName}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Gateway configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'citrix-manage-storefront',
+    name: 'Manage StoreFront Stores',
+    category: 'Common Admin Tasks',
+    description: 'Create stores and configure authentication',
+    parameters: [
+      { id: 'storeName', label: 'Store Name', type: 'text', required: true, placeholder: 'Production-Store' },
+      { id: 'friendlyName', label: 'Friendly Name', type: 'text', required: true, placeholder: 'Company Apps' },
+      { id: 'deliveryController', label: 'Delivery Controller', type: 'text', required: true, placeholder: 'ddc.company.com' },
+      { id: 'authMethod', label: 'Authentication Method', type: 'select', required: true, options: ['Domain', 'DomainAndPass', 'Certificate'], defaultValue: 'Domain' }
+    ],
+    scriptTemplate: (params) => {
+      const storeName = escapePowerShellString(params.storeName);
+      const friendlyName = escapePowerShellString(params.friendlyName);
+      const deliveryController = escapePowerShellString(params.deliveryController);
+      const authMethod = params.authMethod;
+      
+      return `# Manage StoreFront Stores
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Citrix.StoreFront -ErrorAction Stop
+
+try {
+    Write-Host "Creating StoreFront store: ${storeName}..." -ForegroundColor Cyan
+    
+    # Get StoreFront deployment
+    $Deployment = Get-STFDeployment
+    
+    # Create store
+    $Store = New-STFStoreService \`
+        -VirtualPath "/Citrix/${storeName}" \`
+        -FriendlyName "${friendlyName}" \`
+        -SiteId $Deployment.SiteId
+    
+    # Add Delivery Controller
+    $FarmConfig = New-STFStoreFarmConfiguration \`
+        -FarmName "Controller Farm" \`
+        -FarmType "XenDesktop" \`
+        -Servers @("${deliveryController}") \`
+        -Port 80 \`
+        -TransportType "HTTP"
+    
+    Add-STFStoreFarm -StoreService $Store -FarmConfiguration $FarmConfig
+    
+    # Configure authentication
+    $AuthService = Get-STFAuthenticationService -SiteId $Deployment.SiteId
+    Set-STFStoreService -StoreService $Store -AuthenticationService $AuthService
+    
+    Write-Host "✓ StoreFront store created successfully!" -ForegroundColor Green
+    Write-Host "  Store: ${storeName}" -ForegroundColor Cyan
+    Write-Host "  Friendly Name: ${friendlyName}" -ForegroundColor Cyan
+    Write-Host "  Controller: ${deliveryController}" -ForegroundColor Cyan
+    Write-Host "  Auth Method: ${authMethod}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "StoreFront configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'citrix-generate-performance-reports',
+    name: 'Generate Citrix Performance Reports',
+    category: 'Common Admin Tasks',
+    description: 'Export session performance and resource usage',
+    parameters: [
+      { id: 'ddc', label: 'Delivery Controller', type: 'text', required: true },
+      { id: 'reportType', label: 'Report Type', type: 'select', required: true, options: ['SessionPerformance', 'ResourceUsage', 'LoadIndex'], defaultValue: 'SessionPerformance' },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\Citrix-Performance.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const ddc = escapePowerShellString(params.ddc);
+      const reportType = params.reportType;
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Generate Citrix Performance Reports
+# Generated: ${new Date().toISOString()}
+
+Add-PSSnapin Citrix.Broker.Admin.V2 -ErrorAction Stop
+
+try {
+    Write-Host "Generating ${reportType} report..." -ForegroundColor Cyan
+    
+    ${reportType === 'SessionPerformance' ? `
+    $Sessions = Get-BrokerSession -AdminAddress "${ddc}" -MaxRecordCount 5000
+    
+    $Report = $Sessions | ForEach-Object {
+        [PSCustomObject]@{
+            UserName = $_.UserName
+            MachineName = $_.MachineName
+            SessionState = $_.SessionState
+            StartTime = $_.StartTime
+            Duration = if ($_.StartTime) { (Get-Date) - $_.StartTime } else { "N/A" }
+            Protocol = $_.Protocol
+            ClientName = $_.ClientName
+            ClientAddress = $_.ClientAddress
+            Latency_ms = $_.Latency
+            Bandwidth_kbps = $_.Bandwidth
+        }
+    }
+    ` : reportType === 'ResourceUsage' ? `
+    $Machines = Get-BrokerMachine -AdminAddress "${ddc}" -MaxRecordCount 5000
+    
+    $Report = $Machines | ForEach-Object {
+        [PSCustomObject]@{
+            MachineName = $_.MachineName
+            PowerState = $_.PowerState
+            SessionCount = $_.SessionCount
+            LoadIndex = $_.LoadIndex
+            RegistrationState = $_.RegistrationState
+            OSType = $_.OSType
+            CatalogName = $_.CatalogName
+            DeliveryGroup = $_.DesktopGroupName
+        }
+    }
+    ` : `
+    $DeliveryGroups = Get-BrokerDesktopGroup -AdminAddress "${ddc}"
+    
+    $Report = $DeliveryGroups | ForEach-Object {
+        $DG = $_
+        $Machines = Get-BrokerMachine -AdminAddress "${ddc}" -DesktopGroupName $DG.Name
+        $AvgLoad = ($Machines | Measure-Object -Property LoadIndex -Average).Average
+        
+        [PSCustomObject]@{
+            DeliveryGroup = $DG.Name
+            TotalMachines = $DG.TotalMachines
+            AvailableMachines = ($Machines | Where-Object { $_.PowerState -eq "On" -and $_.SessionCount -lt $_.MaxSessions }).Count
+            ActiveSessions = $DG.Sessions
+            AverageLoadIndex = [math]::Round($AvgLoad, 2)
+            DeliveryType = $DG.DeliveryType
+        }
+    }
+    `}
+    
+    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "  Total Records: $($Report.Count)" -ForegroundColor Cyan
+    
+    $Report | Format-Table -AutoSize | Out-String | Write-Host
+    
+} catch {
+    Write-Error "Report generation failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

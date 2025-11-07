@@ -2819,5 +2819,813 @@ try {
     exit 1
 }`;
     }
+  },
+
+  {
+    id: 'configure-mailbox-litigation-hold',
+    name: 'Configure Mailbox Litigation Hold',
+    category: 'Compliance & eDiscovery',
+    description: 'Place mailbox on litigation hold to preserve all content for legal/compliance purposes',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script places mailboxes on litigation hold, preserving all mailbox content indefinitely for legal or compliance purposes.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Understanding of legal hold requirements
+- Sufficient mailbox quota
+
+**What You Need to Provide:**
+- User email address
+- Hold duration (optional)
+- Hold comment/reason
+
+**What the Script Does:**
+1. Enables litigation hold on mailbox
+2. Sets optional hold duration
+3. Records reason for hold
+4. Verifies hold is active
+
+**Important Notes:**
+- Preserves all items including deleted
+- Content cannot be permanently deleted
+- Users can still delete items (marked as hold items)
+- Requires additional storage quota
+- Hold takes precedence over retention policies`,
+    parameters: [
+      { id: 'userEmail', label: 'User Email Address', type: 'email', required: true, placeholder: 'user@contoso.com' },
+      { id: 'holdDuration', label: 'Hold Duration (Days)', type: 'number', required: false, placeholder: '365', description: 'Leave blank for indefinite hold' },
+      { id: 'holdComment', label: 'Hold Comment/Reason', type: 'textarea', required: true, placeholder: 'Legal case #12345 - preserve all communications' }
+    ],
+    scriptTemplate: (params) => {
+      const userEmail = escapePowerShellString(params.userEmail);
+      const holdComment = escapePowerShellString(params.holdComment);
+      const holdDuration = params.holdDuration;
+
+      return `# Configure Mailbox Litigation Hold
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Enabling litigation hold for: ${userEmail}" -ForegroundColor Cyan
+    
+    $SetParams = @{
+        Identity = "${userEmail}"
+        LitigationHoldEnabled = \\$true
+        LitigationHoldComment = "${holdComment}"
+    }
+    
+    ${holdDuration ? `$SetParams.LitigationHoldDuration = ${holdDuration}` : ''}
+    
+    Set-Mailbox @SetParams
+    
+    Write-Host "✓ Litigation hold enabled successfully" -ForegroundColor Green
+    Write-Host "  User: ${userEmail}" -ForegroundColor Gray
+    ${holdDuration ? `Write-Host "  Duration: ${holdDuration} days" -ForegroundColor Gray` : `Write-Host "  Duration: Indefinite" -ForegroundColor Gray`}
+    Write-Host "  Comment: ${holdComment}" -ForegroundColor Gray
+    
+    $Mailbox = Get-Mailbox -Identity "${userEmail}" | Select-Object LitigationHoldEnabled, LitigationHoldDate
+    Write-Host "  Hold Date: $($Mailbox.LitigationHoldDate)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to enable litigation hold: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-mailbox-audit-bypass',
+    name: 'Configure Mailbox Audit Bypass',
+    category: 'Auditing & Compliance',
+    description: 'Configure audit bypass for service accounts or automated processes',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures mailbox audit bypass associations to exclude service accounts from mailbox audit logging.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Audit Administrator role
+- Understanding of audit requirements
+
+**What You Need to Provide:**
+- Service account email
+- Whether to enable or disable bypass
+
+**What the Script Does:**
+1. Configures audit bypass association
+2. Excludes specified accounts from audit logs
+3. Verifies bypass configuration
+
+**Important Notes:**
+- Use for service accounts only
+- Reduces audit log noise
+- May be required for compliance
+- Document all bypass accounts`,
+    parameters: [
+      { id: 'serviceAccountEmail', label: 'Service Account Email', type: 'email', required: true, placeholder: 'serviceaccount@contoso.com' },
+      { id: 'enableBypass', label: 'Enable Audit Bypass', type: 'boolean', required: true, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const accountEmail = escapePowerShellString(params.serviceAccountEmail);
+      const enable = params.enableBypass !== false;
+
+      return `# Configure Mailbox Audit Bypass
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "${enable ? 'Enabling' : 'Disabling'} audit bypass for: ${accountEmail}" -ForegroundColor Cyan
+    
+    Set-MailboxAuditBypassAssociation -Identity "${accountEmail}" -AuditBypassEnabled $${enable ? 'true' : 'false'}
+    
+    Write-Host "✓ Audit bypass ${enable ? 'enabled' : 'disabled'} successfully" -ForegroundColor Green
+    Write-Host "  Account: ${accountEmail}" -ForegroundColor Gray
+    
+    $BypassConfig = Get-MailboxAuditBypassAssociation -Identity "${accountEmail}"
+    Write-Host "  Current Status: $($BypassConfig.AuditBypassEnabled)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure audit bypass: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-journaling-rule',
+    name: 'Configure Journaling Rule',
+    category: 'Compliance & eDiscovery',
+    description: 'Create journaling rule to send message copies to compliance mailbox',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates journaling rules to automatically send copies of messages to a designated journal mailbox for compliance archiving.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Journal mailbox already created
+- Understanding of compliance requirements
+
+**What You Need to Provide:**
+- Rule name
+- Journal recipient email
+- Scope (internal, external, or all messages)
+- Optional specific user to journal
+
+**What the Script Does:**
+1. Creates new journal rule
+2. Configures scope and recipients
+3. Enables the rule
+4. Verifies configuration
+
+**Important Notes:**
+- All matching messages sent to journal mailbox
+- Can target specific users or all mail
+- Journal mailbox fills quickly - monitor size
+- Required for many compliance regulations`,
+    parameters: [
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Executive Communications Journal' },
+      { id: 'journalEmail', label: 'Journal Recipient Email', type: 'email', required: true, placeholder: 'journal@contoso.com' },
+      { id: 'scope', label: 'Scope', type: 'select', required: true, options: ['Global', 'Internal', 'External'], defaultValue: 'Global' },
+      { id: 'recipientEmail', label: 'Specific Recipient (Optional)', type: 'email', required: false, placeholder: 'Leave blank for all users', description: 'Journal specific user only' }
+    ],
+    scriptTemplate: (params) => {
+      const ruleName = escapePowerShellString(params.ruleName);
+      const journalEmail = escapePowerShellString(params.journalEmail);
+      const scope = params.scope || 'Global';
+      const recipientEmail = params.recipientEmail ? escapePowerShellString(params.recipientEmail) : '';
+
+      return `# Configure Journaling Rule
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Creating journaling rule: ${ruleName}" -ForegroundColor Cyan
+    
+    $RuleParams = @{
+        Name = "${ruleName}"
+        JournalEmailAddress = "${journalEmail}"
+        Scope = "${scope}"
+        Enabled = \\$true
+    }
+    
+    ${recipientEmail ? `$RuleParams.Recipient = "${recipientEmail}"` : ''}
+    
+    New-JournalRule @RuleParams
+    
+    Write-Host "✓ Journaling rule created successfully" -ForegroundColor Green
+    Write-Host "  Rule: ${ruleName}" -ForegroundColor Gray
+    Write-Host "  Journal Mailbox: ${journalEmail}" -ForegroundColor Gray
+    Write-Host "  Scope: ${scope}" -ForegroundColor Gray
+    ${recipientEmail ? `Write-Host "  Target User: ${recipientEmail}" -ForegroundColor Gray` : `Write-Host "  Target: All users" -ForegroundColor Gray`}
+    
+} catch {
+    Write-Error "Failed to create journaling rule: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-mail-flow-connector',
+    name: 'Configure Mail Flow Connector',
+    category: 'Mail Flow & Transport',
+    description: 'Create inbound or outbound connector for hybrid or third-party mail flow',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates mail flow connectors for routing mail to/from on-premises servers, partner organizations, or third-party services.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Certificate or smart host details
+- Understanding of mail routing
+
+**What You Need to Provide:**
+- Connector name
+- Direction (inbound or outbound)
+- Smart host or sender domain
+- TLS settings
+
+**What the Script Does:**
+1. Creates send or receive connector
+2. Configures smart host routing
+3. Sets TLS/security requirements
+4. Enables the connector
+
+**Important Notes:**
+- Required for hybrid Exchange deployments
+- Use for third-party email security gateways
+- Validate certificates for TLS
+- Test mail flow after creation`,
+    parameters: [
+      { id: 'connectorName', label: 'Connector Name', type: 'text', required: true, placeholder: 'To On-Premises Exchange' },
+      { id: 'connectorType', label: 'Connector Type', type: 'select', required: true, options: ['Outbound', 'Inbound'], defaultValue: 'Outbound' },
+      { id: 'smartHost', label: 'Smart Host', type: 'text', required: true, placeholder: 'mail.contoso.com', description: 'For outbound connectors' },
+      { id: 'requireTLS', label: 'Require TLS', type: 'boolean', required: true, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const connectorName = escapePowerShellString(params.connectorName);
+      const connectorType = params.connectorType || 'Outbound';
+      const smartHost = escapePowerShellString(params.smartHost);
+      const requireTLS = params.requireTLS !== false;
+
+      return `# Configure Mail Flow Connector
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Creating ${connectorType.toLowerCase()} connector: ${connectorName}" -ForegroundColor Cyan
+    
+    ${connectorType === 'Outbound' ? `New-OutboundConnector -Name "${connectorName}" \`
+        -RecipientDomains "*" \`
+        -SmartHosts "${smartHost}" \`
+        -TlsSettings ${requireTLS ? 'DomainValidation' : 'OpportunisticTLS'} \`
+        -Enabled \\$true` : 
+    `New-InboundConnector -Name "${connectorName}" \`
+        -SenderDomains "*" \`
+        -RequireTls $${requireTLS ? 'true' : 'false'} \`
+        -Enabled \\$true`}
+    
+    Write-Host "✓ ${connectorType} connector created successfully" -ForegroundColor Green
+    Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
+    ${connectorType === 'Outbound' ? `Write-Host "  Smart Host: ${smartHost}" -ForegroundColor Gray` : ''}
+    Write-Host "  TLS Required: ${requireTLS}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create connector: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'bulk-mailbox-permission-audit',
+    name: 'Bulk Mailbox Permission Audit Report',
+    category: 'Auditing & Compliance',
+    description: 'Generate comprehensive report of all mailbox permissions across organization',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script generates a comprehensive audit report of all mailbox permissions, including FullAccess, SendAs, and SendOnBehalf delegations.
+
+**Prerequisites:**
+- Exchange Administrator role
+- View-Only Recipients role
+- PowerShell execution rights
+
+**What You Need to Provide:**
+- Export path for CSV report
+- Optional filter for specific domain or OU
+
+**What the Script Does:**
+1. Retrieves all mailboxes
+2. Checks FullAccess permissions
+3. Checks SendAs permissions  
+4. Checks SendOnBehalf permissions
+5. Exports detailed CSV report
+
+**Important Notes:**
+- Long-running for large organizations
+- Export includes all delegation types
+- Review for excessive permissions
+- Use for compliance audits`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\Reports\\MailboxPermissions.csv' },
+      { id: 'domainFilter', label: 'Domain Filter (Optional)', type: 'text', required: false, placeholder: 'contoso.com', description: 'Filter by specific domain' }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      const domainFilter = params.domainFilter ? escapePowerShellString(params.domainFilter) : '';
+
+      return `# Bulk Mailbox Permission Audit Report
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Starting mailbox permission audit..." -ForegroundColor Cyan
+    
+    $Results = @()
+    ${domainFilter ? `$Mailboxes = Get-EXOMailbox -Filter "PrimarySmtpAddress -like '*@${domainFilter}'" -ResultSize Unlimited` : `$Mailboxes = Get-EXOMailbox -ResultSize Unlimited`}
+    
+    Write-Host "Found $($Mailboxes.Count) mailboxes to audit" -ForegroundColor Yellow
+    
+    $Counter = 0
+    foreach ($Mailbox in $Mailboxes) {
+        $Counter++
+        Write-Progress -Activity "Auditing Permissions" -Status "Processing $($Mailbox.DisplayName)" -PercentComplete (($Counter / $Mailboxes.Count) * 100)
+        
+        # Check FullAccess permissions
+        $FullAccess = Get-EXOMailboxPermission -Identity $Mailbox.UserPrincipalName | Where-Object { $_.IsInherited -eq \\$false -and $_.User -notlike "NT AUTHORITY\\SELF" }
+        
+        # Check SendAs permissions
+        $SendAs = Get-EXORecipientPermission -Identity $Mailbox.UserPrincipalName | Where-Object { $_.Trustee -notlike "NT AUTHORITY\\SELF" }
+        
+        # Check SendOnBehalf
+        $SendOnBehalf = $Mailbox.GrantSendOnBehalfTo
+        
+        # Record FullAccess
+        foreach ($Perm in $FullAccess) {
+            $Results += [PSCustomObject]@{
+                Mailbox = $Mailbox.UserPrincipalName
+                DisplayName = $Mailbox.DisplayName
+                PermissionType = "FullAccess"
+                GrantedTo = $Perm.User
+                AccessRights = $Perm.AccessRights -join ';'
+            }
+        }
+        
+        # Record SendAs
+        foreach ($Perm in $SendAs) {
+            $Results += [PSCustomObject]@{
+                Mailbox = $Mailbox.UserPrincipalName
+                DisplayName = $Mailbox.DisplayName
+                PermissionType = "SendAs"
+                GrantedTo = $Perm.Trustee
+                AccessRights = "SendAs"
+            }
+        }
+        
+        # Record SendOnBehalf
+        foreach ($Delegate in $SendOnBehalf) {
+            $Results += [PSCustomObject]@{
+                Mailbox = $Mailbox.UserPrincipalName
+                DisplayName = $Mailbox.DisplayName
+                PermissionType = "SendOnBehalf"
+                GrantedTo = $Delegate
+                AccessRights = "SendOnBehalf"
+            }
+        }
+    }
+    
+    Write-Progress -Activity "Auditing Permissions" -Completed
+    
+    $Results | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Audit report generated successfully" -ForegroundColor Green
+    Write-Host "  Mailboxes Audited: $($Mailboxes.Count)" -ForegroundColor Gray
+    Write-Host "  Permissions Found: $($Results.Count)" -ForegroundColor Gray
+    Write-Host "  Report Location: ${exportPath}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to generate audit report: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-focused-inbox-policy',
+    name: 'Configure Focused Inbox Organization Policy',
+    category: 'User Experience',
+    description: 'Enable or disable Focused Inbox feature organization-wide or for specific users',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures the Focused Inbox feature, which separates important emails from others in Outlook.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Understanding of user experience preferences
+
+**What You Need to Provide:**
+- Whether to enable or disable Focused Inbox
+- Apply to all users or specific user
+
+**What the Script Does:**
+1. Modifies Focused Inbox policy
+2. Applies to organization or specific users
+3. Verifies configuration
+
+**Important Notes:**
+- Users can override organization settings
+- Feature available in Outlook 2016+, OWA, mobile
+- Helps reduce email noise
+- Some users prefer traditional view`,
+    parameters: [
+      { id: 'enableFocusedInbox', label: 'Enable Focused Inbox', type: 'boolean', required: true, defaultValue: true },
+      { id: 'targetUser', label: 'Target User (Optional)', type: 'email', required: false, placeholder: 'Leave blank for organization-wide', description: 'Apply to specific user only' }
+    ],
+    scriptTemplate: (params) => {
+      const enable = params.enableFocusedInbox !== false;
+      const targetUser = params.targetUser ? escapePowerShellString(params.targetUser) : '';
+
+      return `# Configure Focused Inbox Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "${enable ? 'Enabling' : 'Disabling'} Focused Inbox${targetUser ? ` for ${targetUser}` : ' organization-wide'}" -ForegroundColor Cyan
+    
+    ${targetUser ? 
+    `Set-FocusedInbox -Identity "${targetUser}" -FocusedInboxOn $${enable ? 'true' : 'false'}
+    
+    Write-Host "✓ Focused Inbox ${enable ? 'enabled' : 'disabled'} for user" -ForegroundColor Green
+    Write-Host "  User: ${targetUser}" -ForegroundColor Gray` :
+    `$AllMailboxes = Get-EXOMailbox -ResultSize Unlimited
+    
+    Write-Host "Configuring $($AllMailboxes.Count) mailboxes..." -ForegroundColor Yellow
+    
+    foreach ($Mailbox in $AllMailboxes) {
+        Set-FocusedInbox -Identity $Mailbox.UserPrincipalName -FocusedInboxOn $${enable ? 'true' : 'false'}
+    }
+    
+    Write-Host "✓ Focused Inbox ${enable ? 'enabled' : 'disabled'} organization-wide" -ForegroundColor Green
+    Write-Host "  Mailboxes Updated: $($AllMailboxes.Count)" -ForegroundColor Gray`}
+    
+} catch {
+    Write-Error "Failed to configure Focused Inbox: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-mailbox-language-timezone',
+    name: 'Configure Mailbox Language and Timezone',
+    category: 'User Experience',
+    description: 'Set mailbox language, timezone, and regional settings for users',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures mailbox regional settings including language, timezone, and date/time formats.
+
+**Prerequisites:**
+- Exchange Administrator role
+- User Administrator role
+
+**What You Need to Provide:**
+- User email address
+- Language code (e.g., en-US, fr-FR)
+- Timezone identifier
+- Date/time format preference
+
+**What the Script Does:**
+1. Configures mailbox language settings
+2. Sets timezone for calendar
+3. Sets date/time format preferences
+4. Verifies configuration
+
+**Important Notes:**
+- Affects Outlook Web App experience
+- Important for international users
+- Timezone affects meeting times
+- Common languages: en-US, en-GB, fr-FR, de-DE, es-ES`,
+    parameters: [
+      { id: 'userEmail', label: 'User Email Address', type: 'email', required: true, placeholder: 'user@contoso.com' },
+      { id: 'language', label: 'Language Code', type: 'text', required: true, placeholder: 'en-US', description: 'E.g., en-US, fr-FR, de-DE' },
+      { id: 'timezone', label: 'Timezone', type: 'select', required: true, options: ['Pacific Standard Time', 'Mountain Standard Time', 'Central Standard Time', 'Eastern Standard Time', 'GMT Standard Time', 'W. Europe Standard Time', 'Tokyo Standard Time'], defaultValue: 'Pacific Standard Time' },
+      { id: 'dateFormat', label: 'Date Format', type: 'select', required: true, options: ['M/d/yyyy', 'd/M/yyyy', 'yyyy-MM-dd'], defaultValue: 'M/d/yyyy' }
+    ],
+    scriptTemplate: (params) => {
+      const userEmail = escapePowerShellString(params.userEmail);
+      const language = escapePowerShellString(params.language);
+      const timezone = params.timezone || 'Pacific Standard Time';
+      const dateFormat = params.dateFormat || 'M/d/yyyy';
+
+      return `# Configure Mailbox Language and Timezone
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Configuring regional settings for: ${userEmail}" -ForegroundColor Cyan
+    
+    Set-MailboxRegionalConfiguration -Identity "${userEmail}" \`
+        -Language "${language}" \`
+        -TimeZone "${timezone}" \`
+        -DateFormat "${dateFormat}" \`
+        -TimeFormat "h:mm tt"
+    
+    Write-Host "✓ Regional settings configured successfully" -ForegroundColor Green
+    Write-Host "  User: ${userEmail}" -ForegroundColor Gray
+    Write-Host "  Language: ${language}" -ForegroundColor Gray
+    Write-Host "  Timezone: ${timezone}" -ForegroundColor Gray
+    Write-Host "  Date Format: ${dateFormat}" -ForegroundColor Gray
+    
+    $Config = Get-MailboxRegionalConfiguration -Identity "${userEmail}"
+    Write-Host "  Verified Language: $($Config.Language)" -ForegroundColor Gray
+    Write-Host "  Verified Timezone: $($Config.TimeZone)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure regional settings: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-mailbox-calendar-processing',
+    name: 'Configure Room/Resource Mailbox Calendar Processing',
+    category: 'Calendar & Scheduling',
+    description: 'Configure automatic calendar processing rules for room and resource mailboxes',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures calendar processing settings for room and resource mailboxes, controlling automatic booking behavior.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Room or resource mailbox already created
+
+**What You Need to Provide:**
+- Room/resource email address
+- Auto-accept/decline settings
+- Booking restrictions (duration, advance time)
+- Delegate configuration
+
+**What the Script Does:**
+1. Configures automatic booking acceptance
+2. Sets booking policies and restrictions
+3. Configures delegate permissions
+4. Sets scheduling options
+
+**Important Notes:**
+- Controls automatic meeting acceptance
+- Can restrict booking duration and advance time
+- Can require specific users to approve
+- Prevents double-booking automatically`,
+    parameters: [
+      { id: 'roomEmail', label: 'Room/Resource Email', type: 'email', required: true, placeholder: 'confroom1@contoso.com' },
+      { id: 'autoAccept', label: 'Auto-Accept Meetings', type: 'boolean', required: true, defaultValue: true },
+      { id: 'maxDuration', label: 'Max Booking Duration (Minutes)', type: 'number', required: false, placeholder: '480', description: 'Maximum meeting duration' },
+      { id: 'bookingWindow', label: 'Booking Window (Days)', type: 'number', required: false, placeholder: '180', description: 'How far in advance can book' },
+      { id: 'allowRecurring', label: 'Allow Recurring Meetings', type: 'boolean', required: true, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const roomEmail = escapePowerShellString(params.roomEmail);
+      const autoAccept = params.autoAccept !== false;
+      const maxDuration = params.maxDuration || 480;
+      const bookingWindow = params.bookingWindow || 180;
+      const allowRecurring = params.allowRecurring !== false;
+
+      return `# Configure Room/Resource Mailbox Calendar Processing
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Configuring calendar processing for: ${roomEmail}" -ForegroundColor Cyan
+    
+    Set-CalendarProcessing -Identity "${roomEmail}" \`
+        -AutomateProcessing ${autoAccept ? 'AutoAccept' : 'AutoUpdate'} \`
+        -DeleteComments \\$false \`
+        -AddOrganizerToSubject \\$true \`
+        -DeleteSubject \\$false \`
+        -MaximumDurationInMinutes ${maxDuration} \`
+        -BookingWindowInDays ${bookingWindow} \`
+        -AllowRecurringMeetings $${allowRecurring ? 'true' : 'false'} \`
+        -EnforceSchedulingHorizon \\$true \`
+        -ScheduleOnlyDuringWorkHours \\$false
+    
+    Write-Host "✓ Calendar processing configured successfully" -ForegroundColor Green
+    Write-Host "  Room/Resource: ${roomEmail}" -ForegroundColor Gray
+    Write-Host "  Auto-Accept: ${autoAccept}" -ForegroundColor Gray
+    Write-Host "  Max Duration: ${maxDuration} minutes" -ForegroundColor Gray
+    Write-Host "  Booking Window: ${bookingWindow} days" -ForegroundColor Gray
+    Write-Host "  Allow Recurring: ${allowRecurring}" -ForegroundColor Gray
+    
+    $Config = Get-CalendarProcessing -Identity "${roomEmail}"
+    Write-Host "  Current Processing: $($Config.AutomateProcessing)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure calendar processing: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-oauth-authentication-policy',
+    name: 'Configure OAuth Authentication Policy',
+    category: 'Security & Authentication',
+    description: 'Configure OAuth authentication policies for modern authentication and application access',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures OAuth authentication policies to control which applications can access Exchange Online mailboxes.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Azure AD Administrator role
+- Understanding of OAuth and modern authentication
+
+**What You Need to Provide:**
+- Policy name
+- Allowed/blocked apps or protocols
+- Target users or groups
+
+**What the Script Does:**
+1. Creates or modifies authentication policy
+2. Specifies allowed/blocked client applications
+3. Applies policy to users or organization
+4. Verifies configuration
+
+**Important Notes:**
+- Controls modern authentication access
+- Can block legacy protocols per-user
+- Required for conditional access scenarios
+- Default policy applies to all users unless overridden`,
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'Block Legacy Auth' },
+      { id: 'allowBasicAuth', label: 'Allow Basic Authentication', type: 'boolean', required: true, defaultValue: false },
+      { id: 'allowOAuthOnly', label: 'Require OAuth/Modern Auth Only', type: 'boolean', required: true, defaultValue: true },
+      { id: 'targetUser', label: 'Target User (Optional)', type: 'email', required: false, placeholder: 'Leave blank for organization default' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const allowBasic = params.allowBasicAuth === true;
+      const oauthOnly = params.allowOAuthOnly !== false;
+      const targetUser = params.targetUser ? escapePowerShellString(params.targetUser) : '';
+
+      return `# Configure OAuth Authentication Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    Write-Host "Configuring authentication policy: ${policyName}" -ForegroundColor Cyan
+    
+    # Check if policy exists
+    $Policy = Get-AuthenticationPolicy -Identity "${policyName}" -ErrorAction SilentlyContinue
+    
+    $PolicyParams = @{
+        AllowBasicAuthActiveSync = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthAutodiscover = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthImap = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthMapi = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthOfflineAddressBook = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthOutlookService = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthPop = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthPowershell = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthReportingWebServices = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthRpc = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthSmtp = $${allowBasic ? 'true' : 'false'}
+        AllowBasicAuthWebServices = $${allowBasic ? 'true' : 'false'}
+    }
+    
+    if ($Policy) {
+        Set-AuthenticationPolicy -Identity "${policyName}" @PolicyParams
+        Write-Host "✓ Updated existing authentication policy" -ForegroundColor Green
+    } else {
+        New-AuthenticationPolicy -Name "${policyName}" @PolicyParams
+        Write-Host "✓ Created new authentication policy" -ForegroundColor Green
+    }
+    
+    ${targetUser ? `
+    # Apply policy to user
+    Set-User -Identity "${targetUser}" -AuthenticationPolicy "${policyName}"
+    Write-Host "✓ Policy applied to user: ${targetUser}" -ForegroundColor Green` : 
+    `
+    # Set as organization default
+    Set-OrganizationConfig -DefaultAuthenticationPolicy "${policyName}"
+    Write-Host "✓ Policy set as organization default" -ForegroundColor Green`}
+    
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Gray
+    Write-Host "  Basic Auth Allowed: ${allowBasic}" -ForegroundColor Gray
+    Write-Host "  OAuth Required: ${oauthOnly}" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure authentication policy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-mailbox-folder-permissions-bulk',
+    name: 'Configure Mailbox Folder Permissions in Bulk',
+    category: 'Delegation & Permissions',
+    description: 'Set calendar or folder permissions for multiple users at once',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures mailbox folder permissions (typically calendar) for multiple users simultaneously.
+
+**Prerequisites:**
+- Exchange Administrator role
+- List of target user emails
+- Understanding of permission levels
+
+**What You Need to Provide:**
+- List of user emails (comma-separated)
+- Folder name (Calendar, Inbox, etc.)
+- Delegate user email
+- Permission level
+
+**What the Script Does:**
+1. Processes each user in the list
+2. Grants folder permissions to delegate
+3. Reports success/failure for each user
+4. Provides summary statistics
+
+**Important Notes:**
+- Common use: Grant assistant calendar access
+- Permission levels: Editor, Reviewer, Author, etc.
+- Folder names are localized (Calendar, Calendrier, etc.)
+- Use Default for organization-wide calendar sharing`,
+    parameters: [
+      { id: 'userEmails', label: 'User Emails (comma-separated)', type: 'textarea', required: true, placeholder: 'user1@contoso.com, user2@contoso.com, user3@contoso.com' },
+      { id: 'folderName', label: 'Folder Name', type: 'select', required: true, options: ['Calendar', 'Inbox', 'Contacts', 'Tasks'], defaultValue: 'Calendar' },
+      { id: 'delegateEmail', label: 'Delegate Email', type: 'email', required: true, placeholder: 'assistant@contoso.com', description: 'User receiving permissions' },
+      { id: 'accessRights', label: 'Access Rights', type: 'select', required: true, options: ['Reviewer', 'Editor', 'Author', 'Owner', 'PublishingEditor', 'LimitedDetails'], defaultValue: 'Reviewer' }
+    ],
+    scriptTemplate: (params) => {
+      const userEmailsRaw = (params.userEmails as string).split(',').map((email: string) => email.trim());
+      const folderName = params.folderName || 'Calendar';
+      const delegateEmail = escapePowerShellString(params.delegateEmail);
+      const accessRights = params.accessRights || 'Reviewer';
+
+      return `# Configure Mailbox Folder Permissions in Bulk
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $Users = @(${userEmailsRaw.map(email => `"${escapePowerShellString(email)}"`).join(', ')})
+    $Delegate = "${delegateEmail}"
+    $FolderName = "${folderName}"
+    $Rights = "${accessRights}"
+    
+    Write-Host "Configuring $FolderName permissions for $($Users.Count) users..." -ForegroundColor Cyan
+    Write-Host "Delegate: $Delegate" -ForegroundColor Cyan
+    Write-Host "Access Rights: $Rights" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $SuccessCount = 0
+    $FailCount = 0
+    
+    foreach ($User in $Users) {
+        try {
+            $FolderPath = "$User:\\\\$FolderName"
+            
+            # Check if permission already exists
+            $Existing = Get-MailboxFolderPermission -Identity $FolderPath -User $Delegate -ErrorAction SilentlyContinue
+            
+            if ($Existing) {
+                Set-MailboxFolderPermission -Identity $FolderPath -User $Delegate -AccessRights $Rights
+                Write-Host "✓ Updated: $User" -ForegroundColor Green
+            } else {
+                Add-MailboxFolderPermission -Identity $FolderPath -User $Delegate -AccessRights $Rights
+                Write-Host "✓ Added: $User" -ForegroundColor Green
+            }
+            
+            $SuccessCount++
+        } catch {
+            Write-Host "✗ Failed: $User - $_" -ForegroundColor Red
+            $FailCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Total Users: $($Users.Count)" -ForegroundColor Gray
+    Write-Host "Successful: $SuccessCount" -ForegroundColor Green
+    Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Red' } else { 'Gray' })
+    
+} catch {
+    Write-Error "Bulk operation failed: $_"
+    exit 1
+}`;
+    }
   }
 ];

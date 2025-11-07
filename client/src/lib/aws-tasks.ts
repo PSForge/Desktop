@@ -1804,5 +1804,443 @@ action === 'Lookup Events' ? `    # Lookup recent events
 }`;
     },
     isPremium: true
+  },
+
+  {
+    id: 'aws-configure-rds-snapshot',
+    name: 'Configure RDS Automated Snapshots',
+    category: 'RDS & Databases',
+    description: 'Configure automated backup snapshots for RDS database instances',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'dbInstanceId', label: 'DB Instance ID', type: 'text', required: true, placeholder: 'mydb-instance' },
+      { id: 'backupRetentionDays', label: 'Backup Retention (Days)', type: 'number', required: true, placeholder: '7' },
+      { id: 'backupWindow', label: 'Backup Window', type: 'text', required: true, placeholder: '03:00-04:00' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const dbInstanceId = escapePowerShellString(params.dbInstanceId);
+      const retentionDays = params.backupRetentionDays || 7;
+      const backupWindow = escapePowerShellString(params.backupWindow);
+
+      return `# Configure RDS Automated Snapshots
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.RDS
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    Edit-RDSDBInstance \`
+        -DBInstanceIdentifier "${dbInstanceId}" \`
+        -BackupRetentionPeriod ${retentionDays} \`
+        -PreferredBackupWindow "${backupWindow}" \`
+        -ApplyImmediately \\$true
+    
+    Write-Host "✓ RDS automated snapshots configured" -ForegroundColor Green
+    Write-Host "  DB Instance: ${dbInstanceId}" -ForegroundColor Cyan
+    Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Cyan
+    Write-Host "  Backup Window: ${backupWindow}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "RDS snapshot configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-manage-iam-policies',
+    name: 'Create and Attach IAM Policy',
+    category: 'IAM & Security',
+    description: 'Create custom IAM policy and attach to user, group, or role',
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'S3ReadOnlyPolicy' },
+      { id: 'policyDocument', label: 'Policy JSON Document', type: 'textarea', required: true, placeholder: '{"Version":"2012-10-17","Statement":[...]}' },
+      { id: 'attachTo', label: 'Attach To Type', type: 'select', required: true, options: ['User', 'Group', 'Role'], defaultValue: 'User' },
+      { id: 'targetName', label: 'Target Name', type: 'text', required: true, placeholder: 'john.doe or Developers' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const policyDoc = escapePowerShellString(params.policyDocument);
+      const attachTo = params.attachTo || 'User';
+      const targetName = escapePowerShellString(params.targetName);
+
+      return `# Create and Attach IAM Policy
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.IdentityManagement
+
+try {
+    $PolicyDocument = @"
+${policyDoc}
+"@
+    
+    # Create policy
+    $Policy = New-IAMPolicy \`
+        -PolicyName "${policyName}" \`
+        -PolicyDocument $PolicyDocument \`
+        -Description "Custom policy created via PowerShell"
+    
+    Write-Host "✓ IAM policy created: ${policyName}" -ForegroundColor Green
+    Write-Host "  Policy ARN: $($Policy.Arn)" -ForegroundColor Cyan
+    
+    # Attach policy
+    ${attachTo === 'User' ? `Register-IAMUserPolicy -UserName "${targetName}" -PolicyArn $Policy.Arn
+    Write-Host "✓ Policy attached to user: ${targetName}" -ForegroundColor Green` :
+    attachTo === 'Group' ? `Register-IAMGroupPolicy -GroupName "${targetName}" -PolicyArn $Policy.Arn
+    Write-Host "✓ Policy attached to group: ${targetName}" -ForegroundColor Green` :
+    `Register-IAMRolePolicy -RoleName "${targetName}" -PolicyArn $Policy.Arn
+    Write-Host "✓ Policy attached to role: ${targetName}" -ForegroundColor Green`}
+    
+} catch {
+    Write-Error "IAM policy operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-configure-vpc-peering',
+    name: 'Create VPC Peering Connection',
+    category: 'Networking',
+    description: 'Create VPC peering connection between two VPCs for private communication',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'requesterVpcId', label: 'Requester VPC ID', type: 'text', required: true, placeholder: 'vpc-1234567890abcdef0' },
+      { id: 'accepterVpcId', label: 'Accepter VPC ID', type: 'text', required: true, placeholder: 'vpc-0987654321fedcba0' },
+      { id: 'peeringName', label: 'Peering Connection Name', type: 'text', required: true, placeholder: 'Production-to-Dev' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const requesterVpc = escapePowerShellString(params.requesterVpcId);
+      const accepterVpc = escapePowerShellString(params.accepterVpcId);
+      const peeringName = escapePowerShellString(params.peeringName);
+
+      return `# Create VPC Peering Connection
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EC2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    # Create peering connection
+    $PeeringConnection = New-EC2VpcPeeringConnection \`
+        -VpcId "${requesterVpc}" \`
+        -PeerVpcId "${accepterVpc}"
+    
+    $PeeringId = $PeeringConnection.VpcPeeringConnectionId
+    
+    # Tag the peering connection
+    New-EC2Tag -Resource $PeeringId -Tag @{Key="Name"; Value="${peeringName}"}
+    
+    Write-Host "✓ VPC peering connection created: $PeeringId" -ForegroundColor Green
+    Write-Host "  Name: ${peeringName}" -ForegroundColor Cyan
+    Write-Host "  Requester VPC: ${requesterVpc}" -ForegroundColor Cyan
+    Write-Host "  Accepter VPC: ${accepterVpc}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "⚠️ Next step: Accept peering connection:" -ForegroundColor Yellow
+    Write-Host "  Approve-EC2VpcPeeringConnection -VpcPeeringConnectionId $PeeringId" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "VPC peering creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-configure-cloudwatch-alarm',
+    name: 'Create CloudWatch Alarm',
+    category: 'Monitoring & Alerting',
+    description: 'Configure CloudWatch alarm for monitoring AWS resources with SNS notifications',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'alarmName', label: 'Alarm Name', type: 'text', required: true, placeholder: 'High-CPU-Alert' },
+      { id: 'metricName', label: 'Metric Name', type: 'select', required: true, options: ['CPUUtilization', 'NetworkIn', 'NetworkOut', 'DiskReadOps', 'DiskWriteOps'], defaultValue: 'CPUUtilization' },
+      { id: 'instanceId', label: 'EC2 Instance ID', type: 'text', required: true, placeholder: 'i-1234567890abcdef0' },
+      { id: 'threshold', label: 'Threshold Value', type: 'number', required: true, placeholder: '80' },
+      { id: 'snsTopicArn', label: 'SNS Topic ARN (Optional)', type: 'text', required: false, placeholder: 'arn:aws:sns:us-east-1:123456789012:MyTopic' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const alarmName = escapePowerShellString(params.alarmName);
+      const metricName = params.metricName || 'CPUUtilization';
+      const instanceId = escapePowerShellString(params.instanceId);
+      const threshold = params.threshold || 80;
+      const snsArn = params.snsTopicArn ? escapePowerShellString(params.snsTopicArn) : '';
+
+      return `# Create CloudWatch Alarm
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.CloudWatch
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    $Dimension = New-Object Amazon.CloudWatch.Model.Dimension
+    $Dimension.Name = "InstanceId"
+    $Dimension.Value = "${instanceId}"
+    
+    $AlarmParams = @{
+        AlarmName = "${alarmName}"
+        MetricName = "${metricName}"
+        Namespace = "AWS/EC2"
+        Statistic = "Average"
+        Period = 300
+        EvaluationPeriods = 2
+        Threshold = ${threshold}
+        ComparisonOperator = "GreaterThanThreshold"
+        Dimensions = $Dimension
+    }
+    
+    ${snsArn ? `$AlarmParams.AlarmActions = @("${snsArn}")` : ''}
+    
+    Write-CWMetricAlarm @AlarmParams
+    
+    Write-Host "✓ CloudWatch alarm created successfully" -ForegroundColor Green
+    Write-Host "  Alarm Name: ${alarmName}" -ForegroundColor Cyan
+    Write-Host "  Metric: ${metricName}" -ForegroundColor Cyan
+    Write-Host "  Instance: ${instanceId}" -ForegroundColor Cyan
+    Write-Host "  Threshold: ${threshold}" -ForegroundColor Cyan
+    ${snsArn ? `Write-Host "  SNS Notifications: Enabled" -ForegroundColor Cyan` : `Write-Host "  SNS Notifications: Not configured" -ForegroundColor Yellow`}
+    
+} catch {
+    Write-Error "CloudWatch alarm creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-manage-elastic-ip',
+    name: 'Allocate and Associate Elastic IP',
+    category: 'Networking',
+    description: 'Allocate Elastic IP address and associate it with EC2 instance',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'instanceId', label: 'EC2 Instance ID', type: 'text', required: true, placeholder: 'i-1234567890abcdef0' },
+      { id: 'domain', label: 'Domain', type: 'select', required: true, options: ['vpc', 'standard'], defaultValue: 'vpc' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const instanceId = escapePowerShellString(params.instanceId);
+      const domain = params.domain || 'vpc';
+
+      return `# Allocate and Associate Elastic IP
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EC2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    # Allocate Elastic IP
+    $EIP = New-EC2Address -Domain ${domain}
+    
+    Write-Host "✓ Elastic IP allocated: $($EIP.PublicIp)" -ForegroundColor Green
+    Write-Host "  Allocation ID: $($EIP.AllocationId)" -ForegroundColor Cyan
+    
+    # Associate with instance
+    $Association = Register-EC2Address \`
+        -InstanceId "${instanceId}" \`
+        -AllocationId $EIP.AllocationId
+    
+    Write-Host "✓ Elastic IP associated with instance" -ForegroundColor Green
+    Write-Host "  Instance ID: ${instanceId}" -ForegroundColor Cyan
+    Write-Host "  Public IP: $($EIP.PublicIp)" -ForegroundColor Cyan
+    Write-Host "  Association ID: $($Association.AssociationId)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Elastic IP operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-configure-autoscaling-group',
+    name: 'Create Auto Scaling Group',
+    category: 'EC2 Management',
+    description: 'Configure Auto Scaling Group with launch configuration for automatic instance scaling',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'asgName', label: 'Auto Scaling Group Name', type: 'text', required: true, placeholder: 'WebServer-ASG' },
+      { id: 'launchConfigName', label: 'Launch Configuration Name', type: 'text', required: true, placeholder: 'WebServer-LC' },
+      { id: 'minSize', label: 'Minimum Instances', type: 'number', required: true, placeholder: '2' },
+      { id: 'maxSize', label: 'Maximum Instances', type: 'number', required: true, placeholder: '10' },
+      { id: 'desiredCapacity', label: 'Desired Capacity', type: 'number', required: true, placeholder: '3' },
+      { id: 'availabilityZones', label: 'Availability Zones (comma-separated)', type: 'text', required: true, placeholder: 'us-east-1a, us-east-1b' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const asgName = escapePowerShellString(params.asgName);
+      const lcName = escapePowerShellString(params.launchConfigName);
+      const minSize = params.minSize || 2;
+      const maxSize = params.maxSize || 10;
+      const desiredCapacity = params.desiredCapacity || 3;
+      const azRaw = (params.availabilityZones as string).split(',').map((az: string) => az.trim());
+
+      return `# Create Auto Scaling Group
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.AutoScaling
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    $AvailabilityZones = @(${azRaw.map(az => `"${escapePowerShellString(az)}"`).join(', ')})
+    
+    # Create Auto Scaling Group
+    New-ASAutoScalingGroup \`
+        -AutoScalingGroupName "${asgName}" \`
+        -LaunchConfigurationName "${lcName}" \`
+        -MinSize ${minSize} \`
+        -MaxSize ${maxSize} \`
+        -DesiredCapacity ${desiredCapacity} \`
+        -AvailabilityZones $AvailabilityZones \`
+        -HealthCheckType EC2 \`
+        -HealthCheckGracePeriod 300
+    
+    Write-Host "✓ Auto Scaling Group created successfully" -ForegroundColor Green
+    Write-Host "  ASG Name: ${asgName}" -ForegroundColor Cyan
+    Write-Host "  Launch Configuration: ${lcName}" -ForegroundColor Cyan
+    Write-Host "  Min Size: ${minSize}" -ForegroundColor Cyan
+    Write-Host "  Max Size: ${maxSize}" -ForegroundColor Cyan
+    Write-Host "  Desired Capacity: ${desiredCapacity}" -ForegroundColor Cyan
+    Write-Host "  Availability Zones: $($AvailabilityZones -join ', ')" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Auto Scaling Group creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-configure-lambda-function',
+    name: 'Create and Deploy Lambda Function',
+    category: 'Serverless',
+    description: 'Create AWS Lambda function with deployment package and execution role',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'functionName', label: 'Function Name', type: 'text', required: true, placeholder: 'MyLambdaFunction' },
+      { id: 'runtime', label: 'Runtime', type: 'select', required: true, options: ['python3.9', 'python3.10', 'nodejs18.x', 'nodejs20.x', 'dotnet6', 'dotnet8'], defaultValue: 'python3.9' },
+      { id: 'roleArn', label: 'IAM Role ARN', type: 'text', required: true, placeholder: 'arn:aws:iam::123456789012:role/lambda-execution-role' },
+      { id: 'handler', label: 'Handler', type: 'text', required: true, placeholder: 'index.handler' },
+      { id: 'zipFilePath', label: 'Deployment Package Path', type: 'path', required: true, placeholder: 'C:\\Lambda\\function.zip' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const functionName = escapePowerShellString(params.functionName);
+      const runtime = params.runtime || 'python3.9';
+      const roleArn = escapePowerShellString(params.roleArn);
+      const handler = escapePowerShellString(params.handler);
+      const zipPath = escapePowerShellString(params.zipFilePath);
+
+      return `# Create and Deploy Lambda Function
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.Lambda
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    # Read deployment package
+    $ZipBytes = [System.IO.File]::ReadAllBytes("${zipPath}")
+    $MemoryStream = New-Object System.IO.MemoryStream(,$ZipBytes)
+    
+    # Create Lambda function
+    Publish-LMFunction \`
+        -FunctionName "${functionName}" \`
+        -Runtime ${runtime} \`
+        -Role "${roleArn}" \`
+        -Handler "${handler}" \`
+        -ZipFile $MemoryStream \`
+        -Description "Lambda function created via PowerShell" \`
+        -Timeout 30 \`
+        -MemorySize 256
+    
+    Write-Host "✓ Lambda function created successfully" -ForegroundColor Green
+    Write-Host "  Function Name: ${functionName}" -ForegroundColor Cyan
+    Write-Host "  Runtime: ${runtime}" -ForegroundColor Cyan
+    Write-Host "  Handler: ${handler}" -ForegroundColor Cyan
+    Write-Host "  Timeout: 30 seconds" -ForegroundColor Cyan
+    Write-Host "  Memory: 256 MB" -ForegroundColor Cyan
+    
+    $Function = Get-LMFunction -FunctionName "${functionName}"
+    Write-Host "  Function ARN: $($Function.FunctionArn)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Lambda function creation failed: $_"
+} finally {
+    if ($MemoryStream) { $MemoryStream.Dispose() }
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-configure-route53-healthcheck',
+    name: 'Create Route53 Health Check',
+    category: 'DNS & Route53',
+    description: 'Configure Route53 health check to monitor endpoint availability',
+    parameters: [
+      { id: 'healthCheckName', label: 'Health Check Name', type: 'text', required: true, placeholder: 'WebServer-HealthCheck' },
+      { id: 'ipAddress', label: 'IP Address to Monitor', type: 'text', required: true, placeholder: '192.0.2.1' },
+      { id: 'port', label: 'Port', type: 'number', required: true, placeholder: '80' },
+      { id: 'protocol', label: 'Protocol', type: 'select', required: true, options: ['HTTP', 'HTTPS', 'TCP'], defaultValue: 'HTTP' },
+      { id: 'resourcePath', label: 'Resource Path (for HTTP/HTTPS)', type: 'text', required: false, placeholder: '/health' }
+    ],
+    scriptTemplate: (params) => {
+      const healthCheckName = escapePowerShellString(params.healthCheckName);
+      const ipAddress = escapePowerShellString(params.ipAddress);
+      const port = params.port || 80;
+      const protocol = params.protocol || 'HTTP';
+      const resourcePath = params.resourcePath ? escapePowerShellString(params.resourcePath) : '/';
+
+      return `# Create Route53 Health Check
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.Route53
+
+try {
+    $HealthCheckConfig = New-Object Amazon.Route53.Model.HealthCheckConfig
+    $HealthCheckConfig.IPAddress = "${ipAddress}"
+    $HealthCheckConfig.Port = ${port}
+    $HealthCheckConfig.Type = "${protocol}"
+    ${protocol !== 'TCP' ? `$HealthCheckConfig.ResourcePath = "${resourcePath}"` : ''}
+    $HealthCheckConfig.RequestInterval = 30
+    $HealthCheckConfig.FailureThreshold = 3
+    
+    # Create health check
+    $HealthCheck = New-R53HealthCheck \`
+        -CallerReference ([Guid]::NewGuid().ToString()) \`
+        -HealthCheckConfig $HealthCheckConfig
+    
+    # Tag the health check
+    $Tag = New-Object Amazon.Route53.Model.Tag
+    $Tag.Key = "Name"
+    $Tag.Value = "${healthCheckName}"
+    
+    Edit-R53TagsForResource \`
+        -ResourceType healthcheck \`
+        -ResourceId $HealthCheck.HealthCheck.Id \`
+        -AddTag $Tag
+    
+    Write-Host "✓ Route53 health check created successfully" -ForegroundColor Green
+    Write-Host "  Health Check ID: $($HealthCheck.HealthCheck.Id)" -ForegroundColor Cyan
+    Write-Host "  Name: ${healthCheckName}" -ForegroundColor Cyan
+    Write-Host "  IP Address: ${ipAddress}" -ForegroundColor Cyan
+    Write-Host "  Port: ${port}" -ForegroundColor Cyan
+    Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
+    ${protocol !== 'TCP' ? `Write-Host "  Resource Path: ${resourcePath}" -ForegroundColor Cyan` : ''}
+    
+} catch {
+    Write-Error "Route53 health check creation failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

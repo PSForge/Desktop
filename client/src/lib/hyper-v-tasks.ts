@@ -2717,6 +2717,1067 @@ try {
     Write-Error $_
 }`;
     }
+  },
+
+  // ==================== PREMIUM TASKS ====================
+  {
+    id: 'hyperv-config-live-migration',
+    title: 'Configure Live Migration Settings',
+    description: 'Set concurrent migrations, authentication, performance options',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures Hyper-V Live Migration settings for zero-downtime VM moves
+- Supports concurrent migrations and authentication options
+- Optimizes network performance for VM migration
+
+**Prerequisites:**
+- Hyper-V role installed on host
+- Administrator credentials
+- Network connectivity between Hyper-V hosts
+- Shared storage or SMB configured (for shared-nothing live migration)
+
+**What You Need to Provide:**
+- Maximum concurrent live migrations
+- Authentication type (Kerberos or CredSSP)
+- Performance option (TCP/IP, Compression, or SMB)
+
+**What the Script Does:**
+1. Configures maximum simultaneous live migrations
+2. Sets authentication protocol for migration
+3. Configures performance options for migration traffic
+4. Enables live migration if not already enabled
+5. Reports configuration success
+
+**Important Notes:**
+- Essential for maintaining high availability
+- Kerberos recommended for domain environments
+- CredSSP requires delegation configuration
+- Compression reduces bandwidth, increases CPU usage
+- SMB provides best performance with SMB 3.0
+- Typical setting: 2 concurrent migrations
+- Plan network bandwidth for simultaneous migrations
+- Test live migration after configuration`,
+    parameters: [
+      {
+        name: 'maxConcurrentMigrations',
+        label: 'Max Concurrent Migrations',
+        type: 'number',
+        required: true,
+        defaultValue: 2,
+        helpText: 'Number of simultaneous live migrations'
+      },
+      {
+        name: 'authenticationType',
+        label: 'Authentication Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Kerberos', label: 'Kerberos (Recommended)' },
+          { value: 'CredSSP', label: 'CredSSP (Requires delegation)' }
+        ],
+        defaultValue: 'Kerberos',
+        helpText: 'Authentication protocol'
+      },
+      {
+        name: 'performanceOption',
+        label: 'Performance Option',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'TCPIP', label: 'TCP/IP' },
+          { value: 'Compression', label: 'Compression' },
+          { value: 'SMB', label: 'SMB' }
+        ],
+        defaultValue: 'SMB',
+        helpText: 'Network performance option'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const maxMigrations = params.maxConcurrentMigrations || 2;
+      const authType = params.authenticationType || 'Kerberos';
+      const perfOption = params.performanceOption || 'SMB';
+
+      return `# Configure Live Migration Settings
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring Live Migration settings..." -ForegroundColor Cyan
+    
+    # Enable Live Migration
+    Enable-VMMigration
+    
+    # Set maximum concurrent migrations
+    Set-VMHost -MaximumVirtualMachineMigrations ${maxMigrations}
+    
+    # Set authentication type
+    Set-VMHost -VirtualMachineMigrationAuthenticationType ${authType}
+    
+    # Set performance option
+    Set-VMHost -VirtualMachineMigrationPerformanceOption ${perfOption}
+    
+    Write-Host "✓ Live Migration configured successfully" -ForegroundColor Green
+    Write-Host "  Max Concurrent: ${maxMigrations}" -ForegroundColor Gray
+    Write-Host "  Authentication: ${authType}" -ForegroundColor Gray
+    Write-Host "  Performance: ${perfOption}" -ForegroundColor Gray
+    
+    # Display current configuration
+    Get-VMHost | Select-Object MaximumVirtualMachineMigrations, VirtualMachineMigrationAuthenticationType, VirtualMachineMigrationPerformanceOption | Format-List
+    
+} catch {
+    Write-Error "Failed to configure Live Migration: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-manage-vswitch-advanced',
+    title: 'Manage Virtual Switches (Advanced)',
+    description: 'Create external, internal, private switches with VLAN tags',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates advanced Hyper-V virtual switches with VLAN tagging
+- Supports external, internal, and private switch types
+- Enables network isolation and segmentation
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- For External switch: physical network adapter available
+- Understanding of VLAN requirements
+
+**What You Need to Provide:**
+- Switch name
+- Switch type (External/Internal/Private)
+- Network adapter name (for External switch)
+- Optional: VLAN ID for network isolation
+
+**What the Script Does:**
+1. Creates virtual switch with specified type
+2. Optionally configures VLAN tagging
+3. For External: binds to physical adapter
+4. Enables management OS access (for External switch)
+5. Reports switch configuration
+
+**Important Notes:**
+- VLAN tagging enables network segmentation
+- External switch provides VM internet access
+- Internal switch: host and VMs only
+- Private switch: VMs communicate only with each other
+- VLAN ID must match network infrastructure
+- External switch creation may briefly interrupt network
+- Management OS access allows host networking
+- Coordinate with network team for VLAN assignments`,
+    parameters: [
+      {
+        name: 'switchName',
+        label: 'Switch Name',
+        type: 'text',
+        required: true,
+        placeholder: 'vSwitch-VLAN100',
+        helpText: 'Name for the virtual switch'
+      },
+      {
+        name: 'switchType',
+        label: 'Switch Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'External', label: 'External (Physical network)' },
+          { value: 'Internal', label: 'Internal (Host and VMs)' },
+          { value: 'Private', label: 'Private (VMs only)' }
+        ],
+        helpText: 'Type of virtual switch'
+      },
+      {
+        name: 'netAdapterName',
+        label: 'Network Adapter (for External)',
+        type: 'text',
+        required: false,
+        placeholder: 'Ethernet',
+        helpText: 'Required for External switch'
+      },
+      {
+        name: 'vlanId',
+        label: 'VLAN ID (optional)',
+        type: 'number',
+        required: false,
+        placeholder: '100',
+        helpText: 'VLAN tag for network isolation'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const switchName = escapePowerShellString(params.switchName);
+      const switchType = params.switchType;
+      const adapterName = params.netAdapterName ? escapePowerShellString(params.netAdapterName) : '';
+      const vlanId = params.vlanId;
+
+      return `# Manage Virtual Switches (Advanced)
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating ${switchType} virtual switch: ${switchName}" -ForegroundColor Cyan
+    
+    ${switchType === 'External' ? `
+    if (-not "${adapterName}") {
+        throw "Network adapter name is required for External switch"
+    }
+    $NetAdapter = Get-NetAdapter -Name "${adapterName}" -ErrorAction Stop
+    $Switch = New-VMSwitch -Name "${switchName}" -NetAdapterName $NetAdapter.Name -AllowManagementOS $true
+    ` : switchType === 'Internal' ? `
+    $Switch = New-VMSwitch -Name "${switchName}" -SwitchType Internal
+    ` : `
+    $Switch = New-VMSwitch -Name "${switchName}" -SwitchType Private
+    `}
+    
+    Write-Host "✓ Virtual switch created" -ForegroundColor Green
+    
+    ${vlanId ? `
+    # Configure VLAN tagging
+    Write-Host "Configuring VLAN ${vlanId}..." -ForegroundColor Cyan
+    Set-VMNetworkAdapterVlan -ManagementOS -VMNetworkAdapterName "${switchName}" -Access -VlanId ${vlanId}
+    Write-Host "✓ VLAN ${vlanId} configured" -ForegroundColor Green
+    ` : ''}
+    
+    # Display switch configuration
+    Get-VMSwitch -Name "${switchName}" | Select-Object Name, SwitchType, NetAdapterInterfaceDescription | Format-List
+    
+} catch {
+    Write-Error "Failed to create virtual switch: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-config-replica',
+    title: 'Configure Hyper-V Replica',
+    description: 'Set up VM replication for disaster recovery',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures Hyper-V Replica for VM-level disaster recovery
+- Enables asynchronous replication between Hyper-V hosts
+- Provides business continuity without shared storage
+
+**Prerequisites:**
+- Hyper-V role installed on both servers
+- Hyper-V Administrator permissions
+- Network connectivity between primary and replica servers
+- Firewall configured for replication traffic (port 80 or 443)
+- Replica server configured to accept replication
+
+**What You Need to Provide:**
+- VM name to replicate
+- Replica server name
+- Replication frequency (30 sec, 5 min, or 15 min)
+- Number of recovery points
+
+**What the Script Does:**
+1. Enables VM replication to replica server
+2. Configures replication frequency and recovery points
+3. Sets authentication and port settings
+4. Starts initial replication
+5. Reports replication status
+
+**Important Notes:**
+- Essential for disaster recovery strategy
+- Replica server must be pre-configured to accept replication
+- 30-second frequency requires Windows Server 2012 R2+
+- Initial replication can take hours for large VMs
+- Recovery points allow point-in-time recovery
+- Replication requires continuous network connectivity
+- Monitor replication health regularly
+- Test failover periodically to validate DR readiness`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'ProductionVM01',
+        helpText: 'VM to replicate'
+      },
+      {
+        name: 'replicaServer',
+        label: 'Replica Server',
+        type: 'text',
+        required: true,
+        placeholder: 'HV-REPLICA01',
+        helpText: 'Destination Hyper-V server'
+      },
+      {
+        name: 'replicationFrequency',
+        label: 'Replication Frequency',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '30', label: '30 seconds' },
+          { value: '300', label: '5 minutes' },
+          { value: '900', label: '15 minutes' }
+        ],
+        defaultValue: '300',
+        helpText: 'How often changes are replicated'
+      },
+      {
+        name: 'recoveryPoints',
+        label: 'Recovery Points',
+        type: 'number',
+        required: true,
+        defaultValue: 24,
+        helpText: 'Number of recovery snapshots to maintain'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const replicaServer = escapePowerShellString(params.replicaServer);
+      const freq = params.replicationFrequency || '300';
+      const recoveryPoints = params.recoveryPoints || 24;
+
+      return `# Configure Hyper-V Replica
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring replication for VM: ${vmName}" -ForegroundColor Cyan
+    Write-Host "  Replica Server: ${replicaServer}" -ForegroundColor Gray
+    Write-Host "  Frequency: ${freq} seconds" -ForegroundColor Gray
+    Write-Host "  Recovery Points: ${recoveryPoints}" -ForegroundColor Gray
+    
+    # Enable VM replication
+    Enable-VMReplication -VMName "${vmName}" \\
+        -ReplicaServerName "${replicaServer}" \\
+        -ReplicaServerPort 80 \\
+        -AuthenticationType Kerberos \\
+        -ReplicationFrequencySec ${freq} \\
+        -RecoveryHistory ${recoveryPoints} \\
+        -CompressionEnabled $true
+    
+    Write-Host "✓ Replication enabled" -ForegroundColor Green
+    
+    # Start initial replication
+    Write-Host "Starting initial replication..." -ForegroundColor Cyan
+    Start-VMInitialReplication -VMName "${vmName}"
+    
+    Write-Host "✓ Initial replication started" -ForegroundColor Green
+    Write-Host "  Initial replication will run in background" -ForegroundColor Gray
+    Write-Host "  Time required depends on VM size and network speed" -ForegroundColor Gray
+    
+    # Display replication status
+    Get-VMReplication -VMName "${vmName}" | Select-Object Name, State, Health, ReplicaServer | Format-List
+    
+} catch {
+    Write-Error "Failed to configure replication: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-manage-checkpoints',
+    title: 'Manage VM Checkpoints and Snapshots',
+    description: 'Create, apply, delete checkpoints',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Manages Hyper-V VM checkpoints (snapshots) for backup and recovery
+- Supports creation, application, and deletion of checkpoints
+- Enables point-in-time recovery of virtual machines
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- VM exists on host
+- Sufficient storage for checkpoint files
+
+**What You Need to Provide:**
+- VM name
+- Action (Create, Apply, Delete, or List)
+- Checkpoint name (for create/apply/delete operations)
+
+**What the Script Does:**
+1. Performs specified checkpoint operation on VM
+2. For Create: takes point-in-time snapshot
+3. For Apply: restores VM to checkpoint state
+4. For Delete: removes specified checkpoint
+5. For List: displays all checkpoints
+6. Reports operation success
+
+**Important Notes:**
+- Checkpoints consume disk space
+- Production checkpoints include application-consistent state
+- Standard checkpoints include VM state and memory
+- Applying checkpoint reverts VM to previous state
+- Deleting checkpoint merges changes into parent
+- Do not use checkpoints as long-term backups
+- Checkpoint merge can take time for large VMs
+- Remove old checkpoints to free disk space`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-WEB01',
+        helpText: 'Target virtual machine'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Create', label: 'Create Checkpoint' },
+          { value: 'Apply', label: 'Apply Checkpoint' },
+          { value: 'Delete', label: 'Delete Checkpoint' },
+          { value: 'List', label: 'List Checkpoints' }
+        ],
+        helpText: 'Checkpoint operation'
+      },
+      {
+        name: 'checkpointName',
+        label: 'Checkpoint Name',
+        type: 'text',
+        required: false,
+        placeholder: 'Pre-Update-Checkpoint',
+        helpText: 'Required for Create, Apply, Delete'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const action = params.action;
+      const checkpointName = params.checkpointName ? escapePowerShellString(params.checkpointName) : '';
+
+      return `# Manage VM Checkpoints
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Checkpoint operation: ${action}" -ForegroundColor Cyan
+    Write-Host "  VM: ${vmName}" -ForegroundColor Gray
+    
+    switch ("${action}") {
+        "Create" {
+            ${checkpointName ? `
+            Write-Host "Creating checkpoint: ${checkpointName}" -ForegroundColor Cyan
+            Checkpoint-VM -Name "${vmName}" -SnapshotName "${checkpointName}"
+            Write-Host "✓ Checkpoint created successfully" -ForegroundColor Green
+            ` : `
+            Write-Error "Checkpoint name is required for Create operation"
+            exit 1
+            `}
+        }
+        
+        "Apply" {
+            ${checkpointName ? `
+            Write-Host "⚠ Applying checkpoint will revert VM to previous state" -ForegroundColor Yellow
+            Write-Host "Applying checkpoint: ${checkpointName}" -ForegroundColor Cyan
+            
+            $Checkpoint = Get-VMCheckpoint -VMName "${vmName}" -Name "${checkpointName}"
+            Restore-VMCheckpoint -VMCheckpoint $Checkpoint -Confirm:$false
+            
+            Write-Host "✓ Checkpoint applied successfully" -ForegroundColor Green
+            Write-Host "  VM has been reverted to checkpoint state" -ForegroundColor Gray
+            ` : `
+            Write-Error "Checkpoint name is required for Apply operation"
+            exit 1
+            `}
+        }
+        
+        "Delete" {
+            ${checkpointName ? `
+            Write-Host "Deleting checkpoint: ${checkpointName}" -ForegroundColor Cyan
+            
+            $Checkpoint = Get-VMCheckpoint -VMName "${vmName}" -Name "${checkpointName}"
+            Remove-VMCheckpoint -VMCheckpoint $Checkpoint -Confirm:$false
+            
+            Write-Host "✓ Checkpoint deleted successfully" -ForegroundColor Green
+            Write-Host "  Changes have been merged" -ForegroundColor Gray
+            ` : `
+            Write-Error "Checkpoint name is required for Delete operation"
+            exit 1
+            `}
+        }
+        
+        "List" {
+            Write-Host "Listing checkpoints for: ${vmName}" -ForegroundColor Cyan
+            
+            $Checkpoints = Get-VMCheckpoint -VMName "${vmName}"
+            
+            if ($Checkpoints) {
+                $Checkpoints | Select-Object Name, CreationTime, ParentCheckpointName | Format-Table -AutoSize
+                Write-Host "Total checkpoints: $($Checkpoints.Count)" -ForegroundColor Gray
+            } else {
+                Write-Host "No checkpoints found" -ForegroundColor Yellow
+            }
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage checkpoint: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-config-resource-metering',
+    title: 'Configure Resource Metering',
+    description: 'Enable metering, collect CPU/memory/disk usage',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Enables Hyper-V resource metering for VM usage tracking
+- Collects CPU, memory, disk, and network utilization metrics
+- Supports chargeback and capacity planning
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- VM exists on host
+
+**What You Need to Provide:**
+- VM name
+- Action (Enable, Disable, or View Metrics)
+
+**What the Script Does:**
+1. Performs specified metering operation
+2. For Enable: activates resource metering on VM
+3. For Disable: stops metering on VM
+4. For View: displays collected metrics
+5. Reports CPU time, memory usage, disk I/O, network usage
+
+**Important Notes:**
+- Essential for chargeback and cost allocation
+- Metering data persists across VM restarts
+- Metrics include: CPU time, memory, disk I/O, network bytes
+- Data collection has minimal performance impact
+- Use for capacity planning and usage analysis
+- Reset metrics periodically for accurate reporting
+- Export metrics before disabling metering
+- Useful for multi-tenant environments`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-WEB01',
+        helpText: 'Target virtual machine'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Enable', label: 'Enable Metering' },
+          { value: 'Disable', label: 'Disable Metering' },
+          { value: 'View', label: 'View Metrics' },
+          { value: 'Reset', label: 'Reset Metrics' }
+        ],
+        helpText: 'Metering operation'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const action = params.action;
+
+      return `# Configure Resource Metering
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Resource metering operation: ${action}" -ForegroundColor Cyan
+    Write-Host "  VM: ${vmName}" -ForegroundColor Gray
+    
+    switch ("${action}") {
+        "Enable" {
+            Write-Host "Enabling resource metering..." -ForegroundColor Cyan
+            Enable-VMResourceMetering -VMName "${vmName}"
+            Write-Host "✓ Resource metering enabled" -ForegroundColor Green
+            Write-Host "  Metrics collection started" -ForegroundColor Gray
+        }
+        
+        "Disable" {
+            Write-Host "Disabling resource metering..." -ForegroundColor Cyan
+            Disable-VMResourceMetering -VMName "${vmName}"
+            Write-Host "✓ Resource metering disabled" -ForegroundColor Green
+            Write-Host "  Metrics collection stopped" -ForegroundColor Gray
+        }
+        
+        "View" {
+            Write-Host "Retrieving resource metrics..." -ForegroundColor Cyan
+            
+            $Metrics = Measure-VM -VMName "${vmName}"
+            
+            Write-Host ""
+            Write-Host "=== Resource Metrics for ${vmName} ===" -ForegroundColor Cyan
+            Write-Host ""
+            Write-Host "CPU Usage:" -ForegroundColor Yellow
+            Write-Host "  Total CPU Time: $([math]::Round($Metrics.TotalProcessorUsage / 3600000, 2)) hours" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "Memory:" -ForegroundColor Yellow
+            Write-Host "  Average Memory: $($Metrics.AverageMemoryUsage) MB" -ForegroundColor Gray
+            Write-Host "  Maximum Memory: $($Metrics.MaximumMemoryUsage) MB" -ForegroundColor Gray
+            Write-Host "  Minimum Memory: $($Metrics.MinimumMemoryUsage) MB" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "Disk I/O:" -ForegroundColor Yellow
+            Write-Host "  Total Disk Read: $([math]::Round($Metrics.TotalDiskRead / 1GB, 2)) GB" -ForegroundColor Gray
+            Write-Host "  Total Disk Write: $([math]::Round($Metrics.TotalDiskWrite / 1GB, 2)) GB" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "Network:" -ForegroundColor Yellow
+            Write-Host "  Total Network In: $([math]::Round($Metrics.TotalNetworkIncoming / 1GB, 2)) GB" -ForegroundColor Gray
+            Write-Host "  Total Network Out: $([math]::Round($Metrics.TotalNetworkOutgoing / 1GB, 2)) GB" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "Metering Duration: $($Metrics.MeteringDuration)" -ForegroundColor Gray
+        }
+        
+        "Reset" {
+            Write-Host "Resetting resource metrics..." -ForegroundColor Cyan
+            Reset-VMResourceMetering -VMName "${vmName}"
+            Write-Host "✓ Resource metrics reset" -ForegroundColor Green
+            Write-Host "  Metrics collection restarted from zero" -ForegroundColor Gray
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage resource metering: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-manage-network-adapters',
+    title: 'Manage VM Network Adapters',
+    description: 'Add, remove, configure virtual NICs with advanced features',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Manages VM network adapters (virtual NICs)
+- Supports add, remove, and configure operations
+- Enables advanced features like MAC spoofing, DHCP guard, bandwidth limits
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- VM exists on host
+- Virtual switch created for adapter connectivity
+
+**What You Need to Provide:**
+- VM name
+- Action (Add, Remove, Configure, or List)
+- Virtual switch name (for Add operation)
+- Optional: Advanced settings (MAC spoofing, VLAN, bandwidth)
+
+**What the Script Does:**
+1. Performs specified network adapter operation
+2. For Add: creates new virtual NIC
+3. For Remove: deletes virtual NIC
+4. For Configure: sets advanced properties
+5. For List: displays all adapters
+6. Reports operation success
+
+**Important Notes:**
+- VMs can have multiple network adapters
+- Each adapter connects to a virtual switch
+- MAC address spoofing required for nested virtualization
+- DHCP guard prevents rogue DHCP servers
+- Bandwidth limits prevent VM network saturation
+- VLAN tagging enables network segmentation
+- Remove adapter only when VM is stopped
+- Test network connectivity after changes`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-WEB01',
+        helpText: 'Target virtual machine'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Add', label: 'Add Network Adapter' },
+          { value: 'Remove', label: 'Remove Network Adapter' },
+          { value: 'Configure', label: 'Configure Adapter' },
+          { value: 'List', label: 'List Adapters' }
+        ],
+        helpText: 'Network adapter operation'
+      },
+      {
+        name: 'switchName',
+        label: 'Virtual Switch Name',
+        type: 'text',
+        required: false,
+        placeholder: 'vSwitch-External',
+        helpText: 'Required for Add operation'
+      },
+      {
+        name: 'enableMacSpoofing',
+        label: 'Enable MAC Spoofing',
+        type: 'checkbox',
+        required: false,
+        defaultValue: false,
+        helpText: 'Allow MAC address changes (for nested virtualization)'
+      },
+      {
+        name: 'vlanId',
+        label: 'VLAN ID',
+        type: 'number',
+        required: false,
+        placeholder: '100',
+        helpText: 'Optional VLAN tag'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const action = params.action;
+      const switchName = params.switchName ? escapePowerShellString(params.switchName) : '';
+      const macSpoofing = params.enableMacSpoofing;
+      const vlanId = params.vlanId;
+
+      return `# Manage VM Network Adapters
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Network adapter operation: ${action}" -ForegroundColor Cyan
+    Write-Host "  VM: ${vmName}" -ForegroundColor Gray
+    
+    switch ("${action}") {
+        "Add" {
+            ${switchName ? `
+            Write-Host "Adding network adapter..." -ForegroundColor Cyan
+            Write-Host "  Switch: ${switchName}" -ForegroundColor Gray
+            
+            Add-VMNetworkAdapter -VMName "${vmName}" -SwitchName "${switchName}"
+            
+            ${macSpoofing ? `
+            Write-Host "Enabling MAC spoofing..." -ForegroundColor Cyan
+            Set-VMNetworkAdapter -VMName "${vmName}" -MacAddressSpoofing On
+            ` : ''}
+            
+            ${vlanId ? `
+            Write-Host "Configuring VLAN ${vlanId}..." -ForegroundColor Cyan
+            Set-VMNetworkAdapterVlan -VMName "${vmName}" -Access -VlanId ${vlanId}
+            ` : ''}
+            
+            Write-Host "✓ Network adapter added successfully" -ForegroundColor Green
+            ` : `
+            Write-Error "Virtual switch name is required for Add operation"
+            exit 1
+            `}
+        }
+        
+        "Remove" {
+            Write-Host "⚠ VM must be stopped to remove network adapter" -ForegroundColor Yellow
+            Write-Host "Removing network adapter..." -ForegroundColor Cyan
+            
+            $Adapter = Get-VMNetworkAdapter -VMName "${vmName}" | Select-Object -First 1
+            if ($Adapter) {
+                Remove-VMNetworkAdapter -VMName "${vmName}" -VMNetworkAdapter $Adapter
+                Write-Host "✓ Network adapter removed" -ForegroundColor Green
+            } else {
+                Write-Host "No network adapters found" -ForegroundColor Yellow
+            }
+        }
+        
+        "Configure" {
+            Write-Host "Configuring network adapter..." -ForegroundColor Cyan
+            
+            ${macSpoofing !== undefined ? `
+            Set-VMNetworkAdapter -VMName "${vmName}" -MacAddressSpoofing ${macSpoofing ? 'On' : 'Off'}
+            Write-Host "✓ MAC spoofing: ${macSpoofing ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
+            ` : ''}
+            
+            ${vlanId ? `
+            Set-VMNetworkAdapterVlan -VMName "${vmName}" -Access -VlanId ${vlanId}
+            Write-Host "✓ VLAN ${vlanId} configured" -ForegroundColor Green
+            ` : ''}
+            
+            Write-Host "✓ Network adapter configured" -ForegroundColor Green
+        }
+        
+        "List" {
+            Write-Host "Listing network adapters..." -ForegroundColor Cyan
+            
+            $Adapters = Get-VMNetworkAdapter -VMName "${vmName}"
+            
+            if ($Adapters) {
+                $Adapters | Select-Object Name, SwitchName, MacAddress, Status | Format-Table -AutoSize
+                Write-Host "Total adapters: $($Adapters.Count)" -ForegroundColor Gray
+            } else {
+                Write-Host "No network adapters found" -ForegroundColor Yellow
+            }
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to manage network adapter: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-config-host-settings',
+    title: 'Configure Hyper-V Host Settings',
+    description: 'Memory, storage, NUMA spanning, enhanced session mode',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures Hyper-V host-level settings for optimal performance
+- Manages default VM paths, NUMA spanning, and enhanced session mode
+- Optimizes host for virtual machine workloads
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- Sufficient disk space for VM storage paths
+
+**What You Need to Provide:**
+- Virtual machine default path
+- Virtual hard disk default path
+- Enable/disable NUMA spanning
+- Enable/disable enhanced session mode
+
+**What the Script Does:**
+1. Sets default VM storage paths
+2. Configures NUMA spanning for large VMs
+3. Enables enhanced session mode for better VM console experience
+4. Applies host-level optimization settings
+5. Reports configuration success
+
+**Important Notes:**
+- VM and VHD paths should be on high-performance storage
+- NUMA spanning improves performance for VMs with many vCPUs
+- Enhanced session mode enables clipboard, audio, drive redirection
+- Changing paths affects new VMs only (not existing)
+- Use dedicated storage volumes for production VMs
+- Plan paths with growth in mind
+- Enhanced session mode requires Windows 8/Server 2012 R2+ guests
+- Test enhanced session mode connectivity after enabling`,
+    parameters: [
+      {
+        name: 'vmPath',
+        label: 'Virtual Machine Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Hyper-V\\Virtual Machines',
+        helpText: 'Default path for VM configuration files'
+      },
+      {
+        name: 'vhdPath',
+        label: 'Virtual Hard Disk Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Hyper-V\\Virtual Hard Disks',
+        helpText: 'Default path for VHDX files'
+      },
+      {
+        name: 'enableNumaSpanning',
+        label: 'Enable NUMA Spanning',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'Allow VMs to span NUMA nodes'
+      },
+      {
+        name: 'enableEnhancedSession',
+        label: 'Enable Enhanced Session Mode',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'Enable clipboard and device redirection'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmPath = escapePowerShellString(params.vmPath);
+      const vhdPath = escapePowerShellString(params.vhdPath);
+      const numaSpanning = params.enableNumaSpanning !== false;
+      const enhancedSession = params.enableEnhancedSession !== false;
+
+      return `# Configure Hyper-V Host Settings
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring Hyper-V host settings..." -ForegroundColor Cyan
+    
+    # Create directories if they don't exist
+    if (-not (Test-Path "${vmPath}")) {
+        New-Item -Path "${vmPath}" -ItemType Directory -Force | Out-Null
+        Write-Host "✓ Created VM path: ${vmPath}" -ForegroundColor Green
+    }
+    
+    if (-not (Test-Path "${vhdPath}")) {
+        New-Item -Path "${vhdPath}" -ItemType Directory -Force | Out-Null
+        Write-Host "✓ Created VHD path: ${vhdPath}" -ForegroundColor Green
+    }
+    
+    # Set default VM paths
+    Set-VMHost -VirtualMachinePath "${vmPath}" -VirtualHardDiskPath "${vhdPath}"
+    Write-Host "✓ VM paths configured" -ForegroundColor Green
+    Write-Host "  VM Path: ${vmPath}" -ForegroundColor Gray
+    Write-Host "  VHD Path: ${vhdPath}" -ForegroundColor Gray
+    
+    # Configure NUMA spanning
+    Set-VMHost -NumaSpanningEnabled $${numaSpanning ? 'true' : 'false'}
+    Write-Host "✓ NUMA spanning: ${numaSpanning ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
+    
+    # Configure enhanced session mode
+    Set-VMHost -EnableEnhancedSessionMode $${enhancedSession ? 'true' : 'false'}
+    Write-Host "✓ Enhanced session mode: ${enhancedSession ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
+    
+    Write-Host ""
+    Write-Host "=== Hyper-V Host Configuration ===" -ForegroundColor Cyan
+    Get-VMHost | Select-Object VirtualMachinePath, VirtualHardDiskPath, NumaSpanningEnabled, EnableEnhancedSessionMode | Format-List
+    
+} catch {
+    Write-Error "Failed to configure host settings: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-export-performance-reports',
+    title: 'Export VM Performance Reports',
+    description: 'Export VM utilization, resource consumption data',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Exports comprehensive VM performance and resource utilization data
+- Collects CPU, memory, disk, and network metrics
+- Supports capacity planning and performance analysis
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- Resource metering enabled on target VMs
+- CSV export path accessible
+
+**What You Need to Provide:**
+- CSV export file path
+- Optional: specific VM names (or all VMs)
+
+**What the Script Does:**
+1. Retrieves resource metrics from all VMs
+2. Collects CPU time, memory usage, disk I/O, network traffic
+3. Calculates averages and totals
+4. Exports performance data to CSV
+5. Reports collection summary
+
+**Important Notes:**
+- Essential for capacity planning and optimization
+- Resource metering must be enabled on VMs first
+- Metrics include cumulative usage since metering started
+- Use for identifying resource-intensive VMs
+- Export data regularly for trend analysis
+- Useful for chargeback and cost allocation
+- Reset metering periodically for accurate reporting
+- Analyze data to identify optimization opportunities`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Reports\\VMPerformance.csv',
+        helpText: 'Path where the CSV file will be saved'
+      },
+      {
+        name: 'vmNames',
+        label: 'VM Names (optional, one per line)',
+        type: 'textarea',
+        required: false,
+        placeholder: 'VM-WEB01\nVM-DB01',
+        helpText: 'Leave empty for all VMs'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      const vmNamesInput = params.vmNames ? params.vmNames.trim() : '';
+
+      return `# Export VM Performance Reports
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Collecting VM performance metrics..." -ForegroundColor Cyan
+    
+    ${vmNamesInput ? `
+    # Get specific VMs
+    $VmNames = @(
+${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: string) => `        "${escapePowerShellString(name.trim())}"`).join('\n')}
+    )
+    $VMs = $VmNames | ForEach-Object { Get-VM -Name $_ }
+    ` : `
+    # Get all VMs
+    $VMs = Get-VM
+    `}
+    
+    Write-Host "Found $($VMs.Count) VMs" -ForegroundColor Yellow
+    
+    $PerformanceReport = foreach ($VM in $VMs) {
+        try {
+            # Get resource metrics
+            $Metrics = Measure-VM -VMName $VM.Name -ErrorAction SilentlyContinue
+            
+            if ($Metrics) {
+                [PSCustomObject]@{
+                    VMName                  = $VM.Name
+                    State                   = $VM.State
+                    CPUHours                = [math]::Round($Metrics.TotalProcessorUsage / 3600000, 2)
+                    AverageMemoryMB         = $Metrics.AverageMemoryUsage
+                    MaxMemoryMB             = $Metrics.MaximumMemoryUsage
+                    MinMemoryMB             = $Metrics.MinimumMemoryUsage
+                    DiskReadGB              = [math]::Round($Metrics.TotalDiskRead / 1GB, 2)
+                    DiskWriteGB             = [math]::Round($Metrics.TotalDiskWrite / 1GB, 2)
+                    NetworkInGB             = [math]::Round($Metrics.TotalNetworkIncoming / 1GB, 2)
+                    NetworkOutGB            = [math]::Round($Metrics.TotalNetworkOutgoing / 1GB, 2)
+                    MeteringDuration        = $Metrics.MeteringDuration
+                    ProcessorCount          = $VM.ProcessorCount
+                    MemoryStartupMB         = $VM.MemoryStartup / 1MB
+                }
+            } else {
+                Write-Warning "Resource metering not enabled for: $($VM.Name)"
+                [PSCustomObject]@{
+                    VMName                  = $VM.Name
+                    State                   = $VM.State
+                    CPUHours                = "N/A"
+                    AverageMemoryMB         = "N/A"
+                    MaxMemoryMB             = "N/A"
+                    MinMemoryMB             = "N/A"
+                    DiskReadGB              = "N/A"
+                    DiskWriteGB             = "N/A"
+                    NetworkInGB             = "N/A"
+                    NetworkOutGB            = "N/A"
+                    MeteringDuration        = "Not Enabled"
+                    ProcessorCount          = $VM.ProcessorCount
+                    MemoryStartupMB         = $VM.MemoryStartup / 1MB
+                }
+            }
+        } catch {
+            Write-Warning "Failed to collect metrics for: $($VM.Name)"
+        }
+    }
+    
+    # Export to CSV
+    $PerformanceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Performance report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "=== Summary ===" -ForegroundColor Cyan
+    Write-Host "Total VMs: $($PerformanceReport.Count)" -ForegroundColor Gray
+    $WithMetering = ($PerformanceReport | Where-Object { $_.MeteringDuration -ne "Not Enabled" }).Count
+    Write-Host "VMs with metering: $WithMetering" -ForegroundColor Gray
+    
+    if ($WithMetering -lt $PerformanceReport.Count) {
+        Write-Host ""
+        Write-Host "⚠ Enable resource metering on remaining VMs for complete data:" -ForegroundColor Yellow
+        Write-Host "  Enable-VMResourceMetering -VMName <VMName>" -ForegroundColor Gray
+    }
+    
+} catch {
+    Write-Error "Failed to export performance report: $_"
+}`;
+    }
   }
 ];
 
@@ -2725,5 +3786,6 @@ export const hyperVCategories = [
   'VM Lifecycle',
   'Storage',
   'Checkpoints',
-  'Reporting'
+  'Reporting',
+  'Common Admin Tasks'
 ];

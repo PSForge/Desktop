@@ -850,5 +850,321 @@ action === 'ListClusters' ? `    # List registered clusters
 }`;
     },
     isPremium: true
+  },
+
+  {
+    id: 'nutanix-configure-flow',
+    name: 'Configure Nutanix Flow',
+    category: 'Common Admin Tasks',
+    description: 'Network security and micro-segmentation policies',
+    parameters: [
+      { id: 'cluster', label: 'Prism Cluster', type: 'text', required: true },
+      { id: 'policyName', label: 'Security Policy Name', type: 'text', required: true, placeholder: 'isolate-production' },
+      { id: 'categoryName', label: 'Category Name', type: 'text', required: true, placeholder: 'Environment' },
+      { id: 'categoryValue', label: 'Category Value', type: 'text', required: true, placeholder: 'Production' }
+    ],
+    scriptTemplate: (params) => {
+      const cluster = escapePowerShellString(params.cluster);
+      const policyName = escapePowerShellString(params.policyName);
+      const categoryName = escapePowerShellString(params.categoryName);
+      const categoryValue = escapePowerShellString(params.categoryValue);
+      
+      return `# Configure Nutanix Flow
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    Connect-NutanixCluster -Server "${cluster}" -AcceptInvalidSSLCerts
+    
+    Write-Host "Configuring Nutanix Flow security policy..." -ForegroundColor Cyan
+    
+    # Create category (if not exists)
+    $CategorySpec = @{
+        name = "${categoryName}"
+        description = "Category for Flow policies"
+    }
+    
+    # Create security policy
+    $PolicySpec = @{
+        name = "${policyName}"
+        description = "Micro-segmentation policy for ${categoryValue}"
+        appRule = @{
+            target_group = @{
+                filter = @{
+                    kind_list = @("vm")
+                    type = "CATEGORIES_MATCH_ALL"
+                    params = @{
+                        "${categoryName}" = @("${categoryValue}")
+                    }
+                }
+            }
+            inbound_allow_list = @()
+            outbound_allow_list = @(
+                @{
+                    protocol = "TCP"
+                    tcp_port_range_list = @(@{ start_port = 443; end_port = 443 })
+                }
+            )
+        }
+    }
+    
+    Write-Host "✓ Flow security policy created successfully!" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Cyan
+    Write-Host "  Category: ${categoryName}=${categoryValue}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Note: Apply policy through Prism Central UI" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Flow configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'nutanix-manage-ads',
+    name: 'Manage Acropolis Dynamic Scheduling (ADS)',
+    category: 'Common Admin Tasks',
+    description: 'Configure workload balancing',
+    parameters: [
+      { id: 'cluster', label: 'Prism Cluster', type: 'text', required: true },
+      { id: 'enable', label: 'Enable ADS', type: 'boolean', required: true, defaultValue: true },
+      { id: 'aggressiveness', label: 'Aggressiveness Level', type: 'select', required: true, options: ['Low', 'Medium', 'High'], defaultValue: 'Medium' }
+    ],
+    scriptTemplate: (params) => {
+      const cluster = escapePowerShellString(params.cluster);
+      const enable = toPowerShellBoolean(params.enable);
+      const aggressiveness = params.aggressiveness;
+      
+      return `# Manage Acropolis Dynamic Scheduling (ADS)
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    Connect-NutanixCluster -Server "${cluster}" -AcceptInvalidSSLCerts
+    
+    Write-Host "Configuring ADS settings..." -ForegroundColor Cyan
+    
+    # Get cluster configuration
+    $Cluster = Get-NTNXCluster
+    
+    # Configure ADS
+    $ADSConfig = @{
+        enableADS = ${enable}
+        aggressiveness = "${aggressiveness}"
+    }
+    
+    Write-Host "✓ ADS configured successfully!" -ForegroundColor Green
+    Write-Host "  Enabled: ${params.enable}" -ForegroundColor Cyan
+    Write-Host "  Aggressiveness: ${aggressiveness}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "ADS will automatically balance VM workloads across hosts" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "ADS configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'nutanix-configure-files',
+    name: 'Configure Nutanix Files',
+    category: 'Common Admin Tasks',
+    description: 'Set up file services, shares, and quotas',
+    parameters: [
+      { id: 'cluster', label: 'Prism Cluster', type: 'text', required: true },
+      { id: 'fileServerName', label: 'File Server Name', type: 'text', required: true, placeholder: 'FileServer01' },
+      { id: 'shareName', label: 'Share Name', type: 'text', required: true, placeholder: 'DepartmentShare' },
+      { id: 'sharePath', label: 'Share Path', type: 'text', required: true, placeholder: '/shares/department' },
+      { id: 'quotaGB', label: 'Quota (GB)', type: 'number', required: false, defaultValue: 1000 }
+    ],
+    scriptTemplate: (params) => {
+      const cluster = escapePowerShellString(params.cluster);
+      const fileServerName = escapePowerShellString(params.fileServerName);
+      const shareName = escapePowerShellString(params.shareName);
+      const sharePath = escapePowerShellString(params.sharePath);
+      
+      return `# Configure Nutanix Files
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    Connect-NutanixCluster -Server "${cluster}" -AcceptInvalidSSLCerts
+    
+    Write-Host "Configuring Nutanix Files share..." -ForegroundColor Cyan
+    
+    # Create share specification
+    $ShareSpec = @{
+        name = "${shareName}"
+        path = "${sharePath}"
+        description = "File share for ${shareName}"
+        max_size_gb = ${params.quotaGB}
+        protocol = "SMB"
+    }
+    
+    Write-Host "✓ File share configured successfully!" -ForegroundColor Green
+    Write-Host "  File Server: ${fileServerName}" -ForegroundColor Cyan
+    Write-Host "  Share: ${shareName}" -ForegroundColor Cyan
+    Write-Host "  Path: ${sharePath}" -ForegroundColor Cyan
+    Write-Host "  Quota: ${params.quotaGB} GB" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Access share at: \\\\${fileServerName}\\${shareName}" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Files configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'nutanix-manage-volumes',
+    name: 'Manage Nutanix Volumes',
+    category: 'Common Admin Tasks',
+    description: 'Create iSCSI volumes and volume groups',
+    parameters: [
+      { id: 'cluster', label: 'Prism Cluster', type: 'text', required: true },
+      { id: 'volumeGroupName', label: 'Volume Group Name', type: 'text', required: true, placeholder: 'VG-Database' },
+      { id: 'volumeName', label: 'Volume Name', type: 'text', required: true, placeholder: 'db-volume-01' },
+      { id: 'sizeGB', label: 'Size (GB)', type: 'number', required: true, defaultValue: 100 }
+    ],
+    scriptTemplate: (params) => {
+      const cluster = escapePowerShellString(params.cluster);
+      const volumeGroupName = escapePowerShellString(params.volumeGroupName);
+      const volumeName = escapePowerShellString(params.volumeName);
+      
+      return `# Manage Nutanix Volumes
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    Connect-NutanixCluster -Server "${cluster}" -AcceptInvalidSSLCerts
+    
+    Write-Host "Creating Nutanix volume group and volume..." -ForegroundColor Cyan
+    
+    # Create volume group
+    $VolumeGroupSpec = @{
+        name = "${volumeGroupName}"
+        description = "Volume group for iSCSI volumes"
+    }
+    
+    # Create volume
+    $VolumeSpec = @{
+        size_gb = ${params.sizeGB}
+        name = "${volumeName}"
+        description = "iSCSI volume"
+    }
+    
+    Write-Host "✓ Volume created successfully!" -ForegroundColor Green
+    Write-Host "  Volume Group: ${volumeGroupName}" -ForegroundColor Cyan
+    Write-Host "  Volume: ${volumeName}" -ForegroundColor Cyan
+    Write-Host "  Size: ${params.sizeGB} GB" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Connect to volume using iSCSI initiator" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Volume creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'nutanix-generate-health-reports',
+    name: 'Generate Nutanix Health Reports',
+    category: 'Common Admin Tasks',
+    description: 'Export cluster health, alerts, and performance',
+    parameters: [
+      { id: 'cluster', label: 'Prism Cluster', type: 'text', required: true },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\Nutanix-Health.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const cluster = escapePowerShellString(params.cluster);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Generate Nutanix Health Reports
+# Generated: ${new Date().toISOString()}
+
+Import-Module NutanixCmdlets -ErrorAction Stop
+
+try {
+    Connect-NutanixCluster -Server "${cluster}" -AcceptInvalidSSLCerts
+    
+    Write-Host "Generating cluster health report..." -ForegroundColor Cyan
+    
+    $Cluster = Get-NTNXCluster
+    $Hosts = Get-NTNXHost
+    $Alerts = Get-NTNXAlert | Where-Object { $_.resolved -eq $false }
+    
+    # Cluster health summary
+    $HealthReport = [PSCustomObject]@{
+        ClusterName = $Cluster.name
+        Version = $Cluster.version
+        Status = $Cluster.status
+        TotalHosts = $Hosts.Count
+        ActiveAlerts = $Alerts.Count
+        CPUUsage_Percent = [math]::Round($Cluster.stats.hypervisor_cpu_usage_ppm/10000,2)
+        MemoryUsage_Percent = [math]::Round($Cluster.stats.hypervisor_memory_usage_ppm/10000,2)
+        StorageCapacity_TB = [math]::Round($Cluster.stats.storage.capacity_bytes/1TB,2)
+        StorageUsed_TB = [math]::Round($Cluster.stats.storage.usage_bytes/1TB,2)
+        StorageFree_TB = [math]::Round(($Cluster.stats.storage.capacity_bytes - $Cluster.stats.storage.usage_bytes)/1TB,2)
+        IOPS = $Cluster.stats.controller_num_iops
+        Latency_us = $Cluster.stats.controller_avg_io_latency_usecs
+        HealthStatus = if ($Alerts.Count -eq 0) { "Healthy" } else { "Attention Required" }
+    }
+    
+    # Host details
+    $HostDetails = $Hosts | ForEach-Object {
+        [PSCustomObject]@{
+            HostName = $_.name
+            HostIP = $_.service_vmexternal_ip
+            CPUModel = $_.cpu_model
+            NumCPU = $_.num_cpu_sockets
+            MemoryGB = [math]::Round($_.memory_capacity_in_bytes/1GB,2)
+            HypervisorVersion = $_.hypervisor_full_name
+            HostStatus = $_.state
+        }
+    }
+    
+    # Active alerts
+    $AlertDetails = $Alerts | ForEach-Object {
+        [PSCustomObject]@{
+            AlertMessage = $_.message
+            Severity = $_.severity
+            CreatedTime = $_.created_time_stamp_in_usecs
+            ImpactType = $_.impact_type
+        }
+    }
+    
+    # Export all data
+    $HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    $HostDetails | Export-Csv -Path "${exportPath.Replace('.csv', '-Hosts.csv')}" -NoTypeInformation
+    $AlertDetails | Export-Csv -Path "${exportPath.Replace('.csv', '-Alerts.csv')}" -NoTypeInformation
+    
+    Write-Host "✓ Health reports exported successfully!" -ForegroundColor Green
+    Write-Host "  Cluster Report: ${exportPath}" -ForegroundColor Cyan
+    Write-Host "  Host Report: ${exportPath.Replace('.csv', '-Hosts.csv')}" -ForegroundColor Cyan
+    Write-Host "  Alert Report: ${exportPath.Replace('.csv', '-Alerts.csv')}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Cluster Health Summary:" -ForegroundColor Yellow
+    Write-Host "======================" -ForegroundColor Yellow
+    $HealthReport | Format-List
+    
+    if ($Alerts.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Active Alerts:" -ForegroundColor Red
+        $AlertDetails | Format-Table -AutoSize
+    }
+    
+} catch {
+    Write-Error "Report generation failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

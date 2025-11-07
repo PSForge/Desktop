@@ -48,22 +48,26 @@ export default function Home() {
     "Everything in Free tier",
     "AI Assistant with OpenAI-powered chat",
     "Natural language command suggestions",
-    "16 enterprise IT platforms unlocked",
-    "506 automation tasks across 23 platforms",
-    "Azure AD, Exchange, Teams, Intune",
-    "MECM, SharePoint, Office 365",
-    "Hyper-V, Windows Server & more",
+    "41 enterprise IT platforms unlocked",
+    "909 premium automation tasks",
+    "AWS, Azure, GCP, VMware, Docker/K8s",
+    "Microsoft 365, Intune, MECM, Teams",
+    "Security: CrowdStrike, Okta, Fortinet & more",
   ];
 
   const enterprisePlatforms = [
     { name: "Azure AD / Entra ID", icon: Cloud, color: "text-blue-500" },
-    { name: "Exchange Online/Server", icon: Server, color: "text-green-500" },
+    { name: "AWS Cloud", icon: Cloud, color: "text-orange-500" },
+    { name: "Google Cloud (GCP)", icon: Cloud, color: "text-red-500" },
+    { name: "VMware vSphere", icon: Server, color: "text-green-500" },
+    { name: "Docker & Kubernetes", icon: Database, color: "text-cyan-500" },
+    { name: "CrowdStrike Falcon", icon: Shield, color: "text-red-600" },
     { name: "Microsoft Teams", icon: Users, color: "text-purple-500" },
-    { name: "SharePoint", icon: Database, color: "text-orange-500" },
-    { name: "Intune / MECM", icon: Settings, color: "text-red-500" },
+    { name: "Okta Identity", icon: Lock, color: "text-blue-600" },
+    { name: "Intune / MECM", icon: Settings, color: "text-indigo-500" },
+    { name: "ServiceNow", icon: Database, color: "text-green-600" },
     { name: "Hyper-V", icon: Cpu, color: "text-cyan-500" },
-    { name: "Windows Server", icon: Server, color: "text-indigo-500" },
-    { name: "Office 365", icon: Cloud, color: "text-yellow-500" },
+    { name: "Fortinet Security", icon: Shield, color: "text-red-500" },
   ];
 
   return (
@@ -187,11 +191,11 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto">
             <div className="text-center space-y-2">
-              <div className="text-3xl sm:text-4xl font-bold text-primary">506</div>
+              <div className="text-3xl sm:text-4xl font-bold text-primary">1,000</div>
               <div className="text-sm text-muted-foreground">Automation Tasks</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl sm:text-4xl font-bold text-primary">23</div>
+              <div className="text-3xl sm:text-4xl font-bold text-primary">48</div>
               <div className="text-sm text-muted-foreground">IT Platforms</div>
             </div>
             <div className="text-center space-y-2">
@@ -299,7 +303,7 @@ export default function Home() {
               Enterprise IT Platform Coverage
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Pro subscribers get access to 16 enterprise platforms with 415 pre-built automation tasks
+              Pro subscribers get access to 41 enterprise platforms with 909 pre-built automation tasks
             </p>
           </div>
 
@@ -326,12 +330,12 @@ export default function Home() {
 
           <div className="text-center mt-12">
             <p className="text-muted-foreground mb-6">
-              Plus Power Platform, OneDrive, Windows 365, and more...
+              Plus Exchange, SharePoint, Veeam, Nutanix, Citrix, Cisco, NetApp, JAMF, Slack, Zoom, Salesforce, GitHub, Jira, Splunk, and more...
             </p>
             <Link href={user ? "/builder" : "/signup"}>
               <Button size="lg" variant="outline" className="gap-2">
                 <Sparkles className="h-5 w-5" />
-                Unlock All Platforms - $5/month
+                Unlock All 48 Platforms - $5/month
               </Button>
             </Link>
           </div>
@@ -412,7 +416,7 @@ export default function Home() {
               </div>
               <CardTitle>GUI Builder</CardTitle>
               <CardDescription>
-                No-code automation with 506 pre-built tasks
+                No-code automation with 1,000 pre-built tasks
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">

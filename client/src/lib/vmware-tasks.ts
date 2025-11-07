@@ -445,5 +445,331 @@ action === 'Unmount' ? `    $VMHosts = Get-VMHost
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'vmware-create-template',
+    name: 'Create VM Template from Existing VM',
+    category: 'Common Admin Tasks',
+    description: 'Convert an existing VM into a reusable template',
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true, placeholder: 'vcenter.company.com' },
+      { id: 'vmName', label: 'Source VM Name', type: 'text', required: true, placeholder: 'BaseVM-Windows2022' },
+      { id: 'templateName', label: 'Template Name', type: 'text', required: true, placeholder: 'Template-Windows2022' }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const vmName = escapePowerShellString(params.vmName);
+      const templateName = escapePowerShellString(params.templateName);
+      
+      return `# Create VM Template from Existing VM
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $VM = Get-VM -Name "${vmName}"
+    
+    # Ensure VM is powered off
+    if ($VM.PowerState -ne 'PoweredOff') {
+        Write-Host "Shutting down VM..." -ForegroundColor Yellow
+        Stop-VM -VM $VM -Confirm:$false
+        Start-Sleep -Seconds 10
+    }
+    
+    # Convert to template
+    Set-VM -VM $VM -ToTemplate -Name "${templateName}" -Confirm:$false
+    
+    Write-Host "✓ Template '${templateName}' created successfully!" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to create template: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'vmware-create-linked-clones',
+    name: 'Create Linked Clones from Template',
+    category: 'Common Admin Tasks',
+    description: 'Create space-efficient linked clone VMs from a template',
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'template', label: 'Template Name', type: 'text', required: true, placeholder: 'Windows10-Template' },
+      { id: 'vmNames', label: 'VM Names (comma-separated)', type: 'textarea', required: true, placeholder: 'Clone01, Clone02' },
+      { id: 'datastore', label: 'Datastore', type: 'text', required: true },
+      { id: 'cluster', label: 'Cluster', type: 'text', required: true }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const template = escapePowerShellString(params.template);
+      const vmNamesRaw = (params.vmNames as string).split(',').map((n: string) => n.trim());
+      const datastore = escapePowerShellString(params.datastore);
+      const cluster = escapePowerShellString(params.cluster);
+      
+      return `# Create Linked Clones from Template
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $Template = Get-Template -Name "${template}"
+    $Datastore = Get-Datastore -Name "${datastore}"
+    $Cluster = Get-Cluster -Name "${cluster}"
+    
+    $VMNames = @(${vmNamesRaw.map(n => `"${escapePowerShellString(n)}"`).join(', ')})
+    
+    foreach ($VMName in $VMNames) {
+        Write-Host "Creating linked clone: $VMName..." -ForegroundColor Yellow
+        
+        # Create snapshot on template for linked clones
+        $Snapshot = Get-Snapshot -VM $Template | Select-Object -First 1
+        if (-not $Snapshot) {
+            $Snapshot = New-Snapshot -VM $Template -Name "Base-Snapshot"
+        }
+        
+        # Create linked clone
+        New-VM -Name $VMName \`
+            -Template $Template \`
+            -LinkedClone \`
+            -ReferenceSnapshot $Snapshot \`
+            -Datastore $Datastore \`
+            -ResourcePool ($Cluster | Get-ResourcePool | Select-Object -First 1) \`
+            -ErrorAction Stop
+        
+        Write-Host "✓ Linked clone $VMName created" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "All linked clones created successfully!" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to create linked clones: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'vmware-manage-snapshots',
+    name: 'Manage VM Snapshots (Revert, Consolidate)',
+    category: 'Common Admin Tasks',
+    description: 'Revert to snapshot or consolidate snapshot files',
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'vmName', label: 'VM Name', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Revert', 'Consolidate'], defaultValue: 'Revert' },
+      { id: 'snapshotName', label: 'Snapshot Name (for Revert)', type: 'text', required: false, placeholder: 'Pre-Patch-Snapshot' }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const vmName = escapePowerShellString(params.vmName);
+      const action = params.action;
+      const snapshotName = params.snapshotName ? escapePowerShellString(params.snapshotName) : '';
+      
+      return `# Manage VM Snapshots
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $VM = Get-VM -Name "${vmName}"
+    
+${action === 'Revert' ? `    if ("${snapshotName}") {
+        $Snapshot = Get-Snapshot -VM $VM -Name "${snapshotName}"
+    } else {
+        # Get most recent snapshot
+        $Snapshot = Get-Snapshot -VM $VM | Sort-Object Created -Descending | Select-Object -First 1
+    }
+    
+    if ($Snapshot) {
+        Set-VM -VM $VM -Snapshot $Snapshot -Confirm:$false
+        Write-Host "✓ VM reverted to snapshot: $($Snapshot.Name)" -ForegroundColor Green
+    } else {
+        Write-Error "No snapshot found"
+    }` : `    # Consolidate all snapshots
+    $VM | Remove-Snapshot -Confirm:$false
+    Write-Host "✓ Snapshots consolidated for ${vmName}" -ForegroundColor Green`}
+    
+} catch {
+    Write-Error "Snapshot operation failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'vmware-configure-vswitches',
+    name: 'Configure vSwitches and Distributed Port Groups',
+    category: 'Common Admin Tasks',
+    description: 'Create and configure virtual switches and port groups',
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'vmHost', label: 'ESXi Host', type: 'text', required: true, placeholder: 'esxi01.company.com' },
+      { id: 'vSwitchName', label: 'vSwitch Name', type: 'text', required: true, placeholder: 'vSwitch1' },
+      { id: 'portGroupName', label: 'Port Group Name', type: 'text', required: true, placeholder: 'Production-Network' },
+      { id: 'vlanId', label: 'VLAN ID', type: 'number', required: true, defaultValue: 100 }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const vmHost = escapePowerShellString(params.vmHost);
+      const vSwitchName = escapePowerShellString(params.vSwitchName);
+      const portGroupName = escapePowerShellString(params.portGroupName);
+      
+      return `# Configure vSwitches and Port Groups
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    $VMHost = Get-VMHost -Name "${vmHost}"
+    
+    # Check if vSwitch exists, create if not
+    $vSwitch = Get-VirtualSwitch -VMHost $VMHost -Name "${vSwitchName}" -ErrorAction SilentlyContinue
+    if (-not $vSwitch) {
+        $vSwitch = New-VirtualSwitch -VMHost $VMHost -Name "${vSwitchName}"
+        Write-Host "✓ vSwitch '${vSwitchName}' created" -ForegroundColor Green
+    }
+    
+    # Create port group
+    New-VirtualPortGroup -VirtualSwitch $vSwitch -Name "${portGroupName}" -VLanId ${params.vlanId}
+    
+    Write-Host "✓ Port group '${portGroupName}' created with VLAN ${params.vlanId}" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Configuration failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'vmware-manage-vcenter-roles',
+    name: 'Manage vCenter Roles and Permissions',
+    category: 'Common Admin Tasks',
+    description: 'Create roles and assign permissions to users',
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['CreateRole', 'AssignPermission', 'RemovePermission'], defaultValue: 'CreateRole' },
+      { id: 'roleName', label: 'Role Name', type: 'text', required: true, placeholder: 'VM-Operator' },
+      { id: 'userName', label: 'User/Group Name', type: 'text', required: false, placeholder: 'domain\\user' },
+      { id: 'entityName', label: 'Entity Name (VM/Folder)', type: 'text', required: false, placeholder: 'Production-VMs' }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const action = params.action;
+      const roleName = escapePowerShellString(params.roleName);
+      const userName = params.userName ? escapePowerShellString(params.userName) : '';
+      const entityName = params.entityName ? escapePowerShellString(params.entityName) : '';
+      
+      return `# Manage vCenter Roles and Permissions
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+${action === 'CreateRole' ? `    # Create new role with basic VM privileges
+    New-VIRole -Name "${roleName}" -Privilege (
+        Get-VIPrivilege -Name "Virtual machine.Interaction.Power On",
+        Get-VIPrivilege -Name "Virtual machine.Interaction.Power Off",
+        Get-VIPrivilege -Name "Virtual machine.Interaction.Reset"
+    )
+    Write-Host "✓ Role '${roleName}' created" -ForegroundColor Green` :
+action === 'AssignPermission' ? `    $Role = Get-VIRole -Name "${roleName}"
+    $Entity = Get-Folder -Name "${entityName}" -ErrorAction SilentlyContinue
+    if (-not $Entity) {
+        $Entity = Get-VM -Name "${entityName}" -ErrorAction SilentlyContinue
+    }
+    
+    if ($Entity) {
+        New-VIPermission -Entity $Entity -Principal "${userName}" -Role $Role
+        Write-Host "✓ Permission assigned to ${userName}" -ForegroundColor Green
+    } else {
+        Write-Error "Entity ${entityName} not found"
+    }` :
+`    $Permission = Get-VIPermission -Entity (Get-Folder -Name "${entityName}") -Principal "${userName}"
+    Remove-VIPermission -Permission $Permission -Confirm:$false
+    Write-Host "✓ Permission removed from ${userName}" -ForegroundColor Green`}
+    
+} catch {
+    Write-Error "Operation failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'vmware-monitor-host-health',
+    name: 'Monitor Host Health and Performance Metrics',
+    category: 'Common Admin Tasks',
+    description: 'Check ESXi host health status and performance',
+    parameters: [
+      { id: 'vcenter', label: 'vCenter Server', type: 'text', required: true },
+      { id: 'vmHost', label: 'ESXi Host (optional - blank for all)', type: 'text', required: false, placeholder: 'esxi01.company.com' },
+      { id: 'exportPath', label: 'Export CSV Path (optional)', type: 'path', required: false, placeholder: 'C:\\Reports\\Host-Health.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const vcenter = escapePowerShellString(params.vcenter);
+      const vmHost = params.vmHost ? escapePowerShellString(params.vmHost) : '';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Monitor Host Health and Performance
+# Generated: ${new Date().toISOString()}
+
+Import-Module VMware.PowerCLI -ErrorAction Stop
+
+try {
+    Connect-VIServer -Server "${vcenter}" -ErrorAction Stop
+    
+    ${vmHost ? `$VMHosts = Get-VMHost -Name "${vmHost}"` : `$VMHosts = Get-VMHost`}
+    
+    $HealthReport = $VMHosts | ForEach-Object {
+        $VMHost = $_
+        $Stats = Get-Stat -Entity $VMHost -Stat "cpu.usage.average","mem.usage.average" -Realtime -MaxSamples 1
+        
+        [PSCustomObject]@{
+            HostName = $VMHost.Name
+            ConnectionState = $VMHost.ConnectionState
+            PowerState = $VMHost.PowerState
+            Version = $VMHost.Version
+            CPUUsagePercent = [math]::Round(($Stats | Where-Object { $_.MetricId -eq "cpu.usage.average" }).Value, 2)
+            MemoryUsagePercent = [math]::Round(($Stats | Where-Object { $_.MetricId -eq "mem.usage.average" }).Value, 2)
+            MemoryTotalGB = [math]::Round($VMHost.MemoryTotalGB, 2)
+            CPUTotalMhz = $VMHost.CpuTotalMhz
+            NumCPU = $VMHost.NumCpu
+            VMCount = ($VMHost | Get-VM).Count
+        }
+    }
+    
+    $HealthReport | Format-Table -AutoSize
+    
+    ${exportPath ? `$HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    
+    Write-Host ""
+    Write-Host "Health check completed for $($HealthReport.Count) host(s)" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Health check failed: $_"
+} finally {
+    Disconnect-VIServer -Server "${vcenter}" -Confirm:$false -ErrorAction SilentlyContinue
+}`;
+    },
+    isPremium: true
   }
 ];

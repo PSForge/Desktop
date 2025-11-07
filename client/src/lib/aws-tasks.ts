@@ -928,5 +928,881 @@ action === 'Allow Public Read' ? `    $Policy = @"
     }
   ,
     isPremium: true
+  },
+  {
+    id: 'aws-manage-lambda-functions',
+    name: 'Manage Lambda Functions',
+    category: 'Common Admin Tasks',
+    description: 'Create, update, and invoke Lambda functions',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Function', 'Update Code', 'Invoke Function', 'List Functions'], defaultValue: 'Create Function' },
+      { id: 'functionName', label: 'Function Name', type: 'text', required: true, placeholder: 'MyFunction' },
+      { id: 'runtime', label: 'Runtime', type: 'select', required: false, options: ['python3.11', 'python3.10', 'nodejs20.x', 'nodejs18.x', 'java17', 'dotnet8'], defaultValue: 'python3.11' },
+      { id: 'handler', label: 'Handler', type: 'text', required: false, placeholder: 'index.handler', defaultValue: 'index.handler' },
+      { id: 'roleArn', label: 'IAM Role ARN', type: 'text', required: false, placeholder: 'arn:aws:iam::123456789012:role/lambda-role' },
+      { id: 'zipFilePath', label: 'Code Zip File Path', type: 'path', required: false, placeholder: 'C:\\code\\function.zip' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const functionName = escapePowerShellString(params.functionName);
+      const runtime = params.runtime;
+      const handler = escapePowerShellString(params.handler || 'index.handler');
+      const roleArn = params.roleArn ? escapePowerShellString(params.roleArn) : '';
+      const zipFilePath = params.zipFilePath ? escapePowerShellString(params.zipFilePath) : '';
+      
+      return `# AWS Lambda Function Management
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.Lambda
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Function' ? `    # Read zip file
+    $ZipContent = [System.IO.File]::ReadAllBytes("${zipFilePath}")
+    $MemoryStream = New-Object System.IO.MemoryStream
+    $MemoryStream.Write($ZipContent, 0, $ZipContent.Length)
+    
+    # Create Lambda function
+    Publish-LMFunction \`
+        -FunctionName "${functionName}" \`
+        -Runtime "${runtime}" \`
+        -Handler "${handler}" \`
+        -Role "${roleArn}" \`
+        -ZipFileContent $MemoryStream.ToArray()
+    
+    Write-Host "✓ Lambda function created: ${functionName}" -ForegroundColor Green
+    Write-Host "  Runtime: ${runtime}" -ForegroundColor Cyan
+    Write-Host "  Handler: ${handler}" -ForegroundColor Cyan` :
+action === 'Update Code' ? `    # Read zip file
+    $ZipContent = [System.IO.File]::ReadAllBytes("${zipFilePath}")
+    $MemoryStream = New-Object System.IO.MemoryStream
+    $MemoryStream.Write($ZipContent, 0, $ZipContent.Length)
+    
+    # Update Lambda function code
+    Update-LMFunctionCode \`
+        -FunctionName "${functionName}" \`
+        -ZipFileContent $MemoryStream.ToArray()
+    
+    Write-Host "✓ Lambda function code updated: ${functionName}" -ForegroundColor Green` :
+action === 'Invoke Function' ? `    # Invoke Lambda function
+    $Response = Invoke-LMFunction -FunctionName "${functionName}" -InvocationType RequestResponse
+    
+    $Payload = [System.Text.Encoding]::UTF8.GetString($Response.Payload.ToArray())
+    
+    Write-Host "✓ Lambda function invoked: ${functionName}" -ForegroundColor Green
+    Write-Host "  Status Code: $($Response.StatusCode)" -ForegroundColor Cyan
+    Write-Host "  Payload:" -ForegroundColor Cyan
+    Write-Host $Payload -ForegroundColor Yellow` :
+`    # List Lambda functions
+    $Functions = Get-LMFunctionList
+    
+    Write-Host "✓ Lambda Functions:" -ForegroundColor Green
+    $Functions | Format-Table FunctionName, Runtime, Handler, LastModified, CodeSize -AutoSize`}
+    
+} catch {
+    Write-Error "Lambda operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-configure-rds-instances',
+    name: 'Configure RDS Database Instances',
+    category: 'Common Admin Tasks',
+    description: 'Create RDS instances, configure backups, and manage snapshots',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Instance', 'Create Snapshot', 'Modify Backup Settings', 'List Instances'], defaultValue: 'Create Instance' },
+      { id: 'dbInstanceIdentifier', label: 'DB Instance Identifier', type: 'text', required: true, placeholder: 'mydbinstance' },
+      { id: 'engine', label: 'Database Engine', type: 'select', required: false, options: ['mysql', 'postgres', 'mariadb', 'oracle-se2', 'sqlserver-ex'], defaultValue: 'mysql' },
+      { id: 'instanceClass', label: 'Instance Class', type: 'select', required: false, options: ['db.t3.micro', 'db.t3.small', 'db.t3.medium', 'db.r5.large', 'db.r5.xlarge'], defaultValue: 'db.t3.micro' },
+      { id: 'allocatedStorage', label: 'Allocated Storage (GB)', type: 'number', required: false, placeholder: '20', defaultValue: 20 },
+      { id: 'masterUsername', label: 'Master Username', type: 'text', required: false, placeholder: 'admin' },
+      { id: 'backupRetentionPeriod', label: 'Backup Retention (days)', type: 'number', required: false, placeholder: '7', defaultValue: 7 }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const dbInstanceIdentifier = escapePowerShellString(params.dbInstanceIdentifier);
+      const engine = params.engine;
+      const instanceClass = params.instanceClass;
+      const allocatedStorage = params.allocatedStorage || 20;
+      const masterUsername = params.masterUsername ? escapePowerShellString(params.masterUsername) : 'admin';
+      const backupRetentionPeriod = params.backupRetentionPeriod || 7;
+      
+      return `# AWS RDS Database Instance Management
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.RDS
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Instance' ? `    # Generate secure password
+    $MasterPassword = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 16 | ForEach-Object {[char]$_})
+    
+    # Create RDS instance
+    New-RDSDBInstance \`
+        -DBInstanceIdentifier "${dbInstanceIdentifier}" \`
+        -Engine "${engine}" \`
+        -DBInstanceClass "${instanceClass}" \`
+        -AllocatedStorage ${allocatedStorage} \`
+        -MasterUsername "${masterUsername}" \`
+        -MasterUserPassword $MasterPassword \`
+        -BackupRetentionPeriod ${backupRetentionPeriod} \`
+        -StorageEncrypted \$true
+    
+    Write-Host "✓ RDS instance creation initiated: ${dbInstanceIdentifier}" -ForegroundColor Green
+    Write-Host "  Engine: ${engine}" -ForegroundColor Cyan
+    Write-Host "  Instance Class: ${instanceClass}" -ForegroundColor Cyan
+    Write-Host "  Storage: ${allocatedStorage} GB" -ForegroundColor Cyan
+    Write-Host "  Master Username: ${masterUsername}" -ForegroundColor Cyan
+    Write-Host "  Master Password: $MasterPassword" -ForegroundColor Yellow
+    Write-Host "  ⚠ Save the password securely - it won't be shown again!" -ForegroundColor Red` :
+action === 'Create Snapshot' ? `    # Create manual snapshot
+    $SnapshotId = "${dbInstanceIdentifier}-snapshot-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+    
+    New-RDSDBSnapshot \`
+        -DBSnapshotIdentifier $SnapshotId \`
+        -DBInstanceIdentifier "${dbInstanceIdentifier}"
+    
+    Write-Host "✓ RDS snapshot creation initiated: $SnapshotId" -ForegroundColor Green
+    Write-Host "  DB Instance: ${dbInstanceIdentifier}" -ForegroundColor Cyan` :
+action === 'Modify Backup Settings' ? `    # Modify backup retention period
+    Edit-RDSDBInstance \`
+        -DBInstanceIdentifier "${dbInstanceIdentifier}" \`
+        -BackupRetentionPeriod ${backupRetentionPeriod} \`
+        -ApplyImmediately \$true
+    
+    Write-Host "✓ Backup settings updated for: ${dbInstanceIdentifier}" -ForegroundColor Green
+    Write-Host "  Backup Retention: ${backupRetentionPeriod} days" -ForegroundColor Cyan` :
+`    # List RDS instances
+    $Instances = Get-RDSDBInstance
+    
+    Write-Host "✓ RDS Database Instances:" -ForegroundColor Green
+    $Instances | Format-Table DBInstanceIdentifier, Engine, DBInstanceClass, DBInstanceStatus, AllocatedStorage -AutoSize`}
+    
+} catch {
+    Write-Error "RDS operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-manage-eks-clusters',
+    name: 'Manage Elastic Kubernetes Service (EKS)',
+    category: 'Common Admin Tasks',
+    description: 'Create EKS clusters and manage node groups',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Cluster', 'Create Node Group', 'List Clusters', 'Describe Cluster'], defaultValue: 'Create Cluster' },
+      { id: 'clusterName', label: 'Cluster Name', type: 'text', required: true, placeholder: 'my-eks-cluster' },
+      { id: 'roleArn', label: 'Service Role ARN', type: 'text', required: false, placeholder: 'arn:aws:iam::123456789012:role/eks-service-role' },
+      { id: 'subnetIds', label: 'Subnet IDs (comma-separated)', type: 'textarea', required: false, placeholder: 'subnet-12345, subnet-67890' },
+      { id: 'nodeGroupName', label: 'Node Group Name', type: 'text', required: false, placeholder: 'my-node-group' },
+      { id: 'instanceTypes', label: 'Instance Types', type: 'select', required: false, options: ['t3.medium', 't3.large', 'm5.large', 'm5.xlarge'], defaultValue: 't3.medium' },
+      { id: 'desiredSize', label: 'Desired Node Count', type: 'number', required: false, placeholder: '2', defaultValue: 2 }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const clusterName = escapePowerShellString(params.clusterName);
+      const roleArn = params.roleArn ? escapePowerShellString(params.roleArn) : '';
+      const subnetIdsRaw = params.subnetIds ? (params.subnetIds as string).split(',').map((n: string) => n.trim()) : [];
+      const nodeGroupName = params.nodeGroupName ? escapePowerShellString(params.nodeGroupName) : 'default-node-group';
+      const instanceTypes = params.instanceTypes;
+      const desiredSize = params.desiredSize || 2;
+      
+      return `# AWS EKS Cluster Management
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EKS
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Cluster' ? `    # Create EKS cluster
+    $ResourcesVpcConfig = New-Object Amazon.EKS.Model.VpcConfigRequest
+    $ResourcesVpcConfig.SubnetIds = @(${subnetIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')})
+    
+    New-EKSCluster \`
+        -Name "${clusterName}" \`
+        -RoleArn "${roleArn}" \`
+        -ResourcesVpcConfig $ResourcesVpcConfig
+    
+    Write-Host "✓ EKS cluster creation initiated: ${clusterName}" -ForegroundColor Green
+    Write-Host "  This may take 10-15 minutes to complete" -ForegroundColor Yellow
+    Write-Host "  Role ARN: ${roleArn}" -ForegroundColor Cyan` :
+action === 'Create Node Group' ? `    # Create managed node group
+    $ScalingConfig = New-Object Amazon.EKS.Model.NodegroupScalingConfig
+    $ScalingConfig.DesiredSize = ${desiredSize}
+    $ScalingConfig.MinSize = 1
+    $ScalingConfig.MaxSize = 4
+    
+    New-EKSNodegroup \`
+        -ClusterName "${clusterName}" \`
+        -NodegroupName "${nodeGroupName}" \`
+        -ScalingConfig $ScalingConfig \`
+        -Subnet @(${subnetIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')}) \`
+        -InstanceType @("${instanceTypes}") \`
+        -NodeRole "${roleArn}"
+    
+    Write-Host "✓ Node group creation initiated: ${nodeGroupName}" -ForegroundColor Green
+    Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
+    Write-Host "  Instance Type: ${instanceTypes}" -ForegroundColor Cyan
+    Write-Host "  Desired Size: ${desiredSize}" -ForegroundColor Cyan` :
+action === 'Describe Cluster' ? `    # Get cluster details
+    $Cluster = Get-EKSCluster -Name "${clusterName}"
+    
+    Write-Host "✓ EKS Cluster Details:" -ForegroundColor Green
+    Write-Host "  Name: $($Cluster.Name)" -ForegroundColor Cyan
+    Write-Host "  Status: $($Cluster.Status)" -ForegroundColor Cyan
+    Write-Host "  Version: $($Cluster.Version)" -ForegroundColor Cyan
+    Write-Host "  Endpoint: $($Cluster.Endpoint)" -ForegroundColor Cyan
+    Write-Host "  Created: $($Cluster.CreatedAt)" -ForegroundColor Cyan` :
+`    # List EKS clusters
+    $Clusters = Get-EKSClusterList
+    
+    Write-Host "✓ EKS Clusters:" -ForegroundColor Green
+    foreach ($Name in $Clusters) {
+        $ClusterInfo = Get-EKSCluster -Name $Name
+        Write-Host "  $Name - Status: $($ClusterInfo.Status) - Version: $($ClusterInfo.Version)" -ForegroundColor Cyan
+    }`}
+    
+} catch {
+    Write-Error "EKS operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-configure-systems-manager',
+    name: 'Configure AWS Systems Manager',
+    category: 'Common Admin Tasks',
+    description: 'Run commands, manage parameter store, and patch management',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Run Command', 'Put Parameter', 'Get Parameter', 'Create Patch Baseline'], defaultValue: 'Run Command' },
+      { id: 'instanceIds', label: 'Instance IDs (comma-separated)', type: 'textarea', required: false, placeholder: 'i-1234567890abcdef0, i-0987654321fedcba0' },
+      { id: 'command', label: 'Command to Run', type: 'textarea', required: false, placeholder: 'Get-Service' },
+      { id: 'parameterName', label: 'Parameter Name', type: 'text', required: false, placeholder: '/myapp/database/password' },
+      { id: 'parameterValue', label: 'Parameter Value', type: 'text', required: false, placeholder: 'SecurePassword123!' },
+      { id: 'parameterType', label: 'Parameter Type', type: 'select', required: false, options: ['String', 'SecureString', 'StringList'], defaultValue: 'String' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const instanceIdsRaw = params.instanceIds ? (params.instanceIds as string).split(',').map((n: string) => n.trim()) : [];
+      const command = params.command ? escapePowerShellString(params.command) : '';
+      const parameterName = params.parameterName ? escapePowerShellString(params.parameterName) : '';
+      const parameterValue = params.parameterValue ? escapePowerShellString(params.parameterValue) : '';
+      const parameterType = params.parameterType;
+      
+      return `# AWS Systems Manager Configuration
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.SimpleSystemsManagement
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Run Command' ? `    # Send command to instances
+    $Response = Send-SSMCommand \`
+        -DocumentName "AWS-RunPowerShellScript" \`
+        -InstanceId @(${instanceIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')}) \`
+        -Parameter @{commands="${command}"}
+    
+    Write-Host "✓ Command sent successfully" -ForegroundColor Green
+    Write-Host "  Command ID: $($Response.CommandId)" -ForegroundColor Cyan
+    Write-Host "  Targets: ${instanceIdsRaw.length} instance(s)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Use Get-SSMCommandInvocation to check command status" -ForegroundColor Yellow` :
+action === 'Put Parameter' ? `    # Store parameter
+    Write-SSMParameter \`
+        -Name "${parameterName}" \`
+        -Value "${parameterValue}" \`
+        -Type "${parameterType}" \`
+        -Overwrite \$true
+    
+    Write-Host "✓ Parameter stored successfully" -ForegroundColor Green
+    Write-Host "  Name: ${parameterName}" -ForegroundColor Cyan
+    Write-Host "  Type: ${parameterType}" -ForegroundColor Cyan` :
+action === 'Get Parameter' ? `    # Retrieve parameter
+    $Parameter = Get-SSMParameter -Name "${parameterName}" -WithDecryption \$true
+    
+    Write-Host "✓ Parameter retrieved successfully" -ForegroundColor Green
+    Write-Host "  Name: $($Parameter.Name)" -ForegroundColor Cyan
+    Write-Host "  Type: $($Parameter.Type)" -ForegroundColor Cyan
+    Write-Host "  Value: $($Parameter.Value)" -ForegroundColor Yellow
+    Write-Host "  Last Modified: $($Parameter.LastModifiedDate)" -ForegroundColor Cyan` :
+`    # Create patch baseline
+    New-SSMPatchBaseline \`
+        -Name "CustomPatchBaseline" \`
+        -OperatingSystem "WINDOWS" \`
+        -ApprovalRule @(
+            @{
+                PatchFilterGroup = @{
+                    PatchFilter = @(
+                        @{
+                            Key = "CLASSIFICATION"
+                            Value = @("SecurityUpdates", "CriticalUpdates")
+                        }
+                    )
+                }
+                ApproveAfterDays = 7
+                EnableNonSecurity = \$false
+            }
+        )
+    
+    Write-Host "✓ Patch baseline created successfully" -ForegroundColor Green`}
+    
+} catch {
+    Write-Error "Systems Manager operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-manage-autoscaling-groups',
+    name: 'Manage Auto Scaling Groups',
+    category: 'Common Admin Tasks',
+    description: 'Create ASGs, configure scaling policies and schedules',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create ASG', 'Update Capacity', 'Create Scaling Policy', 'List ASGs'], defaultValue: 'Create ASG' },
+      { id: 'asgName', label: 'Auto Scaling Group Name', type: 'text', required: true, placeholder: 'my-asg' },
+      { id: 'launchTemplateId', label: 'Launch Template ID', type: 'text', required: false, placeholder: 'lt-1234567890abcdef0' },
+      { id: 'minSize', label: 'Minimum Size', type: 'number', required: false, placeholder: '1', defaultValue: 1 },
+      { id: 'maxSize', label: 'Maximum Size', type: 'number', required: false, placeholder: '4', defaultValue: 4 },
+      { id: 'desiredCapacity', label: 'Desired Capacity', type: 'number', required: false, placeholder: '2', defaultValue: 2 },
+      { id: 'subnetIds', label: 'Subnet IDs (comma-separated)', type: 'textarea', required: false, placeholder: 'subnet-12345, subnet-67890' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const asgName = escapePowerShellString(params.asgName);
+      const launchTemplateId = params.launchTemplateId ? escapePowerShellString(params.launchTemplateId) : '';
+      const minSize = params.minSize || 1;
+      const maxSize = params.maxSize || 4;
+      const desiredCapacity = params.desiredCapacity || 2;
+      const subnetIdsRaw = params.subnetIds ? (params.subnetIds as string).split(',').map((n: string) => n.trim()) : [];
+      
+      return `# AWS Auto Scaling Group Management
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.AutoScaling
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create ASG' ? `    # Create Auto Scaling Group
+    $LaunchTemplate = New-Object Amazon.AutoScaling.Model.LaunchTemplateSpecification
+    $LaunchTemplate.LaunchTemplateId = "${launchTemplateId}"
+    $LaunchTemplate.Version = "\$Latest"
+    
+    New-ASAutoScalingGroup \`
+        -AutoScalingGroupName "${asgName}" \`
+        -LaunchTemplate $LaunchTemplate \`
+        -MinSize ${minSize} \`
+        -MaxSize ${maxSize} \`
+        -DesiredCapacity ${desiredCapacity} \`
+        -VPCZoneIdentifier "${subnetIdsRaw.join(',')}"
+    
+    Write-Host "✓ Auto Scaling Group created: ${asgName}" -ForegroundColor Green
+    Write-Host "  Min Size: ${minSize}" -ForegroundColor Cyan
+    Write-Host "  Max Size: ${maxSize}" -ForegroundColor Cyan
+    Write-Host "  Desired Capacity: ${desiredCapacity}" -ForegroundColor Cyan` :
+action === 'Update Capacity' ? `    # Update Auto Scaling Group capacity
+    Update-ASAutoScalingGroup \`
+        -AutoScalingGroupName "${asgName}" \`
+        -MinSize ${minSize} \`
+        -MaxSize ${maxSize} \`
+        -DesiredCapacity ${desiredCapacity}
+    
+    Write-Host "✓ Auto Scaling Group updated: ${asgName}" -ForegroundColor Green
+    Write-Host "  New Min Size: ${minSize}" -ForegroundColor Cyan
+    Write-Host "  New Max Size: ${maxSize}" -ForegroundColor Cyan
+    Write-Host "  New Desired Capacity: ${desiredCapacity}" -ForegroundColor Cyan` :
+action === 'Create Scaling Policy' ? `    # Create target tracking scaling policy
+    $TargetTrackingConfig = New-Object Amazon.AutoScaling.Model.TargetTrackingConfiguration
+    $TargetTrackingConfig.TargetValue = 50.0
+    $TargetTrackingConfig.PredefinedMetricSpecification = New-Object Amazon.AutoScaling.Model.PredefinedMetricSpecification
+    $TargetTrackingConfig.PredefinedMetricSpecification.PredefinedMetricType = "ASGAverageCPUUtilization"
+    
+    Write-ASScalingPolicy \`
+        -AutoScalingGroupName "${asgName}" \`
+        -PolicyName "${asgName}-cpu-scaling-policy" \`
+        -PolicyType "TargetTrackingScaling" \`
+        -TargetTrackingConfiguration $TargetTrackingConfig
+    
+    Write-Host "✓ Scaling policy created for: ${asgName}" -ForegroundColor Green
+    Write-Host "  Policy Type: Target Tracking" -ForegroundColor Cyan
+    Write-Host "  Target: 50% CPU Utilization" -ForegroundColor Cyan` :
+`    # List Auto Scaling Groups
+    $ASGs = Get-ASAutoScalingGroup
+    
+    Write-Host "✓ Auto Scaling Groups:" -ForegroundColor Green
+    $ASGs | Format-Table AutoScalingGroupName, MinSize, MaxSize, DesiredCapacity, @{Name="Instances";Expression={$_.Instances.Count}} -AutoSize`}
+    
+} catch {
+    Write-Error "Auto Scaling operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-configure-config-rules',
+    name: 'Configure AWS Config Rules',
+    category: 'Common Admin Tasks',
+    description: 'Set up compliance rules and remediation actions',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Enable Config', 'Create Rule', 'List Rules', 'Get Compliance'], defaultValue: 'Enable Config' },
+      { id: 'bucketName', label: 'S3 Bucket for Config', type: 'text', required: false, placeholder: 'my-config-bucket' },
+      { id: 'ruleType', label: 'Rule Type', type: 'select', required: false, options: ['encrypted-volumes', 'required-tags', 's3-bucket-public-read-prohibited', 'iam-password-policy'], defaultValue: 'encrypted-volumes' },
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: false, placeholder: 'check-encrypted-volumes' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const bucketName = params.bucketName ? escapePowerShellString(params.bucketName) : '';
+      const ruleType = params.ruleType;
+      const ruleName = params.ruleName ? escapePowerShellString(params.ruleName) : 'compliance-rule';
+      
+      const ruleMap: Record<string, string> = {
+        'encrypted-volumes': 'ENCRYPTED_VOLUMES',
+        'required-tags': 'REQUIRED_TAGS',
+        's3-bucket-public-read-prohibited': 'S3_BUCKET_PUBLIC_READ_PROHIBITED',
+        'iam-password-policy': 'IAM_PASSWORD_POLICY'
+      };
+      
+      return `# AWS Config Rules Configuration
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.ConfigService
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Enable Config' ? `    # Create configuration recorder
+    $RecordingGroup = New-Object Amazon.ConfigService.Model.RecordingGroup
+    $RecordingGroup.AllSupported = \$true
+    $RecordingGroup.IncludeGlobalResourceTypes = \$true
+    
+    Write-CFGConfigurationRecorder \`
+        -ConfigurationRecorderName "default" \`
+        -RecordingGroup $RecordingGroup \`
+        -RoleARN "arn:aws:iam::$(Get-STSCallerIdentity).Account:role/aws-service-role/config.amazonaws.com/AWSServiceRoleForConfig"
+    
+    # Create delivery channel
+    Write-CFGDeliveryChannel \`
+        -DeliveryChannelName "default" \`
+        -S3BucketName "${bucketName}"
+    
+    # Start configuration recorder
+    Start-CFGConfigurationRecorder -ConfigurationRecorderName "default"
+    
+    Write-Host "✓ AWS Config enabled successfully" -ForegroundColor Green
+    Write-Host "  S3 Bucket: ${bucketName}" -ForegroundColor Cyan
+    Write-Host "  Recording: All supported resources" -ForegroundColor Cyan` :
+action === 'Create Rule' ? `    # Create managed config rule
+    $Source = New-Object Amazon.ConfigService.Model.Source
+    $Source.Owner = "AWS"
+    $Source.SourceIdentifier = "${ruleMap[ruleType]}"
+    
+    Write-CFGConfigRule \`
+        -ConfigRuleName "${ruleName}" \`
+        -Source $Source
+    
+    Write-Host "✓ Config rule created: ${ruleName}" -ForegroundColor Green
+    Write-Host "  Type: ${ruleType}" -ForegroundColor Cyan
+    Write-Host "  Source: AWS Managed Rule" -ForegroundColor Cyan` :
+action === 'Get Compliance' ? `    # Get compliance summary
+    $ComplianceSummary = Get-CFGComplianceSummaryByConfigRule
+    
+    Write-Host "✓ Config Rules Compliance Summary:" -ForegroundColor Green
+    Write-Host "  Compliant Rules: $($ComplianceSummary.CompliantResourceCount.CappedCount)" -ForegroundColor Green
+    Write-Host "  Non-Compliant Rules: $($ComplianceSummary.NonCompliantResourceCount.CappedCount)" -ForegroundColor Red
+    Write-Host ""
+    
+    # Get detailed compliance
+    $Rules = Get-CFGConfigRule
+    foreach ($Rule in $Rules) {
+        $Compliance = Get-CFGComplianceByConfigRule -ConfigRuleName $Rule.ConfigRuleName
+        Write-Host "  $($Rule.ConfigRuleName): $($Compliance.ComplianceType)" -ForegroundColor Cyan
+    }` :
+`    # List all config rules
+    $Rules = Get-CFGConfigRule
+    
+    Write-Host "✓ AWS Config Rules:" -ForegroundColor Green
+    $Rules | Format-Table ConfigRuleName, ConfigRuleState, @{Name="Source";Expression={$_.Source.Owner}} -AutoSize`}
+    
+} catch {
+    Write-Error "Config operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-manage-load-balancers',
+    name: 'Manage Elastic Load Balancers',
+    category: 'Common Admin Tasks',
+    description: 'Create ALB/NLB, configure listeners and target groups',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create ALB', 'Create Target Group', 'Create Listener', 'List Load Balancers'], defaultValue: 'Create ALB' },
+      { id: 'lbName', label: 'Load Balancer Name', type: 'text', required: true, placeholder: 'my-load-balancer' },
+      { id: 'subnetIds', label: 'Subnet IDs (comma-separated)', type: 'textarea', required: false, placeholder: 'subnet-12345, subnet-67890' },
+      { id: 'securityGroups', label: 'Security Group IDs (comma-separated)', type: 'textarea', required: false, placeholder: 'sg-12345, sg-67890' },
+      { id: 'targetGroupName', label: 'Target Group Name', type: 'text', required: false, placeholder: 'my-target-group' },
+      { id: 'vpcId', label: 'VPC ID', type: 'text', required: false, placeholder: 'vpc-1234567890abcdef0' },
+      { id: 'port', label: 'Port', type: 'number', required: false, placeholder: '80', defaultValue: 80 }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const lbName = escapePowerShellString(params.lbName);
+      const subnetIdsRaw = params.subnetIds ? (params.subnetIds as string).split(',').map((n: string) => n.trim()) : [];
+      const securityGroupsRaw = params.securityGroups ? (params.securityGroups as string).split(',').map((n: string) => n.trim()) : [];
+      const targetGroupName = params.targetGroupName ? escapePowerShellString(params.targetGroupName) : '';
+      const vpcId = params.vpcId ? escapePowerShellString(params.vpcId) : '';
+      const port = params.port || 80;
+      
+      return `# AWS Elastic Load Balancer Management
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.ElasticLoadBalancingV2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create ALB' ? `    # Create Application Load Balancer
+    $LoadBalancer = New-ELB2LoadBalancer \`
+        -Name "${lbName}" \`
+        -Type "application" \`
+        -Subnet @(${subnetIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')}) \`
+        -SecurityGroup @(${securityGroupsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')}) \`
+        -Scheme "internet-facing" \`
+        -IpAddressType "ipv4"
+    
+    Write-Host "✓ Application Load Balancer created: ${lbName}" -ForegroundColor Green
+    Write-Host "  ARN: $($LoadBalancer[0].LoadBalancerArn)" -ForegroundColor Cyan
+    Write-Host "  DNS Name: $($LoadBalancer[0].DNSName)" -ForegroundColor Yellow
+    Write-Host "  State: $($LoadBalancer[0].State.Code)" -ForegroundColor Cyan` :
+action === 'Create Target Group' ? `    # Create target group
+    $TargetGroup = New-ELB2TargetGroup \`
+        -Name "${targetGroupName}" \`
+        -Protocol "HTTP" \`
+        -Port ${port} \`
+        -VpcId "${vpcId}" \`
+        -HealthCheckEnabled \$true \`
+        -HealthCheckPath "/" \`
+        -HealthCheckProtocol "HTTP" \`
+        -HealthCheckIntervalSeconds 30 \`
+        -HealthyThresholdCount 2 \`
+        -UnhealthyThresholdCount 2
+    
+    Write-Host "✓ Target Group created: ${targetGroupName}" -ForegroundColor Green
+    Write-Host "  ARN: $($TargetGroup.TargetGroupArn)" -ForegroundColor Cyan
+    Write-Host "  Protocol: HTTP" -ForegroundColor Cyan
+    Write-Host "  Port: ${port}" -ForegroundColor Cyan` :
+action === 'Create Listener' ? `    # Get load balancer ARN
+    $LoadBalancers = Get-ELB2LoadBalancer -Name @("${lbName}")
+    $LoadBalancerArn = $LoadBalancers[0].LoadBalancerArn
+    
+    # Get target group ARN
+    $TargetGroups = Get-ELB2TargetGroup -Name @("${targetGroupName}")
+    $TargetGroupArn = $TargetGroups[0].TargetGroupArn
+    
+    # Create default action
+    $DefaultAction = New-Object Amazon.ElasticLoadBalancingV2.Model.Action
+    $DefaultAction.Type = "forward"
+    $DefaultAction.TargetGroupArn = $TargetGroupArn
+    
+    # Create listener
+    $Listener = New-ELB2Listener \`
+        -LoadBalancerArn $LoadBalancerArn \`
+        -Protocol "HTTP" \`
+        -Port ${port} \`
+        -DefaultAction $DefaultAction
+    
+    Write-Host "✓ Listener created for load balancer: ${lbName}" -ForegroundColor Green
+    Write-Host "  Protocol: HTTP" -ForegroundColor Cyan
+    Write-Host "  Port: ${port}" -ForegroundColor Cyan
+    Write-Host "  Target Group: ${targetGroupName}" -ForegroundColor Cyan` :
+`    # List load balancers
+    $LoadBalancers = Get-ELB2LoadBalancer
+    
+    Write-Host "✓ Elastic Load Balancers:" -ForegroundColor Green
+    $LoadBalancers | Format-Table LoadBalancerName, Type, Scheme, State, DNSName -AutoSize`}
+    
+} catch {
+    Write-Error "Load Balancer operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-configure-organizations',
+    name: 'Configure AWS Organizations',
+    category: 'Common Admin Tasks',
+    description: 'Manage accounts, organizational units, and service control policies',
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Organization', 'Create OU', 'Create Account', 'List Accounts', 'Attach SCP'], defaultValue: 'List Accounts' },
+      { id: 'ouName', label: 'Organizational Unit Name', type: 'text', required: false, placeholder: 'Production' },
+      { id: 'accountName', label: 'Account Name', type: 'text', required: false, placeholder: 'Dev Account' },
+      { id: 'accountEmail', label: 'Account Email', type: 'email', required: false, placeholder: 'aws-dev@example.com' },
+      { id: 'policyName', label: 'SCP Policy Name', type: 'text', required: false, placeholder: 'DenyS3DeletePolicy' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const ouName = params.ouName ? escapePowerShellString(params.ouName) : '';
+      const accountName = params.accountName ? escapePowerShellString(params.accountName) : '';
+      const accountEmail = params.accountEmail ? escapePowerShellString(params.accountEmail) : '';
+      const policyName = params.policyName ? escapePowerShellString(params.policyName) : '';
+      
+      return `# AWS Organizations Management
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.Organizations
+
+try {
+${action === 'Create Organization' ? `    # Create organization
+    $Organization = New-ORGOrganization -FeatureSet "ALL"
+    
+    Write-Host "✓ AWS Organization created" -ForegroundColor Green
+    Write-Host "  Organization ID: $($Organization.Id)" -ForegroundColor Cyan
+    Write-Host "  Master Account ID: $($Organization.MasterAccountId)" -ForegroundColor Cyan
+    Write-Host "  Feature Set: ALL" -ForegroundColor Cyan` :
+action === 'Create OU' ? `    # Get root ID
+    $Roots = Get-ORGRoot
+    $RootId = $Roots[0].Id
+    
+    # Create organizational unit
+    $OU = New-ORGOrganizationalUnit \`
+        -ParentId $RootId \`
+        -Name "${ouName}"
+    
+    Write-Host "✓ Organizational Unit created: ${ouName}" -ForegroundColor Green
+    Write-Host "  OU ID: $($OU.Id)" -ForegroundColor Cyan
+    Write-Host "  Parent: Root" -ForegroundColor Cyan` :
+action === 'Create Account' ? `    # Create new account
+    $Request = New-ORGAccount \`
+        -AccountName "${accountName}" \`
+        -Email "${accountEmail}"
+    
+    Write-Host "✓ Account creation initiated: ${accountName}" -ForegroundColor Green
+    Write-Host "  Request ID: $($Request.Id)" -ForegroundColor Cyan
+    Write-Host "  Email: ${accountEmail}" -ForegroundColor Cyan
+    Write-Host "  Status: $($Request.State)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Account creation may take several minutes" -ForegroundColor Yellow` :
+action === 'Attach SCP' ? `    # Create service control policy
+    $PolicyDocument = @"
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Deny",
+            "Action": [
+                "s3:DeleteBucket",
+                "s3:DeleteObject"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+"@
+    
+    $Policy = New-ORGPolicy \`
+        -Name "${policyName}" \`
+        -Description "Deny S3 delete operations" \`
+        -Content $PolicyDocument \`
+        -Type "SERVICE_CONTROL_POLICY"
+    
+    Write-Host "✓ Service Control Policy created: ${policyName}" -ForegroundColor Green
+    Write-Host "  Policy ID: $($Policy.PolicySummary.Id)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Use Add-ORGPolicy to attach this policy to an account or OU" -ForegroundColor Yellow` :
+`    # List all accounts
+    $Accounts = Get-ORGAccountList
+    
+    Write-Host "✓ AWS Organization Accounts:" -ForegroundColor Green
+    $Accounts | Format-Table Id, Name, Email, Status, JoinedTimestamp -AutoSize`}
+    
+} catch {
+    Write-Error "Organizations operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-manage-secrets-manager',
+    name: 'Manage AWS Secrets Manager',
+    category: 'Common Admin Tasks',
+    description: 'Create secrets, enable rotation, and retrieve values',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Secret', 'Get Secret Value', 'Update Secret', 'Enable Rotation', 'List Secrets'], defaultValue: 'Create Secret' },
+      { id: 'secretName', label: 'Secret Name', type: 'text', required: true, placeholder: 'prod/database/password' },
+      { id: 'secretValue', label: 'Secret Value', type: 'text', required: false, placeholder: 'MySecurePassword123!' },
+      { id: 'description', label: 'Description', type: 'text', required: false, placeholder: 'Production database password' },
+      { id: 'rotationLambdaArn', label: 'Rotation Lambda ARN', type: 'text', required: false, placeholder: 'arn:aws:lambda:us-east-1:123456789012:function:rotate-secret' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const secretName = escapePowerShellString(params.secretName);
+      const secretValue = params.secretValue ? escapePowerShellString(params.secretValue) : '';
+      const description = params.description ? escapePowerShellString(params.description) : '';
+      const rotationLambdaArn = params.rotationLambdaArn ? escapePowerShellString(params.rotationLambdaArn) : '';
+      
+      return `# AWS Secrets Manager
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.SecretsManager
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Secret' ? `    # Create secret
+    $Secret = New-SECSecret \`
+        -Name "${secretName}" \`
+        -Description "${description}" \`
+        -SecretString "${secretValue}"
+    
+    Write-Host "✓ Secret created: ${secretName}" -ForegroundColor Green
+    Write-Host "  ARN: $($Secret.ARN)" -ForegroundColor Cyan
+    Write-Host "  Version ID: $($Secret.VersionId)" -ForegroundColor Cyan` :
+action === 'Get Secret Value' ? `    # Retrieve secret value
+    $Secret = Get-SECSecretValue -SecretId "${secretName}"
+    
+    Write-Host "✓ Secret retrieved: ${secretName}" -ForegroundColor Green
+    Write-Host "  ARN: $($Secret.ARN)" -ForegroundColor Cyan
+    Write-Host "  Created: $($Secret.CreatedDate)" -ForegroundColor Cyan
+    Write-Host "  Value: $($Secret.SecretString)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "⚠ Handle this secret value securely!" -ForegroundColor Red` :
+action === 'Update Secret' ? `    # Update secret value
+    Update-SECSecret \`
+        -SecretId "${secretName}" \`
+        -SecretString "${secretValue}"
+    
+    Write-Host "✓ Secret updated: ${secretName}" -ForegroundColor Green` :
+action === 'Enable Rotation' ? `    # Enable automatic rotation
+    Update-SECSecretRotation \`
+        -SecretId "${secretName}" \`
+        -RotationLambdaARN "${rotationLambdaArn}" \`
+        -RotationRules_AutomaticallyAfterDays 30
+    
+    Write-Host "✓ Rotation enabled for: ${secretName}" -ForegroundColor Green
+    Write-Host "  Lambda ARN: ${rotationLambdaArn}" -ForegroundColor Cyan
+    Write-Host "  Rotation Period: 30 days" -ForegroundColor Cyan` :
+`    # List all secrets
+    $Secrets = Get-SECSecretList
+    
+    Write-Host "✓ AWS Secrets:" -ForegroundColor Green
+    $Secrets | Format-Table Name, Description, LastChangedDate, LastRotatedDate -AutoSize`}
+    
+} catch {
+    Write-Error "Secrets Manager operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'aws-configure-cloudtrail',
+    name: 'Configure CloudTrail Logging',
+    category: 'Common Admin Tasks',
+    description: 'Enable audit logging, create trails, and log insights',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Trail', 'Start Logging', 'Stop Logging', 'Lookup Events', 'List Trails'], defaultValue: 'Create Trail' },
+      { id: 'trailName', label: 'Trail Name', type: 'text', required: true, placeholder: 'my-organization-trail' },
+      { id: 'bucketName', label: 'S3 Bucket Name', type: 'text', required: false, placeholder: 'my-cloudtrail-bucket' },
+      { id: 'includeGlobalEvents', label: 'Include Global Service Events', type: 'boolean', required: false, defaultValue: true },
+      { id: 'isMultiRegion', label: 'Multi-Region Trail', type: 'boolean', required: false, defaultValue: true },
+      { id: 'eventName', label: 'Event Name (for lookup)', type: 'text', required: false, placeholder: 'CreateUser' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const trailName = escapePowerShellString(params.trailName);
+      const bucketName = params.bucketName ? escapePowerShellString(params.bucketName) : '';
+      const includeGlobalEvents = toPowerShellBoolean(params.includeGlobalEvents);
+      const isMultiRegion = toPowerShellBoolean(params.isMultiRegion);
+      const eventName = params.eventName ? escapePowerShellString(params.eventName) : '';
+      
+      return `# AWS CloudTrail Configuration
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.CloudTrail
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Trail' ? `    # Create CloudTrail trail
+    New-CTTrail \`
+        -Name "${trailName}" \`
+        -S3BucketName "${bucketName}" \`
+        -IncludeGlobalServiceEvent ${includeGlobalEvents} \`
+        -IsMultiRegionTrail ${isMultiRegion} \`
+        -EnableLogFileValidation \$true
+    
+    # Start logging
+    Start-CTLogging -Name "${trailName}"
+    
+    Write-Host "✓ CloudTrail trail created and started: ${trailName}" -ForegroundColor Green
+    Write-Host "  S3 Bucket: ${bucketName}" -ForegroundColor Cyan
+    Write-Host "  Multi-Region: ${isMultiRegion}" -ForegroundColor Cyan
+    Write-Host "  Global Events: ${includeGlobalEvents}" -ForegroundColor Cyan
+    Write-Host "  Log Validation: Enabled" -ForegroundColor Cyan` :
+action === 'Start Logging' ? `    # Start logging for trail
+    Start-CTLogging -Name "${trailName}"
+    
+    Write-Host "✓ Logging started for trail: ${trailName}" -ForegroundColor Green` :
+action === 'Stop Logging' ? `    # Stop logging for trail
+    Stop-CTLogging -Name "${trailName}"
+    
+    Write-Host "✓ Logging stopped for trail: ${trailName}" -ForegroundColor Yellow` :
+action === 'Lookup Events' ? `    # Lookup recent events
+    $LookupAttributes = New-Object Amazon.CloudTrail.Model.LookupAttribute
+    $LookupAttributes.AttributeKey = "EventName"
+    $LookupAttributes.AttributeValue = "${eventName}"
+    
+    $Events = Find-CTEvent -LookupAttribute $LookupAttributes -MaxResult 50
+    
+    Write-Host "✓ CloudTrail Events (Event: ${eventName}):" -ForegroundColor Green
+    foreach ($Event in $Events) {
+        Write-Host ""
+        Write-Host "  Event Time: $($Event.EventTime)" -ForegroundColor Cyan
+        Write-Host "  Event Name: $($Event.EventName)" -ForegroundColor Yellow
+        Write-Host "  User: $($Event.Username)" -ForegroundColor Cyan
+        Write-Host "  Resources:" -ForegroundColor Cyan
+        foreach ($Resource in $Event.Resources) {
+            Write-Host "    - $($Resource.ResourceType): $($Resource.ResourceName)" -ForegroundColor Gray
+        }
+    }` :
+`    # List all trails
+    $Trails = Get-CTTrail
+    
+    Write-Host "✓ CloudTrail Trails:" -ForegroundColor Green
+    foreach ($Trail in $Trails) {
+        $Status = Get-CTTrailStatus -Name $Trail.Name
+        Write-Host ""
+        Write-Host "  Name: $($Trail.Name)" -ForegroundColor Cyan
+        Write-Host "  S3 Bucket: $($Trail.S3BucketName)" -ForegroundColor Cyan
+        Write-Host "  Multi-Region: $($Trail.IsMultiRegionTrail)" -ForegroundColor Cyan
+        Write-Host "  Logging: $($Status.IsLogging)" -ForegroundColor $(if ($Status.IsLogging) { "Green" } else { "Yellow" })
+    }`}
+    
+} catch {
+    Write-Error "CloudTrail operation failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

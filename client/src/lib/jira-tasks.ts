@@ -575,5 +575,200 @@ try {
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'jira-manage-custom-fields',
+    name: 'Manage Custom Fields and Screens',
+    category: 'Common Admin Tasks',
+    description: 'Create custom fields, configure screens and tabs',
+    parameters: [
+      { id: 'jiraUrl', label: 'Jira URL', type: 'text', required: true },
+      { id: 'fieldName', label: 'Custom Field Name', type: 'text', required: true, placeholder: 'Deployment Date' },
+      { id: 'fieldType', label: 'Field Type', type: 'select', required: true, options: ['text', 'number', 'date', 'select', 'multiselect', 'textarea'], defaultValue: 'text' },
+      { id: 'description', label: 'Field Description', type: 'textarea', required: false },
+      { id: 'screenName', label: 'Screen Name (optional)', type: 'text', required: false, placeholder: 'Default Screen' }
+    ],
+    scriptTemplate: (params) => {
+      const jiraUrl = escapePowerShellString(params.jiraUrl);
+      const fieldName = escapePowerShellString(params.fieldName);
+      const fieldType = params.fieldType;
+      const description = escapePowerShellString(params.description || '');
+      const screenName = escapePowerShellString(params.screenName || '');
+      
+      const fieldTypeMap: Record<string, string> = {
+        'text': 'com.atlassian.jira.plugin.system.customfieldtypes:textfield',
+        'number': 'com.atlassian.jira.plugin.system.customfieldtypes:float',
+        'date': 'com.atlassian.jira.plugin.system.customfieldtypes:datepicker',
+        'select': 'com.atlassian.jira.plugin.system.customfieldtypes:select',
+        'multiselect': 'com.atlassian.jira.plugin.system.customfieldtypes:multiselect',
+        'textarea': 'com.atlassian.jira.plugin.system.customfieldtypes:textarea'
+      };
+      const jiraFieldType = fieldTypeMap[fieldType] || fieldTypeMap['text'];
+      
+      return `# Jira Manage Custom Fields and Screens
+# Generated: ${new Date().toISOString()}
+
+$JiraUrl = "${jiraUrl}"
+$Credential = Get-Credential -Message "Enter Jira admin credentials"
+$Base64Auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$($Credential.UserName):$($Credential.GetNetworkCredential().Password)"))
+
+$Headers = @{
+    "Authorization" = "Basic $Base64Auth"
+    "Content-Type" = "application/json"
+}
+
+try {
+    # Create custom field
+    $Body = @{
+        name = "${fieldName}"
+        description = "${description}"
+        type = "${jiraFieldType}"
+        searcherKey = "com.atlassian.jira.plugin.system.customfieldtypes:textsearcher"
+    } | ConvertTo-Json -Depth 10
+    
+    $Uri = "$JiraUrl/rest/api/3/field"
+    $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
+    
+    Write-Host "✓ Custom field created: ${fieldName}" -ForegroundColor Green
+    Write-Host "  Field ID: $($Response.id)" -ForegroundColor Cyan
+    Write-Host "  Type: ${fieldType}" -ForegroundColor Cyan
+    
+    ${params.screenName ? `
+    # Add field to screen
+    $ScreensUri = "$JiraUrl/rest/api/3/screens"
+    $Screens = Invoke-RestMethod -Uri $ScreensUri -Method Get -Headers $Headers
+    
+    $TargetScreen = $Screens.values | Where-Object { $_.name -eq "${screenName}" } | Select-Object -First 1
+    
+    if ($TargetScreen) {
+        # Get screen tabs
+        $TabsUri = "$JiraUrl/rest/api/3/screens/$($TargetScreen.id)/tabs"
+        $Tabs = Invoke-RestMethod -Uri $TabsUri -Method Get -Headers $Headers
+        
+        if ($Tabs -and $Tabs.Count -gt 0) {
+            $FirstTab = $Tabs[0]
+            
+            # Add field to tab
+            $AddFieldBody = @{
+                fieldId = $Response.id
+            } | ConvertTo-Json
+            
+            $AddFieldUri = "$JiraUrl/rest/api/3/screens/$($TargetScreen.id)/tabs/$($FirstTab.id)/fields"
+            Invoke-RestMethod -Uri $AddFieldUri -Method Post -Headers $Headers -Body $AddFieldBody
+            
+            Write-Host "✓ Field added to screen: ${screenName}" -ForegroundColor Green
+        }
+    }
+    ` : ''}
+    
+} catch {
+    Write-Error "Custom field configuration failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'jira-configure-automation',
+    name: 'Configure Automation Rules',
+    category: 'Common Admin Tasks',
+    description: 'Create automation rules for issue transitions and assignments',
+    parameters: [
+      { id: 'jiraUrl', label: 'Jira URL', type: 'text', required: true },
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Auto-assign new bugs' },
+      { id: 'trigger', label: 'Trigger Event', type: 'select', required: true, options: ['Issue Created', 'Issue Updated', 'Issue Transitioned', 'Comment Added'], defaultValue: 'Issue Created' },
+      { id: 'issueType', label: 'Issue Type Filter', type: 'select', required: false, options: ['Bug', 'Task', 'Story', 'Epic'], defaultValue: 'Bug' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Assign to user', 'Transition issue', 'Add comment', 'Send notification'], defaultValue: 'Assign to user' },
+      { id: 'actionValue', label: 'Action Value', type: 'text', required: true, placeholder: 'user@example.com or status name' }
+    ],
+    scriptTemplate: (params) => {
+      const jiraUrl = escapePowerShellString(params.jiraUrl);
+      const ruleName = escapePowerShellString(params.ruleName);
+      const trigger = params.trigger;
+      const issueType = params.issueType || 'Bug';
+      const action = params.action;
+      const actionValue = escapePowerShellString(params.actionValue);
+      
+      const triggerMap: Record<string, string> = {
+        'Issue Created': 'jira:issue-created',
+        'Issue Updated': 'jira:issue-updated',
+        'Issue Transitioned': 'jira:issue-transitioned',
+        'Comment Added': 'jira:comment-created'
+      };
+      const triggerType = triggerMap[trigger] || triggerMap['Issue Created'];
+      
+      const actionMap: Record<string, string> = {
+        'Assign to user': 'assign',
+        'Transition issue': 'transition',
+        'Add comment': 'comment',
+        'Send notification': 'notify'
+      };
+      const actionType = actionMap[action] || actionMap['Assign to user'];
+      
+      return `# Jira Configure Automation Rules
+# Generated: ${new Date().toISOString()}
+
+$JiraUrl = "${jiraUrl}"
+$Credential = Get-Credential -Message "Enter Jira admin credentials"
+$Base64Auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$($Credential.UserName):$($Credential.GetNetworkCredential().Password)"))
+
+$Headers = @{
+    "Authorization" = "Basic $Base64Auth"
+    "Content-Type" = "application/json"
+    "Accept" = "application/json"
+}
+
+try {
+    # Create automation rule
+    $RuleConfig = @{
+        name = "${ruleName}"
+        state = "ENABLED"
+        triggers = @(
+            @{
+                component = "${triggerType}"
+            }
+        )
+        conditions = @(
+            @{
+                component = "jira.issue.condition.type"
+                rawValue = "${issueType}"
+            }
+        )
+        actions = @(
+            ${action === 'Assign to user' ? `@{
+                component = "jira.issue.assign"
+                rawValue = "${actionValue}"
+            }` : action === 'Transition issue' ? `@{
+                component = "jira.issue.transition"
+                value = @{
+                    transition = "${actionValue}"
+                }
+            }` : action === 'Add comment' ? `@{
+                component = "jira.issue.comment"
+                rawValue = "${actionValue}"
+            }` : `@{
+                component = "jira.issue.notification"
+                rawValue = "${actionValue}"
+            }`}
+        )
+    } | ConvertTo-Json -Depth 10
+    
+    # Note: Jira Cloud automation API is different from Server/DC
+    # This example uses Jira Automation REST API v1
+    $Uri = "$JiraUrl/rest/cb-automation/latest/project/GLOBAL/rule"
+    $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $RuleConfig
+    
+    Write-Host "✓ Automation rule created: ${ruleName}" -ForegroundColor Green
+    Write-Host "  Trigger: ${trigger}" -ForegroundColor Cyan
+    Write-Host "  Action: ${action}" -ForegroundColor Cyan
+    Write-Host "  Filter: ${issueType} issues" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Automation rule creation failed: $_"
+    Write-Host ""
+    Write-Host "Note: If this fails, you may need to configure automation rules manually in Jira UI" -ForegroundColor Yellow
+    Write-Host "or use Jira Server/DC REST API endpoints depending on your Jira version." -ForegroundColor Yellow
+}`;
+    },
+    isPremium: true
   }
 ];

@@ -747,5 +747,498 @@ action === 'Remove IAM Binding' ? `    gcloud projects remove-iam-policy-binding
     }
   ,
     isPremium: true
+  },
+  {
+    id: 'gcp-manage-gke-clusters',
+    name: 'Manage Google Kubernetes Engine (GKE) Clusters',
+    category: 'Common Admin Tasks',
+    description: 'Create and manage GKE clusters and node pools',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Cluster', 'Delete Cluster', 'Create Node Pool', 'List Clusters'], defaultValue: 'Create Cluster' },
+      { id: 'clusterName', label: 'Cluster Name', type: 'text', required: false, placeholder: 'my-gke-cluster' },
+      { id: 'zone', label: 'Zone', type: 'text', required: false, placeholder: 'us-central1-a' },
+      { id: 'numNodes', label: 'Number of Nodes', type: 'number', required: false, placeholder: '3', defaultValue: 3 },
+      { id: 'machineType', label: 'Machine Type', type: 'select', required: false, options: ['e2-medium', 'n1-standard-1', 'n1-standard-2', 'n1-standard-4'], defaultValue: 'e2-medium' },
+      { id: 'nodePoolName', label: 'Node Pool Name', type: 'text', required: false, placeholder: 'default-pool' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const action = params.action;
+      const clusterName = params.clusterName ? escapePowerShellString(params.clusterName) : '';
+      const zone = params.zone ? escapePowerShellString(params.zone) : '';
+      const numNodes = params.numNodes || 3;
+      const machineType = params.machineType;
+      const nodePoolName = params.nodePoolName ? escapePowerShellString(params.nodePoolName) : '';
+      
+      return `# GCP GKE Cluster Management
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project ${project}
+    
+${action === 'Create Cluster' ? `    Write-Host "Creating GKE cluster..." -ForegroundColor Yellow
+    
+    gcloud container clusters create "${clusterName}" \`
+        --zone="${zone}" \`
+        --num-nodes=${numNodes} \`
+        --machine-type="${machineType}" \`
+        --enable-autoscaling \`
+        --min-nodes=1 \`
+        --max-nodes=10
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ GKE cluster created successfully!" -ForegroundColor Green
+        Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
+        Write-Host "  Zone: ${zone}" -ForegroundColor Cyan
+        Write-Host "  Nodes: ${numNodes}" -ForegroundColor Cyan
+        Write-Host "  Machine Type: ${machineType}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Fetching cluster credentials..." -ForegroundColor Yellow
+        gcloud container clusters get-credentials "${clusterName}" --zone="${zone}"
+    }` :
+action === 'Delete Cluster' ? `    Write-Host "Deleting GKE cluster..." -ForegroundColor Yellow
+    
+    gcloud container clusters delete "${clusterName}" \`
+        --zone="${zone}" \`
+        --quiet
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ GKE cluster deleted: ${clusterName}" -ForegroundColor Green
+    }` :
+action === 'Create Node Pool' ? `    Write-Host "Creating node pool..." -ForegroundColor Yellow
+    
+    gcloud container node-pools create "${nodePoolName}" \`
+        --cluster="${clusterName}" \`
+        --zone="${zone}" \`
+        --num-nodes=${numNodes} \`
+        --machine-type="${machineType}"
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Node pool created successfully!" -ForegroundColor Green
+        Write-Host "  Node Pool: ${nodePoolName}" -ForegroundColor Cyan
+        Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
+        Write-Host "  Nodes: ${numNodes}" -ForegroundColor Cyan
+    }` :
+`    Write-Host "✓ GKE Clusters:" -ForegroundColor Green
+    Write-Host ""
+    
+    gcloud container clusters list --format="table(name,location,currentMasterVersion,currentNodeVersion,numNodes,status)"`}
+    
+} catch {
+    Write-Error "GKE operation failed: $_"
+}`;
+    }
+  ,
+    isPremium: true
+  },
+  {
+    id: 'gcp-configure-cloud-functions',
+    name: 'Configure Cloud Functions',
+    category: 'Common Admin Tasks',
+    description: 'Deploy serverless functions and manage triggers',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Deploy Function', 'Delete Function', 'List Functions'], defaultValue: 'Deploy Function' },
+      { id: 'functionName', label: 'Function Name', type: 'text', required: false, placeholder: 'my-function' },
+      { id: 'runtime', label: 'Runtime', type: 'select', required: false, options: ['nodejs18', 'nodejs20', 'python39', 'python310', 'python311', 'go119', 'go121'], defaultValue: 'nodejs20' },
+      { id: 'triggerType', label: 'Trigger Type', type: 'select', required: false, options: ['http', 'pubsub', 'storage'], defaultValue: 'http' },
+      { id: 'entryPoint', label: 'Entry Point', type: 'text', required: false, placeholder: 'helloWorld' },
+      { id: 'region', label: 'Region', type: 'text', required: false, placeholder: 'us-central1', defaultValue: 'us-central1' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const action = params.action;
+      const functionName = params.functionName ? escapePowerShellString(params.functionName) : '';
+      const runtime = params.runtime;
+      const triggerType = params.triggerType;
+      const entryPoint = params.entryPoint ? escapePowerShellString(params.entryPoint) : 'helloWorld';
+      const region = params.region ? escapePowerShellString(params.region) : 'us-central1';
+      
+      return `# GCP Cloud Functions Configuration
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project ${project}
+    
+${action === 'Deploy Function' ? `    Write-Host "Deploying Cloud Function..." -ForegroundColor Yellow
+    
+    # Note: This assumes you have source code in the current directory
+    # For production use, specify --source with actual code location
+    
+    gcloud functions deploy "${functionName}" \`
+        --runtime="${runtime}" \`
+        --trigger-${triggerType} \`
+        --entry-point="${entryPoint}" \`
+        --region="${region}" \`
+        --allow-unauthenticated
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Cloud Function deployed successfully!" -ForegroundColor Green
+        Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
+        Write-Host "  Runtime: ${runtime}" -ForegroundColor Cyan
+        Write-Host "  Trigger: ${triggerType}" -ForegroundColor Cyan
+        Write-Host "  Region: ${region}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Getting function details..." -ForegroundColor Yellow
+        gcloud functions describe "${functionName}" --region="${region}"
+    }` :
+action === 'Delete Function' ? `    Write-Host "Deleting Cloud Function..." -ForegroundColor Yellow
+    
+    gcloud functions delete "${functionName}" \`
+        --region="${region}" \`
+        --quiet
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Cloud Function deleted: ${functionName}" -ForegroundColor Green
+    }` :
+`    Write-Host "✓ Cloud Functions:" -ForegroundColor Green
+    Write-Host ""
+    
+    gcloud functions list --format="table(name,status,trigger,runtime,updateTime)"`}
+    
+    Write-Host ""
+    Write-Host "Note: For function deployment, ensure source code is available." -ForegroundColor Yellow
+    Write-Host "Use --source flag to specify code location in production." -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Cloud Functions operation failed: $_"
+}`;
+    }
+  ,
+    isPremium: true
+  },
+  {
+    id: 'gcp-manage-cloud-sql',
+    name: 'Manage Cloud SQL Instances',
+    category: 'Common Admin Tasks',
+    description: 'Create Cloud SQL databases, configure replicas, and manage backups',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Instance', 'Delete Instance', 'Create Replica', 'List Instances'], defaultValue: 'Create Instance' },
+      { id: 'instanceName', label: 'Instance Name', type: 'text', required: false, placeholder: 'my-sql-instance' },
+      { id: 'databaseVersion', label: 'Database Version', type: 'select', required: false, options: ['MYSQL_8_0', 'MYSQL_5_7', 'POSTGRES_14', 'POSTGRES_13', 'SQLSERVER_2019_STANDARD'], defaultValue: 'MYSQL_8_0' },
+      { id: 'tier', label: 'Machine Tier', type: 'select', required: false, options: ['db-f1-micro', 'db-g1-small', 'db-n1-standard-1', 'db-n1-standard-2'], defaultValue: 'db-f1-micro' },
+      { id: 'region', label: 'Region', type: 'text', required: false, placeholder: 'us-central1', defaultValue: 'us-central1' },
+      { id: 'masterInstanceName', label: 'Master Instance (for replica)', type: 'text', required: false, placeholder: 'master-instance' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const action = params.action;
+      const instanceName = params.instanceName ? escapePowerShellString(params.instanceName) : '';
+      const databaseVersion = params.databaseVersion;
+      const tier = params.tier;
+      const region = params.region ? escapePowerShellString(params.region) : 'us-central1';
+      const masterInstanceName = params.masterInstanceName ? escapePowerShellString(params.masterInstanceName) : '';
+      
+      return `# GCP Cloud SQL Management
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project ${project}
+    
+${action === 'Create Instance' ? `    Write-Host "Creating Cloud SQL instance..." -ForegroundColor Yellow
+    Write-Host "This may take several minutes..." -ForegroundColor Cyan
+    Write-Host ""
+    
+    gcloud sql instances create "${instanceName}" \`
+        --database-version="${databaseVersion}" \`
+        --tier="${tier}" \`
+        --region="${region}" \`
+        --enable-bin-log \`
+        --backup-start-time=02:00
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Cloud SQL instance created successfully!" -ForegroundColor Green
+        Write-Host "  Instance: ${instanceName}" -ForegroundColor Cyan
+        Write-Host "  Database: ${databaseVersion}" -ForegroundColor Cyan
+        Write-Host "  Tier: ${tier}" -ForegroundColor Cyan
+        Write-Host "  Region: ${region}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Setting root password..." -ForegroundColor Yellow
+        Write-Host "Run: gcloud sql users set-password root --host=% --instance=${instanceName} --password=[PASSWORD]" -ForegroundColor Cyan
+    }` :
+action === 'Delete Instance' ? `    Write-Host "Deleting Cloud SQL instance..." -ForegroundColor Yellow
+    
+    gcloud sql instances delete "${instanceName}" --quiet
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Cloud SQL instance deleted: ${instanceName}" -ForegroundColor Green
+    }` :
+action === 'Create Replica' ? `    Write-Host "Creating read replica..." -ForegroundColor Yellow
+    
+    gcloud sql instances create "${instanceName}" \`
+        --master-instance-name="${masterInstanceName}" \`
+        --tier="${tier}" \`
+        --region="${region}"
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Read replica created successfully!" -ForegroundColor Green
+        Write-Host "  Replica: ${instanceName}" -ForegroundColor Cyan
+        Write-Host "  Master: ${masterInstanceName}" -ForegroundColor Cyan
+        Write-Host "  Region: ${region}" -ForegroundColor Cyan
+    }` :
+`    Write-Host "✓ Cloud SQL Instances:" -ForegroundColor Green
+    Write-Host ""
+    
+    gcloud sql instances list --format="table(name,databaseVersion,region,tier,ipAddress,state)"`}
+    
+} catch {
+    Write-Error "Cloud SQL operation failed: $_"
+}`;
+    }
+  ,
+    isPremium: true
+  },
+  {
+    id: 'gcp-configure-logging-monitoring',
+    name: 'Configure Cloud Logging and Monitoring',
+    category: 'Common Admin Tasks',
+    description: 'Set up log sinks, metrics, and uptime checks',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Log Sink', 'Create Uptime Check', 'List Metrics', 'View Recent Logs'], defaultValue: 'Create Log Sink' },
+      { id: 'sinkName', label: 'Log Sink Name', type: 'text', required: false, placeholder: 'my-log-sink' },
+      { id: 'destinationType', label: 'Sink Destination Type', type: 'select', required: false, options: ['storage', 'bigquery', 'pubsub'], defaultValue: 'storage' },
+      { id: 'destinationName', label: 'Destination Name', type: 'text', required: false, placeholder: 'my-bucket or my-dataset' },
+      { id: 'logFilter', label: 'Log Filter', type: 'textarea', required: false, placeholder: 'resource.type="gce_instance"' },
+      { id: 'uptimeCheckName', label: 'Uptime Check Name', type: 'text', required: false, placeholder: 'my-uptime-check' },
+      { id: 'monitoredUrl', label: 'URL to Monitor', type: 'text', required: false, placeholder: 'https://example.com' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const action = params.action;
+      const sinkName = params.sinkName ? escapePowerShellString(params.sinkName) : '';
+      const destinationType = params.destinationType;
+      const destinationName = params.destinationName ? escapePowerShellString(params.destinationName) : '';
+      const logFilter = params.logFilter ? escapePowerShellString(params.logFilter) : '';
+      const uptimeCheckName = params.uptimeCheckName ? escapePowerShellString(params.uptimeCheckName) : '';
+      const monitoredUrl = params.monitoredUrl ? escapePowerShellString(params.monitoredUrl) : '';
+      
+      const destinationMap: Record<string, string> = {
+        'storage': 'storage.googleapis.com',
+        'bigquery': 'bigquery.googleapis.com/projects',
+        'pubsub': 'pubsub.googleapis.com/projects'
+      };
+      
+      return `# GCP Cloud Logging and Monitoring
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project ${project}
+    
+${action === 'Create Log Sink' ? `    Write-Host "Creating log sink..." -ForegroundColor Yellow
+    
+    $Destination = "${destinationMap[destinationType]}/${destinationName}"
+    
+    gcloud logging sinks create "${sinkName}" \`
+        $Destination \`
+        --log-filter="${logFilter}"
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Log sink created successfully!" -ForegroundColor Green
+        Write-Host "  Sink: ${sinkName}" -ForegroundColor Cyan
+        Write-Host "  Destination: $Destination" -ForegroundColor Cyan
+        Write-Host "  Filter: ${logFilter}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Note: Grant the service account write permissions to the destination." -ForegroundColor Yellow
+    }` :
+action === 'Create Uptime Check' ? `    Write-Host "Creating uptime check..." -ForegroundColor Yellow
+    
+    # Create uptime check configuration JSON
+    $ConfigJson = @"
+{
+  "displayName": "${uptimeCheckName}",
+  "monitoredResource": {
+    "type": "uptime_url",
+    "labels": {
+      "host": "${monitoredUrl.replace('https://', '').replace('http://', '')}"
+    }
+  },
+  "httpCheck": {
+    "path": "/",
+    "port": 443,
+    "useSsl": true
+  },
+  "period": "60s",
+  "timeout": "10s"
+}
+"@
+    
+    Write-Host "Uptime check configuration:" -ForegroundColor Cyan
+    Write-Host $ConfigJson
+    Write-Host ""
+    Write-Host "To create uptime check via Console or API:" -ForegroundColor Yellow
+    Write-Host "1. Navigate to Monitoring > Uptime checks" -ForegroundColor Cyan
+    Write-Host "2. Or use: gcloud alpha monitoring uptime create" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Listing existing uptime checks..." -ForegroundColor Yellow
+    gcloud alpha monitoring uptime list 2>$null
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Note: Alpha API may not be enabled. Enable in Console." -ForegroundColor Yellow
+    }` :
+action === 'List Metrics' ? `    Write-Host "✓ Available Metrics:" -ForegroundColor Green
+    Write-Host ""
+    
+    gcloud logging metrics list --format="table(name,description,filter)"
+    
+    Write-Host ""
+    Write-Host "Monitoring metric descriptors (sample):" -ForegroundColor Yellow
+    gcloud monitoring metric-descriptors list --limit=20 --format="table(type,description)"` :
+`    Write-Host "✓ Recent Logs (last 10 entries):" -ForegroundColor Green
+    Write-Host ""
+    
+    gcloud logging read "timestamp >= \\"$(Get-Date (Get-Date).AddHours(-1) -Format 'yyyy-MM-ddTHH:mm:ssZ')\\"" \`
+        --limit=10 \`
+        --format="table(timestamp,severity,resource.type,textPayload)"`}
+    
+} catch {
+    Write-Error "Logging/Monitoring operation failed: $_"
+}`;
+    }
+  ,
+    isPremium: true
+  },
+  {
+    id: 'gcp-manage-load-balancing',
+    name: 'Manage Cloud Load Balancing',
+    category: 'Common Admin Tasks',
+    description: 'Create load balancers and configure backend services',
+    parameters: [
+      { id: 'project', label: 'GCP Project ID', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create HTTP LB', 'Create Backend Service', 'List Load Balancers', 'Delete Load Balancer'], defaultValue: 'List Load Balancers' },
+      { id: 'lbName', label: 'Load Balancer Name', type: 'text', required: false, placeholder: 'my-lb' },
+      { id: 'backendServiceName', label: 'Backend Service Name', type: 'text', required: false, placeholder: 'my-backend' },
+      { id: 'instanceGroup', label: 'Instance Group Name', type: 'text', required: false, placeholder: 'my-instance-group' },
+      { id: 'protocol', label: 'Protocol', type: 'select', required: false, options: ['HTTP', 'HTTPS', 'TCP', 'UDP'], defaultValue: 'HTTP' },
+      { id: 'healthCheckName', label: 'Health Check Name', type: 'text', required: false, placeholder: 'my-health-check' }
+    ],
+    scriptTemplate: (params) => {
+      const project = escapePowerShellString(params.project);
+      const action = params.action;
+      const lbName = params.lbName ? escapePowerShellString(params.lbName) : '';
+      const backendServiceName = params.backendServiceName ? escapePowerShellString(params.backendServiceName) : '';
+      const instanceGroup = params.instanceGroup ? escapePowerShellString(params.instanceGroup) : '';
+      const protocol = params.protocol;
+      const healthCheckName = params.healthCheckName ? escapePowerShellString(params.healthCheckName) : '';
+      
+      return `# GCP Cloud Load Balancing
+# Generated: ${new Date().toISOString()}
+
+try {
+    gcloud config set project ${project}
+    
+${action === 'Create HTTP LB' ? `    Write-Host "Creating HTTP(S) Load Balancer..." -ForegroundColor Yellow
+    Write-Host "This is a multi-step process:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Step 1: Create health check
+    Write-Host "1. Creating health check..." -ForegroundColor Yellow
+    gcloud compute health-checks create ${protocol.toLowerCase()} "${healthCheckName}" \`
+        --port=80 \`
+        --check-interval=10s \`
+        --timeout=5s
+    
+    # Step 2: Create backend service
+    Write-Host "2. Creating backend service..." -ForegroundColor Yellow
+    gcloud compute backend-services create "${backendServiceName}" \`
+        --protocol=${protocol} \`
+        --health-checks="${healthCheckName}" \`
+        --global
+    
+    # Step 3: Create URL map
+    Write-Host "3. Creating URL map..." -ForegroundColor Yellow
+    gcloud compute url-maps create "${lbName}-url-map" \`
+        --default-service="${backendServiceName}"
+    
+    # Step 4: Create target proxy
+    Write-Host "4. Creating target proxy..." -ForegroundColor Yellow
+    gcloud compute target-${protocol.toLowerCase()}-proxies create "${lbName}-proxy" \`
+        --url-map="${lbName}-url-map"
+    
+    # Step 5: Create forwarding rule
+    Write-Host "5. Creating forwarding rule..." -ForegroundColor Yellow
+    gcloud compute forwarding-rules create "${lbName}-forwarding-rule" \`
+        --global \`
+        --target-${protocol.toLowerCase()}-proxy="${lbName}-proxy" \`
+        --ports=80
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host ""
+        Write-Host "✓ HTTP(S) Load Balancer created successfully!" -ForegroundColor Green
+        Write-Host "  Name: ${lbName}" -ForegroundColor Cyan
+        Write-Host "  Backend Service: ${backendServiceName}" -ForegroundColor Cyan
+        Write-Host "  Health Check: ${healthCheckName}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Next steps:" -ForegroundColor Yellow
+        Write-Host "1. Add backends to the backend service" -ForegroundColor Cyan
+        Write-Host "2. Configure SSL certificates (for HTTPS)" -ForegroundColor Cyan
+        Write-Host "3. Update DNS to point to the load balancer IP" -ForegroundColor Cyan
+    }` :
+action === 'Create Backend Service' ? `    Write-Host "Creating backend service..." -ForegroundColor Yellow
+    
+    # Create health check first
+    gcloud compute health-checks create ${protocol.toLowerCase()} "${healthCheckName}" \`
+        --port=80 \`
+        --check-interval=10s \`
+        --timeout=5s
+    
+    # Create backend service
+    gcloud compute backend-services create "${backendServiceName}" \`
+        --protocol=${protocol} \`
+        --health-checks="${healthCheckName}" \`
+        --global
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Backend service created successfully!" -ForegroundColor Green
+        Write-Host "  Service: ${backendServiceName}" -ForegroundColor Cyan
+        Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
+        Write-Host "  Health Check: ${healthCheckName}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Add backend with:" -ForegroundColor Yellow
+        Write-Host "gcloud compute backend-services add-backend ${backendServiceName} --instance-group=[GROUP]" -ForegroundColor Cyan
+    }` :
+action === 'Delete Load Balancer' ? `    Write-Host "Deleting load balancer components..." -ForegroundColor Yellow
+    Write-Host ""
+    
+    # Delete in reverse order
+    Write-Host "1. Deleting forwarding rule..." -ForegroundColor Yellow
+    gcloud compute forwarding-rules delete "${lbName}-forwarding-rule" --global --quiet 2>$null
+    
+    Write-Host "2. Deleting target proxy..." -ForegroundColor Yellow
+    gcloud compute target-${protocol.toLowerCase()}-proxies delete "${lbName}-proxy" --quiet 2>$null
+    
+    Write-Host "3. Deleting URL map..." -ForegroundColor Yellow
+    gcloud compute url-maps delete "${lbName}-url-map" --quiet 2>$null
+    
+    Write-Host "4. Deleting backend service..." -ForegroundColor Yellow
+    gcloud compute backend-services delete "${backendServiceName}" --global --quiet 2>$null
+    
+    Write-Host "5. Deleting health check..." -ForegroundColor Yellow
+    gcloud compute health-checks delete "${healthCheckName}" --quiet 2>$null
+    
+    Write-Host ""
+    Write-Host "✓ Load balancer components deleted" -ForegroundColor Green` :
+`    Write-Host "✓ Load Balancer Components:" -ForegroundColor Green
+    Write-Host ""
+    
+    Write-Host "Forwarding Rules:" -ForegroundColor Cyan
+    gcloud compute forwarding-rules list --format="table(name,IPAddress,target,region)"
+    
+    Write-Host ""
+    Write-Host "Backend Services:" -ForegroundColor Cyan
+    gcloud compute backend-services list --format="table(name,protocol,healthChecks,backends)"
+    
+    Write-Host ""
+    Write-Host "Health Checks:" -ForegroundColor Cyan
+    gcloud compute health-checks list --format="table(name,type,checkIntervalSec)"`}
+    
+} catch {
+    Write-Error "Load Balancing operation failed: $_"
+}`;
+    }
+  ,
+    isPremium: true
   }
 ];

@@ -578,5 +578,450 @@ try {
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'kubectl-manage-ingress',
+    name: 'Manage Kubernetes Ingress Controllers',
+    category: 'Common Admin Tasks',
+    description: 'Deploy and configure nginx or traefik ingress controllers for routing external traffic',
+    parameters: [
+      { id: 'controllerType', label: 'Ingress Controller Type', type: 'select', required: true, options: ['nginx', 'traefik'], defaultValue: 'nginx' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: true, placeholder: 'ingress-nginx', defaultValue: 'ingress-nginx' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Deploy', 'Delete'], defaultValue: 'Deploy' }
+    ],
+    scriptTemplate: (params) => {
+      const controllerType = params.controllerType;
+      const namespace = escapePowerShellString(params.namespace);
+      const action = params.action;
+      
+      return `# Kubernetes Manage Ingress Controllers
+# Generated: ${new Date().toISOString()}
+
+$Namespace = "${namespace}"
+
+try {
+    ${action === 'Deploy' ? `
+    Write-Host "Deploying ${controllerType} ingress controller..." -ForegroundColor Cyan
+    
+    # Create namespace if it doesn't exist
+    kubectl create namespace $Namespace --dry-run=client -o yaml | kubectl apply -f -
+    
+    ${controllerType === 'nginx' ? `
+    # Deploy NGINX Ingress Controller
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml -n $Namespace
+    ` : `
+    # Deploy Traefik Ingress Controller
+    kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v2.10/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml -n $Namespace
+    kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v2.10/docs/content/reference/dynamic-configuration/kubernetes-crd-rbac.yml -n $Namespace
+    `}
+    
+    Write-Host "Waiting for controller pods to be ready..." -ForegroundColor Yellow
+    kubectl wait --namespace $Namespace --for=condition=ready pod --selector=app.kubernetes.io/component=${controllerType === 'nginx' ? 'controller' : 'traefik'} --timeout=90s
+    ` : `
+    $Confirm = Read-Host "Delete ${controllerType} ingress controller from $Namespace? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Deleting ${controllerType} ingress controller..." -ForegroundColor Cyan
+        kubectl delete namespace $Namespace
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        exit
+    }
+    `}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        ${action === 'Deploy' ? 'kubectl get pods,services -n $Namespace' : ''}
+    } else {
+        Write-Error "${action} failed"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'kubectl-manage-pvc',
+    name: 'Configure Persistent Volume Claims (PVC)',
+    category: 'Common Admin Tasks',
+    description: 'Create and manage Persistent Volume Claims and storage classes for stateful applications',
+    parameters: [
+      { id: 'pvcName', label: 'PVC Name', type: 'text', required: true, placeholder: 'my-pvc' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: true, placeholder: 'default' },
+      { id: 'storageSize', label: 'Storage Size (e.g., 10Gi)', type: 'text', required: true, placeholder: '10Gi', defaultValue: '10Gi' },
+      { id: 'storageClass', label: 'Storage Class', type: 'text', required: false, placeholder: 'standard', defaultValue: 'standard' },
+      { id: 'accessMode', label: 'Access Mode', type: 'select', required: true, options: ['ReadWriteOnce', 'ReadOnlyMany', 'ReadWriteMany'], defaultValue: 'ReadWriteOnce' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create', 'Delete', 'Inspect'], defaultValue: 'Create' }
+    ],
+    scriptTemplate: (params) => {
+      const pvcName = escapePowerShellString(params.pvcName);
+      const namespace = escapePowerShellString(params.namespace);
+      const storageSize = escapePowerShellString(params.storageSize);
+      const storageClass = escapePowerShellString(params.storageClass || 'standard');
+      const accessMode = params.accessMode;
+      const action = params.action;
+      
+      return `# Kubernetes Configure Persistent Volume Claims
+# Generated: ${new Date().toISOString()}
+
+$PVCName = "${pvcName}"
+$Namespace = "${namespace}"
+
+try {
+    ${action === 'Create' ? `
+    Write-Host "Creating PVC..." -ForegroundColor Cyan
+    
+    $PVCManifest = @"
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $PVCName
+  namespace: $Namespace
+spec:
+  accessModes:
+    - ${accessMode}
+  resources:
+    requests:
+      storage: ${storageSize}
+  storageClassName: ${storageClass}
+"@
+    
+    $PVCManifest | kubectl apply -f -
+    
+    Write-Host "Waiting for PVC to be bound..." -ForegroundColor Yellow
+    kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/$PVCName -n $Namespace --timeout=60s
+    ` : action === 'Inspect' ? `
+    Write-Host "Inspecting PVC..." -ForegroundColor Cyan
+    kubectl describe pvc $PVCName -n $Namespace
+    kubectl get pvc $PVCName -n $Namespace -o yaml
+    ` : `
+    $Confirm = Read-Host "Delete PVC $PVCName? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Deleting PVC..." -ForegroundColor Cyan
+        kubectl delete pvc $PVCName -n $Namespace
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        exit
+    }
+    `}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        ${action !== 'Delete' ? 'kubectl get pvc -n $Namespace' : ''}
+    } else {
+        Write-Error "${action} failed"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'kubectl-manage-configmaps',
+    name: 'Manage Kubernetes ConfigMaps',
+    category: 'Common Admin Tasks',
+    description: 'Create, update, and mount ConfigMaps for application configuration management',
+    parameters: [
+      { id: 'configMapName', label: 'ConfigMap Name', type: 'text', required: true, placeholder: 'app-config' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: true, placeholder: 'default' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create', 'Update', 'Delete', 'Inspect'], defaultValue: 'Create' },
+      { id: 'configData', label: 'Configuration Data (KEY=VALUE, one per line)', type: 'textarea', required: false, placeholder: 'APP_ENV=production\nAPI_URL=https://api.example.com\nLOG_LEVEL=info' }
+    ],
+    scriptTemplate: (params) => {
+      const configMapName = escapePowerShellString(params.configMapName);
+      const namespace = escapePowerShellString(params.namespace);
+      const action = params.action;
+      const configData = params.configData || '';
+      
+      return `# Kubernetes Manage ConfigMaps
+# Generated: ${new Date().toISOString()}
+
+$ConfigMapName = "${configMapName}"
+$Namespace = "${namespace}"
+
+try {
+    ${action === 'Create' || action === 'Update' ? `
+    Write-Host "${action === 'Update' ? 'Updating' : 'Creating'} ConfigMap..." -ForegroundColor Cyan
+    
+    ${configData ? `
+    # Parse configuration data
+    $ConfigLines = @"
+${configData.split('\n').map((line: string) => line.trim()).filter((line: string) => line).join('\n')}
+"@
+    
+    $FromLiteral = $ConfigLines -split "\\n" | ForEach-Object {
+        if ($_ -match "^(.+?)=(.+)$") {
+            "--from-literal=$_"
+        }
+    }
+    
+    kubectl create configmap $ConfigMapName -n $Namespace @FromLiteral --dry-run=client -o yaml | kubectl apply -f -
+    ` : `
+    Write-Host "Creating empty ConfigMap (add data using Update action)..." -ForegroundColor Yellow
+    kubectl create configmap $ConfigMapName -n $Namespace --dry-run=client -o yaml | kubectl apply -f -
+    `}
+    ` : action === 'Inspect' ? `
+    Write-Host "Inspecting ConfigMap..." -ForegroundColor Cyan
+    kubectl describe configmap $ConfigMapName -n $Namespace
+    Write-Host ""
+    Write-Host "ConfigMap Data:" -ForegroundColor Yellow
+    kubectl get configmap $ConfigMapName -n $Namespace -o yaml
+    ` : `
+    $Confirm = Read-Host "Delete ConfigMap $ConfigMapName? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Deleting ConfigMap..." -ForegroundColor Cyan
+        kubectl delete configmap $ConfigMapName -n $Namespace
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        exit
+    }
+    `}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        ${action !== 'Delete' && action !== 'Inspect' ? 'kubectl get configmap $ConfigMapName -n $Namespace' : ''}
+    } else {
+        Write-Error "${action} failed"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'kubectl-configure-rbac',
+    name: 'Configure Kubernetes RBAC',
+    category: 'Common Admin Tasks',
+    description: 'Create and manage service accounts, roles, and role bindings for access control',
+    parameters: [
+      { id: 'resourceType', label: 'Resource Type', type: 'select', required: true, options: ['ServiceAccount', 'Role', 'RoleBinding', 'ClusterRole', 'ClusterRoleBinding'], defaultValue: 'ServiceAccount' },
+      { id: 'resourceName', label: 'Resource Name', type: 'text', required: true, placeholder: 'my-service-account' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: true, placeholder: 'default' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create', 'Delete'], defaultValue: 'Create' },
+      { id: 'rolePermissions', label: 'Role Permissions (for Role/ClusterRole: verbs=resources, e.g., get,list=pods)', type: 'textarea', required: false, placeholder: 'get,list,watch=pods\ncreate,update,delete=deployments' },
+      { id: 'bindingTarget', label: 'Binding Target (for RoleBinding: serviceaccount name)', type: 'text', required: false, placeholder: 'my-service-account' }
+    ],
+    scriptTemplate: (params) => {
+      const resourceType = params.resourceType;
+      const resourceName = escapePowerShellString(params.resourceName);
+      const namespace = escapePowerShellString(params.namespace);
+      const action = params.action;
+      const rolePermissions = params.rolePermissions || '';
+      const bindingTarget = escapePowerShellString(params.bindingTarget || '');
+      
+      return `# Kubernetes Configure RBAC
+# Generated: ${new Date().toISOString()}
+
+$ResourceName = "${resourceName}"
+$Namespace = "${namespace}"
+
+try {
+    ${action === 'Create' ? `
+    Write-Host "Creating ${resourceType}..." -ForegroundColor Cyan
+    
+    ${resourceType === 'ServiceAccount' ? `
+    kubectl create serviceaccount $ResourceName -n $Namespace
+    ` : resourceType === 'Role' || resourceType === 'ClusterRole' ? `
+    # Create Role/ClusterRole with permissions
+    $RoleManifest = @"
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ${resourceType}
+metadata:
+  name: $ResourceName
+  ${resourceType === 'Role' ? 'namespace: ' + namespace : ''}
+rules:
+${rolePermissions ? rolePermissions.split('\n').map((line: string) => {
+  const parts = line.trim().split('=');
+  if (parts.length === 2) {
+    const verbs = parts[0].split(',').map((v: string) => `"${v.trim()}"`).join(', ');
+    const resources = parts[1].split(',').map((r: string) => `"${r.trim()}"`).join(', ');
+    return `- apiGroups: ["", "apps", "batch"]
+  resources: [${resources}]
+  verbs: [${verbs}]`;
+  }
+  return '';
+}).join('\n') : '- apiGroups: [""]\\n  resources: ["pods"]\\n  verbs: ["get", "list"]'}
+"@
+    
+    $RoleManifest | kubectl apply -f -
+    ` : `
+    # Create RoleBinding/ClusterRoleBinding
+    ${bindingTarget ? `
+    kubectl create ${resourceType === 'RoleBinding' ? 'rolebinding' : 'clusterrolebinding'} $ResourceName \\
+      --${resourceType === 'RoleBinding' ? 'role' : 'clusterrole'}=$ResourceName \\
+      --serviceaccount=$Namespace:${bindingTarget} \\
+      ${resourceType === 'RoleBinding' ? '-n $Namespace' : ''}
+    ` : `
+    Write-Host "Error: Binding Target (service account) is required for ${resourceType}" -ForegroundColor Red
+    exit 1
+    `}
+    `}
+    ` : `
+    $Confirm = Read-Host "Delete ${resourceType} $ResourceName? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Deleting ${resourceType}..." -ForegroundColor Cyan
+        kubectl delete ${resourceType.toLowerCase()} $ResourceName ${resourceType.includes('Cluster') ? '' : '-n $Namespace'}
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        exit
+    }
+    `}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        ${action === 'Create' ? `kubectl get ${resourceType.toLowerCase()} ${resourceType.includes('Cluster') ? '' : '-n $Namespace'}` : ''}
+    } else {
+        Write-Error "${action} failed"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-manage-registry',
+    name: 'Manage Docker Registry',
+    category: 'Common Admin Tasks',
+    description: 'Set up private Docker registry, push/pull images, and manage image tags',
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Setup Registry', 'Push Image', 'Pull Image', 'List Tags', 'Delete Image'], defaultValue: 'Setup Registry' },
+      { id: 'registryUrl', label: 'Registry URL', type: 'text', required: true, placeholder: 'localhost:5000 or registry.example.com' },
+      { id: 'imageName', label: 'Image Name', type: 'text', required: false, placeholder: 'myapp' },
+      { id: 'imageTag', label: 'Image Tag', type: 'text', required: false, placeholder: 'latest', defaultValue: 'latest' },
+      { id: 'registryPort', label: 'Registry Port (for Setup)', type: 'number', required: false, placeholder: '5000', defaultValue: 5000 }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const registryUrl = escapePowerShellString(params.registryUrl);
+      const imageName = escapePowerShellString(params.imageName || '');
+      const imageTag = escapePowerShellString(params.imageTag || 'latest');
+      const registryPort = params.registryPort || 5000;
+      
+      return `# Docker Manage Registry
+# Generated: ${new Date().toISOString()}
+
+$RegistryUrl = "${registryUrl}"
+
+try {
+    ${action === 'Setup Registry' ? `
+    Write-Host "Setting up private Docker registry..." -ForegroundColor Cyan
+    
+    # Create registry volume for persistence
+    docker volume create registry-data
+    
+    # Run registry container
+    docker run -d -p ${registryPort}:5000 --name registry --restart=always -v registry-data:/var/lib/registry registry:2
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Registry started on port ${registryPort}" -ForegroundColor Green
+        Write-Host "  Access at: http://localhost:${registryPort}" -ForegroundColor Cyan
+        docker ps -f name=registry
+    }
+    ` : action === 'Push Image' ? `
+    ${imageName ? `
+    Write-Host "Pushing image to registry..." -ForegroundColor Cyan
+    
+    $LocalImage = "${imageName}:${imageTag}"
+    $RegistryImage = "$RegistryUrl/${imageName}:${imageTag}"
+    
+    # Tag image for registry
+    docker tag $LocalImage $RegistryImage
+    
+    if ($LASTEXITCODE -eq 0) {
+        # Push to registry
+        docker push $RegistryImage
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Image pushed: $RegistryImage" -ForegroundColor Green
+        } else {
+            Write-Error "Push failed"
+        }
+    } else {
+        Write-Error "Image tag failed. Ensure image exists locally."
+    }
+    ` : `
+    Write-Host "Error: Image Name is required for Push action" -ForegroundColor Red
+    exit 1
+    `}
+    ` : action === 'Pull Image' ? `
+    ${imageName ? `
+    Write-Host "Pulling image from registry..." -ForegroundColor Cyan
+    
+    $RegistryImage = "$RegistryUrl/${imageName}:${imageTag}"
+    
+    docker pull $RegistryImage
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Image pulled: $RegistryImage" -ForegroundColor Green
+        docker images $RegistryImage
+    } else {
+        Write-Error "Pull failed"
+    }
+    ` : `
+    Write-Host "Error: Image Name is required for Pull action" -ForegroundColor Red
+    exit 1
+    `}
+    ` : action === 'List Tags' ? `
+    ${imageName ? `
+    Write-Host "Listing tags for image: ${imageName}..." -ForegroundColor Cyan
+    
+    $ApiUrl = "http://$RegistryUrl/v2/${imageName}/tags/list"
+    
+    try {
+        $Response = Invoke-RestMethod -Uri $ApiUrl -Method Get
+        Write-Host "✓ Available tags for ${imageName}:" -ForegroundColor Green
+        $Response.tags | ForEach-Object { Write-Host "  - $_" -ForegroundColor Cyan }
+    } catch {
+        Write-Error "Failed to list tags: $_"
+    }
+    ` : `
+    Write-Host "Error: Image Name is required for List Tags action" -ForegroundColor Red
+    exit 1
+    `}
+    ` : `
+    ${imageName ? `
+    $Confirm = Read-Host "Delete image ${imageName}:${imageTag} from registry? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Deleting image from registry..." -ForegroundColor Cyan
+        
+        # Get image digest
+        $ApiUrl = "http://$RegistryUrl/v2/${imageName}/manifests/${imageTag}"
+        try {
+            $Headers = @{ "Accept" = "application/vnd.docker.distribution.manifest.v2+json" }
+            $Response = Invoke-WebRequest -Uri $ApiUrl -Method Get -Headers $Headers
+            $Digest = $Response.Headers["Docker-Content-Digest"]
+            
+            if ($Digest) {
+                $DeleteUrl = "http://$RegistryUrl/v2/${imageName}/manifests/$Digest"
+                Invoke-RestMethod -Uri $DeleteUrl -Method Delete
+                Write-Host "✓ Image deleted: ${imageName}:${imageTag}" -ForegroundColor Green
+            } else {
+                Write-Error "Could not retrieve image digest"
+            }
+        } catch {
+            Write-Error "Failed to delete image: $_"
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        exit
+    }
+    ` : `
+    Write-Host "Error: Image Name is required for Delete action" -ForegroundColor Red
+    exit 1
+    `}
+    `}
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

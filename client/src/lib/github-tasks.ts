@@ -579,5 +579,152 @@ try {
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'github-manage-actions-workflows',
+    name: 'Manage GitHub Actions Workflows',
+    category: 'Common Admin Tasks',
+    description: 'Create, enable/disable, trigger workflows',
+    parameters: [
+      { id: 'owner', label: 'Repository Owner', type: 'text', required: true },
+      { id: 'repo', label: 'Repository Name', type: 'text', required: true },
+      { id: 'workflowId', label: 'Workflow ID or Filename', type: 'text', required: true, placeholder: 'build.yml' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Enable', 'Disable', 'Trigger'], defaultValue: 'Enable' },
+      { id: 'ref', label: 'Branch/Ref (for Trigger)', type: 'text', required: false, placeholder: 'main', defaultValue: 'main' }
+    ],
+    scriptTemplate: (params) => {
+      const owner = escapePowerShellString(params.owner);
+      const repo = escapePowerShellString(params.repo);
+      const workflowId = escapePowerShellString(params.workflowId);
+      const action = params.action;
+      const ref = escapePowerShellString(params.ref || 'main');
+      
+      return `# GitHub Manage Actions Workflows
+# Generated: ${new Date().toISOString()}
+
+$Token = Read-Host -AsSecureString -Prompt "Enter GitHub Personal Access Token"
+$TokenPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Token))
+
+$Headers = @{
+    "Authorization" = "token $TokenPlain"
+    "Accept" = "application/vnd.github.v3+json"
+}
+
+try {
+    ${action === 'Enable' ? `
+    $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/enable"
+    Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers
+    Write-Host "✓ Workflow enabled: ${workflowId}" -ForegroundColor Green
+    ` : action === 'Disable' ? `
+    $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/disable"
+    Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers
+    Write-Host "✓ Workflow disabled: ${workflowId}" -ForegroundColor Green
+    ` : `
+    $Body = @{
+        ref = "${ref}"
+    } | ConvertTo-Json
+    
+    $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches"
+    Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
+    Write-Host "✓ Workflow triggered: ${workflowId} on ${ref}" -ForegroundColor Green
+    `}
+    
+} catch {
+    Write-Error "Workflow management failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'github-configure-dependabot',
+    name: 'Configure Dependabot Security',
+    category: 'Common Admin Tasks',
+    description: 'Set up Dependabot alerts, auto-updates, security policies',
+    parameters: [
+      { id: 'owner', label: 'Repository Owner', type: 'text', required: true },
+      { id: 'repo', label: 'Repository Name', type: 'text', required: true },
+      { id: 'ecosystem', label: 'Package Ecosystem', type: 'select', required: true, options: ['npm', 'pip', 'maven', 'gradle', 'docker', 'github-actions'], defaultValue: 'npm' },
+      { id: 'updateSchedule', label: 'Update Schedule', type: 'select', required: true, options: ['daily', 'weekly', 'monthly'], defaultValue: 'weekly' },
+      { id: 'enableAlerts', label: 'Enable Security Alerts', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const owner = escapePowerShellString(params.owner);
+      const repo = escapePowerShellString(params.repo);
+      const ecosystem = params.ecosystem;
+      const updateSchedule = params.updateSchedule;
+      const enableAlerts = params.enableAlerts ? 'true' : 'false';
+      
+      return `# GitHub Configure Dependabot Security
+# Generated: ${new Date().toISOString()}
+
+$Token = Read-Host -AsSecureString -Prompt "Enter GitHub Personal Access Token"
+$TokenPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Token))
+
+$Headers = @{
+    "Authorization" = "token $TokenPlain"
+    "Accept" = "application/vnd.github.v3+json"
+}
+
+try {
+    # Enable vulnerability alerts
+    ${params.enableAlerts ? `
+    $AlertsUri = "https://api.github.com/repos/${owner}/${repo}/vulnerability-alerts"
+    Invoke-RestMethod -Uri $AlertsUri -Method Put -Headers $Headers
+    Write-Host "✓ Vulnerability alerts enabled" -ForegroundColor Green
+    ` : ''}
+    
+    # Enable automated security fixes
+    $SecurityFixesUri = "https://api.github.com/repos/${owner}/${repo}/automated-security-fixes"
+    Invoke-RestMethod -Uri $SecurityFixesUri -Method Put -Headers $Headers
+    Write-Host "✓ Automated security fixes enabled" -ForegroundColor Green
+    
+    # Create/Update dependabot.yml configuration
+    $DependabotConfig = @"
+version: 2
+updates:
+  - package-ecosystem: "${ecosystem}"
+    directory: "/"
+    schedule:
+      interval: "${updateSchedule}"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "$owner"
+    assignees:
+      - "$owner"
+"@
+    
+    $ConfigContent = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($DependabotConfig))
+    
+    # Check if file exists
+    try {
+        $ExistingFileUri = "https://api.github.com/repos/${owner}/${repo}/contents/.github/dependabot.yml"
+        $ExistingFile = Invoke-RestMethod -Uri $ExistingFileUri -Method Get -Headers $Headers
+        $Sha = $ExistingFile.sha
+    } catch {
+        $Sha = $null
+    }
+    
+    $Body = @{
+        message = "Configure Dependabot for ${ecosystem}"
+        content = $ConfigContent
+        branch = "main"
+    }
+    
+    if ($Sha) {
+        $Body.sha = $Sha
+    }
+    
+    $ConfigUri = "https://api.github.com/repos/${owner}/${repo}/contents/.github/dependabot.yml"
+    Invoke-RestMethod -Uri $ConfigUri -Method Put -Headers $Headers -Body ($Body | ConvertTo-Json)
+    
+    Write-Host "✓ Dependabot configuration created/updated" -ForegroundColor Green
+    Write-Host "  Ecosystem: ${ecosystem}" -ForegroundColor Cyan
+    Write-Host "  Schedule: ${updateSchedule}" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Dependabot configuration failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

@@ -469,5 +469,115 @@ try {
 }`;
     },
     isPremium: true
+  },
+  {
+    id: 'splunk-manage-apps',
+    name: 'Manage Splunk Apps and Add-ons',
+    category: 'Common Admin Tasks',
+    description: 'Install, update, configure Splunk apps',
+    parameters: [
+      { id: 'splunkUrl', label: 'Splunk URL', type: 'text', required: true },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Install', 'Update', 'Enable', 'Disable', 'Uninstall'], defaultValue: 'Install' },
+      { id: 'appName', label: 'App Name/ID', type: 'text', required: true, placeholder: 'splunk_app_aws' },
+      { id: 'appFile', label: 'App File Path (for Install)', type: 'path', required: false, placeholder: 'C:\\Downloads\\app.spl' }
+    ],
+    scriptTemplate: (params) => {
+      const splunkUrl = escapePowerShellString(params.splunkUrl);
+      const action = params.action;
+      const appName = escapePowerShellString(params.appName);
+      const appFile = escapePowerShellString(params.appFile || '');
+      
+      return `# Splunk Manage Apps and Add-ons
+# Generated: ${new Date().toISOString()}
+
+$SplunkUrl = "${splunkUrl}"
+$Credential = Get-Credential -Message "Enter Splunk admin credentials"
+
+$Headers = @{
+    "Authorization" = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$($Credential.UserName):$($Credential.GetNetworkCredential().Password)"))
+}
+
+try {
+    ${action === 'Install' ? `
+    # Install app from file
+    if (![string]::IsNullOrEmpty("${appFile}")) {
+        if (!(Test-Path "${appFile}")) {
+            throw "App file not found: ${appFile}"
+        }
+        
+        $Uri = "$SplunkUrl/services/apps/local"
+        $FileBytes = [System.IO.File]::ReadAllBytes("${appFile}")
+        $FileContent = [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetString($FileBytes)
+        
+        $Boundary = [System.Guid]::NewGuid().ToString()
+        $BodyLines = @(
+            "--$Boundary",
+            "Content-Disposition: form-data; name=\`"appfile\`"; filename=\`"$(Split-Path "${appFile}" -Leaf)\`"",
+            "Content-Type: application/octet-stream",
+            "",
+            $FileContent,
+            "--$Boundary--"
+        )
+        
+        $Body = $BodyLines -join "\`r\`n"
+        $ContentType = "multipart/form-data; boundary=$Boundary"
+        
+        Invoke-RestMethod -Uri $Uri -Method Post -Headers @{
+            "Authorization" = $Headers["Authorization"]
+            "Content-Type" = $ContentType
+        } -Body $Body -SkipCertificateCheck
+        
+        Write-Host "✓ App installed from file: ${appFile}" -ForegroundColor Green
+    } else {
+        throw "App file path required for installation"
+    }
+    ` : action === 'Update' ? `
+    # Update existing app
+    $Uri = "$SplunkUrl/services/apps/local/${appName}/update"
+    $Body = @{
+        update = 1
+    }
+    
+    Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
+    Write-Host "✓ App updated: ${appName}" -ForegroundColor Green
+    ` : action === 'Enable' ? `
+    # Enable app
+    $Uri = "$SplunkUrl/services/apps/local/${appName}"
+    $Body = @{
+        disabled = 0
+    }
+    
+    Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
+    Write-Host "✓ App enabled: ${appName}" -ForegroundColor Green
+    ` : action === 'Disable' ? `
+    # Disable app
+    $Uri = "$SplunkUrl/services/apps/local/${appName}"
+    $Body = @{
+        disabled = 1
+    }
+    
+    Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
+    Write-Host "✓ App disabled: ${appName}" -ForegroundColor Green
+    ` : `
+    # Uninstall app
+    $Confirm = Read-Host "Are you sure you want to uninstall ${appName}? Type 'UNINSTALL' to confirm"
+    
+    if ($Confirm -eq 'UNINSTALL') {
+        $Uri = "$SplunkUrl/services/apps/local/${appName}"
+        Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers -SkipCertificateCheck
+        Write-Host "✓ App uninstalled: ${appName}" -ForegroundColor Green
+    } else {
+        Write-Host "Uninstall cancelled" -ForegroundColor Yellow
+    }
+    `}
+    
+    Write-Host ""
+    Write-Host "Note: Splunk may require a restart for changes to take effect" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "App management failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

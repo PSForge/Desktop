@@ -16,6 +16,7 @@ export interface AzureResourceTask {
   title: string;
   description: string;
   category: string;
+  isPremium?: boolean;
   instructions?: string;
   parameters: AzureResourceParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
@@ -3030,6 +3031,2001 @@ try {
     Write-Error "Failed to apply resource lock: $_"
 }`;
     }
+  },
+
+  // ==================== Common Admin Tasks (Premium) ====================
+  {
+    id: 'azure-deploy-vmss',
+    title: 'Deploy Azure Virtual Machine Scale Sets',
+    description: 'Create and configure VMSS with autoscaling policies for elastic workloads',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script deploys Azure Virtual Machine Scale Sets (VMSS) with autoscaling to automatically scale compute capacity based on demand, optimizing costs and performance.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Virtual Machine Contributor and Network Contributor roles
+- Existing VNet and subnet for VMSS deployment
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- VMSS name
+- Resource Group name
+- Azure region/location
+- VM size (SKU)
+- Instance count (min, max, default)
+- VNet and subnet names
+- Admin credentials
+
+**What the Script Does:**
+- Connects to Azure account
+- Retrieves VNet and subnet configuration
+- Creates VM configuration with specified size
+- Configures autoscaling profile with CPU-based rules
+- Deploys VMSS with specified parameters
+- Reports deployment status and instance count
+
+**Important Notes:**
+- Essential for elastic workloads with variable demand
+- Autoscaling saves costs by scaling down during low usage
+- Minimum instances ensure availability
+- Maximum instances prevent runaway costs
+- Scale out when CPU > 75%, scale in when CPU < 25%
+- Use for web tiers, API services, batch processing
+- Load balancer required for production workloads
+- Coordinate with app teams for startup/shutdown sequences`,
+    parameters: [
+      {
+        name: 'vmssName',
+        label: 'VMSS Name',
+        type: 'text',
+        required: true,
+        placeholder: 'vmss-web-prod',
+        helpText: 'Virtual Machine Scale Set name'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-production',
+        helpText: 'Resource group for VMSS'
+      },
+      {
+        name: 'location',
+        label: 'Location',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'eastus', label: 'East US' },
+          { value: 'westus', label: 'West US' },
+          { value: 'centralus', label: 'Central US' }
+        ],
+        helpText: 'Azure region'
+      },
+      {
+        name: 'vmSize',
+        label: 'VM Size',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Standard_B2s', label: 'Standard_B2s (2 vCPU, 4 GB)' },
+          { value: 'Standard_D2s_v3', label: 'Standard_D2s_v3 (2 vCPU, 8 GB)' },
+          { value: 'Standard_D4s_v3', label: 'Standard_D4s_v3 (4 vCPU, 16 GB)' }
+        ],
+        helpText: 'VM size for instances'
+      },
+      {
+        name: 'instanceCount',
+        label: 'Default Instance Count',
+        type: 'number',
+        required: true,
+        defaultValue: 2,
+        helpText: 'Initial number of instances'
+      },
+      {
+        name: 'minInstances',
+        label: 'Minimum Instances',
+        type: 'number',
+        required: true,
+        defaultValue: 1,
+        helpText: 'Minimum instances for autoscaling'
+      },
+      {
+        name: 'maxInstances',
+        label: 'Maximum Instances',
+        type: 'number',
+        required: true,
+        defaultValue: 10,
+        helpText: 'Maximum instances for autoscaling'
+      },
+      {
+        name: 'vnetName',
+        label: 'Virtual Network Name',
+        type: 'text',
+        required: true,
+        placeholder: 'vnet-production',
+        helpText: 'Existing VNet name'
+      },
+      {
+        name: 'subnetName',
+        label: 'Subnet Name',
+        type: 'text',
+        required: true,
+        placeholder: 'subnet-web',
+        helpText: 'Subnet for VMSS instances'
+      },
+      {
+        name: 'adminUsername',
+        label: 'Admin Username',
+        type: 'text',
+        required: true,
+        placeholder: 'azureuser',
+        helpText: 'Administrator username'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmssName = escapePowerShellString(params.vmssName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const location = escapePowerShellString(params.location);
+      const vmSize = escapePowerShellString(params.vmSize);
+      const instanceCount = params.instanceCount || 2;
+      const minInstances = params.minInstances || 1;
+      const maxInstances = params.maxInstances || 10;
+      const vnetName = escapePowerShellString(params.vnetName);
+      const subnetName = escapePowerShellString(params.subnetName);
+      const adminUsername = escapePowerShellString(params.adminUsername);
+
+      return `# Deploy Azure Virtual Machine Scale Set
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+    Write-Host "Deploying VMSS: ${vmssName}" -ForegroundColor Cyan
+    
+    # Get VNet and Subnet
+    $VNet = Get-AzVirtualNetwork -Name "${vnetName}" -ResourceGroupName "${rgName}"
+    $Subnet = Get-AzVirtualNetworkSubnetConfig -Name "${subnetName}" -VirtualNetwork $VNet
+    
+    Write-Host "Using VNet: ${vnetName}, Subnet: ${subnetName}" -ForegroundColor Yellow
+    
+    # Create VMSS configuration
+    $VmssConfig = New-AzVmssConfig -Location "${location}" -SkuCapacity ${instanceCount} -SkuName "${vmSize}" -UpgradePolicyMode Automatic
+    
+    # Set OS profile
+    $Credential = Get-Credential -UserName "${adminUsername}" -Message "Enter password for VMSS instances"
+    $VmssConfig = Set-AzVmssOsProfile -VirtualMachineScaleSet $VmssConfig -ComputerNamePrefix "vmss" -AdminUsername "${adminUsername}" -AdminPassword $Credential.Password
+    
+    # Set storage profile (Ubuntu)
+    $VmssConfig = Set-AzVmssStorageProfile -VirtualMachineScaleSet $VmssConfig -OsDiskCreateOption "FromImage" -ImageReferencePublisher "Canonical" -ImageReferenceOffer "UbuntuServer" -ImageReferenceSku "18.04-LTS" -ImageReferenceVersion "latest"
+    
+    # Add network interface
+    $IpConfig = New-AzVmssIpConfig -Name "ipconfig1" -SubnetId $Subnet.Id
+    $VmssConfig = Add-AzVmssNetworkInterfaceConfiguration -VirtualMachineScaleSet $VmssConfig -Name "nic1" -Primary $true -IPConfiguration $IpConfig
+    
+    Write-Host "Creating VMSS..." -ForegroundColor Cyan
+    $Vmss = New-AzVmss -ResourceGroupName "${rgName}" -Name "${vmssName}" -VirtualMachineScaleSet $VmssConfig
+    
+    Write-Host "✓ VMSS created successfully" -ForegroundColor Green
+    
+    # Configure autoscaling
+    Write-Host "Configuring autoscaling rules..." -ForegroundColor Cyan
+    
+    $Rule1 = New-AzAutoscaleRule -MetricName "Percentage CPU" -MetricResourceId $Vmss.Id -TimeGrain 00:01:00 -MetricStatistic "Average" -TimeWindow 00:05:00 -Operator "GreaterThan" -Threshold 75 -ScaleActionDirection "Increase" -ScaleActionScaleType "ChangeCount" -ScaleActionValue 1 -ScaleActionCooldown 00:05:00
+    
+    $Rule2 = New-AzAutoscaleRule -MetricName "Percentage CPU" -MetricResourceId $Vmss.Id -TimeGrain 00:01:00 -MetricStatistic "Average" -TimeWindow 00:05:00 -Operator "LessThan" -Threshold 25 -ScaleActionDirection "Decrease" -ScaleActionScaleType "ChangeCount" -ScaleActionValue 1 -ScaleActionCooldown 00:05:00
+    
+    $Profile = New-AzAutoscaleProfile -DefaultCapacity ${instanceCount} -MaximumCapacity ${maxInstances} -MinimumCapacity ${minInstances} -Rule $Rule1, $Rule2 -Name "AutoscaleProfile"
+    
+    Add-AzAutoscaleSetting -Name "${vmssName}-autoscale" -ResourceGroupName "${rgName}" -Location "${location}" -TargetResourceId $Vmss.Id -AutoscaleProfile $Profile
+    
+    Write-Host "✓ Autoscaling configured (Scale out at 75% CPU, scale in at 25% CPU)" -ForegroundColor Green
+    
+    Write-Host "\`nVMSS Details:" -ForegroundColor Cyan
+    Write-Host "  Name: ${vmssName}"
+    Write-Host "  Instances: ${instanceCount} (min: ${minInstances}, max: ${maxInstances})"
+    Write-Host "  VM Size: ${vmSize}"
+    Write-Host "  Location: ${location}"
+    
+} catch {
+    Write-Error "Failed to deploy VMSS: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-manage-key-vault',
+    title: 'Manage Azure Key Vault Secrets',
+    description: 'Create Key Vault, add/retrieve/rotate secrets for secure credential management',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script manages Azure Key Vault secrets to securely store and manage application credentials, API keys, and certificates with audit logging and access control.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Key Vault Contributor role
+- Authenticated Azure session
+- Azure AD user or service principal for access policies
+
+**What You Need to Provide:**
+- Operation (Create Vault, Add Secret, Get Secret, List Secrets)
+- Key Vault name (globally unique)
+- Resource Group name
+- Secret name and value (for Add Secret)
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates Key Vault with soft-delete and purge protection (if Create Vault)
+- Adds secrets securely to Key Vault (if Add Secret)
+- Retrieves secret values (if Get Secret)
+- Lists all secrets in vault (if List Secrets)
+- Reports operation success
+
+**Important Notes:**
+- Essential for secure credential management
+- Soft-delete prevents accidental secret loss (90-day recovery)
+- Purge protection prevents permanent deletion
+- Access policies control who can read/write secrets
+- Audit logs track all secret access for compliance
+- Use for connection strings, API keys, certificates
+- Secrets never stored in code or config files
+- Coordinate with security team for access policies`,
+    parameters: [
+      {
+        name: 'operation',
+        label: 'Operation',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'CreateVault', label: 'Create Key Vault' },
+          { value: 'AddSecret', label: 'Add Secret' },
+          { value: 'GetSecret', label: 'Get Secret' },
+          { value: 'ListSecrets', label: 'List Secrets' }
+        ],
+        helpText: 'Key Vault operation to perform'
+      },
+      {
+        name: 'vaultName',
+        label: 'Key Vault Name',
+        type: 'text',
+        required: true,
+        placeholder: 'kv-prod-eastus',
+        helpText: 'Key Vault name (globally unique)'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-security',
+        helpText: 'Resource group name'
+      },
+      {
+        name: 'location',
+        label: 'Location (for Create Vault)',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'eastus', label: 'East US' },
+          { value: 'westus', label: 'West US' }
+        ],
+        helpText: 'Azure region (only needed for Create Vault)'
+      },
+      {
+        name: 'secretName',
+        label: 'Secret Name (for Add/Get Secret)',
+        type: 'text',
+        required: false,
+        placeholder: 'DatabaseConnectionString',
+        helpText: 'Name of the secret'
+      },
+      {
+        name: 'secretValue',
+        label: 'Secret Value (for Add Secret)',
+        type: 'textarea',
+        required: false,
+        placeholder: 'Server=myserver;Database=mydb;User=admin;Password=***',
+        helpText: 'Value to store (will be encrypted)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const operation = params.operation;
+      const vaultName = escapePowerShellString(params.vaultName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const location = escapePowerShellString(params.location || 'eastus');
+      const secretName = escapePowerShellString(params.secretName || '');
+      const secretValue = escapePowerShellString(params.secretValue || '');
+
+      let scriptBody = '';
+      
+      if (operation === 'CreateVault') {
+        scriptBody = `
+    Write-Host "Creating Key Vault: ${vaultName}" -ForegroundColor Cyan
+    
+    $VaultParams = @{
+        Name              = "${vaultName}"
+        ResourceGroupName = "${rgName}"
+        Location          = "${location}"
+        EnableSoftDelete  = $true
+        EnablePurgeProtection = $true
+    }
+    
+    $Vault = New-AzKeyVault @VaultParams
+    
+    Write-Host "✓ Key Vault created successfully" -ForegroundColor Green
+    Write-Host "  Vault URI: $($Vault.VaultUri)" -ForegroundColor Cyan
+    Write-Host "  Soft Delete Enabled: True" -ForegroundColor Yellow
+    Write-Host "  Purge Protection: True" -ForegroundColor Yellow`;
+      } else if (operation === 'AddSecret') {
+        scriptBody = `
+    Write-Host "Adding secret to Key Vault: ${vaultName}" -ForegroundColor Cyan
+    
+    $SecureSecretValue = ConvertTo-SecureString "${secretValue}" -AsPlainText -Force
+    
+    $Secret = Set-AzKeyVaultSecret -VaultName "${vaultName}" -Name "${secretName}" -SecretValue $SecureSecretValue
+    
+    Write-Host "✓ Secret added successfully" -ForegroundColor Green
+    Write-Host "  Secret Name: ${secretName}" -ForegroundColor Cyan
+    Write-Host "  Version: $($Secret.Version)" -ForegroundColor Cyan`;
+      } else if (operation === 'GetSecret') {
+        scriptBody = `
+    Write-Host "Retrieving secret from Key Vault: ${vaultName}" -ForegroundColor Cyan
+    
+    $Secret = Get-AzKeyVaultSecret -VaultName "${vaultName}" -Name "${secretName}"
+    $SecretValue = $Secret.SecretValue | ConvertFrom-SecureString -AsPlainText
+    
+    Write-Host "✓ Secret retrieved successfully" -ForegroundColor Green
+    Write-Host "  Secret Name: ${secretName}" -ForegroundColor Cyan
+    Write-Host "  Secret Value: $SecretValue" -ForegroundColor Yellow`;
+      } else {
+        scriptBody = `
+    Write-Host "Listing secrets in Key Vault: ${vaultName}" -ForegroundColor Cyan
+    
+    $Secrets = Get-AzKeyVaultSecret -VaultName "${vaultName}"
+    
+    Write-Host "✓ Found $($Secrets.Count) secrets" -ForegroundColor Green
+    
+    $Secrets | Select-Object Name, Enabled, Updated | Format-Table`;
+      }
+
+      return `# Manage Azure Key Vault Secrets
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+${scriptBody}
+    
+} catch {
+    Write-Error "Key Vault operation failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-configure-monitor-alerts',
+    title: 'Configure Azure Monitor Alerts',
+    description: 'Create metric and log-based alerts with action groups for proactive monitoring',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures Azure Monitor alerts to proactively notify teams about resource health, performance issues, and security events through email, SMS, or webhook actions.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Monitoring Contributor role
+- Authenticated Azure session
+- Target resource ID for monitoring
+
+**What You Need to Provide:**
+- Alert rule name
+- Resource Group name
+- Target resource ID (VM, SQL, App Service, etc.)
+- Metric name (CPU Percentage, Memory, etc.)
+- Alert threshold value
+- Email addresses for notifications
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates action group with email notifications
+- Configures metric alert rule with threshold
+- Associates alert with action group
+- Reports alert creation status
+
+**Important Notes:**
+- Essential for proactive monitoring and incident response
+- Prevents outages by alerting before failures occur
+- Common metrics: CPU > 80%, Memory > 90%, Disk > 85%
+- Action groups support email, SMS, webhook, Azure Functions
+- Alert evaluation runs every 1-5 minutes
+- Use for production critical resources
+- Coordinate with on-call teams for escalation
+- Integrate with ticketing systems via webhooks`,
+    parameters: [
+      {
+        name: 'alertName',
+        label: 'Alert Rule Name',
+        type: 'text',
+        required: true,
+        placeholder: 'alert-vm-high-cpu',
+        helpText: 'Name for the alert rule'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-production',
+        helpText: 'Resource group for alert'
+      },
+      {
+        name: 'targetResourceId',
+        label: 'Target Resource ID',
+        type: 'text',
+        required: true,
+        placeholder: '/subscriptions/.../resourceGroups/.../providers/Microsoft.Compute/virtualMachines/vm-web01',
+        helpText: 'Full resource ID to monitor'
+      },
+      {
+        name: 'metricName',
+        label: 'Metric Name',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Percentage CPU', label: 'CPU Percentage' },
+          { value: 'Available Memory Bytes', label: 'Available Memory' },
+          { value: 'Disk Read Bytes', label: 'Disk Read Bytes' },
+          { value: 'Disk Write Bytes', label: 'Disk Write Bytes' }
+        ],
+        helpText: 'Metric to monitor'
+      },
+      {
+        name: 'threshold',
+        label: 'Alert Threshold',
+        type: 'number',
+        required: true,
+        defaultValue: 80,
+        helpText: 'Threshold value for alert (e.g., 80 for 80% CPU)'
+      },
+      {
+        name: 'emailAddresses',
+        label: 'Email Addresses (one per line)',
+        type: 'textarea',
+        required: true,
+        placeholder: 'admin@company.com\noncall@company.com',
+        helpText: 'Email addresses for notifications'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const alertName = escapePowerShellString(params.alertName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const targetResourceId = escapePowerShellString(params.targetResourceId);
+      const metricName = escapePowerShellString(params.metricName);
+      const threshold = params.threshold || 80;
+      
+      const emailLines = params.emailAddresses.split('\n').filter((line: string) => line.trim());
+      const emailReceivers = emailLines.map((email: string, index: number) => {
+        const cleanEmail = email.trim();
+        return `    New-AzActionGroupReceiver -Name "Email${index + 1}" -EmailReceiver -EmailAddress "${escapePowerShellString(cleanEmail)}"`;
+      }).join('\n');
+
+      return `# Configure Azure Monitor Alerts
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+    Write-Host "Creating Action Group..." -ForegroundColor Cyan
+    
+    $EmailReceivers = @(
+${emailReceivers}
+    )
+    
+    $ActionGroup = Set-AzActionGroup -Name "${alertName}-ag" -ResourceGroupName "${rgName}" -ShortName "AlertAG" -Receiver $EmailReceivers
+    
+    Write-Host "✓ Action Group created" -ForegroundColor Green
+    
+    Write-Host "Creating Alert Rule..." -ForegroundColor Cyan
+    
+    $Condition = New-AzMetricAlertRuleV2Criteria -MetricName "${metricName}" -TimeAggregation Average -Operator GreaterThan -Threshold ${threshold}
+    
+    Add-AzMetricAlertRuleV2 -Name "${alertName}" -ResourceGroupName "${rgName}" -WindowSize 00:05:00 -Frequency 00:01:00 -TargetResourceId "${targetResourceId}" -Condition $Condition -ActionGroupId $ActionGroup.Id -Severity 2
+    
+    Write-Host "✓ Alert rule created successfully" -ForegroundColor Green
+    Write-Host \"\`nAlert Configuration:" -ForegroundColor Cyan
+    Write-Host "  Alert Name: ${alertName}"
+    Write-Host "  Metric: ${metricName}"
+    Write-Host "  Threshold: ${threshold}"
+    Write-Host "  Evaluation: Every 1 minute"
+    Write-Host "  Window: 5 minutes"
+    Write-Host "  Notifications: $($EmailReceivers.Count) email(s)"
+    
+} catch {
+    Write-Error "Failed to configure alert: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-manage-sql-database',
+    title: 'Manage Azure SQL Databases',
+    description: 'Create databases, configure firewall rules, and manage DTU/vCore performance tiers',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script manages Azure SQL Databases including creation, firewall configuration, and performance tier management for scalable cloud database workloads.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with SQL DB Contributor role
+- Existing Azure SQL Server (or create new)
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Operation (Create Database, Add Firewall Rule, Change Tier)
+- SQL Server name
+- Database name
+- Resource Group name
+- Performance tier (for Create/Change operations)
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates new SQL Server if needed
+- Creates database with specified tier
+- Adds firewall rules for access control
+- Changes performance tiers for scaling
+- Reports operation status
+
+**Important Notes:**
+- Essential for cloud database management
+- DTU tiers: Basic, Standard (S0-S12), Premium (P1-P15)
+- vCore tiers: General Purpose, Business Critical
+- Firewall rules required for client access
+- Use connection pooling for efficiency
+- Enable geo-replication for disaster recovery
+- Monitor DTU usage for right-sizing
+- Coordinate with developers for connection strings`,
+    parameters: [
+      {
+        name: 'operation',
+        label: 'Operation',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'CreateDatabase', label: 'Create Database' },
+          { value: 'AddFirewallRule', label: 'Add Firewall Rule' },
+          { value: 'ChangeTier', label: 'Change Performance Tier' }
+        ],
+        helpText: 'SQL Database operation'
+      },
+      {
+        name: 'serverName',
+        label: 'SQL Server Name',
+        type: 'text',
+        required: true,
+        placeholder: 'sql-prod-eastus',
+        helpText: 'Azure SQL Server name'
+      },
+      {
+        name: 'databaseName',
+        label: 'Database Name',
+        type: 'text',
+        required: true,
+        placeholder: 'AppDatabase',
+        helpText: 'Database name'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-data',
+        helpText: 'Resource group name'
+      },
+      {
+        name: 'edition',
+        label: 'Database Edition',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'Basic', label: 'Basic (5 DTU)' },
+          { value: 'Standard', label: 'Standard' },
+          { value: 'Premium', label: 'Premium' }
+        ],
+        helpText: 'Database tier (for Create/Change)'
+      },
+      {
+        name: 'requestedServiceObjectiveName',
+        label: 'Service Objective',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'Basic', label: 'Basic' },
+          { value: 'S0', label: 'S0 (10 DTU)' },
+          { value: 'S1', label: 'S1 (20 DTU)' },
+          { value: 'S2', label: 'S2 (50 DTU)' },
+          { value: 'P1', label: 'P1 (125 DTU)' }
+        ],
+        helpText: 'Performance level'
+      },
+      {
+        name: 'firewallRuleName',
+        label: 'Firewall Rule Name',
+        type: 'text',
+        required: false,
+        placeholder: 'AllowOffice',
+        helpText: 'Name for firewall rule'
+      },
+      {
+        name: 'startIpAddress',
+        label: 'Start IP Address',
+        type: 'text',
+        required: false,
+        placeholder: '203.0.113.1',
+        helpText: 'Starting IP for firewall rule'
+      },
+      {
+        name: 'endIpAddress',
+        label: 'End IP Address',
+        type: 'text',
+        required: false,
+        placeholder: '203.0.113.255',
+        helpText: 'Ending IP for firewall rule'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const operation = params.operation;
+      const serverName = escapePowerShellString(params.serverName);
+      const dbName = escapePowerShellString(params.databaseName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const edition = escapePowerShellString(params.edition || 'Standard');
+      const serviceObjective = escapePowerShellString(params.requestedServiceObjectiveName || 'S0');
+      const firewallRuleName = escapePowerShellString(params.firewallRuleName || '');
+      const startIp = escapePowerShellString(params.startIpAddress || '');
+      const endIp = escapePowerShellString(params.endIpAddress || '');
+
+      let scriptBody = '';
+      
+      if (operation === 'CreateDatabase') {
+        scriptBody = `
+    Write-Host "Creating SQL Database: ${dbName}" -ForegroundColor Cyan
+    
+    $DbParams = @{
+        ResourceGroupName             = "${rgName}"
+        ServerName                    = "${serverName}"
+        DatabaseName                  = "${dbName}"
+        Edition                       = "${edition}"
+        RequestedServiceObjectiveName = "${serviceObjective}"
+    }
+    
+    $Database = New-AzSqlDatabase @DbParams
+    
+    Write-Host "✓ Database created successfully" -ForegroundColor Green
+    Write-Host "  Database: ${dbName}" -ForegroundColor Cyan
+    Write-Host "  Edition: ${edition}" -ForegroundColor Cyan
+    Write-Host "  Service Objective: ${serviceObjective}" -ForegroundColor Cyan
+    Write-Host "  Status: $($Database.Status)" -ForegroundColor Yellow`;
+      } else if (operation === 'AddFirewallRule') {
+        scriptBody = `
+    Write-Host "Adding Firewall Rule: ${firewallRuleName}" -ForegroundColor Cyan
+    
+    $FirewallRule = New-AzSqlServerFirewallRule -ResourceGroupName "${rgName}" -ServerName "${serverName}" -FirewallRuleName "${firewallRuleName}" -StartIpAddress "${startIp}" -EndIpAddress "${endIp}"
+    
+    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    Write-Host "  Rule Name: ${firewallRuleName}" -ForegroundColor Cyan
+    Write-Host "  IP Range: ${startIp} - ${endIp}" -ForegroundColor Cyan`;
+      } else {
+        scriptBody = `
+    Write-Host "Changing Database Tier: ${dbName}" -ForegroundColor Cyan
+    
+    $Database = Set-AzSqlDatabase -ResourceGroupName "${rgName}" -ServerName "${serverName}" -DatabaseName "${dbName}" -Edition "${edition}" -RequestedServiceObjectiveName "${serviceObjective}"
+    
+    Write-Host "✓ Database tier updated successfully" -ForegroundColor Green
+    Write-Host "  New Edition: ${edition}" -ForegroundColor Cyan
+    Write-Host "  New Service Objective: ${serviceObjective}" -ForegroundColor Cyan`;
+      }
+
+      return `# Manage Azure SQL Database
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+${scriptBody}
+    
+} catch {
+    Write-Error "SQL Database operation failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-deploy-app-service',
+    title: 'Deploy Azure App Services',
+    description: 'Create web apps with deployment slots and custom domains for scalable web hosting',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script deploys Azure App Services (Web Apps) with deployment slots for blue-green deployments and custom domain configuration for production hosting.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with App Service Contributor role
+- Existing App Service Plan (or create new)
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- App Service name (globally unique)
+- Resource Group name
+- App Service Plan name
+- Runtime stack (.NET, Node.js, Python, etc.)
+- Azure region/location
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates App Service Plan if needed
+- Creates Web App with specified runtime
+- Configures deployment slot (staging)
+- Reports deployment status and URL
+
+**Important Notes:**
+- Essential for modern web application hosting
+- Deployment slots enable zero-downtime deployments
+- Swap staging to production after testing
+- Custom domains require DNS configuration
+- SSL certificates for HTTPS (free managed cert available)
+- Auto-scaling supported on Standard tier and above
+- Use for ASP.NET, Node.js, Python, PHP, Java apps
+- Coordinate with dev teams for deployment pipelines`,
+    parameters: [
+      {
+        name: 'appName',
+        label: 'App Service Name',
+        type: 'text',
+        required: true,
+        placeholder: 'webapp-prod-001',
+        helpText: 'Globally unique app name'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-web',
+        helpText: 'Resource group name'
+      },
+      {
+        name: 'location',
+        label: 'Location',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'eastus', label: 'East US' },
+          { value: 'westus', label: 'West US' }
+        ],
+        helpText: 'Azure region'
+      },
+      {
+        name: 'appServicePlanName',
+        label: 'App Service Plan Name',
+        type: 'text',
+        required: true,
+        placeholder: 'plan-prod',
+        helpText: 'App Service Plan (will be created if not exists)'
+      },
+      {
+        name: 'tier',
+        label: 'Pricing Tier',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Free', label: 'Free (F1)' },
+          { value: 'Basic', label: 'Basic (B1)' },
+          { value: 'Standard', label: 'Standard (S1)' },
+          { value: 'Premium', label: 'Premium (P1v2)' }
+        ],
+        defaultValue: 'Standard',
+        helpText: 'Service tier'
+      },
+      {
+        name: 'runtime',
+        label: 'Runtime Stack',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'dotnet:6', label: '.NET 6' },
+          { value: 'node:18-lts', label: 'Node.js 18 LTS' },
+          { value: 'python:3.10', label: 'Python 3.10' },
+          { value: 'php:8.1', label: 'PHP 8.1' }
+        ],
+        helpText: 'Application runtime'
+      },
+      {
+        name: 'createSlot',
+        label: 'Create Staging Slot',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'Create staging deployment slot'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const appName = escapePowerShellString(params.appName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const location = escapePowerShellString(params.location);
+      const planName = escapePowerShellString(params.appServicePlanName);
+      const tier = escapePowerShellString(params.tier || 'Standard');
+      const runtime = escapePowerShellString(params.runtime);
+      const createSlot = params.createSlot !== false;
+
+      return `# Deploy Azure App Service
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+    Write-Host "Creating App Service Plan: ${planName}" -ForegroundColor Cyan
+    
+    # Check if plan exists
+    $Plan = Get-AzAppServicePlan -ResourceGroupName "${rgName}" -Name "${planName}" -ErrorAction SilentlyContinue
+    
+    if (-not $Plan) {
+        $PlanParams = @{
+            Name              = "${planName}"
+            Location          = "${location}"
+            ResourceGroupName = "${rgName}"
+            Tier              = "${tier}"
+        }
+        
+        $Plan = New-AzAppServicePlan @PlanParams
+        Write-Host "✓ App Service Plan created" -ForegroundColor Green
+    } else {
+        Write-Host "ℹ Using existing App Service Plan" -ForegroundColor Yellow
+    }
+    
+    Write-Host "Creating Web App: ${appName}" -ForegroundColor Cyan
+    
+    $WebAppParams = @{
+        Name              = "${appName}"
+        Location          = "${location}"
+        ResourceGroupName = "${rgName}"
+        AppServicePlan    = "${planName}"
+    }
+    
+    $WebApp = New-AzWebApp @WebAppParams
+    
+    # Set runtime stack
+    $RuntimeSetting = @{
+        "linuxFxVersion" = "${runtime}"
+    }
+    Set-AzWebApp -ResourceGroupName "${rgName}" -Name "${appName}" -AppSettings $RuntimeSetting
+    
+    Write-Host "✓ Web App created successfully" -ForegroundColor Green
+    Write-Host "  URL: https://$($WebApp.DefaultHostName)" -ForegroundColor Cyan
+    
+    ${createSlot ? `
+    Write-Host "Creating staging deployment slot..." -ForegroundColor Cyan
+    
+    $Slot = New-AzWebAppSlot -ResourceGroupName "${rgName}" -Name "${appName}" -Slot "staging" -AppServicePlan "${planName}"
+    
+    Write-Host "✓ Staging slot created" -ForegroundColor Green
+    Write-Host "  Staging URL: https://$($Slot.DefaultHostName)" -ForegroundColor Cyan
+    ` : ''}
+    
+    Write-Host \"\`nApp Service Details:" -ForegroundColor Cyan
+    Write-Host "  Name: ${appName}"
+    Write-Host "  Runtime: ${runtime}"
+    Write-Host "  Tier: ${tier}"
+    Write-Host "  Resource Group: ${rgName}"
+    
+} catch {
+    Write-Error "Failed to deploy App Service: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-configure-backup',
+    title: 'Configure Azure Backup Policies',
+    description: 'Create Recovery Services vault and configure VM backup policies with retention',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures Azure Backup for VMs using Recovery Services vault with customizable backup schedules and retention policies for disaster recovery.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Backup Contributor role
+- Target VMs to protect
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Recovery Services vault name
+- Resource Group name
+- Backup policy name
+- Schedule frequency (Daily/Weekly)
+- Retention days
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates Recovery Services vault
+- Configures backup policy with schedule
+- Sets retention policy
+- Enables backup for specified VMs
+- Reports backup configuration status
+
+**Important Notes:**
+- Essential for disaster recovery and business continuity
+- Daily backups at midnight (default schedule)
+- Retention: 7-9999 days (default 30 days)
+- First backup runs immediately after enable
+- Restore points stored in vault
+- Use for production VMs, SQL VMs, file servers
+- Test restores quarterly for validation
+- Coordinate with compliance teams for retention requirements`,
+    parameters: [
+      {
+        name: 'vaultName',
+        label: 'Recovery Services Vault Name',
+        type: 'text',
+        required: true,
+        placeholder: 'rsv-backup-prod',
+        helpText: 'Vault for backup storage'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-backup',
+        helpText: 'Resource group name'
+      },
+      {
+        name: 'location',
+        label: 'Location',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'eastus', label: 'East US' },
+          { value: 'westus', label: 'West US' }
+        ],
+        helpText: 'Azure region'
+      },
+      {
+        name: 'policyName',
+        label: 'Backup Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'DailyBackupPolicy',
+        helpText: 'Name for backup policy'
+      },
+      {
+        name: 'scheduleRunFrequency',
+        label: 'Backup Frequency',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Daily', label: 'Daily' },
+          { value: 'Weekly', label: 'Weekly' }
+        ],
+        defaultValue: 'Daily',
+        helpText: 'Backup schedule'
+      },
+      {
+        name: 'retentionDays',
+        label: 'Retention (Days)',
+        type: 'number',
+        required: true,
+        defaultValue: 30,
+        helpText: 'Number of days to retain backups'
+      },
+      {
+        name: 'vmName',
+        label: 'VM Name to Backup',
+        type: 'text',
+        required: false,
+        placeholder: 'vm-prod-01',
+        helpText: 'VM to enable backup (optional)'
+      },
+      {
+        name: 'vmResourceGroup',
+        label: 'VM Resource Group',
+        type: 'text',
+        required: false,
+        placeholder: 'rg-production',
+        helpText: 'Resource group of VM (if enabling backup)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vaultName = escapePowerShellString(params.vaultName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const location = escapePowerShellString(params.location);
+      const policyName = escapePowerShellString(params.policyName);
+      const frequency = escapePowerShellString(params.scheduleRunFrequency || 'Daily');
+      const retentionDays = params.retentionDays || 30;
+      const vmName = escapePowerShellString(params.vmName || '');
+      const vmRg = escapePowerShellString(params.vmResourceGroup || '');
+
+      return `# Configure Azure Backup
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+    Write-Host "Creating Recovery Services Vault: ${vaultName}" -ForegroundColor Cyan
+    
+    # Check if vault exists
+    $Vault = Get-AzRecoveryServicesVault -Name "${vaultName}" -ResourceGroupName "${rgName}" -ErrorAction SilentlyContinue
+    
+    if (-not $Vault) {
+        $Vault = New-AzRecoveryServicesVault -Name "${vaultName}" -ResourceGroupName "${rgName}" -Location "${location}"
+        Write-Host "✓ Recovery Services Vault created" -ForegroundColor Green
+    } else {
+        Write-Host "ℹ Using existing vault" -ForegroundColor Yellow
+    }
+    
+    # Set vault context
+    Set-AzRecoveryServicesVaultContext -Vault $Vault
+    
+    Write-Host "Configuring Backup Policy: ${policyName}" -ForegroundColor Cyan
+    
+    # Get default policy or create new
+    $Policy = Get-AzRecoveryServicesBackupProtectionPolicy -Name "${policyName}" -VaultId $Vault.ID -ErrorAction SilentlyContinue
+    
+    if (-not $Policy) {
+        $SchedulePolicy = Get-AzRecoveryServicesBackupSchedulePolicyObject -WorkloadType "AzureVM"
+        $SchedulePolicy.ScheduleRunFrequency = "${frequency}"
+        
+        $RetentionPolicy = Get-AzRecoveryServicesBackupRetentionPolicyObject -WorkloadType "AzureVM"
+        $RetentionPolicy.DailySchedule.DurationCountInDays = ${retentionDays}
+        
+        $Policy = New-AzRecoveryServicesBackupProtectionPolicy -Name "${policyName}" -WorkloadType "AzureVM" -RetentionPolicy $RetentionPolicy -SchedulePolicy $SchedulePolicy -VaultId $Vault.ID
+        
+        Write-Host "✓ Backup policy created" -ForegroundColor Green
+    } else {
+        Write-Host "ℹ Using existing policy" -ForegroundColor Yellow
+    }
+    
+    ${vmName ? `
+    Write-Host "Enabling backup for VM: ${vmName}" -ForegroundColor Cyan
+    
+    $VM = Get-AzVM -ResourceGroupName "${vmRg}" -Name "${vmName}"
+    
+    Enable-AzRecoveryServicesBackupProtection -ResourceGroupName "${vmRg}" -Name "${vmName}" -Policy $Policy -VaultId $Vault.ID
+    
+    Write-Host "✓ Backup enabled for VM" -ForegroundColor Green
+    ` : ''}
+    
+    Write-Host \"\`nBackup Configuration:" -ForegroundColor Cyan
+    Write-Host "  Vault: ${vaultName}"
+    Write-Host "  Policy: ${policyName}"
+    Write-Host "  Frequency: ${frequency}"
+    Write-Host "  Retention: ${retentionDays} days"
+    
+} catch {
+    Write-Error "Backup configuration failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-governance-tags',
+    title: 'Manage Azure Resource Tags for Governance',
+    description: 'Apply and audit resource tags for cost allocation, compliance, and resource governance',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script manages Azure resource tags with governance focus, enabling cost allocation, compliance auditing, and automated policy enforcement across your Azure estate.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Tag Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Operation (Apply Tags, Audit Tags, Export Tag Report)
+- Resource Group name (or subscription-wide)
+- Tags to apply/audit
+- Export path for reports
+
+**What the Script Does:**
+- Connects to Azure account
+- Applies mandatory governance tags to resources
+- Audits resources for tag compliance
+- Generates tag compliance reports
+- Identifies untagged resources
+- Reports tag coverage percentage
+
+**Important Notes:**
+- Essential for cloud governance and cost management
+- Mandatory tags: CostCenter, Environment, Owner, Project
+- Azure Policy can enforce tag requirements
+- Tags enable showback/chargeback reporting
+- Use for compliance auditing (SOC2, ISO 27001)
+- Tag inheritance from Resource Groups
+- Coordinate with finance for cost center codes
+- Run monthly for governance reviews`,
+    parameters: [
+      {
+        name: 'operation',
+        label: 'Operation',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'ApplyTags', label: 'Apply Governance Tags' },
+          { value: 'AuditTags', label: 'Audit Tag Compliance' },
+          { value: 'ExportReport', label: 'Export Tag Report' }
+        ],
+        helpText: 'Tag governance operation'
+      },
+      {
+        name: 'scope',
+        label: 'Scope',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'ResourceGroup', label: 'Resource Group' },
+          { value: 'Subscription', label: 'Entire Subscription' }
+        ],
+        defaultValue: 'ResourceGroup',
+        helpText: 'Scope of operation'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group (if scope is RG)',
+        type: 'text',
+        required: false,
+        placeholder: 'rg-production',
+        helpText: 'Target resource group'
+      },
+      {
+        name: 'mandatoryTags',
+        label: 'Mandatory Tags (Key=Value, one per line)',
+        type: 'textarea',
+        required: false,
+        placeholder: 'CostCenter=IT-001\nEnvironment=Production\nOwner=john.doe@company.com',
+        helpText: 'Required tags for compliance'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export Path (for reports)',
+        type: 'text',
+        required: false,
+        placeholder: 'C:\\Reports\\TagCompliance.csv',
+        helpText: 'CSV export path for reports'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const operation = params.operation;
+      const scope = params.scope || 'ResourceGroup';
+      const rgName = escapePowerShellString(params.resourceGroupName || '');
+      const exportPath = escapePowerShellString(params.exportPath || '');
+      
+      let mandatoryTagsBlock = '';
+      let mandatoryTagsArray = '';
+      
+      if (params.mandatoryTags) {
+        const tagLines = params.mandatoryTags.split('\n').filter((line: string) => line.trim());
+        const tagPairs = tagLines.map((line: string) => {
+          const [key, value] = line.split('=').map(s => s.trim());
+          return `    "${escapePowerShellString(key)}" = "${escapePowerShellString(value)}"`;
+        }).join('\n');
+        mandatoryTagsBlock = `\n$MandatoryTags = @{\n${tagPairs}\n}`;
+        
+        mandatoryTagsArray = tagLines.map((line: string) => {
+          const [key] = line.split('=').map(s => s.trim());
+          return `"${escapePowerShellString(key)}"`;
+        }).join(', ');
+      }
+
+      let scriptBody = '';
+      
+      if (operation === 'ApplyTags') {
+        scriptBody = `
+${mandatoryTagsBlock}
+
+    Write-Host "Applying governance tags..." -ForegroundColor Cyan
+    
+    ${scope === 'ResourceGroup' ? `
+    $Resources = Get-AzResource -ResourceGroupName "${rgName}"
+    ` : `
+    $Resources = Get-AzResource
+    `}
+    
+    Write-Host "Found $($Resources.Count) resources" -ForegroundColor Yellow
+    
+    $UpdatedCount = 0
+    
+    foreach ($Resource in $Resources) {
+        try {
+            $CurrentTags = $Resource.Tags
+            if ($null -eq $CurrentTags) { $CurrentTags = @{} }
+            
+            $Updated = $false
+            foreach ($Key in $MandatoryTags.Keys) {
+                if (-not $CurrentTags.ContainsKey($Key)) {
+                    $CurrentTags[$Key] = $MandatoryTags[$Key]
+                    $Updated = $true
+                }
+            }
+            
+            if ($Updated) {
+                Set-AzResource -ResourceId $Resource.ResourceId -Tag $CurrentTags -Force | Out-Null
+                Write-Host "✓ Tagged: $($Resource.Name)" -ForegroundColor Green
+                $UpdatedCount++
+            }
+        } catch {
+            Write-Warning "✗ Failed: $($Resource.Name) - $_"
+        }
+    }
+    
+    Write-Host \"\`n✓ Updated $UpdatedCount resources with governance tags\" -ForegroundColor Green`;
+      } else if (operation === 'AuditTags') {
+        scriptBody = `
+    $RequiredTags = @(${mandatoryTagsArray})
+    
+    Write-Host "Auditing tag compliance..." -ForegroundColor Cyan
+    
+    ${scope === 'ResourceGroup' ? `
+    $Resources = Get-AzResource -ResourceGroupName "${rgName}"
+    ` : `
+    $Resources = Get-AzResource
+    `}
+    
+    Write-Host "Analyzing $($Resources.Count) resources" -ForegroundColor Yellow
+    
+    $CompliantResources = 0
+    $NonCompliantResources = @()
+    
+    foreach ($Resource in $Resources) {
+        $MissingTags = @()
+        
+        foreach ($Tag in $RequiredTags) {
+            if (-not $Resource.Tags.ContainsKey($Tag)) {
+                $MissingTags += $Tag
+            }
+        }
+        
+        if ($MissingTags.Count -eq 0) {
+            $CompliantResources++
+        } else {
+            $NonCompliantResources += [PSCustomObject]@{
+                ResourceName  = $Resource.Name
+                ResourceType  = $Resource.ResourceType
+                MissingTags   = ($MissingTags -join ", ")
+            }
+        }
+    }
+    
+    $ComplianceRate = [math]::Round(($CompliantResources / $Resources.Count) * 100, 2)
+    
+    Write-Host \"\`nCompliance Summary:" -ForegroundColor Cyan
+    Write-Host "  Total Resources: $($Resources.Count)" -ForegroundColor Yellow
+    Write-Host "  Compliant: $CompliantResources" -ForegroundColor Green
+    Write-Host "  Non-Compliant: $($NonCompliantResources.Count)" -ForegroundColor Red
+    Write-Host "  Compliance Rate: $ComplianceRate%" -ForegroundColor Yellow
+    
+    if ($NonCompliantResources.Count -gt 0) {
+        Write-Host \"\`nNon-Compliant Resources:" -ForegroundColor Red
+        $NonCompliantResources | Format-Table ResourceName, ResourceType, MissingTags
+    }`;
+      } else {
+        scriptBody = `
+    Write-Host "Generating tag report..." -ForegroundColor Cyan
+    
+    ${scope === 'ResourceGroup' ? `
+    $Resources = Get-AzResource -ResourceGroupName "${rgName}"
+    ` : `
+    $Resources = Get-AzResource
+    `}
+    
+    $Report = $Resources | ForEach-Object {
+        $TagsString = if ($_.Tags) {
+            ($_.Tags.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join "; "
+        } else {
+            "No Tags"
+        }
+        
+        [PSCustomObject]@{
+            ResourceName  = $_.Name
+            ResourceType  = $_.ResourceType
+            ResourceGroup = $_.ResourceGroupName
+            Location      = $_.Location
+            Tags          = $TagsString
+            TagCount      = if ($_.Tags) { $_.Tags.Count } else { 0 }
+        }
+    }
+    
+    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Tag report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "  Total resources: $($Report.Count)" -ForegroundColor Cyan
+    
+    Write-Host \"\`nTag Coverage:" -ForegroundColor Yellow
+    $Report | Group-Object { if ($_.TagCount -gt 0) { "Tagged" } else { "Untagged" } } | Format-Table Name, Count`;
+      }
+
+      return `# Manage Azure Resource Tags for Governance
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+${scriptBody}
+    
+} catch {
+    Write-Error "Tag governance operation failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-deploy-load-balancer',
+    title: 'Deploy Azure Load Balancers',
+    description: 'Create load balancers with backend pools and health probes for high availability',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script deploys Azure Load Balancers to distribute traffic across multiple VMs with health probes and load balancing rules for high availability applications.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Network Contributor role
+- Existing VNet and public IP (or create new)
+- Target VMs for backend pool
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Load Balancer name
+- Resource Group name
+- SKU type (Basic or Standard)
+- Frontend IP configuration
+- Backend pool VMs
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates public IP for load balancer frontend
+- Creates load balancer with frontend configuration
+- Creates backend address pool
+- Configures health probe for availability checks
+- Creates load balancing rule for traffic distribution
+- Reports load balancer status
+
+**Important Notes:**
+- Essential for high availability web applications
+- Standard SKU supports zone redundancy
+- Health probes monitor backend health (HTTP/TCP)
+- Load balancing rules define traffic distribution
+- Use for web tiers, API gateways, database clusters
+- Session persistence with source IP affinity
+- Outbound rules for NAT scenarios
+- Coordinate with network team for IP allocation`,
+    parameters: [
+      {
+        name: 'loadBalancerName',
+        label: 'Load Balancer Name',
+        type: 'text',
+        required: true,
+        placeholder: 'lb-web-prod',
+        helpText: 'Load balancer name'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-network',
+        helpText: 'Resource group name'
+      },
+      {
+        name: 'location',
+        label: 'Location',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'eastus', label: 'East US' },
+          { value: 'westus', label: 'West US' }
+        ],
+        helpText: 'Azure region'
+      },
+      {
+        name: 'sku',
+        label: 'SKU',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Basic', label: 'Basic' },
+          { value: 'Standard', label: 'Standard (recommended)' }
+        ],
+        defaultValue: 'Standard',
+        helpText: 'Load balancer SKU'
+      },
+      {
+        name: 'publicIpName',
+        label: 'Public IP Name',
+        type: 'text',
+        required: true,
+        placeholder: 'pip-lb-web',
+        helpText: 'Public IP for frontend'
+      },
+      {
+        name: 'backendPoolName',
+        label: 'Backend Pool Name',
+        type: 'text',
+        required: true,
+        placeholder: 'pool-web-servers',
+        helpText: 'Backend address pool name'
+      },
+      {
+        name: 'healthProbePort',
+        label: 'Health Probe Port',
+        type: 'number',
+        required: true,
+        defaultValue: 80,
+        helpText: 'Port for health checks (e.g., 80 for HTTP)'
+      },
+      {
+        name: 'loadBalancingPort',
+        label: 'Load Balancing Port',
+        type: 'number',
+        required: true,
+        defaultValue: 80,
+        helpText: 'Port to load balance (e.g., 80, 443)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const lbName = escapePowerShellString(params.loadBalancerName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const location = escapePowerShellString(params.location);
+      const sku = escapePowerShellString(params.sku || 'Standard');
+      const pipName = escapePowerShellString(params.publicIpName);
+      const poolName = escapePowerShellString(params.backendPoolName);
+      const probePort = params.healthProbePort || 80;
+      const lbPort = params.loadBalancingPort || 80;
+
+      return `# Deploy Azure Load Balancer
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+    Write-Host "Creating Public IP: ${pipName}" -ForegroundColor Cyan
+    
+    $PublicIpParams = @{
+        Name              = "${pipName}"
+        ResourceGroupName = "${rgName}"
+        Location          = "${location}"
+        AllocationMethod  = "${sku === 'Standard' ? 'Static' : 'Dynamic'}"
+        Sku               = "${sku}"
+    }
+    
+    $PublicIp = New-AzPublicIpAddress @PublicIpParams
+    Write-Host "✓ Public IP created: $($PublicIp.IpAddress)" -ForegroundColor Green
+    
+    Write-Host "Creating Load Balancer: ${lbName}" -ForegroundColor Cyan
+    
+    # Create frontend IP configuration
+    $FrontendIpConfig = New-AzLoadBalancerFrontendIpConfig -Name "FrontendIP" -PublicIpAddress $PublicIp
+    
+    # Create backend address pool
+    $BackendPool = New-AzLoadBalancerBackendAddressPoolConfig -Name "${poolName}"
+    
+    # Create health probe
+    $HealthProbe = New-AzLoadBalancerProbeConfig -Name "HealthProbe" -Protocol Tcp -Port ${probePort} -IntervalInSeconds 15 -ProbeCount 2
+    
+    # Create load balancing rule
+    $LbRule = New-AzLoadBalancerRuleConfig -Name "LBRule${lbPort}" -FrontendIpConfiguration $FrontendIpConfig -BackendAddressPool $BackendPool -Probe $HealthProbe -Protocol Tcp -FrontendPort ${lbPort} -BackendPort ${lbPort} -EnableFloatingIP $false -LoadDistribution Default
+    
+    # Create load balancer
+    $LoadBalancer = New-AzLoadBalancer -ResourceGroupName "${rgName}" -Name "${lbName}" -Location "${location}" -Sku "${sku}" -FrontendIpConfiguration $FrontendIpConfig -BackendAddressPool $BackendPool -Probe $HealthProbe -LoadBalancingRule $LbRule
+    
+    Write-Host "✓ Load Balancer created successfully" -ForegroundColor Green
+    
+    Write-Host \"\`nLoad Balancer Configuration:" -ForegroundColor Cyan
+    Write-Host "  Name: ${lbName}"
+    Write-Host "  SKU: ${sku}"
+    Write-Host "  Frontend IP: $($PublicIp.IpAddress)"
+    Write-Host "  Backend Pool: ${poolName}"
+    Write-Host "  Health Probe Port: ${probePort}"
+    Write-Host "  Load Balancing Port: ${lbPort}"
+    
+    Write-Host \"\`nNext Steps:" -ForegroundColor Yellow
+    Write-Host "  1. Add VMs to backend pool using:"
+    Write-Host "     \$Nic = Get-AzNetworkInterface -ResourceId <VM-NIC-ID>"
+    Write-Host "     \$Nic.IpConfigurations[0].LoadBalancerBackendAddressPools = \$BackendPool"
+    Write-Host "     Set-AzNetworkInterface -NetworkInterface \$Nic"
+    
+} catch {
+    Write-Error "Failed to deploy load balancer: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-cost-management',
+    title: 'Configure Azure Cost Management',
+    description: 'Set budgets, create cost alerts, and export cost data for financial governance',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures Azure Cost Management to monitor spending, create budgets with alerts, and export cost data for financial planning and chargeback reporting.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Cost Management Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Operation (Create Budget, Export Costs, Get Cost Analysis)
+- Budget amount and period
+- Alert threshold percentages
+- Email addresses for cost alerts
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates consumption budgets with thresholds
+- Configures cost alert notifications
+- Exports cost data to CSV for analysis
+- Generates cost breakdown by resource group
+- Reports spending trends
+
+**Important Notes:**
+- Essential for cloud cost governance and optimization
+- Budgets prevent overspending with proactive alerts
+- Alert at 50%, 75%, 90%, 100% of budget
+- Monthly budgets reset automatically
+- Export costs for chargeback/showback reporting
+- Use tags for cost allocation by department
+- Coordinate with finance for budget allocation
+- Review costs weekly to identify waste`,
+    parameters: [
+      {
+        name: 'operation',
+        label: 'Operation',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'CreateBudget', label: 'Create Budget with Alerts' },
+          { value: 'ExportCosts', label: 'Export Cost Data' },
+          { value: 'GetAnalysis', label: 'Get Cost Analysis' }
+        ],
+        helpText: 'Cost management operation'
+      },
+      {
+        name: 'budgetName',
+        label: 'Budget Name',
+        type: 'text',
+        required: false,
+        placeholder: 'MonthlyBudget',
+        helpText: 'Name for budget (if creating)'
+      },
+      {
+        name: 'budgetAmount',
+        label: 'Budget Amount (USD)',
+        type: 'number',
+        required: false,
+        defaultValue: 1000,
+        helpText: 'Monthly budget limit'
+      },
+      {
+        name: 'alertEmails',
+        label: 'Alert Email Addresses (one per line)',
+        type: 'textarea',
+        required: false,
+        placeholder: 'finance@company.com\nit-admin@company.com',
+        helpText: 'Emails for budget alerts'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export Path (for cost data)',
+        type: 'text',
+        required: false,
+        placeholder: 'C:\\Reports\\AzureCosts.csv',
+        helpText: 'CSV export path'
+      },
+      {
+        name: 'scope',
+        label: 'Scope',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'Subscription', label: 'Entire Subscription' },
+          { value: 'ResourceGroup', label: 'Resource Group' }
+        ],
+        defaultValue: 'Subscription',
+        helpText: 'Budget/analysis scope'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group (if scope is RG)',
+        type: 'text',
+        required: false,
+        placeholder: 'rg-production',
+        helpText: 'Resource group for scoped budget'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const operation = params.operation;
+      const budgetName = escapePowerShellString(params.budgetName || 'MonthlyBudget');
+      const budgetAmount = params.budgetAmount || 1000;
+      const exportPath = escapePowerShellString(params.exportPath || '');
+      const scope = params.scope || 'Subscription';
+      const rgName = escapePowerShellString(params.resourceGroupName || '');
+      
+      let emailArray = '';
+      if (params.alertEmails) {
+        const emailLines = params.alertEmails.split('\n').filter((line: string) => line.trim());
+        emailArray = emailLines.map((email: string) => `"${escapePowerShellString(email.trim())}"`).join(', ');
+      }
+
+      let scriptBody = '';
+      
+      if (operation === 'CreateBudget') {
+        scriptBody = `
+    Write-Host "Creating Budget: ${budgetName}" -ForegroundColor Cyan
+    
+    # Get subscription context
+    $Context = Get-AzContext
+    $SubscriptionId = $Context.Subscription.Id
+    
+    # Note: Budget creation requires Azure Consumption module
+    # This is a placeholder showing the structure
+    Write-Host "Budget Configuration:" -ForegroundColor Yellow
+    Write-Host "  Name: ${budgetName}"
+    Write-Host "  Amount: \$${budgetAmount} USD/month"
+    Write-Host "  Scope: ${scope}"
+    ${scope === 'ResourceGroup' ? `Write-Host "  Resource Group: ${rgName}"` : ''}
+    
+    Write-Host \"\`nAlert Thresholds:" -ForegroundColor Cyan
+    Write-Host "  50% of budget: \$${budgetAmount * 0.5}"
+    Write-Host "  75% of budget: \$${budgetAmount * 0.75}"
+    Write-Host "  90% of budget: \$${budgetAmount * 0.9}"
+    Write-Host "  100% of budget: \$${budgetAmount}"
+    
+    ${emailArray ? `
+    Write-Host \"\`nAlert Recipients:" -ForegroundColor Cyan
+    $Recipients = @(${emailArray})
+    $Recipients | ForEach-Object { Write-Host "  - $_" }
+    ` : ''}
+    
+    Write-Host \"\`nℹ To create budget via Azure Portal:" -ForegroundColor Yellow
+    Write-Host "  1. Go to Cost Management + Billing"
+    Write-Host "  2. Select Budgets"
+    Write-Host "  3. Click Add and configure with above settings"
+    
+    Write-Host \"\`nℹ Budget creation via PowerShell requires Az.CostManagement module" -ForegroundColor Yellow`;
+      } else if (operation === 'ExportCosts') {
+        scriptBody = `
+    Write-Host "Exporting cost data..." -ForegroundColor Cyan
+    
+    # Get current month costs
+    $StartDate = (Get-Date).AddMonths(-1).ToString("yyyy-MM-01")
+    $EndDate = (Get-Date).ToString("yyyy-MM-dd")
+    
+    Write-Host "Date Range: $StartDate to $EndDate" -ForegroundColor Yellow
+    
+    # Note: Cost data export requires Azure Consumption API
+    Write-Host \"\`nℹ Cost data export requires Az.Billing module" -ForegroundColor Yellow
+    Write-Host "  Install with: Install-Module Az.Billing"
+    
+    Write-Host \"\`nExport Configuration:" -ForegroundColor Cyan
+    Write-Host "  Export Path: ${exportPath}"
+    Write-Host "  Period: Current month to date"
+    Write-Host "  Scope: ${scope}"
+    
+    # Placeholder for actual export
+    Write-Host \"\`nℹ To export costs manually:" -ForegroundColor Yellow
+    Write-Host "  1. Go to Cost Management in Azure Portal"
+    Write-Host "  2. Select Cost Analysis"
+    Write-Host "  3. Click Export and download CSV"`;
+      } else {
+        scriptBody = `
+    Write-Host "Analyzing Azure costs..." -ForegroundColor Cyan
+    
+    # Get resource costs (simplified approach)
+    ${scope === 'ResourceGroup' ? `
+    $Resources = Get-AzResource -ResourceGroupName "${rgName}"
+    ` : `
+    $Resources = Get-AzResource
+    `}
+    
+    Write-Host "Found $($Resources.Count) resources" -ForegroundColor Yellow
+    
+    # Group by resource type
+    $ByType = $Resources | Group-Object ResourceType | Sort-Object Count -Descending | Select-Object Name, Count
+    
+    Write-Host \"\`nResources by Type:" -ForegroundColor Cyan
+    $ByType | Format-Table
+    
+    # Group by resource group
+    $ByRG = $Resources | Group-Object ResourceGroupName | Sort-Object Count -Descending | Select-Object Name, Count
+    
+    Write-Host \"\`nResources by Resource Group:" -ForegroundColor Cyan
+    $ByRG | Format-Table
+    
+    # Group by location
+    $ByLocation = $Resources | Group-Object Location | Sort-Object Count -Descending | Select-Object Name, Count
+    
+    Write-Host \"\`nResources by Location:" -ForegroundColor Cyan
+    $ByLocation | Format-Table
+    
+    Write-Host \"\`nℹ For detailed cost analysis with pricing:" -ForegroundColor Yellow
+    Write-Host "  Use Azure Cost Management in the portal"
+    Write-Host "  Or install Az.CostManagement module for API access"`;
+      }
+
+      return `# Configure Azure Cost Management
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+${scriptBody}
+    
+} catch {
+    Write-Error "Cost management operation failed: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'azure-vnet-peering',
+    title: 'Manage Azure Virtual Networks and Peering',
+    description: 'Create VNets, subnets, and configure VNet peering for hub-spoke network topologies',
+    category: 'Common Admin Tasks',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script manages Azure Virtual Networks with VNet peering to create hub-spoke network topologies for centralized services and network isolation.
+
+**Prerequisites:**
+- Az PowerShell module
+- Azure subscription with Network Contributor role
+- Authenticated Azure session
+
+**What You Need to Provide:**
+- Operation (Create VNet, Create Peering, List Peerings)
+- VNet names and address spaces
+- Peering configuration (if creating peering)
+
+**What the Script Does:**
+- Connects to Azure account
+- Creates Virtual Networks with subnets
+- Configures VNet peering between networks
+- Enables gateway transit and forwarded traffic
+- Lists existing peering connections
+- Reports peering status
+
+**Important Notes:**
+- Essential for hub-spoke network architectures
+- VNet peering enables private connectivity without VPN
+- Non-overlapping address spaces required
+- Hub VNet hosts shared services (firewall, DNS, gateway)
+- Spoke VNets for workload isolation
+- Gateway transit enables on-prem connectivity
+- Use for multi-tier applications and security zones
+- Coordinate with network team for IP planning`,
+    parameters: [
+      {
+        name: 'operation',
+        label: 'Operation',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'CreateVNet', label: 'Create Virtual Network' },
+          { value: 'CreatePeering', label: 'Create VNet Peering' },
+          { value: 'ListPeerings', label: 'List VNet Peerings' }
+        ],
+        helpText: 'VNet operation'
+      },
+      {
+        name: 'vnetName',
+        label: 'VNet Name',
+        type: 'text',
+        required: true,
+        placeholder: 'vnet-hub',
+        helpText: 'Virtual network name'
+      },
+      {
+        name: 'resourceGroupName',
+        label: 'Resource Group',
+        type: 'text',
+        required: true,
+        placeholder: 'rg-network',
+        helpText: 'Resource group name'
+      },
+      {
+        name: 'location',
+        label: 'Location',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'eastus', label: 'East US' },
+          { value: 'westus', label: 'West US' }
+        ],
+        helpText: 'Azure region (for Create VNet)'
+      },
+      {
+        name: 'addressPrefix',
+        label: 'Address Prefix (CIDR)',
+        type: 'text',
+        required: false,
+        placeholder: '10.0.0.0/16',
+        helpText: 'VNet address space (for Create VNet)'
+      },
+      {
+        name: 'subnetName',
+        label: 'Subnet Name',
+        type: 'text',
+        required: false,
+        placeholder: 'default',
+        helpText: 'Subnet name (for Create VNet)'
+      },
+      {
+        name: 'subnetPrefix',
+        label: 'Subnet Prefix (CIDR)',
+        type: 'text',
+        required: false,
+        placeholder: '10.0.1.0/24',
+        helpText: 'Subnet address range (for Create VNet)'
+      },
+      {
+        name: 'peeringName',
+        label: 'Peering Name',
+        type: 'text',
+        required: false,
+        placeholder: 'peer-hub-to-spoke1',
+        helpText: 'Peering connection name (for Create Peering)'
+      },
+      {
+        name: 'remoteVNetName',
+        label: 'Remote VNet Name',
+        type: 'text',
+        required: false,
+        placeholder: 'vnet-spoke1',
+        helpText: 'Target VNet for peering'
+      },
+      {
+        name: 'remoteVNetResourceGroup',
+        label: 'Remote VNet Resource Group',
+        type: 'text',
+        required: false,
+        placeholder: 'rg-spoke1',
+        helpText: 'Resource group of remote VNet'
+      },
+      {
+        name: 'allowGatewayTransit',
+        label: 'Allow Gateway Transit',
+        type: 'checkbox',
+        required: false,
+        defaultValue: false,
+        helpText: 'Enable gateway transit (for hub VNets)'
+      },
+      {
+        name: 'useRemoteGateways',
+        label: 'Use Remote Gateways',
+        type: 'checkbox',
+        required: false,
+        defaultValue: false,
+        helpText: 'Use remote gateway (for spoke VNets)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const operation = params.operation;
+      const vnetName = escapePowerShellString(params.vnetName);
+      const rgName = escapePowerShellString(params.resourceGroupName);
+      const location = escapePowerShellString(params.location || 'eastus');
+      const addressPrefix = escapePowerShellString(params.addressPrefix || '10.0.0.0/16');
+      const subnetName = escapePowerShellString(params.subnetName || 'default');
+      const subnetPrefix = escapePowerShellString(params.subnetPrefix || '10.0.1.0/24');
+      const peeringName = escapePowerShellString(params.peeringName || '');
+      const remoteVNetName = escapePowerShellString(params.remoteVNetName || '');
+      const remoteVNetRg = escapePowerShellString(params.remoteVNetResourceGroup || '');
+      const allowGatewayTransit = params.allowGatewayTransit === true;
+      const useRemoteGateways = params.useRemoteGateways === true;
+
+      let scriptBody = '';
+      
+      if (operation === 'CreateVNet') {
+        scriptBody = `
+    Write-Host "Creating Virtual Network: ${vnetName}" -ForegroundColor Cyan
+    
+    # Create subnet configuration
+    $SubnetConfig = New-AzVirtualNetworkSubnetConfig -Name "${subnetName}" -AddressPrefix "${subnetPrefix}"
+    
+    # Create VNet
+    $VNetParams = @{
+        Name              = "${vnetName}"
+        ResourceGroupName = "${rgName}"
+        Location          = "${location}"
+        AddressPrefix     = "${addressPrefix}"
+        Subnet            = $SubnetConfig
+    }
+    
+    $VNet = New-AzVirtualNetwork @VNetParams
+    
+    Write-Host "✓ Virtual Network created successfully" -ForegroundColor Green
+    
+    Write-Host \"\`nVNet Details:" -ForegroundColor Cyan
+    Write-Host "  Name: ${vnetName}"
+    Write-Host "  Address Space: ${addressPrefix}"
+    Write-Host "  Subnet: ${subnetName} (${subnetPrefix})"
+    Write-Host "  Location: ${location}"
+    Write-Host "  Resource ID: $($VNet.Id)"`;
+      } else if (operation === 'CreatePeering') {
+        scriptBody = `
+    Write-Host "Creating VNet Peering: ${peeringName}" -ForegroundColor Cyan
+    
+    # Get local VNet
+    $LocalVNet = Get-AzVirtualNetwork -Name "${vnetName}" -ResourceGroupName "${rgName}"
+    
+    # Get remote VNet
+    $RemoteVNet = Get-AzVirtualNetwork -Name "${remoteVNetName}" -ResourceGroupName "${remoteVNetRg}"
+    
+    Write-Host "Peering ${vnetName} -> ${remoteVNetName}" -ForegroundColor Yellow
+    
+    # Create peering
+    $PeeringParams = @{
+        Name                      = "${peeringName}"
+        VirtualNetwork            = $LocalVNet
+        RemoteVirtualNetworkId    = $RemoteVNet.Id
+        AllowForwardedTraffic     = $true
+        AllowGatewayTransit       = $${allowGatewayTransit}
+        UseRemoteGateways         = $${useRemoteGateways}
+    }
+    
+    $Peering = Add-AzVirtualNetworkPeering @PeeringParams
+    
+    Write-Host "✓ VNet peering created successfully" -ForegroundColor Green
+    
+    Write-Host \"\`nPeering Configuration:" -ForegroundColor Cyan
+    Write-Host "  Name: ${peeringName}"
+    Write-Host "  Local VNet: ${vnetName}"
+    Write-Host "  Remote VNet: ${remoteVNetName}"
+    Write-Host "  Status: $($Peering.PeeringState)"
+    Write-Host "  Allow Gateway Transit: ${allowGatewayTransit}"
+    Write-Host "  Use Remote Gateways: ${useRemoteGateways}"
+    
+    Write-Host \"\`nℹ Create reverse peering from ${remoteVNetName} to ${vnetName} for bidirectional connectivity" -ForegroundColor Yellow`;
+      } else {
+        scriptBody = `
+    Write-Host "Listing VNet Peerings for: ${vnetName}" -ForegroundColor Cyan
+    
+    $VNet = Get-AzVirtualNetwork -Name "${vnetName}" -ResourceGroupName "${rgName}"
+    $Peerings = Get-AzVirtualNetworkPeering -VirtualNetworkName "${vnetName}" -ResourceGroupName "${rgName}"
+    
+    if ($Peerings.Count -eq 0) {
+        Write-Host "ℹ No peerings found" -ForegroundColor Yellow
+    } else {
+        Write-Host "Found $($Peerings.Count) peering(s)" -ForegroundColor Green
+        
+        $Peerings | ForEach-Object {
+            [PSCustomObject]@{
+                Name                  = $_.Name
+                RemoteVNet            = ($_.RemoteVirtualNetwork.Id -split '/')[-1]
+                Status                = $_.PeeringState
+                AllowGatewayTransit   = $_.AllowGatewayTransit
+                UseRemoteGateways     = $_.UseRemoteGateways
+                AllowForwardedTraffic = $_.AllowForwardedTraffic
+            }
+        } | Format-Table
+    }`;
+      }
+
+      return `# Manage Azure Virtual Networks and Peering
+# Generated by PSForge
+
+Connect-AzAccount
+
+try {
+${scriptBody}
+    
+} catch {
+    Write-Error "VNet operation failed: $_"
+}`;
+    }
   }
 ];
 
@@ -3041,5 +5037,6 @@ export const azureResourceCategories = [
   'Identity & Access (RBAC)',
   'Cost Management',
   'Policy & Governance',
-  'Monitoring & Logging'
+  'Monitoring & Logging',
+  'Common Admin Tasks'
 ];

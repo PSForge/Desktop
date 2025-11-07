@@ -135,6 +135,15 @@ export class DatabaseStorage implements IStorage {
     return result.map(u => this.convertTimestamps(u));
   }
 
+  async deleteUser(id: string): Promise<boolean> {
+    await this.db.delete(scripts).where(eq(scripts.userId, id));
+    await this.db.delete(sessions).where(eq(sessions.userId, id));
+    await this.db.delete(userSubscriptions).where(eq(userSubscriptions.userId, id));
+    await this.db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, id));
+    const result = await this.db.delete(users).where(eq(users.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
   // Session management
   async createSession(session: Omit<Session, "id" | "createdAt">): Promise<Session> {
     const result = await this.db.insert(sessions).values({

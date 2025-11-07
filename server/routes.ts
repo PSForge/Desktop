@@ -1039,6 +1039,32 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      // Prevent admins from deleting their own account
+      if (req.user?.id === userId) {
+        return res.status(403).json({ error: "Cannot delete your own account" });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const deleted = await storage.deleteUser(userId);
+      if (!deleted) {
+        return res.status(500).json({ error: "Failed to delete user" });
+      }
+
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Admin user deletion error:", error);
+      return res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   // Platform notification routes
   app.get("/api/notifications/active", async (req, res) => {
     try {

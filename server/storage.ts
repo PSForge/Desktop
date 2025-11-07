@@ -32,6 +32,7 @@ export interface IStorage {
   createUser(user: Omit<User, "id" | "createdAt">): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
+  deleteUser(id: string): Promise<boolean>;
   
   // Session management
   createSession(session: Omit<Session, "id" | "createdAt">): Promise<Session>;

@@ -1,0 +1,58 @@
+ConnectWise Automate / Manage
+(Module: ConnectWiseAutomateAPI)
+Bulk Operations
+	• Bulk agent installs or upgrades
+	• Bulk patch policy application
+	• Bulk script deployments
+	• Bulk system cleanup or reboot tasks
+Common Admin Tasks
+	• Query and manage agents
+	• Create scheduled maintenance windows
+	• Manage patch approval lists
+	• Collect inventory reports
+	• Automate ticket creation in Manage
+	• Integrate alerts with email or Teams
+
+☁️ AWS (Amazon Web Services)
+(Module: AWS.Tools / AWSPowerShell.NetCore)
+Bulk Operations
+	• Bulk EC2 start/stop/reboot
+	• Bulk snapshot creation or deletion
+	• Bulk S3 bucket permission updates
+	• Bulk IAM user role assignment
+Common Admin Tasks
+	• Create/manage EC2 instances
+	• Manage S3 buckets and lifecycle policies
+	• Configure IAM users, groups, and policies
+	• Set up CloudWatch alarms and metrics
+	• Manage Route53 DNS zones
+	• Create or modify VPCs, subnets, and security groups
+	• Cost and billing report generation
+
+☁️ Google Cloud Platform
+(REST API or GCloud SDK via PowerShell)
+Bulk Operations
+	• Bulk VM start/stop/delete
+	• Bulk firewall rule updates
+	• Bulk IAM role assignments
+Common Admin Tasks
+	• Create/modify instances, disks, and networks
+	• Manage storage buckets and permissions
+	• Monitor performance metrics and logs
+	• Export billing reports
+	• Automate backup and restore actions
+
+🔒 CrowdStrike Falcon
+(Module: PSFalcon)
+Bulk Operations
+	• Bulk device isolation/un-isolation
+	• Bulk sensor updates or uninstall
+	• Bulk IOC search or remediation
+	• Bulk host tagging
+Common Admin Tasks
+	• Retrieve alerts and incidents
+	• Query detections and host details
+	• Assign incidents and update statuses
+	• Download forensic data or quarantined files
+	• Manage prevention policies
+	• Generate security compliance reports

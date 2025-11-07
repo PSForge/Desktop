@@ -1,0 +1,176 @@
+🛡️ Sophos Central
+(Module: SophosCentral)
+Bulk Operations
+	• Bulk add/remove devices or users to policies
+	• Bulk isolate endpoints
+	• Bulk update exclusions or rules
+	• Bulk cleanup of inactive devices
+Common Admin Tasks
+	• Retrieve alerts and threat reports
+	• Configure endpoint and web control policies
+	• Manage role assignments
+	• Monitor endpoint status and protection coverage
+
+🔐 Okta
+(Module: OktaAPI)
+Bulk Operations
+	• Bulk user creation/import
+	• Bulk group membership updates
+	• Bulk MFA enrollment or reset
+	• Bulk application assignment
+Common Admin Tasks
+	• Manage users and groups
+	• Configure MFA and password policies
+	• Automate onboarding/offboarding
+	• Generate audit reports
+	• Integrate Okta apps via API
+
+🔑 Duo Security
+(REST API PowerShell wrapper)
+Bulk Operations
+	• Bulk phone or token enrollments
+	• Bulk user imports
+	• Bulk group policy assignment
+Common Admin Tasks
+	• Manage users and devices
+	• Retrieve authentication logs
+	• Enforce MFA on specific systems
+	• Generate compliance and usage reports
+
+🔥 Fortinet FortiGate / FortiManager
+(Module: FortiManagerAPI)
+Bulk Operations
+	• Bulk address/group creation
+	• Bulk firewall policy updates
+	• Bulk VPN tunnel enable/disable
+	• Bulk certificate renewals
+Common Admin Tasks
+	• Create/edit/delete policies and NAT rules
+	• Manage firewall objects and address groups
+	• Retrieve session and bandwidth stats
+	• Configure logging and backups
+	• Schedule config syncs and backups
+
+🌐 Cisco (Meraki, IOS, ASA)
+(Modules: Cisco.Meraki, Cisco.UCSManager, CiscoIOSModule)
+Bulk Operations
+	• Bulk VLAN or SSID creation
+	• Bulk device firmware updates
+	• Bulk network policy deployment
+	• Bulk ACL rule updates
+Common Admin Tasks
+	• Manage routers, switches, and APs
+	• Export inventory and client lists
+	• Update network configurations
+	• Monitor performance metrics
+	• Automate configuration backups
+
+🧮 NetApp ONTAP / EMC Isilon
+(Module: NetApp.ONTAP)
+Bulk Operations
+	• Bulk volume or LUN creation
+	• Bulk snapshot scheduling
+	• Bulk quota assignments
+Common Admin Tasks
+	• Manage aggregates and volumes
+	• Configure CIFS/NFS shares
+	• Monitor capacity and performance
+	• Automate backup and replication tasks
+
+🧩 JAMF Pro (macOS/iOS Management)
+(Module: JamfProAPI)
+Bulk Operations
+	• Bulk device policy deployment
+	• Bulk FileVault key escrow
+	• Bulk software push or removal
+	• Bulk device inventory sync
+Common Admin Tasks
+	• Manage computers and mobile devices
+	• Enforce security and configuration profiles
+	• Manage policies, scripts, and smart groups
+	• Generate device and compliance reports
+
+💬 Slack
+(Module: PSSlack)
+Bulk Operations
+	• Bulk channel archiving
+	• Bulk user deactivation
+	• Bulk permission updates
+Common Admin Tasks
+	• Create/manage channels and users
+	• Post messages and file uploads
+	• Retrieve activity reports
+	• Integrate with webhooks or monitoring alerts
+
+📞 Zoom
+(Module: ZoomPS)
+Bulk Operations
+	• Bulk user creation or license assignment
+	• Bulk meeting creation/scheduling
+	• Bulk report exports
+Common Admin Tasks
+	• Manage users and groups
+	• Retrieve meeting details and recordings
+	• Configure SSO and policies
+	• Monitor usage and audit logs
+
+🔧 GitHub / GitLab
+(Modules: PowerShellForGitHub, PSGitLab)
+Bulk Operations
+	• Bulk repo creation or deletion
+	• Bulk user or team access assignment
+	• Bulk issue or PR labeling
+Common Admin Tasks
+	• Manage repositories and permissions
+	• Trigger CI/CD pipelines
+	• Create releases and tags
+	• Retrieve issue and commit data
+
+📈 Splunk / Elastic / Datadog
+(Modules: PSSplunk, ElasticSearchPS, DatadogAPI)
+Bulk Operations
+	• Bulk alert enable/disable
+	• Bulk index rollover or retention updates
+	• Bulk API key or user role updates
+Common Admin Tasks
+	• Execute saved searches and export results
+	• Manage indexes and data sources
+	• Configure alert thresholds
+	• Collect performance dashboards
+	• Automate report scheduling
+
+🧩 Docker / Kubernetes
+(Modules: Docker.PowerShell, KubernetesClient)
+Bulk Operations
+	• Bulk container start/stop/remove
+	• Bulk image cleanup
+	• Bulk pod restarts or rollout updates
+Common Admin Tasks
+	• Deploy or update containers and pods
+	• Manage volumes, networks, secrets
+	• Monitor node health
+	• Automate cluster configuration and cleanup
+
+🔍 Jira / Confluence
+(Modules: JiraPS, ConfluencePS)
+Bulk Operations
+	• Bulk issue creation or transitions
+	• Bulk user permissions updates
+	• Bulk page exports or deletions
+Common Admin Tasks
+	• Manage projects, boards, and sprints
+	• Assign issues and update statuses
+	• Manage spaces and content access
+	• Generate productivity and usage reports
+
+🧩 Salesforce / Workday / BambooHR
+(Modules: SalesforcePS, WorkdayAPI, BambooPS)
+Bulk Operations
+	• Bulk user imports or deactivations
+	• Bulk report generation or exports
+	• Bulk account or record updates
+Common Admin Tasks
+	• Manage users, profiles, and permissions
+	• Create and modify records
+	• Automate data sync between systems
+	• Export reports for compliance

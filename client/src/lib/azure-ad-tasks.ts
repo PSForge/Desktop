@@ -31,6 +31,7 @@ export const azureAdTasks: AzureAdTask[] = [
     id: 'create-azure-ad-user',
     name: 'Create New User Account',
     category: 'User Lifecycle',
+    isPremium: true,
     description: 'Create a new Azure AD user with license assignment and password settings',
     instructions: `**How This Task Works:**
 This script creates a new user account in Azure AD/Entra ID with automatic license assignment, essential for onboarding employees in cloud-first organizations.
@@ -158,6 +159,7 @@ Disconnect-MgGraph`;
     id: 'bulk-create-users',
     name: 'Bulk Create Users from CSV',
     category: 'User Lifecycle',
+    isPremium: true,
     description: 'Create multiple users from a CSV file with optional license assignment',
     instructions: `**How This Task Works:**
 This script creates multiple Azure AD user accounts in bulk from a CSV file, perfect for new hire batches, mergers, or organizational expansion.
@@ -305,6 +307,7 @@ Disconnect-MgGraph`;
     id: 'assign-remove-licenses',
     name: 'Assign or Remove User Licenses',
     category: 'User Lifecycle',
+    isPremium: true,
     description: 'Assign or remove licenses for a single user or multiple users',
     instructions: `**How This Task Works:**
 This script manages Microsoft 365/Azure AD license assignments for individual users, essential for provisioning or deprovisioning cloud services.
@@ -403,6 +406,7 @@ Disconnect-MgGraph`;
     id: 'update-user-attributes',
     name: 'Update User Attributes',
     category: 'User Lifecycle',
+    isPremium: true,
     description: 'Update user profile attributes like job title, department, manager, phone number',
     instructions: `**How This Task Works:**
 This script updates user profile information in Azure AD, keeping organizational data current for directory services, Teams, and Outlook.
@@ -508,6 +512,7 @@ Disconnect-MgGraph`;
     id: 'enable-disable-user',
     name: 'Enable or Disable User Account',
     category: 'User Lifecycle',
+    isPremium: true,
     description: 'Enable or disable user account with optional logging and confirmation',
     instructions: `**How This Task Works:**
 This script enables or disables Azure AD user accounts with optional session revocation, essential for offboarding, security incidents, or temporary access suspension.
@@ -593,6 +598,7 @@ Disconnect-MgGraph`;
     id: 'reset-password',
     name: 'Reset User Password',
     category: 'User Lifecycle',
+    isPremium: true,
     description: 'Reset user password with optional token revocation for security',
     instructions: `**How This Task Works:**
 This script resets Azure AD user passwords with security options, critical for helpdesk support, security incidents, and account recovery scenarios.
@@ -691,6 +697,7 @@ Disconnect-MgGraph`;
     id: 'check-mfa-status',
     name: 'Check MFA Registration Status',
     category: 'User Lifecycle',
+    isPremium: true,
     description: 'Check MFA registration status and authentication methods for users',
     instructions: `**How This Task Works:**
 This script audits Multi-Factor Authentication (MFA) registration status across users, essential for security compliance and identifying users requiring MFA enrollment.
@@ -811,6 +818,7 @@ Disconnect-MgGraph`;
     id: 'create-azure-ad-group',
     name: 'Create Security or M365 Group',
     category: 'Groups & Access',
+    isPremium: true,
     description: 'Create a new security group or Microsoft 365 group with owners and members',
     instructions: `**How This Task Works:**
 This script creates security groups or Microsoft 365 groups in Azure AD, fundamental for managing access permissions and team collaboration.
@@ -919,6 +927,7 @@ Disconnect-MgGraph`;
     id: 'bulk-add-remove-members',
     name: 'Bulk Add/Remove Group Members',
     category: 'Groups & Access',
+    isPremium: true,
     description: 'Add or remove multiple members from a group using a CSV file',
     instructions: `**How This Task Works:**
 This script manages group memberships in bulk from CSV files, streamlining access management for projects, departments, and resource permissions.
@@ -1055,6 +1064,7 @@ Disconnect-MgGraph`;
     id: 'assign-group-owners',
     name: 'Assign Group Owners',
     category: 'Groups & Access',
+    isPremium: true,
     description: 'Add one or more owners to an Azure AD group',
     instructions: `**How This Task Works:**
 This script assigns ownership of Azure AD groups, enabling delegated group management without requiring elevated permissions.
@@ -1139,6 +1149,7 @@ Disconnect-MgGraph`;
     id: 'export-group-membership',
     name: 'Export Group Membership to CSV',
     category: 'Groups & Access',
+    isPremium: true,
     description: 'Export all members of a group to a CSV file',
     instructions: `**How This Task Works:**
 This script exports group membership rosters to CSV for auditing, reporting, and access reviews.
@@ -1251,6 +1262,7 @@ Disconnect-MgGraph`;
     id: 'create-dynamic-group',
     name: 'Create Dynamic Group with Membership Rule',
     category: 'Groups & Access',
+    isPremium: true,
     description: 'Create a dynamic security group with automatic membership based on user attributes',
     instructions: `**How This Task Works:**
 This script creates dynamic groups that automatically manage membership based on user attributes, eliminating manual maintenance.
@@ -1344,6 +1356,7 @@ Disconnect-MgGraph`;
     id: 'export-all-groups',
     name: 'Export All Groups Inventory',
     category: 'Groups & Access',
+    isPremium: true,
     description: 'Export all Azure AD groups to a CSV file with details',
     instructions: `**How This Task Works:**
 This script exports complete Azure AD group inventory for documentation, auditing, and governance reporting.
@@ -1451,6 +1464,7 @@ Disconnect-MgGraph`;
     id: 'export-signin-logs',
     name: 'Export Sign-In Logs',
     category: 'Reporting & Auditing',
+    isPremium: true,
     description: 'Export Azure AD sign-in logs filtered by date range, user, or application',
     instructions: `**How This Task Works:**
 This script exports Azure AD sign-in logs for security monitoring, troubleshooting access issues, and compliance auditing.
@@ -1556,6 +1570,7 @@ Disconnect-MgGraph`;
     id: 'export-audit-logs',
     name: 'Export Audit Logs',
     category: 'Reporting & Auditing',
+    isPremium: true,
     description: 'Export Azure AD audit logs for user changes, group modifications, and administrative actions',
     instructions: `**How This Task Works:**
 This script exports Azure AD audit logs tracking all administrative changes and directory modifications for compliance and security monitoring.
@@ -1658,6 +1673,7 @@ Disconnect-MgGraph`;
     id: 'inactive-accounts-report',
     name: 'Inactive Accounts Report',
     category: 'Reporting & Auditing',
+    isPremium: true,
     description: 'Generate a report of user accounts with no sign-in activity for X days, with optional disable action',
     instructions: `**How This Task Works:**
 This script identifies stale user accounts with no sign-in activity, critical for security hygiene and license optimization.
@@ -1793,6 +1809,7 @@ Disconnect-MgGraph`;
     id: 'license-usage-report',
     name: 'License Usage Report',
     category: 'Reporting & Auditing',
+    isPremium: true,
     description: 'Generate a report showing assigned vs available licenses for all SKUs',
     instructions: `**How This Task Works:**
 This script generates license utilization reports for cost optimization and capacity planning across all Microsoft 365 subscriptions.
@@ -1896,6 +1913,7 @@ Disconnect-MgGraph`;
     id: 'mfa-compliance-report',
     name: 'MFA Compliance Report',
     category: 'Reporting & Auditing',
+    isPremium: true,
     description: 'Generate comprehensive MFA registration and compliance report for all users',
     instructions: `**How This Task Works:**
 This script generates comprehensive MFA compliance reports for security audits, demonstrating organizational Zero Trust posture.
@@ -2021,6 +2039,7 @@ Disconnect-MgGraph`;
     id: 'list-devices',
     name: 'List All Devices',
     category: 'Device Management',
+    isPremium: true,
     description: 'List all devices registered in Azure AD with filtering options',
     instructions: `**How This Task Works:**
 This script inventories all devices registered in Azure AD with detailed filtering for device management and compliance monitoring.
@@ -2141,6 +2160,7 @@ Disconnect-MgGraph`;
     id: 'disable-stale-devices',
     name: 'Disable Stale Devices',
     category: 'Device Management',
+    isPremium: true,
     description: 'Disable or delete devices with no activity for X days',
     instructions: `**How This Task Works:**
 This script identifies and remediates stale device registrations, reducing attack surface and maintaining clean device inventory.
@@ -2280,6 +2300,7 @@ Disconnect-MgGraph`;
     id: 'export-device-compliance',
     name: 'Export Device Compliance Status',
     category: 'Device Management',
+    isPremium: true,
     description: 'Export compliance status for all managed devices',
     instructions: `**How This Task Works:**
 This script generates device compliance reports essential for security posture assessment and Conditional Access policy enforcement.
@@ -2396,6 +2417,7 @@ Disconnect-MgGraph`;
     id: 'export-device-inventory',
     name: 'Export Device Inventory by Model/Owner/OS',
     category: 'Device Management',
+    isPremium: true,
     description: 'Detailed device inventory report with hardware and owner information',
     instructions: `**How This Task Works:**
 This script generates comprehensive device inventory reports with hardware details and ownership for asset management and procurement planning.
@@ -2511,6 +2533,7 @@ Disconnect-MgGraph`;
     id: 'review-remove-guest-users',
     name: 'Review and Remove Guest Users',
     category: 'Maintenance & Governance',
+    isPremium: true,
     description: 'Find and optionally remove inactive or expired guest user accounts',
     instructions: `**How This Task Works:**
 This script identifies and cleans up inactive guest accounts, reducing security risks from external user access and maintaining clean B2B collaboration.
@@ -2640,6 +2663,7 @@ Disconnect-MgGraph`;
     id: 'bulk-invite-guests',
     name: 'Bulk Invite Guest Users',
     category: 'Maintenance & Governance',
+    isPremium: true,
     description: 'Send guest invitations to multiple external users from a CSV file',
     instructions: `**How This Task Works:**
 This script automates B2B guest user invitations at scale, streamlining external collaboration for projects, vendors, and partners.
@@ -2763,6 +2787,7 @@ Disconnect-MgGraph`;
     id: 'remove-unlicensed-accounts',
     name: 'Remove Unlicensed Accounts',
     category: 'Maintenance & Governance',
+    isPremium: true,
     description: 'Find and optionally disable/delete user accounts with no assigned licenses',
     instructions: `**How This Task Works:**
 This script identifies unlicensed user accounts for cleanup, optimizing directory hygiene and preventing unnecessary user clutter.
@@ -2892,8 +2917,8 @@ Disconnect-MgGraph`;
     id: 'configure-conditional-access-policy',
     name: 'Configure Advanced Conditional Access Policies',
     category: 'Common Admin Tasks',
-    description: 'Create conditional access policies with grant controls, session controls, and conditions',
     isPremium: true,
+    description: 'Create conditional access policies with grant controls, session controls, and conditions',
     instructions: `**How This Task Works:**
 This script creates advanced Conditional Access policies in Azure AD, implementing Zero Trust security with granular access controls based on user, location, device, and risk conditions.
 
@@ -3028,8 +3053,8 @@ Disconnect-MgGraph`;
     id: 'manage-pim-roles',
     name: 'Manage Privileged Identity Management (PIM) Roles',
     category: 'Common Admin Tasks',
-    description: 'Activate, assign, or configure PIM role assignments for privileged access management',
     isPremium: true,
+    description: 'Activate, assign, or configure PIM role assignments for privileged access management',
     instructions: `**How This Task Works:**
 This script manages Azure AD Privileged Identity Management (PIM) role assignments, enabling just-in-time privileged access for enhanced security and compliance.
 
@@ -3188,8 +3213,8 @@ Disconnect-MgGraph`;
     id: 'configure-identity-protection-policy',
     name: 'Configure Identity Protection Risk Policies',
     category: 'Common Admin Tasks',
-    description: 'Configure sign-in risk and user risk policies with automatic remediation actions',
     isPremium: true,
+    description: 'Configure sign-in risk and user risk policies with automatic remediation actions',
     instructions: `**How This Task Works:**
 This script configures Azure AD Identity Protection risk-based policies that automatically detect and respond to compromised accounts using AI/ML-powered risk detection.
 
@@ -3326,8 +3351,8 @@ Disconnect-MgGraph`;
     id: 'manage-administrative-units',
     name: 'Manage Administrative Units',
     category: 'Common Admin Tasks',
-    description: 'Create administrative units and assign users/groups for delegated administration',
     isPremium: true,
+    description: 'Create administrative units and assign users/groups for delegated administration',
     instructions: `**How This Task Works:**
 This script manages Azure AD Administrative Units, enabling scoped role-based administration for large organizations with delegated management requirements.
 
@@ -3487,8 +3512,8 @@ Disconnect-MgGraph`;
     id: 'configure-access-reviews',
     name: 'Configure Access Reviews',
     category: 'Common Admin Tasks',
-    description: 'Set up recurring access reviews for groups, applications, and role assignments',
     isPremium: true,
+    description: 'Set up recurring access reviews for groups, applications, and role assignments',
     instructions: `**How This Task Works:**
 This script configures Azure AD Access Reviews for periodic recertification of group memberships, application access, and privileged roles - critical for compliance and security governance.
 
@@ -3692,8 +3717,8 @@ Disconnect-MgGraph`;
     id: 'manage-aad-connect-sync',
     name: 'Manage Azure AD Connect Sync',
     category: 'Common Admin Tasks',
-    description: 'Monitor sync status, force delta/full sync, troubleshoot sync errors',
     isPremium: true,
+    description: 'Monitor sync status, force delta/full sync, troubleshoot sync errors',
     instructions: `**How This Task Works:**
 This script manages Azure AD Connect synchronization between on-premises Active Directory and Azure AD, essential for hybrid identity environments.
 
@@ -3830,8 +3855,8 @@ Azure AD Connect operation completed!" -ForegroundColor Green
     id: 'configure-password-protection',
     name: 'Configure Password Protection Settings',
     category: 'Common Admin Tasks',
-    description: 'Configure custom banned password lists, lockout policies, and smart lockout settings',
     isPremium: true,
+    description: 'Configure custom banned password lists, lockout policies, and smart lockout settings',
     instructions: `**How This Task Works:**
 This script configures Azure AD Password Protection settings including custom banned passwords, account lockout policies, and smart lockout to prevent brute-force attacks.
 
@@ -3983,8 +4008,8 @@ Disconnect-MgGraph`;
     id: 'manage-b2b-external-identities',
     name: 'Manage External Identities (B2B)',
     category: 'Common Admin Tasks',
-    description: 'Invite external users, configure B2B collaboration settings, manage guest access',
     isPremium: true,
+    description: 'Invite external users, configure B2B collaboration settings, manage guest access',
     instructions: `**How This Task Works:**
 This script manages Azure AD B2B (Business-to-Business) external identities, enabling secure collaboration with partners, vendors, and contractors.
 
@@ -4155,8 +4180,8 @@ Disconnect-MgGraph`;
     id: 'configure-mfa-policies',
     name: 'Configure Multi-Factor Authentication Policies',
     category: 'Common Admin Tasks',
-    description: 'Configure per-user MFA settings, trusted IPs, and MFA enforcement policies',
     isPremium: true,
+    description: 'Configure per-user MFA settings, trusted IPs, and MFA enforcement policies',
     instructions: `**How This Task Works:**
 This script configures Azure AD Multi-Factor Authentication settings for enhanced security, including per-user MFA status and service settings for conditional enforcement.
 
@@ -4323,8 +4348,8 @@ Disconnect-MgGraph`;
     id: 'manage-app-consent-policies',
     name: 'Manage Application Consent Policies',
     category: 'Common Admin Tasks',
-    description: 'Configure user consent settings, admin consent requests, and permission classifications',
     isPremium: true,
+    description: 'Configure user consent settings, admin consent requests, and permission classifications',
     instructions: `**How This Task Works:**
 This script manages Azure AD application consent policies, controlling which applications users can consent to and configuring admin consent workflows for enhanced security.
 
@@ -4448,8 +4473,8 @@ Disconnect-MgGraph`;
     id: 'export-signin-logs',
     name: 'Export Sign-in Logs with Filtering',
     category: 'Common Admin Tasks',
-    description: 'Export sign-in logs by date, user, application, status with advanced filtering',
     isPremium: true,
+    description: 'Export sign-in logs by date, user, application, status with advanced filtering',
     instructions: `**How This Task Works:**
 This script exports Azure AD sign-in logs with advanced filtering for security auditing, troubleshooting, and compliance reporting.
 
@@ -4599,8 +4624,8 @@ Disconnect-MgGraph`;
     id: 'configure-named-locations',
     name: 'Configure Named Locations',
     category: 'Common Admin Tasks',
-    description: 'Create IP-based and country-based named locations for Conditional Access policies',
     isPremium: true,
+    description: 'Create IP-based and country-based named locations for Conditional Access policies',
     instructions: `**How This Task Works:**
 This script manages Azure AD Named Locations for use in Conditional Access policies, enabling location-based access controls for enhanced security.
 
@@ -4799,8 +4824,8 @@ Disconnect-MgGraph`;
     id: 'manage-aad-roles-administrators',
     name: 'Manage Azure AD Roles and Administrators',
     category: 'Common Admin Tasks',
-    description: 'Assign/remove directory roles, list role members, audit administrative access',
     isPremium: true,
+    description: 'Assign/remove directory roles, list role members, audit administrative access',
     instructions: `**How This Task Works:**
 This script manages Azure AD directory role assignments, enabling delegated administration by assigning users to built-in or custom administrative roles.
 
@@ -4979,8 +5004,8 @@ Disconnect-MgGraph`;
     id: 'configure-sspr',
     name: 'Configure Self-Service Password Reset',
     category: 'Common Admin Tasks',
-    description: 'Configure SSPR settings, authentication methods, notifications, and registration enforcement',
     isPremium: true,
+    description: 'Configure SSPR settings, authentication methods, notifications, and registration enforcement',
     instructions: `**How This Task Works:**
 This script configures Azure AD Self-Service Password Reset (SSPR) settings, enabling users to reset their own passwords with multi-factor verification, reducing helpdesk workload.
 
@@ -5147,8 +5172,8 @@ Disconnect-MgGraph`;
     id: 'aad-manage-enterprise-sso',
     name: 'Manage Enterprise Applications SSO',
     category: 'Common Admin Tasks',
-    description: 'Configure SAML/OAuth SSO for enterprise applications',
     isPremium: true,
+    description: 'Configure SAML/OAuth SSO for enterprise applications',
     instructions: `**How This Task Works:**
 This script configures Single Sign-On (SSO) for enterprise applications in Azure AD, enabling seamless authentication for SaaS applications using SAML, OAuth, or password-based SSO.
 
@@ -5344,8 +5369,8 @@ Disconnect-MgGraph`;
     id: 'aad-export-audit-logs',
     name: 'Export Audit Logs for Compliance',
     category: 'Common Admin Tasks',
-    description: 'Export directory audit logs with activity filtering',
     isPremium: true,
+    description: 'Export directory audit logs with activity filtering',
     instructions: `**How This Task Works:**
 This script exports Azure AD audit logs for compliance, security investigations, and operational reporting, filtering by date range and activity type.
 
@@ -5505,8 +5530,8 @@ Disconnect-MgGraph`;
     id: 'aad-configure-terms-of-use',
     name: 'Configure Terms of Use',
     category: 'Common Admin Tasks',
-    description: 'Create and assign terms of use policies to users/groups',
     isPremium: true,
+    description: 'Create and assign terms of use policies to users/groups',
     instructions: `**How This Task Works:**
 This script creates and configures Azure AD Terms of Use (ToU) agreements, requiring users to accept legal terms before accessing resources - essential for compliance (GDPR, HIPAA, legal disclaimers).
 
@@ -5687,8 +5712,8 @@ Disconnect-MgGraph`;
     id: 'aad-manage-domain-services',
     name: 'Manage Azure AD Domain Services',
     category: 'Common Admin Tasks',
-    description: 'Configure managed domain, monitor replication health',
     isPremium: true,
+    description: 'Configure managed domain, monitor replication health',
     instructions: `**How This Task Works:**
 This script manages Azure AD Domain Services (Azure AD DS), a managed domain service providing traditional AD features (LDAP, Kerberos, NTLM, Group Policy) without managing domain controllers.
 

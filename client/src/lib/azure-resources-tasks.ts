@@ -29,6 +29,7 @@ export const azureResourceTasks: AzureResourceTask[] = [
     title: 'Create Resource Group',
     description: 'Create a new Azure Resource Group with optional tags and lock',
     category: 'Resource Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Azure Resource Groups to organize and manage related Azure resources with consistent tagging and governance.
 
@@ -138,6 +139,7 @@ try {
     title: 'Tag Resources at Scale',
     description: 'Add or update tags across resources in a Resource Group',
     category: 'Resource Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script applies tags to all resources within a Resource Group simultaneously for consistent cost tracking and governance compliance.
 
@@ -244,6 +246,7 @@ try {
     title: 'Export Resource Inventory',
     description: 'Export comprehensive inventory of all Azure resources to CSV',
     category: 'Resource Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates complete Azure resource inventory reports for asset management, cost optimization, and compliance auditing.
 
@@ -333,6 +336,7 @@ try {
     title: 'Start/Stop/Restart VMs',
     description: 'Perform power operations on Azure Virtual Machines',
     category: 'Virtual Machines',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script performs bulk power management operations on Azure VMs for cost optimization, maintenance windows, and operational scheduling.
 
@@ -464,6 +468,7 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
     title: 'Export VM Inventory',
     description: 'Export comprehensive inventory of all Azure Virtual Machines to CSV',
     category: 'Virtual Machines',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive VM inventory reports with hardware specs, network config, and power states for capacity planning and asset management.
 
@@ -573,6 +578,7 @@ try {
     title: 'Resize Virtual Machine',
     description: 'Change the size/SKU of an Azure Virtual Machine',
     category: 'Virtual Machines',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script resizes Azure VMs to optimize costs or increase capacity based on workload requirements and performance metrics.
 
@@ -670,6 +676,7 @@ try {
     title: 'Create Virtual Network',
     description: 'Create a new Azure Virtual Network with subnets',
     category: 'Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Azure Virtual Networks (VNets) with subnets for network isolation, security boundaries, and multi-tier application architectures.
 
@@ -802,6 +809,7 @@ ${subnetConfigs.map((subnet: any) => `        New-AzVirtualNetworkSubnetConfig -
     title: 'Create Network Security Group',
     description: 'Create a Network Security Group with firewall rules',
     category: 'Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Network Security Groups (NSGs) to control inbound and outbound traffic with firewall rules at subnet or NIC level.
 
@@ -893,6 +901,7 @@ try {
     title: 'Create Storage Account',
     description: 'Create a new Azure Storage Account',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Azure Storage Accounts for blob storage, file shares, queues, and tables with configurable redundancy and performance tiers.
 
@@ -1008,6 +1017,7 @@ try {
     title: 'Assign RBAC Role',
     description: 'Assign an Azure RBAC role to a user or group',
     category: 'Identity & Access (RBAC)',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script assigns Azure RBAC roles to users or groups for permission management at subscription or resource group scope.
 
@@ -1117,6 +1127,7 @@ try {
     title: 'Export RBAC Assignments',
     description: 'Export all RBAC role assignments to CSV',
     category: 'Identity & Access (RBAC)',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports complete RBAC role assignment inventory for access governance audits and security compliance reviews.
 
@@ -1200,6 +1211,7 @@ try {
     title: 'Export Cost Data',
     description: 'Generate a cost report for Azure resources',
     category: 'Cost Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates Azure cost reports for budget tracking, cost optimization, and finance reconciliation using Cost Management APIs.
 
@@ -1300,6 +1312,7 @@ try {
     title: 'Assign Azure Policy',
     description: 'Assign a built-in Azure Policy to a resource group or subscription',
     category: 'Policy & Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script assigns built-in Azure Policies for compliance enforcement, security standards, and governance across resources.
 
@@ -1396,6 +1409,7 @@ try {
     title: 'Enable Diagnostic Settings',
     description: 'Enable diagnostic settings on Azure resources',
     category: 'Monitoring & Logging',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script enables diagnostic logging and metrics collection on Azure resources for monitoring, troubleshooting, and security analysis.
 
@@ -1502,6 +1516,7 @@ try {
     title: 'Apply Resource Lock',
     description: 'Apply CanNotDelete or ReadOnly lock to prevent accidental changes',
     category: 'Resource Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script applies resource locks to prevent accidental deletion or modification of critical Azure resources and Resource Groups.
 
@@ -1588,6 +1603,7 @@ try {
     title: 'Move Resources Between Resource Groups',
     description: 'Move Azure resources from one resource group to another',
     category: 'Resource Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script moves Azure resources between Resource Groups for organizational restructuring, resource consolidation, or environment separation.
 
@@ -1686,6 +1702,7 @@ try {
     title: 'Create VPN Gateway',
     description: 'Create a site-to-site VPN gateway for hybrid connectivity',
     category: 'Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Azure VPN Gateways for secure site-to-site connectivity between Azure and on-premises networks.
 
@@ -1778,6 +1795,7 @@ try {
     title: 'Create DNS Zone with Records',
     description: 'Create an Azure DNS zone and add DNS records',
     category: 'Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Azure DNS zones for domain name hosting and provides name servers for domain delegation.
 
@@ -1854,6 +1872,7 @@ try {
     title: 'Create Cost Budget with Alert',
     description: 'Set up cost budget with email alerts for Azure resources',
     category: 'Cost Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Azure cost budgets with email alerts to prevent budget overruns and enable proactive cost management.
 
@@ -1969,6 +1988,7 @@ try {
     title: 'Export Cost Analysis Report',
     description: 'Generate detailed cost analysis report for current month',
     category: 'Cost Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates detailed cost analysis reports with resource-level cost breakdown for financial analysis and optimization.
 
@@ -2059,6 +2079,7 @@ try {
     title: 'Assign Azure Policy',
     description: 'Assign a built-in or custom policy to resource group or subscription',
     category: 'Policy & Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script assigns Azure Policies (built-in or custom) at subscription or Resource Group scope for governance enforcement.
 
@@ -2145,6 +2166,7 @@ try {
     title: 'Audit Policy Compliance',
     description: 'Generate compliance report for assigned Azure policies',
     category: 'Policy & Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive policy compliance reports showing compliant and non-compliant resources across assigned policies.
 
@@ -2233,6 +2255,7 @@ try {
     title: 'Configure Blob Lifecycle Management',
     description: 'Set up automated blob tier transitions and deletion policies',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures automated blob lifecycle management for cost optimization through tiering and automated deletion of old data.
 
@@ -2326,6 +2349,7 @@ try {
     title: 'Configure Storage Account Backup',
     description: 'Enable blob versioning and soft delete for data protection',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script enables data protection features (soft delete, versioning, change feed) on Storage Accounts for disaster recovery and compliance.
 
@@ -2417,6 +2441,7 @@ try {
     title: 'Resize Virtual Machine',
     description: 'Change VM size to scale compute resources',
     category: 'Virtual Machines',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script resizes Azure VMs by stopping, changing size, and restarting to optimize performance or reduce costs based on workload needs.
 
@@ -2526,6 +2551,7 @@ try {
     title: 'Attach Managed Disk to VM',
     description: 'Attach an existing or new managed disk to a virtual machine',
     category: 'Virtual Machines',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates and attaches managed data disks to Azure VMs for additional storage capacity beyond the OS disk.
 
@@ -2630,6 +2656,7 @@ try {
     title: 'Bulk Assign RBAC Roles',
     description: 'Assign RBAC roles to multiple users from CSV',
     category: 'Identity & Access (RBAC)',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script processes bulk RBAC role assignments from CSV for efficient onboarding of multiple users or permission updates.
 
@@ -2718,6 +2745,7 @@ try {
     title: 'Audit All RBAC Assignments',
     description: 'Export comprehensive report of all role assignments',
     category: 'Identity & Access (RBAC)',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive RBAC audit reports with all role assignments, principal details, and top role usage for access reviews.
 
@@ -2807,6 +2835,7 @@ try {
     title: 'Create Action Group for Alerts',
     description: 'Set up email and SMS notifications for Azure alerts',
     category: 'Monitoring & Logging',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Azure Monitor Action Groups to define notification recipients (email, SMS) for alert rules and automated responses.
 
@@ -2893,6 +2922,7 @@ try {
     title: 'Export Resource Tags Report',
     description: 'List all resources with their tags',
     category: 'Resource Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports comprehensive resource tag inventory for cost allocation analysis, compliance tracking, and governance reporting.
 
@@ -2961,6 +2991,7 @@ try {
     title: 'Set Resource Lock',
     description: 'Prevent accidental deletion by applying resource lock',
     category: 'Resource Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script applies resource locks to Resource Groups to prevent accidental deletion or modification of critical production resources.
 

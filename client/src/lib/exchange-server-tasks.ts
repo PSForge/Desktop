@@ -25,6 +25,7 @@ export interface ExchangeServerTask {
   parameters: ExchangeServerTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const exchangeServerTasks: ExchangeServerTask[] = [
@@ -35,6 +36,7 @@ export const exchangeServerTasks: ExchangeServerTask[] = [
     id: 'create-mailbox-onprem',
     name: 'Create New Mailbox (User/Shared/Resource)',
     category: 'Mailboxes & Users',
+    isPremium: true,
     description: 'Create a new mailbox in Exchange Server on-premises',
     instructions: `**How This Task Works:**
 - Creates new mailboxes in Exchange Server on-premises
@@ -157,6 +159,7 @@ try {
     id: 'move-mailbox-database',
     name: 'Move Mailbox Between Databases',
     category: 'Mailboxes & Users',
+    isPremium: true,
     description: 'Move mailbox to different database with throttling options',
     instructions: `**How This Task Works:**
 - Moves mailboxes between Exchange databases
@@ -257,6 +260,7 @@ try {
     id: 'set-mailbox-protocol-access',
     name: 'Enable/Disable OWA, ActiveSync, POP, IMAP',
     category: 'Mailboxes & Users',
+    isPremium: true,
     description: 'Control protocol access for mailboxes (OWA, ActiveSync, POP3, IMAP4)',
     instructions: `**How This Task Works:**
 - Controls which protocols mailbox can use for access
@@ -351,6 +355,7 @@ try {
     id: 'create-dg-onprem',
     name: 'Create Distribution Group',
     category: 'Distribution Groups & Contacts',
+    isPremium: true,
     description: 'Create new distribution group with members and moderation settings',
     instructions: `**How This Task Works:**
 - Creates new distribution groups for email collaboration
@@ -451,6 +456,7 @@ try {
     id: 'set-dg-moderation',
     name: 'Set Group Moderation and Delivery Restrictions',
     category: 'Distribution Groups & Contacts',
+    isPremium: true,
     description: 'Configure moderation and delivery management for distribution groups',
     instructions: `**How This Task Works:**
 - Configures message moderation for distribution groups
@@ -543,6 +549,7 @@ try {
     id: 'create-transport-rule-onprem',
     name: 'Create/Modify Transport Rule',
     category: 'Mail Flow & Transport Rules',
+    isPremium: true,
     description: 'Create or modify transport rules for mail flow control',
     instructions: `**How This Task Works:**
 - Creates or modifies Exchange transport rules
@@ -654,6 +661,7 @@ try {
     id: 'manage-accepted-domains',
     name: 'Manage Accepted Domains',
     category: 'Mail Flow & Transport Rules',
+    isPremium: true,
     description: 'Add or configure accepted domains for the Exchange organization',
     instructions: `**How This Task Works:**
 - Configures domains Exchange accepts email for
@@ -747,6 +755,7 @@ try {
     id: 'create-mailbox-database',
     name: 'Create Mailbox Database',
     category: 'Database & DAG Management',
+    isPremium: true,
     description: 'Create a new mailbox database on an Exchange server',
     instructions: `**How This Task Works:**
 - Creates new mailbox database on Exchange server
@@ -843,6 +852,7 @@ try {
     id: 'mount-dismount-database',
     name: 'Mount/Dismount Database',
     category: 'Database & DAG Management',
+    isPremium: true,
     description: 'Mount or dismount a mailbox database',
     instructions: `**How This Task Works:**
 - Mounts or dismounts mailbox databases
@@ -924,6 +934,7 @@ try {
     id: 'dag-replication-health',
     name: 'Check DAG Replication Health',
     category: 'Database & DAG Management',
+    isPremium: true,
     description: 'Monitor Database Availability Group replication status and health',
     instructions: `**How This Task Works:**
 - Monitors Database Availability Group (DAG) replication health
@@ -1023,6 +1034,7 @@ try {
     id: 'purge-disconnected-mailboxes',
     name: 'Purge Disconnected Mailboxes',
     category: 'Maintenance & Hygiene',
+    isPremium: true,
     description: 'Find and purge disconnected mailboxes from database',
     instructions: `**How This Task Works:**
 - Identifies disconnected mailboxes in database
@@ -1128,6 +1140,7 @@ try {
     id: 'enable-mailbox-audit-onprem',
     name: 'Enable Mailbox Auditing Globally',
     category: 'Security & Compliance',
+    isPremium: true,
     description: 'Enable mailbox auditing for all mailboxes in the organization',
     instructions: `**How This Task Works:**
 - Enables mailbox auditing across organization
@@ -1237,6 +1250,7 @@ try {
     id: 'database-size-report',
     name: 'Mailbox Database Size Report',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Generate comprehensive database size and growth reports',
     instructions: `**How This Task Works:**
 - Generates comprehensive database size report
@@ -1327,6 +1341,7 @@ try {
     id: 'transport-queue-monitoring',
     name: 'Transport Queue Length Monitoring',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Monitor transport queue lengths and identify mail flow issues',
     instructions: `**How This Task Works:**
 - Monitors Exchange transport queues for mail delivery
@@ -1436,6 +1451,7 @@ try {
     id: 'exchange-service-control',
     name: 'Start/Stop Exchange Services',
     category: 'Server & Service Management',
+    isPremium: true,
     description: 'Gracefully start or stop Exchange services on a server',
     instructions: `**How This Task Works:**
 - Controls Exchange services on server
@@ -1533,6 +1549,7 @@ try {
     id: 'export-database-sizes',
     name: 'Export Database Sizes Report',
     category: 'Database Management',
+    isPremium: true,
     description: 'List all mailbox databases and their sizes',
     instructions: `**How This Task Works:**
 - Retrieves all mailbox databases with size information
@@ -1593,6 +1610,7 @@ try {
     id: 'configure-database-backup',
     name: 'Configure Database Backup Settings',
     category: 'Database Management',
+    isPremium: true,
     description: 'Set circular logging and backup schedule',
     instructions: `**How This Task Works:**
 - Configures circular logging for mailbox database
@@ -1654,6 +1672,7 @@ try {
     id: 'test-mail-flow',
     name: 'Test Mail Flow',
     category: 'Mail Flow',
+    isPremium: true,
     description: 'Send test message to verify mail flow',
     instructions: `**How This Task Works:**
 - Tests mail flow between Exchange servers
@@ -1716,6 +1735,7 @@ try {
     id: 'export-queue-stats',
     name: 'Export Queue Statistics',
     category: 'Mail Flow',
+    isPremium: true,
     description: 'Report on message queues and delivery status',
     instructions: `**How This Task Works:**
 - Exports all message queue statistics to CSV
@@ -1780,6 +1800,7 @@ try {
     id: 'configure-database-maintenance',
     name: 'Configure Database Maintenance Schedule',
     category: 'Database Management',
+    isPremium: true,
     description: 'Set online maintenance schedule for database defragmentation',
     instructions: `**How This Task Works:**
 - Sets online maintenance window for mailbox database
@@ -1853,6 +1874,7 @@ try {
     id: 'create-database-availability-group',
     name: 'Create Database Availability Group (DAG)',
     category: 'DAG & High Availability',
+    isPremium: true,
     description: 'Create a new Database Availability Group for high availability',
     instructions: `**How This Task Works:**
 This script creates a Database Availability Group (DAG) to provide automatic database-level recovery from failures.
@@ -1929,6 +1951,7 @@ try {
     id: 'add-database-copy',
     name: 'Add Database Copy to DAG',
     category: 'DAG & High Availability',
+    isPremium: true,
     description: 'Add a passive copy of a mailbox database to another server in the DAG',
     instructions: `**How This Task Works:**
 This script creates a passive database copy on another server for high availability and disaster recovery.
@@ -2002,6 +2025,7 @@ try {
     id: 'update-database-copy-seed',
     name: 'Seed/Reseed Database Copy',
     category: 'DAG & High Availability',
+    isPremium: true,
     description: 'Manually seed or reseed a database copy',
     instructions: `**How This Task Works:**
 This script manually seeds or reseeds a database copy when automatic seeding fails or after corruption.
@@ -2077,6 +2101,7 @@ try {
     id: 'request-exchange-certificate',
     name: 'Request and Install Exchange Certificate',
     category: 'Certificates & Virtual Directories',
+    isPremium: true,
     description: 'Generate CSR, request certificate from CA, and install on Exchange server',
     instructions: `**How This Task Works:**
 This script creates a certificate signing request (CSR) for Exchange Server SSL/TLS certificates.
@@ -2155,6 +2180,7 @@ try {
     id: 'configure-owa-virtual-directory',
     name: 'Configure OWA Virtual Directory',
     category: 'Certificates & Virtual Directories',
+    isPremium: true,
     description: 'Configure Outlook on the Web (OWA) virtual directory URLs and authentication',
     instructions: `**How This Task Works:**
 This script configures the Outlook on the Web (OWA) virtual directory with external and internal URLs.
@@ -2223,6 +2249,7 @@ try {
     id: 'create-send-connector',
     name: 'Create Send Connector',
     category: 'Transport & Connectors',
+    isPremium: true,
     description: 'Create an SMTP send connector for outbound mail routing',
     instructions: `**How This Task Works:**
 This script creates an SMTP send connector to route outbound email to external destinations.
@@ -2297,6 +2324,7 @@ try {
     id: 'create-receive-connector',
     name: 'Create Receive Connector',
     category: 'Transport & Connectors',
+    isPremium: true,
     description: 'Create a receive connector for inbound SMTP mail',
     instructions: `**How This Task Works:**
 This script creates a receive connector to accept inbound SMTP connections from specified sources.
@@ -2369,6 +2397,7 @@ try {
     id: 'set-server-maintenance-mode',
     name: 'Put Server into Maintenance Mode',
     category: 'Maintenance & Health',
+    isPremium: true,
     description: 'Safely put Exchange server into maintenance mode for patching or maintenance',
     instructions: `**How This Task Works:**
 This script gracefully puts an Exchange server into maintenance mode, draining connections and preparing for maintenance.
@@ -2460,6 +2489,7 @@ try {
     id: 'enable-mrs-proxy',
     name: 'Enable MRS Proxy for Migrations',
     category: 'Maintenance & Health',
+    isPremium: true,
     description: 'Enable Mailbox Replication Service (MRS) Proxy for cross-forest migrations',
     instructions: `**How This Task Works:**
 This script enables the MRS Proxy endpoint on Client Access servers to allow mailbox migrations.
@@ -2527,8 +2557,8 @@ try {
     id: 'configure-dag-network-compression',
     name: 'Configure DAG Network Compression',
     category: 'High Availability',
-    description: 'Configure network compression and encryption for DAG replication traffic',
     isPremium: true,
+    description: 'Configure network compression and encryption for DAG replication traffic',
     instructions: `**How This Task Works:**
 This script configures compression and encryption settings for Database Availability Group replication networks.
 
@@ -2600,8 +2630,8 @@ try {
     id: 'configure-mailbox-database-circular-logging',
     name: 'Configure Mailbox Database Circular Logging',
     category: 'Database Management',
-    description: 'Enable or disable circular logging for mailbox databases',
     isPremium: true,
+    description: 'Enable or disable circular logging for mailbox databases',
     instructions: `**How This Task Works:**
 This script configures circular logging for Exchange mailbox databases to manage transaction log growth.
 
@@ -2680,8 +2710,8 @@ try {
     id: 'configure-send-receive-connectors-bulk',
     name: 'Configure Multiple Send/Receive Connectors',
     category: 'Mail Flow',
-    description: 'Bulk configure send and receive connectors for mail routing',
     isPremium: true,
+    description: 'Bulk configure send and receive connectors for mail routing',
     instructions: `**How This Task Works:**
 This script creates multiple send and receive connectors for routing mail to different destinations or accepting mail from different sources.
 
@@ -2765,8 +2795,8 @@ try {
     id: 'configure-accepted-domains-bulk',
     name: 'Configure Multiple Accepted Domains',
     category: 'Mail Flow',
-    description: 'Add and configure multiple accepted domains for the Exchange organization',
     isPremium: true,
+    description: 'Add and configure multiple accepted domains for the Exchange organization',
     instructions: `**How This Task Works:**
 This script configures accepted domains to allow Exchange to receive mail for multiple domains.
 
@@ -2850,8 +2880,8 @@ try {
     id: 'configure-content-filter-agent',
     name: 'Configure Content Filter Anti-Spam Settings',
     category: 'Security',
-    description: 'Configure content filtering and SCL thresholds for anti-spam protection',
     isPremium: true,
+    description: 'Configure content filtering and SCL thresholds for anti-spam protection',
     instructions: `**How This Task Works:**
 This script configures the Content Filter agent to block or quarantine spam based on SCL (Spam Confidence Level) ratings.
 
@@ -2932,8 +2962,8 @@ try {
     id: 'configure-mailbox-audit-retention',
     name: 'Configure Mailbox Audit Log Retention',
     category: 'Compliance & Auditing',
-    description: 'Set mailbox audit log age limit for compliance and retention policies',
     isPremium: true,
+    description: 'Set mailbox audit log age limit for compliance and retention policies',
     instructions: `**How This Task Works:**
 This script configures how long mailbox audit logs are retained before being automatically purged.
 
@@ -3018,8 +3048,8 @@ try {
     id: 'configure-outlook-anywhere',
     name: 'Configure Outlook Anywhere (RPC over HTTP)',
     category: 'Client Access',
-    description: 'Enable and configure Outlook Anywhere for remote client access',
     isPremium: true,
+    description: 'Enable and configure Outlook Anywhere for remote client access',
     instructions: `**How This Task Works:**
 This script enables and configures Outlook Anywhere (RPC over HTTP) to allow external Outlook clients to connect to Exchange.
 
@@ -3109,8 +3139,8 @@ try {
     id: 'configure-address-list-segmentation',
     name: 'Configure Address List Segmentation (ABP)',
     category: 'Organization Configuration',
-    description: 'Create Address Book Policy for multi-tenant address list segmentation',
     isPremium: true,
+    description: 'Create Address Book Policy for multi-tenant address list segmentation',
     instructions: `**How This Task Works:**
 This script creates Address Book Policies to segment the Global Address List for multi-tenant scenarios or organizational separation.
 

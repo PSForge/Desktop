@@ -36,6 +36,7 @@ export const mecmTasks: MECMTask[] = [
     id: 'create-device-collection',
     name: 'Create Device Collection (Query-based)',
     category: 'Collections & Queries',
+    isPremium: true,
     description: 'Create a new device collection with WQL query rules and automatic refresh schedule',
     instructions: `**How This Task Works:**
 This script creates dynamic device collections in MECM using WQL queries for automated device grouping based on criteria.
@@ -172,6 +173,7 @@ ${folderPath ? `
     id: 'bulk-add-devices-to-collection',
     name: 'Bulk Add Devices to Collection',
     category: 'Collections & Queries',
+    isPremium: true,
     description: 'Add multiple devices to a collection using direct membership from CSV file',
     instructions: `**How This Task Works:**
 This script adds multiple devices to MECM collections at scale using CSV import for efficient bulk membership management.
@@ -305,6 +307,7 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'create-pilot-collection',
     name: 'Create Pilot Collection (N% Sampling)',
     category: 'Collections & Queries',
+    isPremium: true,
     description: 'Create a pilot collection with random sampling from a source collection',
     instructions: `**How This Task Works:**
 This script creates pilot collections using random sampling for safe staged deployments and testing before broad rollouts.
@@ -430,6 +433,7 @@ try {
     id: 'bulk-create-collections-csv',
     name: 'Bulk Create Collections from CSV',
     category: 'Collections & Queries',
+    isPremium: true,
     description: 'Create multiple collections from CSV file with names, limiting collections, and queries',
     instructions: `**How This Task Works:**
 This script automates mass collection creation from CSV for efficient MECM environment setup and standardization.
@@ -570,6 +574,7 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'create-application',
     name: 'Create Application from Installer',
     category: 'Applications & Deployments',
+    isPremium: true,
     description: 'Create a new application with install/uninstall commands and detection rules',
     instructions: `**How This Task Works:**
 This script creates MECM applications with deployment types, install/uninstall commands, and detection logic for software distribution.
@@ -713,6 +718,7 @@ ${detectionValue}
     id: 'create-deployment',
     name: 'Create Deployment to Collection',
     category: 'Applications & Deployments',
+    isPremium: true,
     description: 'Deploy an application or package to one or more collections',
     instructions: `**How This Task Works:**
 This script creates application deployments to collections for software distribution with configurable timing, notifications, and enforcement.
@@ -862,6 +868,7 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'phased-deployment',
     name: 'Phased Deployment (Pilot → Broad)',
     category: 'Applications & Deployments',
+    isPremium: true,
     description: 'Create a phased deployment starting with pilot collection then expanding to broad collection',
     instructions: `**How This Task Works:**
 This script creates staged deployments with pilot testing before broad rollout for risk mitigation and controlled software distribution.
@@ -973,6 +980,7 @@ try {
     id: 'redeploy-failed-devices',
     name: 'Redeploy to Failed Devices',
     category: 'Applications & Deployments',
+    isPremium: true,
     description: 'Create a new deployment targeting only devices that failed the original deployment',
     instructions: `**How This Task Works:**
 This script creates intelligent retry deployments by automatically targeting only devices that failed the original application deployment.
@@ -1098,6 +1106,7 @@ AND SMS_AppDeploymentAssetDetails.ComplianceState IN (2, 4)
     id: 'create-adr',
     name: 'Create ADR (Automatic Deployment Rule)',
     category: 'Software Updates',
+    isPremium: true,
     description: 'Create an automatic deployment rule for patch management with specified criteria',
     instructions: `**How This Task Works:**
 This script creates Automatic Deployment Rules (ADRs) for automated patch management, reducing manual patching workload significantly.
@@ -1270,6 +1279,7 @@ try {
     id: 'cleanup-old-sugs',
     name: 'Cleanup Old Software Update Groups',
     category: 'Software Updates',
+    isPremium: true,
     description: 'Expire and cleanup old software update groups based on age threshold',
     instructions: `**How This Task Works:**
 This script maintains MECM database health by automatically expiring old software update groups while preserving recent ones for compliance tracking.
@@ -1403,6 +1413,7 @@ try {
     id: 'compliance-report',
     name: 'Software Update Compliance Report',
     category: 'Software Updates',
+    isPremium: true,
     description: 'Generate compliance report showing top failed updates for a collection',
     instructions: `**How This Task Works:**
 This script generates comprehensive patch compliance reports identifying problematic updates and non-compliant devices for remediation planning.
@@ -1548,6 +1559,7 @@ try {
     id: 'force-policy-refresh',
     name: 'Force Client Policy Refresh',
     category: 'Client Management & Health',
+    isPremium: true,
     description: 'Force immediate policy refresh on targeted devices',
     instructions: `**How This Task Works:**
 - Triggers instant MECM client policy download and application
@@ -1608,6 +1620,7 @@ foreach ($Dev in $Devices) {
     id: 'repair-client',
     name: 'Repair MECM Client',
     category: 'Client Management & Health',
+    isPremium: true,
     description: 'Reinstall/repair Configuration Manager client on devices',
     instructions: `**How This Task Works:**
 - Uninstalls existing MECM client
@@ -1686,6 +1699,7 @@ try {
     id: 'client-health-check',
     name: 'Export Client Health Dashboard',
     category: 'Client Management & Health',
+    isPremium: true,
     description: 'Generate comprehensive client health report',
     instructions: `**How This Task Works:**
 - Exports client health status for all devices in collection
@@ -1761,6 +1775,7 @@ Write-Host "✓ Report: $Export" -ForegroundColor Green`;
     id: 'clear-client-cache',
     name: 'Clear Client Cache',
     category: 'Client Management & Health',
+    isPremium: true,
     description: 'Clear Configuration Manager client cache',
     instructions: `**How This Task Works:**
 - Clears MECM client cache to free disk space
@@ -1836,6 +1851,7 @@ foreach ($Dev in $Devices) {
     id: 'remote-client-actions',
     name: 'Remote Client Actions',
     category: 'Client Management & Health',
+    isPremium: true,
     description: 'Execute remote actions on client devices',
     instructions: `**How This Task Works:**
 - Executes remote management actions on MECM clients
@@ -1936,6 +1952,7 @@ foreach ($Dev in $Devices) {
     id: 'create-package',
     name: 'Create Package from Source',
     category: 'Packages & Programs',
+    isPremium: true,
     description: 'Create a legacy package with program for software distribution',
     instructions: `**How This Task Works:**
 - Creates legacy MECM package from source files
@@ -2006,6 +2023,7 @@ try {
     id: 'distribute-content',
     name: 'Distribute Content to DPs',
     category: 'Packages & Programs',
+    isPremium: true,
     description: 'Distribute package/application content to distribution point groups',
     instructions: `**How This Task Works:**
 - Distributes content to distribution point groups
@@ -2094,6 +2112,7 @@ try {
     id: 'monitor-content-distribution',
     name: 'Monitor Content Distribution Status',
     category: 'Packages & Programs',
+    isPremium: true,
     description: 'Check distribution status of content across all distribution points',
     instructions: `**How This Task Works:**
 - Monitors content distribution progress across DPs
@@ -2175,6 +2194,7 @@ try {
     id: 'create-boot-image',
     name: 'Create Custom Boot Image',
     category: 'Operating System Deployment',
+    isPremium: true,
     description: 'Create and customize WinPE boot image',
     instructions: `**How This Task Works:**
 - Creates custom Windows PE boot image for OS deployment
@@ -2245,6 +2265,7 @@ try {
     id: 'import-driver-package',
     name: 'Import Driver Package',
     category: 'Operating System Deployment',
+    isPremium: true,
     description: 'Import and categorize device drivers',
     instructions: `**How This Task Works:**
 - Imports device drivers from source folder
@@ -2321,6 +2342,7 @@ try {
     id: 'create-task-sequence',
     name: 'Create OS Deployment Task Sequence',
     category: 'Operating System Deployment',
+    isPremium: true,
     description: 'Create operating system deployment task sequence',
     instructions: `**How This Task Works:**
 - Creates automated OS deployment task sequence
@@ -2395,6 +2417,7 @@ try {
     id: 'deploy-task-sequence',
     name: 'Deploy Task Sequence to Collection',
     category: 'Operating System Deployment',
+    isPremium: true,
     description: 'Deploy OS task sequence with PXE and media options',
     instructions: `**How This Task Works:**
 - Deploys task sequence to target collection
@@ -2471,6 +2494,7 @@ try {
     id: 'export-hardware-inventory',
     name: 'Export Hardware Inventory Report',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Export detailed hardware inventory for collection devices',
     instructions: `**How This Task Works:**
 - Exports comprehensive hardware inventory data
@@ -2545,6 +2569,7 @@ Write-Host "✓ Report: ${e}" -ForegroundColor Green`;
     id: 'export-software-inventory',
     name: 'Export Software Inventory Report',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Export installed software inventory',
     instructions: `**How This Task Works:**
 - Exports installed software across devices
@@ -2622,6 +2647,7 @@ Write-Host "✓ Report: ${e} ($($Report.Count) items)" -ForegroundColor Green`;
     id: 'run-custom-query',
     name: 'Run Custom WQL Query',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Execute custom WQL query and export results',
     instructions: `**How This Task Works:**
 - Executes custom WQL (WMI Query Language) queries
@@ -2692,6 +2718,7 @@ try {
     id: 'collection-membership-report',
     name: 'Collection Membership Report',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Generate collection membership report',
     instructions: `**How This Task Works:**
 - Generates comprehensive collection membership report
@@ -2771,6 +2798,7 @@ Write-Host "  Total members: $($Report.Count)" -ForegroundColor Gray`;
     id: 'configure-maintenance-window',
     name: 'Configure Maintenance Window',
     category: 'Site Configuration & Maintenance',
+    isPremium: true,
     description: 'Create maintenance windows for collections to control deployment timing',
     instructions: `**How This Task Works:**
 - Creates scheduled maintenance windows for device collections
@@ -2866,6 +2894,7 @@ try {
     id: 'create-boundary-group',
     name: 'Create Boundary Group',
     category: 'Site Configuration & Maintenance',
+    isPremium: true,
     description: 'Create boundary group and assign distribution points',
     instructions: `**How This Task Works:**
 - Creates logical boundary groups for client assignment
@@ -2950,6 +2979,7 @@ try {
     id: 'site-status-monitor',
     name: 'Site Status Health Monitor',
     category: 'Site Configuration & Maintenance',
+    isPremium: true,
     description: 'Check MECM site component status and generate health report',
     instructions: `**How This Task Works:**
 - Monitors MECM site component health and error/warning messages

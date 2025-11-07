@@ -29,6 +29,7 @@ export const hyperVTasks: HyperVTask[] = [
     title: 'Install Hyper-V Role',
     description: 'Install and configure the Hyper-V role on a Windows Server',
     category: 'Host Configuration',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Installs the Hyper-V role and management tools on Windows Server
 - Enables virtualization capabilities for hosting virtual machines
@@ -110,6 +111,7 @@ try {
     title: 'Create Virtual Switch',
     description: 'Create a Hyper-V virtual switch (External/Internal/Private)',
     category: 'Host Configuration',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates Hyper-V virtual switches for VM network connectivity
 - Supports three types: External (internet access), Internal (host-VM), or Private (VM-to-VM only)
@@ -210,6 +212,7 @@ try {
     title: 'Create Virtual Machine',
     description: 'Create a new Hyper-V virtual machine',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates new Hyper-V virtual machines with specified hardware configuration, generation, storage, and network settings.
 
@@ -340,6 +343,7 @@ try {
     title: 'Start/Stop VMs',
     description: 'Perform power operations on Hyper-V virtual machines',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script performs bulk power management operations on Hyper-V VMs for maintenance, testing, or operational scheduling.
 
@@ -435,6 +439,7 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
     title: 'Export Virtual Machine',
     description: 'Export a Hyper-V VM for backup or migration',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports complete Hyper-V VMs with configuration, VHDs, and snapshots for backup, migration, or disaster recovery.
 
@@ -516,6 +521,7 @@ try {
     title: 'Create Virtual Hard Disk',
     description: 'Create a new VHDX file',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates new VHDX virtual hard disk files for VM storage with Dynamic (thin-provisioned) or Fixed (pre-allocated) types.
 
@@ -604,6 +610,7 @@ try {
     title: 'Resize Virtual Hard Disk',
     description: 'Expand a VHDX file',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script expands existing VHDX virtual hard disks to increase VM storage capacity without downtime.
 
@@ -685,6 +692,7 @@ try {
     title: 'Create VM Checkpoint',
     description: 'Create a checkpoint (snapshot) of a virtual machine',
     category: 'Checkpoints',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates point-in-time checkpoints (snapshots) of VMs for rollback capability before changes, updates, or testing.
 
@@ -765,6 +773,7 @@ try {
     title: 'Export VM Inventory',
     description: 'Export inventory of all Hyper-V VMs to CSV',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive CSV inventory reports of all Hyper-V VMs with configuration details for documentation and capacity planning.
 
@@ -845,6 +854,7 @@ try {
     title: 'Clone Virtual Machine',
     description: 'Create an exact copy of an existing VM',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates exact copies of existing VMs for rapid provisioning, testing environments, or disaster recovery scenarios.
 
@@ -943,6 +953,7 @@ try {
     title: 'Configure Dynamic Memory',
     description: 'Configure dynamic or static memory settings for a VM',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures VM memory settings with dynamic allocation (flexible) or static allocation (fixed) for performance optimization.
 
@@ -1045,6 +1056,7 @@ try {
     title: 'Configure Storage QoS',
     description: 'Set IOPS limits and QoS policies for VM virtual disks',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures Storage Quality of Service (QoS) for VM virtual disks to control IOPS limits and ensure fair resource allocation across VMs.
 
@@ -1134,6 +1146,7 @@ try {
     title: 'Expand Virtual Hard Disk',
     description: 'Increase the size of a virtual hard disk',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script expands VHDX virtual hard disks to increase VM storage capacity when running low on disk space.
 
@@ -1217,6 +1230,7 @@ try {
     title: 'Optimize and Compact VHD',
     description: 'Compact a virtual hard disk to reclaim unused space',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script compacts dynamic VHDX files to reclaim unused space and reduce storage consumption after data deletion in guest OS.
 
@@ -1292,6 +1306,7 @@ try {
     title: 'Create Virtual Switch',
     description: 'Create external, internal, or private virtual switch',
     category: 'Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Hyper-V virtual switches for VM network connectivity with External (internet), Internal (host-VM), or Private (VM-only) types.
 
@@ -1394,6 +1409,7 @@ try {
     title: 'Configure VM VLAN Tagging',
     description: 'Set VLAN ID for VM network adapter',
     category: 'Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures VLAN tagging on VM network adapters for network segmentation and multi-tenant environments.
 
@@ -1469,6 +1485,7 @@ try {
     title: 'Configure VM Replication',
     description: 'Set up Hyper-V Replica for disaster recovery',
     category: 'Backup & Recovery',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures Hyper-V Replica for VM disaster recovery by continuously replicating VMs to a secondary Hyper-V host.
 
@@ -1562,6 +1579,7 @@ try {
     title: 'Apply VM Checkpoint',
     description: 'Restore a VM to a previous checkpoint/snapshot state',
     category: 'Checkpoints',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script restores VMs to previous checkpoint states for rollback after failed changes, updates, or testing.
 
@@ -1647,6 +1665,7 @@ try {
     title: 'Remove Old Checkpoints',
     description: 'Delete checkpoints older than specified days to free disk space',
     category: 'Checkpoints',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script removes old VM checkpoints to reclaim storage space and maintain clean checkpoint hygiene based on retention policies.
 
@@ -1731,6 +1750,7 @@ try {
     title: 'Measure VM Performance Metrics',
     description: 'Collect CPU, memory, and disk performance metrics for VMs',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script collects real-time performance metrics from VMs for capacity planning, troubleshooting, and performance monitoring.
 
@@ -1827,6 +1847,7 @@ ${vmNamesInput.split('\\n').filter((line: string) => line.trim()).map((name: str
     title: 'Bulk Create VMs from CSV',
     description: 'Create multiple VMs from a CSV file specification',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script automates mass VM provisioning by creating multiple VMs from CSV specifications for rapid deployment and standardization.
 
@@ -1927,6 +1948,7 @@ try {
     title: 'Configure Integration Services',
     description: 'Enable or disable specific integration services for a VM',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script manages Hyper-V Integration Services (time sync, heartbeat, data exchange, shutdown) for VM-host communication and functionality.
 
@@ -2005,6 +2027,7 @@ try {
     title: 'Export VM Configurations',
     description: 'Export all VM settings and configurations to JSON',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports comprehensive VM configuration details to JSON for documentation, version control, and disaster recovery planning.
 
@@ -2099,6 +2122,7 @@ try {
     title: 'Enable Enhanced Session Mode',
     description: 'Enable enhanced session mode for better VM connectivity',
     category: 'Host Configuration',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script enables Enhanced Session Mode on Hyper-V hosts for improved VM console connectivity with clipboard, audio, and drive redirection.
 
@@ -2160,6 +2184,7 @@ try {
     title: 'Configure VM NUMA Topology',
     description: 'Configure NUMA (Non-Uniform Memory Access) settings for high-performance VMs',
     category: 'Performance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures NUMA topology for large VMs to optimize memory access performance on NUMA-enabled hardware for database and high-performance workloads.
 
@@ -2243,6 +2268,7 @@ try {
     title: 'Enable Resource Metering',
     description: 'Enable resource usage tracking for billing and monitoring',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script enables Hyper-V Resource Metering to track VM resource consumption for billing, chargeback, and capacity planning in multi-tenant environments.
 
@@ -2316,6 +2342,7 @@ ${vmNamesInput.split('\\n').filter((line: string) => line.trim()).map((name: str
     title: 'Audit VM Security Settings',
     description: 'Generate security audit report for all VMs',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script audits VM security configurations including Secure Boot, TPM, encryption, and integration services for compliance and security baseline validation.
 
@@ -2404,6 +2431,7 @@ try {
     title: 'Configure VM Automatic Start/Stop',
     description: 'Set automatic startup and shutdown actions for VMs',
     category: 'VM Lifecycle',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures VM automatic start/stop behavior when Hyper-V host boots or shuts down for high availability and graceful shutdown management.
 
@@ -2506,6 +2534,7 @@ try {
     title: 'Migrate VM Storage',
     description: 'Move VM virtual hard disks to a different location',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script performs live storage migration to move VM virtual hard disks to new storage locations without VM downtime for storage upgrade or load balancing.
 
@@ -2590,6 +2619,7 @@ try {
     id: 'hyperv-export-config',
     name: 'Export VM Configuration',
     category: 'Reporting',
+    isPremium: true,
     description: 'Backup VM settings to XML',
     instructions: `**How This Task Works:**
 - Exports complete VM configuration to XML format
@@ -2650,6 +2680,7 @@ try {
     id: 'hyperv-configure-replication',
     name: 'Configure VM Replication',
     category: 'High Availability',
+    isPremium: true,
     description: 'Setup Hyper-V Replica for disaster recovery',
     instructions: `**How This Task Works:**
 - Configures Hyper-V Replica for VM disaster recovery

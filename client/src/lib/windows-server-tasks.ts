@@ -28,6 +28,7 @@ export const windowsServerTasks: WindowsServerTask[] = [
     title: 'Export Server Inventory',
     description: 'Export comprehensive server inventory from multiple servers to CSV',
     category: 'Server Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports hardware and OS inventory from multiple Windows Servers
 - Supports asset management and capacity planning
@@ -123,6 +124,7 @@ try {
     title: 'Export Installed Roles and Features',
     description: 'Export installed Windows Server roles and features to CSV',
     category: 'Roles & Features',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports installed roles and features from Windows Server
 - Supports configuration documentation and compliance verification
@@ -208,6 +210,7 @@ try {
     title: 'Export Event Logs',
     description: 'Export recent event logs from a Windows Server to CSV',
     category: 'Event Logs',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports recent event log entries
 - Supports troubleshooting, security monitoring, and compliance auditing
@@ -324,6 +327,7 @@ try {
     title: 'Export Services Status',
     description: 'Export Windows services status from a server to CSV',
     category: 'Services',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports Windows service inventory with status
 - Supports service monitoring and configuration documentation
@@ -409,6 +413,7 @@ try {
     title: 'Export Disk Usage',
     description: 'Export disk usage information from a server to CSV',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports disk space usage metrics
 - Supports capacity planning and proactive storage management
@@ -496,6 +501,7 @@ try {
     title: 'Install Server Role/Feature',
     description: 'Install a Windows Server role or feature with management tools',
     category: 'Roles & Features',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Installs Windows Server roles and features remotely
 - Automatically includes management tools and PowerShell modules
@@ -602,6 +608,7 @@ try {
     title: 'Remove Server Role/Feature',
     description: 'Uninstall a Windows Server role or feature',
     category: 'Roles & Features',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Removes Windows Server roles and features remotely
 - Can optionally remove installation files to save disk space
@@ -699,6 +706,7 @@ try {
     title: 'Export Available Features List',
     description: 'Export list of all available Windows Server roles and features',
     category: 'Roles & Features',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports complete inventory of available Windows features
 - Shows installation state of each role and feature
@@ -797,6 +805,7 @@ try {
     title: 'Restart Windows Server',
     description: 'Reboot a Windows Server with optional force and delay',
     category: 'Server Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Restarts Windows Server remotely with controlled timing
 - Supports graceful or forced restart options
@@ -887,6 +896,7 @@ try {
     title: 'Shutdown Windows Server',
     description: 'Power off a Windows Server gracefully or forcefully',
     category: 'Server Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Shuts down Windows Server remotely with controlled timing
 - Supports graceful or forced shutdown options
@@ -966,6 +976,7 @@ try {
     title: 'Rename Windows Server',
     description: 'Change the computer name of a Windows Server',
     category: 'Server Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Renames Windows Server computer name remotely
 - Automatically restarts server to apply changes
@@ -1056,6 +1067,7 @@ try {
     title: 'List All Services',
     description: 'Export complete list of Windows services with status',
     category: 'Services',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports comprehensive list of all Windows services
 - Shows service status, startup type, and display name
@@ -1165,6 +1177,7 @@ try {
     title: 'Start Windows Service',
     description: 'Start a stopped Windows service remotely',
     category: 'Services',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Starts a stopped Windows service on a remote server
 - Verifies service dependencies are started first
@@ -1263,6 +1276,7 @@ try {
     title: 'Stop Windows Service',
     description: 'Stop a running Windows service remotely',
     category: 'Services',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Stops a running Windows service on a remote server
 - Forces stop if service doesn't respond gracefully
@@ -1380,6 +1394,7 @@ try {
     title: 'Restart Windows Service',
     description: 'Restart a Windows service (stop then start)',
     category: 'Services',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Restarts a Windows service by stopping and starting it
 - Verifies service returns to running state
@@ -1484,6 +1499,7 @@ try {
     title: 'Set Service Startup Type',
     description: 'Configure Windows service startup behavior',
     category: 'Services',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Changes Windows service startup type configuration
 - Supports Automatic, Manual, Disabled, and Delayed Auto start
@@ -1592,6 +1608,7 @@ try {
     title: 'Clear Event Log',
     description: 'Clear a Windows event log (Application, System, etc.)',
     category: 'Event Logs',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Clears all entries from a specified Windows event log
 - Optionally backs up log before clearing
@@ -1723,6 +1740,7 @@ try {
     title: 'Search Event Log for Pattern',
     description: 'Search Windows event logs for specific patterns, event IDs, or keywords',
     category: 'Event Logs',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Searches event logs for specific patterns or event IDs
 - Supports filtering by event level, source, and time range
@@ -1857,6 +1875,7 @@ try {
     title: 'Create SMB File Share',
     description: 'Create a new SMB network file share with custom permissions',
     category: 'File Sharing',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates a new SMB network file share
 - Configures share-level permissions
@@ -1978,6 +1997,7 @@ try {
     title: 'Remove SMB File Share',
     description: 'Delete an existing SMB network file share',
     category: 'File Sharing',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Removes an existing SMB network file share
 - Does not delete the underlying folder or files
@@ -2070,6 +2090,7 @@ try {
     title: 'Export All File Shares',
     description: 'Export inventory of all SMB file shares to CSV',
     category: 'File Sharing',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports complete inventory of all SMB shares
 - Shows share names, paths, and permissions
@@ -2161,6 +2182,7 @@ try {
     title: 'Set Server Time Zone',
     description: 'Configure the time zone settings for a Windows Server',
     category: 'Server Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Changes the system time zone on Windows Server
 - Updates system time zone without requiring restart
@@ -2262,6 +2284,7 @@ try {
     title: 'Configure Firewall Rule',
     description: 'Create a new Windows Firewall rule to allow or block traffic',
     category: 'Security & Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates custom Windows Firewall rules
 - Controls inbound or outbound traffic
@@ -2414,6 +2437,7 @@ try {
     title: 'Export Firewall Rules',
     description: 'Export all Windows Firewall rules to CSV for documentation',
     category: 'Security & Networking',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports complete inventory of firewall rules
 - Shows rule names, directions, actions, and status
@@ -2517,6 +2541,7 @@ try {
     title: 'Defragment Disk Volume',
     description: 'Optimize and defragment a disk volume for better performance',
     category: 'Disk Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Defragments and optimizes disk volumes
 - Improves disk read/write performance
@@ -2606,6 +2631,7 @@ try {
     title: 'Run Disk Check (CHKDSK)',
     description: 'Scan disk volume for errors and bad sectors',
     category: 'Disk Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Scans disk volumes for file system errors
 - Detects bad sectors and corruption
@@ -2706,6 +2732,7 @@ try {
     title: 'Extend Disk Volume',
     description: 'Expand a disk partition to use available free space',
     category: 'Disk Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Extends disk partitions to use unallocated space
 - Increases volume capacity without data loss
@@ -2823,6 +2850,7 @@ try {
     title: 'Join Server to Domain',
     description: 'Join a Windows Server to an Active Directory domain',
     category: 'Server Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Joins a standalone server to an Active Directory domain
 - Creates computer account in Active Directory
@@ -2943,6 +2971,7 @@ try {
     title: 'Remove Server from Domain',
     description: 'Remove a Windows Server from Active Directory domain and join workgroup',
     category: 'Server Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Removes server from Active Directory domain
 - Joins server to a workgroup (standalone mode)

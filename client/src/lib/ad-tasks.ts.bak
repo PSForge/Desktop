@@ -497,7 +497,6 @@ Write-Host "Stale computers cleanup completed!" -ForegroundColor Green`;
     id: 'backup-all-gpos',
     name: 'Backup All GPOs',
     category: 'GPO & Configuration',
-    isPremium: true,
     description: 'Create timestamped backup of all Group Policy Objects',
     instructions: `**How This Task Works:**
 This script creates a complete backup of all Group Policy Objects in the domain, organized by timestamp, with optional automatic cleanup of old backups.
@@ -599,7 +598,6 @@ try {
     id: 'audit-priv-groups',
     name: 'Audit Privileged Groups',
     category: 'Security & Compliance',
-    isPremium: true,
     description: 'Monitor changes to privileged groups and generate diff report',
     instructions: `**How This Task Works:**
 This script implements continuous monitoring of privileged Active Directory security groups by maintaining baselines and detecting membership changes over time.
@@ -748,7 +746,6 @@ Write-Host "Privileged groups audit completed!" -ForegroundColor Green`;
     id: 'gpo-drift-report',
     name: 'GPO Drift Report',
     category: 'GPO & Configuration',
-    isPremium: true,
     description: 'Compare GPO backups and detect configuration drift',
     instructions: `**How This Task Works:**
 This script compares the two most recent GPO backup sets to detect configuration changes and policy drift in your Active Directory environment.
@@ -905,7 +902,6 @@ if ($DriftDetected.Count -gt 0) {
     id: 'ad-health-report',
     name: 'Weekly AD Health Report',
     category: 'Reporting & Inventory',
-    isPremium: true,
     description: 'Comprehensive AD health check including DCs, replication, DIT size, and SYSVOL',
     instructions: `**How This Task Works:**
 This script performs a comprehensive health assessment of your Active Directory environment, checking domain controllers, replication status, and overall infrastructure health.
@@ -1061,7 +1057,6 @@ Write-Host "✓ Report emailed to $EmailTo" -ForegroundColor Green
     id: 'find-lockout-source',
     name: 'Find Account Lockout Source',
     category: 'Reporting & Inventory',
-    isPremium: true,
     description: 'Hunt for the source of account lockouts across domain controllers',
     instructions: `**How This Task Works:**
 This script investigates account lockout events across all domain controllers to identify the source computer causing repeated lockouts, essential for troubleshooting user access issues.
@@ -1184,7 +1179,6 @@ if ($LockoutEvents.Count -gt 0) {
     id: 'audit-kerberoastable-spns',
     name: 'Audit Kerberoastable SPNs',
     category: 'Security & Compliance',
-    isPremium: true,
     description: 'Find service accounts with SPNs vulnerable to Kerberoasting attacks',
     instructions: `**How This Task Works:**
 This script identifies service accounts with Service Principal Names (SPNs) that are vulnerable to Kerberoasting attacks, a critical security assessment for Active Directory environments.
@@ -1301,7 +1295,6 @@ Write-Host "  - Use Group Managed Service Accounts (gMSA) when possible" -Foregr
     id: 'report-stale-dns',
     name: 'Report Stale DNS Records',
     category: 'DNS / DHCP',
-    isPremium: true,
     description: 'Find and report stale DNS records for cleanup',
     instructions: `**How This Task Works:**
 This script identifies stale DNS A records in your Windows DNS zones by checking record age and computer availability, helping maintain clean DNS infrastructure.
@@ -1416,7 +1409,6 @@ Write-Host "Review the report before taking action" -ForegroundColor Gray`;
     id: 'move-computers-by-site',
     name: 'Move Computers by Site',
     category: 'Computers & OUs',
-    isPremium: true,
     description: 'Automatically place computers into correct OUs based on site or subnet',
     instructions: `**How This Task Works:**
 This script automates computer object organization by moving computers into designated OUs based on their Active Directory site assignment, maintaining proper structure.
@@ -1542,7 +1534,6 @@ Write-Host "  Skipped: $Skipped computers" -ForegroundColor Gray`;
     id: 'bulk-user-import',
     name: 'Bulk User Import from CSV',
     category: 'Identity Lifecycle',
-    isPremium: true,
     description: 'Import and create multiple users from HR CSV file',
     instructions: `**How This Task Works:**
 This script processes HR CSV files to bulk-create user accounts in Active Directory, streamlining new hire onboarding for large batches.
@@ -1656,7 +1647,6 @@ Write-Host "  Failed: $Failed users" -ForegroundColor Red`;
     id: 'password-reset-unlock',
     name: 'Password Reset & Account Unlock',
     category: 'Identity Lifecycle',
-    isPremium: true,
     description: 'Reset user password and unlock account',
     instructions: `**How This Task Works:**
 This script provides quick password reset and account unlock functionality, essential for helpdesk operations and resolving urgent user access issues.
@@ -1753,7 +1743,6 @@ try {
     id: 'orphaned-groups-cleanup',
     name: 'Orphaned/Empty Groups Report',
     category: 'Groups & Access',
-    isPremium: true,
     description: 'Find and report empty groups and groups with no members',
     instructions: `**How This Task Works:**
 This script identifies empty security and distribution groups in Active Directory, helping maintain a clean group structure and reduce security audit findings.
@@ -1847,7 +1836,6 @@ Write-Host "  Empty groups found: $($EmptyGroups.Count)" -ForegroundColor Yellow
     id: 'bitlocker-recovery-audit',
     name: 'BitLocker Recovery Key Audit',
     category: 'Computers & OUs',
-    isPremium: true,
     description: 'Check and export BitLocker recovery keys from AD',
     instructions: `**How This Task Works:**
 This script audits BitLocker recovery keys stored in Active Directory, essential for disaster recovery planning and compliance verification.
@@ -1945,7 +1933,6 @@ Write-Host "⚠ WARNING: Handle this file securely - it contains recovery keys!"
     id: 'password-never-expires-audit',
     name: 'Password Never Expires Audit',
     category: 'Security & Compliance',
-    isPremium: true,
     description: 'Find accounts with password never expires flag set',
     instructions: `**How This Task Works:**
 This script identifies user accounts configured with the "Password Never Expires" flag, a critical security audit for compliance and vulnerability assessment.
@@ -2053,7 +2040,6 @@ Write-Host "Recommendation: Review and disable PasswordNeverExpires for non-serv
     id: 'replication-failure-watcher',
     name: 'Replication Failure Watcher',
     category: 'Reporting & Inventory',
-    isPremium: true,
     description: 'Monitor and alert on AD replication failures',
     instructions: `**How This Task Works:**
 This script monitors Active Directory replication health across all domain controllers, detecting failures and alerting administrators before issues impact users.
@@ -2193,7 +2179,6 @@ Write-Host "Summary: $($Failures.Count) replication failure(s) found" -Foregroun
     id: 'upn-consistency-report',
     name: 'UPN & Email Suffix Consistency',
     category: 'Reporting & Inventory',
-    isPremium: true,
     description: 'Report on UPN and email address consistency',
     instructions: `**How This Task Works:**
 This script audits user principal names (UPNs) and email addresses to ensure consistency across your organization, critical for Office 365/Azure AD synchronization and user experience.
@@ -2311,7 +2296,6 @@ Write-Host "  Inconsistent: $($Inconsistent.Count)" -ForegroundColor Yellow`;
     id: 'ntfs-permissions-review',
     name: 'NTFS Permissions Review',
     category: 'File/Print & Permissions',
-    isPremium: true,
     description: 'Audit NTFS permissions and detect least privilege violations',
     instructions: `**How This Task Works:**
 This script performs a comprehensive NTFS permissions audit on file shares and folders, identifying security violations and excessive permissions that violate least privilege principles.
@@ -2435,7 +2419,6 @@ Write-Host "  Permission issues found: $($Results.Count)" -ForegroundColor Yello
     id: 'csv-mass-moves',
     name: 'CSV-Driven Mass Moves/Renames',
     category: 'Migrations & Hygiene',
-    isPremium: true,
     description: 'Move or rename AD objects in bulk from CSV file',
     instructions: `**How This Task Works:**
 This script processes CSV files to perform bulk moves and renames of Active Directory objects (users, computers, groups), essential for reorganizations, migrations, and cleanup projects.
@@ -2564,7 +2547,6 @@ Write-Host "  Failed: $Failed objects" -ForegroundColor Red`;
     id: 'nested-group-audit',
     name: 'Nested Group Depth Audit',
     category: 'Groups & Access',
-    isPremium: true,
     description: 'Audit nested group depth to identify token bloat issues',
     instructions: `**How This Task Works:**
 This script analyzes group nesting depth to identify potential Kerberos token bloat issues, which can cause authentication failures and performance problems in Active Directory environments.
@@ -2689,7 +2671,6 @@ Write-Host "Note: Deep nesting can cause token bloat and authentication issues" 
     id: 'bulk-add-users-to-group',
     name: 'Bulk Add Users to Security Group',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Add multiple users to a security group from CSV file with username list',
     instructions: `**How This Task Works:**
 This script adds multiple users to a security group in bulk from a CSV file, streamlining access management for projects, departments, and resource permissions.
@@ -2817,7 +2798,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'bulk-user-property-changes',
     name: 'Bulk User Property Changes',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Update user properties (department, title, manager, etc.) from CSV file',
     instructions: `**How This Task Works:**
 This script updates user account properties in bulk from a CSV file, perfect for organizational changes, HR updates, and data quality projects.
@@ -2941,7 +2921,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'bulk-user-account-moves',
     name: 'Bulk User Account Moves',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Move multiple user accounts to different OUs from CSV file',
     instructions: `**How This Task Works:**
 This script moves user accounts between organizational units in bulk from a CSV file, essential for reorganizations, migrations, and AD cleanup projects.
@@ -3063,7 +3042,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'bulk-add-computers-to-group',
     name: 'Bulk Add Computers to Security Group',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Add multiple computers to a security group from CSV file',
     instructions: `**How This Task Works:**
 This script adds multiple computer accounts to a security group in bulk, useful for Group Policy application, resource access, and workstation management.
@@ -3191,7 +3169,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'bulk-computer-property-changes',
     name: 'Bulk Computer Property Changes',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Update computer properties (description, location, etc.) from CSV file',
     instructions: `**How This Task Works:**
 This script updates computer account properties in bulk from CSV, perfect for asset management, inventory updates, and documentation projects.
@@ -3311,7 +3288,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'bulk-computer-account-moves',
     name: 'Bulk Computer Account Moves',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Move multiple computer accounts to different OUs from CSV file',
     instructions: `**How This Task Works:**
 This script moves computer accounts between OUs in bulk, essential for Group Policy reorganization, site consolidation, and infrastructure changes.
@@ -3433,7 +3409,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'bulk-contact-property-changes',
     name: 'Bulk Contact Property Changes',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Update contact properties (email, phone, company, etc.) from CSV file',
     instructions: `**How This Task Works:**
 This script updates contact object properties in bulk from CSV, useful for maintaining external partner information, vendor contacts, and global address list entries.
@@ -3562,7 +3537,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'bulk-group-property-changes',
     name: 'Bulk Security Group Property Changes',
     category: 'Bulk Actions',
-    isPremium: true,
     description: 'Update security group properties (description, managed by, etc.) from CSV file',
     instructions: `**How This Task Works:**
 This script updates security group properties in bulk from CSV, perfect for documentation cleanup, ownership assignment, and group management hygiene.
@@ -3685,7 +3659,6 @@ Write-Host "======================================" -ForegroundColor Cyan`;
     id: 'create-dns-zone',
     name: 'Create DNS Zone',
     category: 'DNS Operations',
-    isPremium: true,
     description: 'Create a new DNS zone (primary or secondary)',
     instructions: `**How This Task Works:**
 This script creates a new DNS zone on a Windows DNS server for name resolution.
@@ -3782,7 +3755,6 @@ try {
     id: 'create-dns-a-record',
     name: 'Create DNS A Record',
     category: 'DNS Operations',
-    isPremium: true,
     description: 'Create a DNS A (host) record for name-to-IP resolution',
     instructions: `**How This Task Works:**
 This script creates a DNS A record to map a hostname to an IPv4 address.
@@ -3850,7 +3822,6 @@ try {
     id: 'configure-dns-scavenging',
     name: 'Configure DNS Scavenging',
     category: 'DNS Operations',
-    isPremium: true,
     description: 'Enable and configure DNS scavenging to remove stale records',
     instructions: `**How This Task Works:**
 This script configures DNS scavenging to automatically clean up stale DNS records.
@@ -3921,7 +3892,6 @@ try {
     id: 'create-dns-conditional-forwarder',
     name: 'Create DNS Conditional Forwarder',
     category: 'DNS Operations',
-    isPremium: true,
     description: 'Create a conditional forwarder for selective DNS query forwarding',
     instructions: `**How This Task Works:**
 This script creates a DNS conditional forwarder to forward queries for specific domains to designated DNS servers.
@@ -3992,7 +3962,6 @@ try {
     id: 'create-ad-site',
     name: 'Create Active Directory Site',
     category: 'Sites & Services',
-    isPremium: true,
     description: 'Create a new AD site for physical network location',
     instructions: `**How This Task Works:**
 This script creates a new Active Directory site to represent a physical network location.
@@ -4057,7 +4026,6 @@ try {
     id: 'create-ad-subnet',
     name: 'Create and Associate AD Subnet',
     category: 'Sites & Services',
-    isPremium: true,
     description: 'Create an AD subnet and associate it with a site',
     instructions: `**How This Task Works:**
 This script creates an AD subnet object and associates it with a site for proper client site assignment.
@@ -4124,7 +4092,6 @@ try {
     id: 'create-ad-site-link',
     name: 'Create AD Site Link',
     category: 'Sites & Services',
-    isPremium: true,
     description: 'Create a site link to control replication between AD sites',
     instructions: `**How This Task Works:**
 This script creates an AD site link to define replication paths and schedules between sites.
@@ -4198,7 +4165,6 @@ try {
     id: 'transfer-fsmo-role',
     name: 'Transfer FSMO Role',
     category: 'Domain & Forest Operations',
-    isPremium: true,
     description: 'Transfer a Flexible Single Master Operations (FSMO) role to another DC',
     instructions: `**How This Task Works:**
 This script gracefully transfers an FSMO role from one domain controller to another.
@@ -4271,7 +4237,6 @@ try {
     id: 'raise-domain-functional-level',
     name: 'Raise Domain Functional Level',
     category: 'Domain & Forest Operations',
-    isPremium: true,
     description: 'Raise the Active Directory domain functional level',
     instructions: `**How This Task Works:**
 This script raises the domain functional level to enable new features.
@@ -4354,7 +4319,6 @@ try {
     id: 'promote-domain-controller',
     name: 'Promote Server to Domain Controller',
     category: 'Domain & Forest Operations',
-    isPremium: true,
     description: 'Promote a Windows Server to domain controller role',
     instructions: `**How This Task Works:**
 This script promotes a Windows Server to a domain controller in an existing domain.

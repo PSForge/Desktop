@@ -19,6 +19,7 @@ export interface SharePointOnPremTask {
   instructions?: string;
   parameters: SharePointOnPremParameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const sharePointOnPremTasks: SharePointOnPremTask[] = [
@@ -27,6 +28,7 @@ export const sharePointOnPremTasks: SharePointOnPremTask[] = [
     title: 'Export Web Applications',
     description: 'Export list of all SharePoint web applications to CSV',
     category: 'Farm Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports SharePoint farm web application inventory
 - Supports farm documentation and capacity planning
@@ -102,6 +104,7 @@ try {
     title: 'Export Site Collections',
     description: 'Export list of all site collections to CSV',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports comprehensive site collection inventory
 - Enables governance and storage management across farm
@@ -178,6 +181,7 @@ try {
     title: 'Backup Site Collection',
     description: 'Create a backup of a SharePoint site collection',
     category: 'Backup & Recovery',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates full backup of individual site collection
 - Supports disaster recovery and migration scenarios
@@ -254,6 +258,7 @@ try {
     title: 'Export Content Databases',
     description: 'Export list of all content databases to CSV',
     category: 'Database Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports content database inventory
 - Supports SQL Server capacity planning and farm health monitoring
@@ -330,6 +335,7 @@ try {
     title: 'Export Service Applications',
     description: 'Export list of all service applications to CSV',
     category: 'Service Applications',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports service application inventory
 - Supports farm architecture documentation and service governance

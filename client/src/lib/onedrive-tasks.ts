@@ -28,6 +28,7 @@ export const oneDriveTasks: OneDriveTask[] = [
     title: 'Export Storage Usage Report',
     description: 'Export OneDrive storage usage for all users to CSV',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports comprehensive OneDrive storage usage statistics for all users to monitor consumption and plan capacity.
 
@@ -92,6 +93,7 @@ try {
     title: 'Export Sharing Activity Report',
     description: 'Export OneDrive sharing activity to CSV',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports OneDrive sharing and file activity metrics for security monitoring and collaboration analytics.
 
@@ -156,6 +158,7 @@ try {
     title: 'List Externally Shared Files',
     description: 'List all files shared externally from a user OneDrive',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script lists all files shared externally from a specific user's OneDrive for security audit and compliance verification.
 
@@ -224,6 +227,7 @@ try {
     title: 'Export OneDrive Sync Health',
     description: 'Export OneDrive sync client health status to CSV',
     category: 'Sync & Client',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports OneDrive sync client health metrics to troubleshoot sync issues and monitor client performance.
 
@@ -288,6 +292,7 @@ try {
     title: 'Export OneDrive User Inventory',
     description: 'Export list of all OneDrive sites to CSV',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports complete inventory of all OneDrive sites with owner, storage usage, and quota details for tenant-wide management.
 
@@ -360,6 +365,7 @@ try {
     title: 'Set OneDrive Storage Quota',
     description: 'Configure storage quota for a user OneDrive',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Sets individual OneDrive storage quota for specific users
 - Overrides default tenant-wide quota settings
@@ -418,6 +424,7 @@ try {
     title: 'Block File Downloads',
     description: 'Prevent file downloads from OneDrive',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Blocks file downloads from user's OneDrive
 - Users can still view files in browser (web preview)
@@ -474,6 +481,7 @@ try {
     title: 'Enable File Versioning',
     description: 'Turn on version history for OneDrive',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Configures version history limits for OneDrive files
 - OneDrive versioning is enabled by default and cannot be disabled
@@ -537,6 +545,7 @@ try {
     title: 'Set Sharing Link Expiration',
     description: 'Configure expiration for sharing links',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Sets automatic expiration for anonymous sharing links
 - Applies tenant-wide to all new anonymous links created
@@ -592,6 +601,7 @@ try {
     title: 'Disable OneDrive Sync',
     description: 'Prevent syncing for specific OneDrive',
     category: 'Sync & Client',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Blocks OneDrive sync by preventing file downloads
 - Restricts files to web-preview only (view-only mode)
@@ -649,6 +659,7 @@ try {
     title: 'Configure External Sharing',
     description: 'Control external sharing settings',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Configures tenant-wide external sharing policy for OneDrive
 - Controls how users can share files with external parties
@@ -705,6 +716,7 @@ try {
     title: 'Apply Retention Policy',
     description: 'Set retention policy for OneDrive content',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Sets retention period for orphaned OneDrive sites
 - Determines how long deleted users' OneDrive content remains accessible
@@ -761,6 +773,7 @@ try {
     title: 'Set Recycle Bin Quota',
     description: 'Configure recycle bin storage percentage',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Configures recycle bin retention period (not quota percentage as title suggests)
 - Sets number of days deleted items remain in second-stage recycle bin
@@ -817,6 +830,7 @@ try {
     title: 'Set Default Sharing Link',
     description: 'Configure default link type for sharing',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Sets default sharing link type when users click "Share" button
 - Determines what kind of link is created by default
@@ -874,6 +888,7 @@ try {
     title: 'Enable Owner Notifications',
     description: 'Notify owners of sharing activities',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Enables email notifications to file owners when their files are reshared
 - Alerts owners when shared content is passed to additional users
@@ -930,6 +945,7 @@ try {
     title: 'Configure Pre-Upload Scanning',
     description: 'Enable malware scanning before upload',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Controls whether infected files can be downloaded from OneDrive
 - Scans files for malware using Microsoft Defender
@@ -985,6 +1001,7 @@ try {
     title: 'Configure Sync Restrictions',
     description: 'Limit OneDrive sync to managed devices',
     category: 'Sync & Client',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Controls download of non-web-viewable files from OneDrive
 - When restricted, users can only download Office files and web-viewable content
@@ -1040,6 +1057,7 @@ try {
     title: 'Export File Count Report',
     description: 'Report file counts per OneDrive',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Generates inventory report of all personal OneDrive sites
 - Counts total files/items stored in each OneDrive
@@ -1101,6 +1119,7 @@ try {
     title: 'Export Shared Links Report',
     description: 'List all sharing links created',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Audits sharing links across all OneDrive sites
 - Identifies anonymous and guest access links
@@ -1174,6 +1193,7 @@ try {
     title: 'Export Storage Trend Report',
     description: 'Historical storage usage analysis',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Retrieves historical OneDrive storage usage data
 - Analyzes storage consumption trends over time
@@ -1238,6 +1258,7 @@ Disconnect-MgGraph`;
     title: 'Enable Access Requests',
     description: 'Allow users to request access',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Enables users to request access to shared OneDrive files
 - Owners receive email notifications for access requests
@@ -1300,6 +1321,7 @@ try {
     title: 'Block Legacy Authentication',
     description: 'Disable legacy auth protocols',
     category: 'Sync & Client',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Blocks legacy authentication protocols (basic auth, NTLM)
 - Forces modern authentication (OAuth 2.0, MFA-capable)
@@ -1355,6 +1377,7 @@ try {
     title: 'Set Idle Session Timeout',
     description: 'Auto-logout inactive sessions',
     category: 'Sync & Client',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Automatically signs out idle users from OneDrive/SharePoint
 - Displays warning before timeout occurs
@@ -1412,6 +1435,7 @@ try {
     title: 'Configure Unmanaged Device Policy',
     description: 'Control access from unmanaged devices',
     category: 'Sync & Client',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Controls OneDrive access from devices not managed by Intune/MDM
 - Three policy levels: full access, limited (web-only), or blocked
@@ -1477,6 +1501,7 @@ try {
     title: 'Bulk Delete OneDrive Sites',
     description: 'Remove OneDrive sites from CSV list',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Batch deletes multiple OneDrive sites from CSV input
 - Processes list of site URLs for removal
@@ -1548,6 +1573,7 @@ try {
     title: 'Bulk Set Storage Quotas',
     description: 'Apply quotas to multiple OneDrives from CSV',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Batch configures storage quotas for multiple users
 - Processes CSV list with email addresses and quota values
@@ -1624,6 +1650,7 @@ try {
     title: 'Break Permission Inheritance',
     description: 'Stop inheriting permissions from parent',
     category: 'Sharing & Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Breaks permission inheritance from parent site collection
 - Allows custom permission configuration for OneDrive
@@ -1683,6 +1710,7 @@ try {
     title: 'Export Activity Report',
     description: 'User activity metrics for OneDrive',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Retrieves detailed OneDrive user activity data
 - Analyzes file views, edits, syncs, and shares
@@ -1747,6 +1775,7 @@ Disconnect-MgGraph`;
     title: 'Block Specific File Types',
     description: 'Prevent upload of certain file extensions',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Blocks specific file extensions from OneDrive sync
 - Prevents potentially dangerous files from syncing
@@ -1803,6 +1832,7 @@ try {
     title: 'Restore Deleted OneDrive',
     description: 'Recover recently deleted OneDrive site',
     category: 'Storage Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Recovers OneDrive site from deleted sites collection
 - Restores all files, folders, and sharing permissions

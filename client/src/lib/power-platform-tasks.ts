@@ -28,6 +28,7 @@ export const powerPlatformTasks: PowerPlatformTask[] = [
     title: 'Export Environments List',
     description: 'Export list of all Power Platform environments to CSV',
     category: 'Environment Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports comprehensive inventory of all Power Platform environments for governance, capacity planning, and license management.
 
@@ -102,6 +103,7 @@ try {
     title: 'Export Power Apps Inventory',
     description: 'Export list of all Power Apps to CSV',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports complete inventory of all Power Apps across tenant for app lifecycle management and governance.
 
@@ -176,6 +178,7 @@ try {
     title: 'Export Power Automate Flows',
     description: 'Export list of all Power Automate flows to CSV',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports inventory of all Power Automate flows for monitoring automation usage and governance.
 
@@ -251,6 +254,7 @@ try {
     title: 'Export Custom Connectors',
     description: 'Export list of custom connectors to CSV',
     category: 'Connectors',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports inventory of custom connectors for API integration governance and documentation.
 
@@ -324,6 +328,7 @@ try {
     title: 'Export DLP Policies',
     description: 'Export Data Loss Prevention policies to CSV',
     category: 'Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports Data Loss Prevention (DLP) policies for security compliance and connector governance documentation.
 
@@ -397,6 +402,7 @@ try {
     title: 'Create Power Platform Environment',
     description: 'Create a new Power Platform environment',
     category: 'Environment Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates a new Power Platform environment in the specified region for application development, testing, or production workloads.
 
@@ -479,6 +485,7 @@ try {
     title: 'Delete Power Platform Environment',
     description: 'Permanently delete a Power Platform environment',
     category: 'Environment Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script permanently deletes a Power Platform environment and all its contents including apps, flows, and data.
 
@@ -553,6 +560,7 @@ try {
     title: 'Backup Power Platform Environment',
     description: 'Create a backup of a Power Platform environment',
     category: 'Environment Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates a point-in-time backup of a Power Platform environment for disaster recovery and compliance.
 
@@ -630,6 +638,7 @@ try {
     title: 'Restore Environment from Backup',
     description: 'Restore a Power Platform environment from a previous backup',
     category: 'Environment Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script restores a Power Platform environment from a previously created backup for disaster recovery.
 
@@ -717,6 +726,7 @@ try {
     title: 'Copy Power Platform Environment',
     description: 'Copy an environment to create a duplicate',
     category: 'Environment Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates a complete copy of an existing Power Platform environment for testing, training, or migration purposes.
 
@@ -795,6 +805,7 @@ try {
     title: 'List Power Apps in Environment',
     description: 'List all Power Apps in a specific environment',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script retrieves and displays all Power Apps within a specific environment for inventory and governance.
 
@@ -882,6 +893,7 @@ try {
     title: 'Delete Power App',
     description: 'Permanently delete a Power App',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script permanently deletes a Power App from the Power Platform for cleanup and governance.
 
@@ -956,6 +968,7 @@ try {
     title: 'Share Power App with Users',
     description: 'Grant users access to a Power App',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script shares a Power App with a user or security group, granting them permission to view or edit the app.
 
@@ -1046,6 +1059,7 @@ try {
     title: 'List Power Automate Flows',
     description: 'List all Power Automate flows in an environment',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script retrieves and displays all Power Automate flows within a specific environment for monitoring and governance.
 
@@ -1139,6 +1153,7 @@ try {
     title: 'Disable Power Automate Flow',
     description: 'Turn off a Power Automate flow',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script disables a Power Automate flow to stop it from running while preserving configuration for future re-enablement.
 
@@ -1219,6 +1234,7 @@ try {
     title: 'Enable Power Automate Flow',
     description: 'Turn on a Power Automate flow',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script enables a previously disabled Power Automate flow to resume automated operations.
 
@@ -1294,6 +1310,7 @@ try {
     title: 'Delete Power Automate Flow',
     description: 'Permanently delete a Power Automate flow',
     category: 'Apps & Flows',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script permanently deletes a Power Automate flow from the Power Platform for cleanup and governance.
 
@@ -1379,6 +1396,7 @@ try {
     title: 'List Custom Connectors',
     description: 'List all custom connectors in an environment',
     category: 'Connectors',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script retrieves and displays all custom connectors within a specific environment for API governance and documentation.
 
@@ -1468,6 +1486,7 @@ try {
     title: 'Delete Custom Connector',
     description: 'Permanently delete a custom connector',
     category: 'Connectors',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script permanently deletes a custom connector from the Power Platform for API cleanup and governance.
 
@@ -1553,6 +1572,7 @@ try {
     title: 'Block Connector Tenant-Wide',
     description: 'Block a connector in DLP policy to prevent usage',
     category: 'Connectors',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script adds a connector to the "Blocked" group in a DLP policy to prevent tenant-wide usage for security and compliance.
 
@@ -1633,6 +1653,7 @@ try {
     title: 'Configure Tenant Settings',
     description: 'Update Power Platform tenant-level configuration',
     category: 'Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script configures tenant-wide Power Platform settings for governance, security, and capacity management.
 
@@ -1711,6 +1732,7 @@ try {
     title: 'Export Environment Users & Permissions',
     description: 'Export all users with environment access and their roles',
     category: 'Reporting & Analytics',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports comprehensive inventory of all users with access to Power Platform environments and their assigned security roles.
 
@@ -1800,6 +1822,7 @@ try {
     title: 'Set Environment Security Role',
     description: 'Assign security role to user in environment',
     category: 'Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script assigns a security role to a user in a specific Power Platform environment for access control and governance.
 
@@ -1890,6 +1913,7 @@ try {
     title: 'Generate Capacity Usage Report',
     description: 'Report on storage and API capacity consumption',
     category: 'Reporting & Analytics',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive capacity usage reports for Power Platform environments to track consumption and plan capacity.
 
@@ -1974,6 +1998,7 @@ try {
     title: 'Create DLP Policy',
     description: 'Create a new Data Loss Prevention policy',
     category: 'Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates a new Data Loss Prevention (DLP) policy to control data sharing between connectors for security and compliance.
 
@@ -2061,6 +2086,7 @@ try {
     title: 'Delete DLP Policy',
     description: 'Permanently delete a Data Loss Prevention policy',
     category: 'Governance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script permanently deletes a DLP policy from Power Platform, removing all connector restrictions.
 
@@ -2135,6 +2161,7 @@ try {
     title: 'Export Flow Run History',
     description: 'Export execution history for a Power Automate flow',
     category: 'Reporting & Analytics',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports detailed run history for a specific Power Automate flow for troubleshooting and analytics.
 
@@ -2244,6 +2271,7 @@ try {
     title: 'Find Orphaned Resources',
     description: 'Identify apps and flows without valid owners',
     category: 'Reporting & Analytics',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script identifies Power Apps and flows without valid owners (orphaned resources) for cleanup and reassignment.
 
@@ -2350,6 +2378,7 @@ try {
     title: 'Export Usage Analytics',
     description: 'Export Power Platform usage metrics and analytics',
     category: 'Reporting & Analytics',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports Power Platform usage analytics including app launches, flow runs, and user activity for reporting and analysis.
 
@@ -2471,6 +2500,7 @@ try {
     title: 'Export Solution',
     description: 'Export a Power Platform solution package',
     category: 'Solutions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports a Power Platform solution as a managed or unmanaged package for deployment and version control.
 

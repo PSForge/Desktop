@@ -28,6 +28,7 @@ export const sharePointOnlineTasks: SharePointOnlineTask[] = [
     title: 'Export Site Collection Inventory',
     description: 'Export list of all SharePoint Online site collections to CSV',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports comprehensive inventory of all SharePoint Online site collections
 - Enables governance, storage management, and compliance tracking
@@ -105,6 +106,7 @@ try {
     title: 'Export Site Permissions',
     description: 'Export permissions for a specific SharePoint Online site to CSV',
     category: 'Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports detailed site permission assignments
 - Supports security audit and access review compliance
@@ -192,6 +194,7 @@ try {
     title: 'Export Storage Report',
     description: 'Export storage usage report for all SharePoint Online sites to CSV',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports storage consumption metrics with quota utilization
 - Calculates percentage used for each site collection
@@ -269,6 +272,7 @@ try {
     title: 'Export External Users',
     description: 'Export list of all external users with SharePoint access to CSV',
     category: 'Security',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports all external guest users with SharePoint access
 - Supports security compliance and external collaboration governance
@@ -344,6 +348,7 @@ try {
     title: 'Export Sharing Links Report',
     description: 'Export all sharing links from a SharePoint site to CSV',
     category: 'Sharing',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports all sharing links created for site documents
 - Audits external sharing for data loss prevention compliance
@@ -432,6 +437,7 @@ try {
     title: 'Create Site Collection',
     description: 'Create new SharePoint site collection',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates a new SharePoint Online site collection with specified URL and owner
 - Provisions a modern team site with 1GB default storage quota
@@ -519,6 +525,7 @@ try {
     title: 'Delete Site Collection',
     description: 'Remove SharePoint site collection',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Permanently deletes a SharePoint Online site collection
 - Moves site to recycle bin for 93 days before permanent deletion
@@ -588,6 +595,7 @@ try {
     title: 'Restore Deleted Site',
     description: 'Recover site from recycle bin',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Restores a deleted SharePoint Online site from recycle bin
 - Recovers all content, permissions, and settings
@@ -657,6 +665,7 @@ try {
     title: 'Set Site Storage Quota',
     description: 'Configure site storage limit',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Sets or modifies storage quota for a SharePoint site collection
 - Controls maximum storage capacity allocated to the site
@@ -738,6 +747,7 @@ try {
     title: 'Add Site Collection Admin',
     description: 'Grant admin access to site',
     category: 'Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Grants Site Collection Administrator permissions to a user
 - Provides full control over site settings, permissions, and content
@@ -818,6 +828,7 @@ try {
     title: 'Remove Site Collection Admin',
     description: 'Revoke admin access from site',
     category: 'Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Revokes Site Collection Administrator permissions from a user
 - Removes full control access to site settings and permissions
@@ -897,6 +908,7 @@ try {
     title: 'Disable External Sharing',
     description: 'Block external access to site',
     category: 'Security',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Disables all external sharing capabilities for a site collection
 - Prevents creation of new guest links and anonymous links
@@ -966,6 +978,7 @@ try {
     title: 'Enable Document Versioning',
     description: 'Turn on version history for documents',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Enables version history for the Documents library
 - Automatically saves versions when files are modified
@@ -1047,6 +1060,7 @@ try {
     title: 'Export Site Users',
     description: 'List all users with permissions',
     category: 'Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports all users with permissions to the site collection
 - Generates comprehensive user access report
@@ -1129,6 +1143,7 @@ try {
     title: 'Export Site Groups',
     description: 'List SharePoint groups',
     category: 'Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports all SharePoint groups from the site collection
 - Shows group membership structure and ownership
@@ -1211,6 +1226,7 @@ try {
     title: 'Break Permission Inheritance',
     description: 'Stop inheriting parent permissions',
     category: 'Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Breaks permission inheritance from parent site
 - Creates unique permission set for the site
@@ -1282,6 +1298,7 @@ try {
     title: 'Register Hub Site',
     description: 'Convert site to hub',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Converts an existing site collection into a SharePoint hub site
 - Enables hub navigation, branding, and site association
@@ -1363,6 +1380,7 @@ try {
     title: 'Associate Site to Hub',
     description: 'Join site to hub site',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Associates a SharePoint site collection with an existing hub site
 - Enables site to inherit hub navigation, theme, and branding
@@ -1443,6 +1461,7 @@ try {
     title: 'Update Site Title',
     description: 'Change site display name',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Changes the display title of a SharePoint site
 - Updates site name shown in navigation and search results
@@ -1522,6 +1541,7 @@ try {
     title: 'Lock Site',
     description: 'Prevent changes to site',
     category: 'Security',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Sets site collection to read-only lock state
 - Prevents all content modifications and uploads
@@ -1592,6 +1612,7 @@ try {
     title: 'Unlock Site',
     description: 'Re-enable site editing',
     category: 'Security',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Removes lock state from a SharePoint site collection
 - Restores full read-write access for authorized users
@@ -1661,6 +1682,7 @@ try {
     title: 'Enable Modern UI',
     description: 'Switch to modern experience',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Enables modern SharePoint user interface
 - Activates responsive design and improved performance
@@ -1732,6 +1754,7 @@ try {
     title: 'Request Search Reindex',
     description: 'Trigger full site reindex',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Requests full search reindexing of SharePoint site
 - Rebuilds search index for all site content
@@ -1801,6 +1824,7 @@ try {
     title: 'Export Permission Report',
     description: 'Detailed permissions audit',
     category: 'Permissions',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports comprehensive permission audit for site lists and libraries
 - Retrieves role assignments for all list items
@@ -1902,6 +1926,7 @@ try {
     title: 'Bulk Upload Files',
     description: 'Upload folder to library',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Uploads entire folder structure to SharePoint document library
 - Preserves folder hierarchy during upload
@@ -2011,6 +2036,7 @@ try {
     title: 'Set Guest Link Expiration',
     description: 'Configure link expiry days',
     category: 'Sharing',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Configures automatic expiration for external sharing links
 - Enforces security policy on guest access
@@ -2081,6 +2107,7 @@ try {
     title: 'Disable File Downloads',
     description: 'Block downloads for site',
     category: 'Security',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Blocks file download capability for SharePoint site
 - Enforces view-only access to documents
@@ -2152,6 +2179,7 @@ try {
     title: 'Export File Inventory',
     description: 'List all files in site',
     category: 'Storage',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports comprehensive inventory of all files in document library
 - Collects file metadata including name, size, and modification date
@@ -2245,6 +2273,7 @@ try {
     title: 'Block File Types',
     description: 'Prevent upload of extensions',
     category: 'Security',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Blocks upload of specified file extensions tenant-wide
 - Prevents potentially dangerous file types from being uploaded
@@ -2316,6 +2345,7 @@ try {
     title: 'Clear Site Cache',
     description: 'Force site cache refresh',
     category: 'Site Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Clears cached data for SharePoint site
 - Forces refresh of site metadata and content

@@ -19,6 +19,7 @@ export interface Windows365Task {
   instructions?: string;
   parameters: Windows365Parameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const windows365Tasks: Windows365Task[] = [
@@ -27,6 +28,7 @@ export const windows365Tasks: Windows365Task[] = [
     title: 'Export Cloud PC Inventory',
     description: 'Export list of all Windows 365 Cloud PCs to CSV',
     category: 'Cloud PC Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports comprehensive Windows 365 Cloud PC inventory
 - Supports license management and user provisioning tracking
@@ -105,6 +107,7 @@ try {
     title: 'Export Provisioning Policies',
     description: 'Export Windows 365 provisioning policies to CSV',
     category: 'Provisioning',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports Cloud PC provisioning policy inventory
 - Supports standardization and configuration management
@@ -181,6 +184,7 @@ try {
     title: 'Export User Settings Policies',
     description: 'Export Windows 365 user settings policies to CSV',
     category: 'User Settings',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports user self-service settings
 - Supports Cloud PC governance and support model documentation
@@ -256,6 +260,7 @@ try {
     title: 'Export Gallery Images',
     description: 'Export Windows 365 gallery images to CSV',
     category: 'Images',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports available gallery image inventory
 - Supports Cloud PC image selection and standardization planning
@@ -333,6 +338,7 @@ try {
     title: 'Export Connection Quality Report',
     description: 'Export Cloud PC connection quality metrics to CSV',
     category: 'Monitoring',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports Cloud PC connection quality metrics
 - Supports user experience monitoring and troubleshooting

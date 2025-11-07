@@ -35,6 +35,7 @@ export const exchangeOnlineTasks: ExchangeOnlineTask[] = [
     id: 'create-mailbox-licensed-user',
     name: 'Create Mailbox for Licensed User',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Create a new Exchange Online mailbox for a licensed user',
     instructions: `**How This Task Works:**
 This script provisions Exchange Online mailboxes by assigning Microsoft 365 licenses to users, triggering automatic mailbox creation.
@@ -140,6 +141,7 @@ try {
     id: 'assign-mailbox-permissions',
     name: 'Assign/Remove Mailbox Permissions',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Assign or remove Full Access, Send As, or Send on Behalf permissions to a mailbox',
     instructions: `**How This Task Works:**
 This script manages delegation permissions for mailboxes, enabling users to access shared mailboxes or send email on behalf of others.
@@ -270,6 +272,7 @@ try {
     id: 'bulk-mailbox-operations',
     name: 'Bulk Mailbox Creation/Permission Assignment',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Create multiple mailboxes or assign permissions in bulk from CSV file',
     instructions: `**How This Task Works:**
 This script automates mailbox provisioning and permission delegation at scale using CSV import for efficient bulk operations.
@@ -384,6 +387,7 @@ Write-Host "  Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Re
     id: 'convert-mailbox-type',
     name: 'Convert Mailbox Type (Shared ↔ User)',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Convert mailbox between User and Shared types',
     instructions: `**How This Task Works:**
 This script converts mailboxes between User and Shared types for cost optimization and collaboration scenarios.
@@ -471,6 +475,7 @@ try {
     id: 'enable-litigation-hold',
     name: 'Enable/Disable Litigation Hold or Archive',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Enable or disable litigation hold or archive mailbox for compliance',
     instructions: `**How This Task Works:**
 This script manages litigation hold and archive mailboxes for eDiscovery, compliance, and long-term retention requirements.
@@ -561,6 +566,7 @@ try {
     id: 'set-mailbox-quota-retention',
     name: 'Set Mailbox Quota and Retention',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Configure mailbox storage quotas, send/receive limits, and retention policies',
     instructions: `**How This Task Works:**
 This script configures mailbox storage quotas and message size limits for capacity management and policy enforcement.
@@ -646,6 +652,7 @@ try {
     id: 'bulk-enable-archive',
     name: 'Bulk Enable Archive Mailboxes',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Enable archive mailboxes for multiple users in bulk',
     instructions: `**How This Task Works:**
 This script enables archive mailboxes at scale for compliance and mailbox capacity management across multiple users.
@@ -760,6 +767,7 @@ try {
     id: 'mailbox-delegation-report',
     name: 'Mailbox Delegation Report',
     category: 'User Mailboxes & Licenses',
+    isPremium: true,
     description: 'Generate a report of all mailbox delegations (Full Access, Send As, Send on Behalf)',
     instructions: `**How This Task Works:**
 This script generates comprehensive mailbox delegation reports for security audits, compliance, and access governance.
@@ -896,6 +904,7 @@ try {
     id: 'create-distribution-group',
     name: 'Create/Modify Distribution Group',
     category: 'Distribution & Groups',
+    isPremium: true,
     description: 'Create a new distribution group or modify an existing one',
     instructions: `**How This Task Works:**
 This script creates or modifies distribution groups for email broadcasting to teams, departments, or project groups.
@@ -998,6 +1007,7 @@ try {
     id: 'bulk-group-members',
     name: 'Bulk Add/Remove Group Members',
     category: 'Distribution & Groups',
+    isPremium: true,
     description: 'Add or remove multiple members from a distribution group using CSV',
     instructions: `**How This Task Works:**
 This script manages distribution group membership at scale using CSV import for efficient bulk operations.
@@ -1112,6 +1122,7 @@ try {
     id: 'export-group-membership',
     name: 'Export Group Membership Reports',
     category: 'Distribution & Groups',
+    isPremium: true,
     description: 'Generate detailed membership reports for distribution groups',
     instructions: `**How This Task Works:**
 This script generates comprehensive distribution group membership reports for audits, documentation, and access governance.
@@ -1206,6 +1217,7 @@ try {
     id: 'create-transport-rule',
     name: 'Create/Update Transport Rule',
     category: 'Transport Rules & Mail Flow',
+    isPremium: true,
     description: 'Create or update mail flow transport rules for disclaimers, routing, or blocking',
     instructions: `**How This Task Works:**
 This script creates transport rules for mail flow control, including message routing, blocking, disclaimers, and compliance enforcement.
@@ -1312,6 +1324,7 @@ try {
     id: 'block-allow-domains',
     name: 'Block/Allow Specific Domains',
     category: 'Transport Rules & Mail Flow',
+    isPremium: true,
     description: 'Block or allow email from specific domains or addresses',
     instructions: `**How This Task Works:**
 This script creates transport rules to block or allow specific domains for security, spam prevention, or trusted partner communication.
@@ -1406,6 +1419,7 @@ try {
     id: 'automated-message-trace',
     name: 'Automated Message Trace',
     category: 'Message Trace & Reporting',
+    isPremium: true,
     description: 'Trace messages by sender, recipient, or date range with detailed results',
     instructions: `**How This Task Works:**
 This script performs message trace searches for troubleshooting mail flow issues, investigating delivery failures, and compliance audits.
@@ -1498,6 +1512,7 @@ try {
     id: 'create-shared-mailbox',
     name: 'Create Shared/Resource Mailbox',
     category: 'Shared & Resource Mailboxes',
+    isPremium: true,
     description: 'Create a shared mailbox or resource mailbox (room/equipment)',
     instructions: `**How This Task Works:**
 This script creates shared mailboxes for team collaboration or resource mailboxes for conference room/equipment booking.
@@ -1604,6 +1619,7 @@ try {
     id: 'enable-mailbox-auditing',
     name: 'Enable Mailbox Auditing and Export Logs',
     category: 'Security & Compliance',
+    isPremium: true,
     description: 'Enable mailbox auditing and export audit logs for compliance',
     instructions: `**How This Task Works:**
 This script enables mailbox auditing for compliance and forensic investigations, tracking mailbox access and actions.
@@ -1694,6 +1710,7 @@ try {
     id: 'inactive-mailbox-cleanup',
     name: 'Mailbox Inactive Cleanup/Reporting',
     category: 'Maintenance & Hygiene',
+    isPremium: true,
     description: 'Find and report on mailboxes with no login activity for specified days',
     instructions: `**How This Task Works:**
 This script identifies inactive mailboxes for license optimization, reporting unused mailboxes and optionally converting them to shared mailboxes.
@@ -1789,6 +1806,7 @@ try {
     id: 'detect-disable-forwarding',
     name: 'Detect and Disable Forwarding to External Domains',
     category: 'Maintenance & Hygiene',
+    isPremium: true,
     description: 'Find and optionally disable automatic forwarding rules to external domains',
     instructions: `**How This Task Works:**
 This script detects and remediates external email forwarding for security, preventing data exfiltration and account compromise indicators.
@@ -1883,6 +1901,7 @@ try {
     id: 'mailbox-size-report',
     name: 'Mailbox Size Report',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Generate comprehensive mailbox size reports including primary and archive sizes',
     instructions: `**How This Task Works:**
 This script generates mailbox storage reports for capacity planning, quota management, and identifying oversized mailboxes.
@@ -1980,6 +1999,7 @@ try {
     id: 'export-distribution-list-members',
     name: 'Export Distribution List Members',
     category: 'Reporting & Inventory',
+    isPremium: true,
     description: 'Export all members of distribution lists and groups to CSV',
     instructions: `**How This Task Works:**
 This script exports distribution group membership for documentation, audits, and access reviews.
@@ -2072,6 +2092,7 @@ try {
     id: 'configure-inbound-connector',
     name: 'Configure Inbound Mail Connector',
     category: 'Mail Flow & Transport',
+    isPremium: true,
     description: 'Create an inbound connector for mail flow from on-premises or third-party systems',
     instructions: `**How This Task Works:**
 This script creates an inbound connector to receive mail from external mail servers like on-premises Exchange or third-party email security gateways.
@@ -2147,6 +2168,7 @@ try {
     id: 'configure-accepted-domain',
     name: 'Add Accepted Domain',
     category: 'Mail Flow & Transport',
+    isPremium: true,
     description: 'Add an accepted domain to Exchange Online for receiving mail',
     instructions: `**How This Task Works:**
 This script adds a new accepted domain to Exchange Online, allowing the organization to receive mail for that domain.
@@ -2210,6 +2232,7 @@ try {
     id: 'start-mailbox-migration-batch',
     name: 'Start Mailbox Migration Batch',
     category: 'Migration & Compliance',
+    isPremium: true,
     description: 'Create and start a mailbox migration batch from on-premises Exchange',
     instructions: `**How This Task Works:**
 This script creates a migration batch to move mailboxes from on-premises Exchange Server to Exchange Online.
@@ -2288,6 +2311,7 @@ try {
     id: 'enable-mailbox-archive',
     name: 'Enable In-Place Archive for Mailbox',
     category: 'Migration & Compliance',
+    isPremium: true,
     description: 'Enable online archive mailbox for a user',
     instructions: `**How This Task Works:**
 This script enables the In-Place Archive (online archive) for a user mailbox, providing additional storage capacity.
@@ -2354,6 +2378,7 @@ try {
     id: 'create-ediscovery-case',
     name: 'Create eDiscovery Case',
     category: 'Migration & Compliance',
+    isPremium: true,
     description: 'Create a new eDiscovery case for legal hold and content search',
     instructions: `**How This Task Works:**
 This script creates an eDiscovery case in the Security & Compliance Center for legal investigations and content preservation.
@@ -2431,6 +2456,7 @@ try {
     id: 'configure-dkim-signing',
     name: 'Enable DKIM Signing for Domain',
     category: 'Security & DLP',
+    isPremium: true,
     description: 'Enable DomainKeys Identified Mail (DKIM) signing for a domain',
     instructions: `**How This Task Works:**
 This script enables DKIM email authentication for a domain, cryptographically signing outbound messages to prevent spoofing.
@@ -2503,6 +2529,7 @@ try {
     id: 'create-dlp-policy',
     name: 'Create DLP Policy',
     category: 'Security & DLP',
+    isPremium: true,
     description: 'Create a Data Loss Prevention policy to protect sensitive information',
     instructions: `**How This Task Works:**
 This script creates a DLP policy in Exchange Online to detect and protect sensitive information in emails.
@@ -2594,6 +2621,7 @@ try {
     id: 'set-mobile-device-access-rule',
     name: 'Configure Mobile Device Access Rule',
     category: 'Security & DLP',
+    isPremium: true,
     description: 'Set mobile device access rules for Exchange ActiveSync',
     instructions: `**How This Task Works:**
 This script configures access rules for mobile devices connecting via Exchange ActiveSync (EAS).
@@ -2663,6 +2691,7 @@ try {
     id: 'configure-transport-rule-compliance',
     name: 'Create Transport Rule for Compliance',
     category: 'Security & DLP',
+    isPremium: true,
     description: 'Create mail flow rule for compliance requirements (disclaimers, encryption, blocking)',
     instructions: `**How This Task Works:**
 This script creates an Exchange transport rule to enforce compliance requirements on email messages.
@@ -2754,6 +2783,7 @@ try {
     id: 'configure-remote-domain',
     name: 'Configure Remote Domain Settings',
     category: 'Mail Flow & Transport',
+    isPremium: true,
     description: 'Configure remote domain settings for external email domains',
     instructions: `**How This Task Works:**
 This script configures settings for how Exchange Online handles mail sent to external domains (remote domains).
@@ -2825,8 +2855,8 @@ try {
     id: 'configure-mailbox-litigation-hold',
     name: 'Configure Mailbox Litigation Hold',
     category: 'Compliance & eDiscovery',
-    description: 'Place mailbox on litigation hold to preserve all content for legal/compliance purposes',
     isPremium: true,
+    description: 'Place mailbox on litigation hold to preserve all content for legal/compliance purposes',
     instructions: `**How This Task Works:**
 This script places mailboxes on litigation hold, preserving all mailbox content indefinitely for legal or compliance purposes.
 
@@ -2899,8 +2929,8 @@ try {
     id: 'configure-mailbox-audit-bypass',
     name: 'Configure Mailbox Audit Bypass',
     category: 'Auditing & Compliance',
-    description: 'Configure audit bypass for service accounts or automated processes',
     isPremium: true,
+    description: 'Configure audit bypass for service accounts or automated processes',
     instructions: `**How This Task Works:**
 This script configures mailbox audit bypass associations to exclude service accounts from mailbox audit logging.
 
@@ -2958,8 +2988,8 @@ try {
     id: 'configure-journaling-rule',
     name: 'Configure Journaling Rule',
     category: 'Compliance & eDiscovery',
-    description: 'Create journaling rule to send message copies to compliance mailbox',
     isPremium: true,
+    description: 'Create journaling rule to send message copies to compliance mailbox',
     instructions: `**How This Task Works:**
 This script creates journaling rules to automatically send copies of messages to a designated journal mailbox for compliance archiving.
 
@@ -3033,8 +3063,8 @@ try {
     id: 'configure-mail-flow-connector',
     name: 'Configure Mail Flow Connector',
     category: 'Mail Flow & Transport',
-    description: 'Create inbound or outbound connector for hybrid or third-party mail flow',
     isPremium: true,
+    description: 'Create inbound or outbound connector for hybrid or third-party mail flow',
     instructions: `**How This Task Works:**
 This script creates mail flow connectors for routing mail to/from on-premises servers, partner organizations, or third-party services.
 
@@ -3106,8 +3136,8 @@ try {
     id: 'bulk-mailbox-permission-audit',
     name: 'Bulk Mailbox Permission Audit Report',
     category: 'Auditing & Compliance',
-    description: 'Generate comprehensive report of all mailbox permissions across organization',
     isPremium: true,
+    description: 'Generate comprehensive report of all mailbox permissions across organization',
     instructions: `**How This Task Works:**
 This script generates a comprehensive audit report of all mailbox permissions, including FullAccess, SendAs, and SendOnBehalf delegations.
 
@@ -3221,8 +3251,8 @@ try {
     id: 'configure-focused-inbox-policy',
     name: 'Configure Focused Inbox Organization Policy',
     category: 'User Experience',
-    description: 'Enable or disable Focused Inbox feature organization-wide or for specific users',
     isPremium: true,
+    description: 'Enable or disable Focused Inbox feature organization-wide or for specific users',
     instructions: `**How This Task Works:**
 This script configures the Focused Inbox feature, which separates important emails from others in Outlook.
 
@@ -3287,8 +3317,8 @@ try {
     id: 'configure-mailbox-language-timezone',
     name: 'Configure Mailbox Language and Timezone',
     category: 'User Experience',
-    description: 'Set mailbox language, timezone, and regional settings for users',
     isPremium: true,
+    description: 'Set mailbox language, timezone, and regional settings for users',
     instructions: `**How This Task Works:**
 This script configures mailbox regional settings including language, timezone, and date/time formats.
 
@@ -3360,8 +3390,8 @@ try {
     id: 'configure-mailbox-calendar-processing',
     name: 'Configure Room/Resource Mailbox Calendar Processing',
     category: 'Calendar & Scheduling',
-    description: 'Configure automatic calendar processing rules for room and resource mailboxes',
     isPremium: true,
+    description: 'Configure automatic calendar processing rules for room and resource mailboxes',
     instructions: `**How This Task Works:**
 This script configures calendar processing settings for room and resource mailboxes, controlling automatic booking behavior.
 
@@ -3440,8 +3470,8 @@ try {
     id: 'configure-oauth-authentication-policy',
     name: 'Configure OAuth Authentication Policy',
     category: 'Security & Authentication',
-    description: 'Configure OAuth authentication policies for modern authentication and application access',
     isPremium: true,
+    description: 'Configure OAuth authentication policies for modern authentication and application access',
     instructions: `**How This Task Works:**
 This script configures OAuth authentication policies to control which applications can access Exchange Online mailboxes.
 
@@ -3536,8 +3566,8 @@ try {
     id: 'configure-mailbox-folder-permissions-bulk',
     name: 'Configure Mailbox Folder Permissions in Bulk',
     category: 'Delegation & Permissions',
-    description: 'Set calendar or folder permissions for multiple users at once',
     isPremium: true,
+    description: 'Set calendar or folder permissions for multiple users at once',
     instructions: `**How This Task Works:**
 This script configures mailbox folder permissions (typically calendar) for multiple users simultaneously.
 

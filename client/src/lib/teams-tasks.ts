@@ -28,6 +28,7 @@ export const teamsTasks: TeamsTask[] = [
     title: 'Export Teams List',
     description: 'Export list of all Microsoft Teams to CSV',
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports complete inventory of all Microsoft Teams
 - Supports organization-wide documentation
@@ -103,6 +104,7 @@ try {
     title: 'Export Team Members',
     description: 'Export members of a specific team to CSV',
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports membership roster for a specific Team
 - Includes roles (Owner vs Member)
@@ -194,6 +196,7 @@ try {
     title: 'Export Team Channels',
     description: 'Export channels from a specific team to CSV',
     category: 'Channel Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports all channels from a specific Team
 - Shows channel structure and membership types
@@ -285,6 +288,7 @@ try {
     title: 'Export Guest Users in Teams',
     description: 'Export list of all guest users across all teams to CSV',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports all guest users in your organization
 - Supports security audits and compliance
@@ -360,6 +364,7 @@ try {
     title: 'Export Teams Policies',
     description: 'Export Teams messaging and meeting policies to CSV',
     category: 'Policy Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports Teams policies for governance
 - Supports documentation and audits
@@ -432,6 +437,7 @@ try {
     title: 'Create New Team', 
     description: 'Create a new Microsoft Team with specified settings', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates a new Microsoft Team with customized settings
 - Provisions Microsoft 365 Group and enables Team features
@@ -470,6 +476,7 @@ try {
     title: 'Delete Team', 
     description: 'Permanently delete a Microsoft Team', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Permanently deletes a Microsoft Team and its underlying Group
 - Removes all team content including channels and files
@@ -505,6 +512,7 @@ try {
     title: 'Add Team Member', 
     description: 'Add a user to a Microsoft Team', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Adds a user to a Microsoft Team with specified role
 - Grants access to all team channels and content
@@ -543,6 +551,7 @@ try {
     title: 'Remove Team Member', 
     description: 'Remove a user from a Microsoft Team', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Removes a user from a Microsoft Team
 - Revokes access to all team channels and content
@@ -580,6 +589,7 @@ try {
     title: 'Create Team Channel', 
     description: 'Create a new channel in a Microsoft Team', 
     category: 'Channel Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates a new standard channel within an existing team
 - Provides dedicated space for topic-specific conversations
@@ -618,6 +628,7 @@ try {
     title: 'Delete Team Channel', 
     description: 'Delete a channel from a Microsoft Team', 
     category: 'Channel Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Permanently deletes a channel from a Microsoft Team
 - Removes all channel content and conversation history
@@ -655,6 +666,7 @@ try {
     title: 'Update Team Settings', 
     description: 'Update team settings like guest permissions and member capabilities', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Updates team-level settings and permissions
 - Controls guest access and member capabilities
@@ -693,6 +705,7 @@ try {
     title: 'Archive Team', 
     description: 'Archive a Microsoft Team to make it read-only', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Archives a team making it read-only
 - Preserves all content and conversation history
@@ -728,6 +741,7 @@ try {
     title: 'Unarchive Team', 
     description: 'Restore an archived Team to active status', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Restores an archived team to active status
 - Re-enables full collaboration capabilities
@@ -763,6 +777,7 @@ try {
     title: 'Clone Team', 
     description: 'Create a copy of an existing team with settings and channels', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates a copy of an existing team
 - Duplicates settings, channels, tabs, and apps
@@ -800,6 +815,7 @@ try {
     title: 'Export Team Messages', 
     description: 'Export team channel messages for compliance or archival', 
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports all channel messages from a team
 - Saves messages in JSON format for compliance
@@ -837,6 +853,7 @@ try {
     title: 'Create Teams Meeting Policy', 
     description: 'Create a custom meeting policy for controlling meeting features', 
     category: 'Policy Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates custom meeting policy for Teams
 - Controls meeting features and capabilities
@@ -875,6 +892,7 @@ try {
     title: 'Assign Policy to User', 
     description: 'Assign a Teams policy to a specific user', 
     category: 'Policy Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Assigns Teams policy to individual user
 - Controls user-specific Teams capabilities
@@ -911,6 +929,7 @@ try {
     title: 'Bulk Add Members from CSV', 
     description: 'Add multiple users to a team from a CSV file', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Adds multiple users to team from CSV file
 - Automates bulk user provisioning
@@ -948,6 +967,7 @@ try {
     title: 'Create Private Channel', 
     description: 'Create a private channel accessible only to specific members', 
     category: 'Channel Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates private channel within team
 - Restricts access to invited members only
@@ -985,6 +1005,7 @@ try {
     title: 'Export Team Membership Report', 
     description: 'Export detailed membership report for all teams', 
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports comprehensive membership report for all teams
 - Shows team-member relationships organization-wide
@@ -1021,6 +1042,7 @@ try {
     title: 'Export Installed Apps Report', 
     description: 'Export list of apps installed across all teams', 
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports list of apps installed across all teams
 - Shows app deployment organization-wide
@@ -1057,6 +1079,7 @@ try {
     title: 'Enable Guest Access Tenant-Wide', 
     description: 'Enable or disable guest access for Microsoft Teams organization-wide', 
     category: 'Policy Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Enables or disables guest access organization-wide
 - Controls external collaboration capabilities
@@ -1090,6 +1113,7 @@ try {
     title: 'Export Call Quality Report', 
     description: 'Export Teams call quality analytics and metrics', 
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports call quality data for Teams calls
 - Shows call metrics and performance data
@@ -1127,6 +1151,7 @@ try {
     title: 'Create Shared Channel', 
     description: 'Create a shared channel that can be accessed across teams', 
     category: 'Channel Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Creates shared channel accessible across teams
 - Enables cross-team collaboration
@@ -1164,6 +1189,7 @@ try {
     title: 'Update Team Picture', 
     description: 'Update the profile picture for a Microsoft Team', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Updates team profile picture/logo
 - Enhances team identity and branding
@@ -1201,6 +1227,7 @@ try {
     title: 'Export Inactive Teams Report', 
     description: 'Identify and export teams with no recent activity', 
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Identifies teams with no recent activity
 - Helps clean up unused teams
@@ -1238,6 +1265,7 @@ try {
     title: 'Configure Message Retention Policy', 
     description: 'Set retention policies for Teams messages', 
     category: 'Policy Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Configures retention policy for Teams messages
 - Controls how long messages are kept
@@ -1274,6 +1302,7 @@ try {
     title: 'Bulk Delete Teams from CSV', 
     description: 'Delete multiple teams listed in a CSV file', 
     category: 'Team Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Deletes multiple teams from CSV file
 - Automates bulk team cleanup
@@ -1311,6 +1340,7 @@ try {
     title: 'Export All Team Settings', 
     description: 'Export comprehensive settings for all teams', 
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Exports detailed settings for all teams
 - Shows member, guest, messaging, and fun settings

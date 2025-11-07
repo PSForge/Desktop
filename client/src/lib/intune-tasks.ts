@@ -28,6 +28,7 @@ export const intuneTasks: IntuneTask[] = [
     title: 'Sync Autopilot Devices',
     description: 'Force a sync of Autopilot device registrations',
     category: 'Autopilot',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Forces immediate synchronization of Windows Autopilot device registrations
 - Connects to Microsoft Intune for rapid deployment readiness
@@ -81,6 +82,7 @@ try {
     title: 'Export Device Inventory',
     description: 'Export comprehensive inventory of all Intune-managed devices to CSV',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 - Generates comprehensive device inventory reports from Intune
 - Exports data for asset management, compliance tracking, and lifecycle planning
@@ -164,6 +166,7 @@ try {
     title: 'Export Compliance Report',
     description: 'Export device compliance status report to CSV',
     category: 'Compliance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates focused compliance reports showing which devices meet organizational security and configuration requirements.
 
@@ -243,6 +246,7 @@ try {
     title: 'Create Windows Update Ring',
     description: 'Create a new Windows Update deployment ring',
     category: 'Updates',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Windows Update rings for controlled, phased deployment of feature and quality updates across device groups.
 
@@ -325,6 +329,7 @@ try {
     title: 'Export App Inventory',
     description: 'Export application inventory (name, type, publisher) to CSV',
     category: 'App Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates application inventory reports from Intune showing all managed apps with basic metadata for app catalog management.
 
@@ -402,6 +407,7 @@ try {
     title: 'Retire Intune Device',
     description: 'Retire a device from Intune management',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script gracefully retires devices from Intune management, removing company data while preserving personal data for BYOD scenarios.
 
@@ -473,6 +479,7 @@ try {
     title: 'Wipe Managed Device',
     description: 'Perform a full or selective wipe on a managed device',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script initiates complete device wipes (factory reset) for lost devices or repurposed hardware while optionally preserving enrollment.
 
@@ -559,6 +566,7 @@ try {
     title: 'Sync Device with Intune',
     description: 'Force immediate synchronization of a device with Intune',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script forces immediate device check-in to apply pending policies, apps, and configuration updates without waiting for normal sync intervals.
 
@@ -630,6 +638,7 @@ try {
     title: 'Rename Managed Device',
     description: 'Change the name of an Intune-managed device',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script remotely renames Intune-managed devices for improved asset tracking and organizational clarity without requiring local access.
 
@@ -716,6 +725,7 @@ try {
     title: 'Create Device Configuration Profile',
     description: 'Create a Windows 10 device configuration profile',
     category: 'Configuration Profiles',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Windows 10/11 configuration profiles to enforce security settings and device restrictions across managed devices.
 
@@ -797,6 +807,7 @@ try {
     title: 'Assign Configuration Profile to Group',
     description: 'Assign a device configuration profile to an Azure AD group',
     category: 'Configuration Profiles',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script assigns configuration profiles to Azure AD groups, controlling which devices receive specific security and management policies.
 
@@ -895,6 +906,7 @@ try {
     title: 'Create Compliance Policy',
     description: 'Create a Windows 10 device compliance policy',
     category: 'Compliance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Windows 10/11 compliance policies to enforce minimum security standards and control conditional access.
 
@@ -991,6 +1003,7 @@ try {
     title: 'List Non-Compliant Devices',
     description: 'Generate report of devices not meeting compliance policies',
     category: 'Compliance',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive reports of non-compliant devices for security remediation and conditional access troubleshooting.
 
@@ -1070,6 +1083,7 @@ try {
     title: 'Create App Protection Policy',
     description: 'Create a mobile app protection policy for iOS or Android',
     category: 'App Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates mobile application management (MAM) policies to protect corporate data in mobile apps without requiring full device enrollment.
 
@@ -1164,6 +1178,7 @@ try {
     title: 'Deploy Win32 App',
     description: 'Upload and deploy a Win32 application package',
     category: 'App Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Win32 app entries in Intune for deploying traditional desktop applications (.exe/.msi) to managed devices.
 
@@ -1269,6 +1284,7 @@ try {
     title: 'Create Autopilot Deployment Profile',
     description: 'Create Windows Autopilot deployment profile',
     category: 'Autopilot',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates Windows Autopilot deployment profiles to automate device provisioning and streamline out-of-box experience (OOBE).
 
@@ -1362,6 +1378,7 @@ try {
     title: 'Import Autopilot Devices from CSV',
     description: 'Bulk import Windows Autopilot device hardware hashes from CSV',
     category: 'Autopilot',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script bulk imports Windows Autopilot device registrations from CSV files containing hardware hashes collected from devices.
 
@@ -1462,6 +1479,7 @@ try {
     title: 'Delete Autopilot Device',
     description: 'Remove a device from Windows Autopilot',
     category: 'Autopilot',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script removes device registrations from Windows Autopilot for decommissioned or incorrectly registered devices.
 
@@ -1531,6 +1549,7 @@ try {
     title: 'Export Windows Update Compliance',
     description: 'Export report of Windows update compliance status',
     category: 'Updates',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates Windows update compliance reports showing device OS versions, sync status, and compliance state for patch management tracking.
 
@@ -1608,6 +1627,7 @@ try {
     title: 'Upload PowerShell Script',
     description: 'Upload and deploy a PowerShell script to managed devices',
     category: 'Scripts & Remediation',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script uploads PowerShell scripts to Intune for automated deployment and execution on managed Windows devices.
 
@@ -1711,6 +1731,7 @@ try {
     title: 'Send Notification to Devices',
     description: 'Send a company portal notification to managed devices',
     category: 'Communication',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script sends Company Portal notifications to managed devices for important communications and maintenance alerts.
 
@@ -1812,6 +1833,7 @@ try {
     title: 'Export Device Enrollment Report',
     description: 'Export detailed enrollment data for all managed devices',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive device enrollment reports with hardware details, user assignments, and enrollment timestamps for asset management.
 
@@ -1894,6 +1916,7 @@ try {
     title: 'Reset Device Passcode',
     description: 'Remotely reset the passcode on a managed mobile device',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script remotely resets device passcodes on managed mobile devices for users locked out of their iOS/Android devices.
 
@@ -1965,6 +1988,7 @@ try {
     title: 'Locate Lost Device',
     description: 'Request GPS location of a managed mobile device',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script requests GPS location from managed mobile devices to help locate lost or stolen iOS/Android devices.
 
@@ -2036,6 +2060,7 @@ try {
     title: 'Enable Lost Mode (iOS)',
     description: 'Enable lost mode on a managed iOS device with custom message',
     category: 'Device Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script enables iOS Lost Mode to lock device and display custom contact message for lost/stolen device recovery.
 
@@ -2132,6 +2157,7 @@ try {
     title: 'Export Policy Assignments',
     description: 'Export comprehensive report of all policy and profile assignments',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive reports of all configuration policy assignments for governance, auditing, and troubleshooting.
 
@@ -2212,6 +2238,7 @@ try {
     title: 'Bulk Assign Apps to Groups',
     description: 'Assign multiple applications to multiple groups in one operation',
     category: 'App Management',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script performs bulk app assignments to multiple groups simultaneously for efficient large-scale app deployment management.
 
@@ -2348,6 +2375,7 @@ ${groupNamesInput.split('\\n').filter((line: string) => line.trim()).map((name: 
     title: 'Create Conditional Access Policy',
     description: 'Create a conditional access policy requiring device compliance',
     category: 'Security',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script creates conditional access policies to enforce device compliance requirements for accessing corporate resources.
 
@@ -2443,6 +2471,7 @@ try {
     title: 'Export Device Health Report',
     description: 'Export comprehensive device health status including battery, storage, and performance',
     category: 'Reporting',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script generates comprehensive device health reports with hardware status for proactive device lifecycle and maintenance management.
 
@@ -2523,6 +2552,7 @@ try {
     id: 'intune-export-inventory',
     title: 'Export Device Inventory',
     category: 'Reporting',
+    isPremium: true,
     description: 'Complete device hardware report',
     instructions: `**How This Task Works:**
 - Exports complete hardware inventory for all Intune-managed devices
@@ -2582,6 +2612,7 @@ try {
     id: 'intune-export-noncompliant',
     title: 'Export Non-Compliant Devices Report',
     category: 'Compliance',
+    isPremium: true,
     description: 'List all devices failing compliance policies',
     instructions: `**How This Task Works:**
 - Exports all devices currently failing compliance policies

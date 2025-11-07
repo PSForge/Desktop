@@ -19,6 +19,7 @@ export interface Office365Task {
   instructions?: string;
   parameters: Office365Parameter[];
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const office365Tasks: Office365Task[] = [
@@ -27,6 +28,7 @@ export const office365Tasks: Office365Task[] = [
     title: 'Export License Inventory',
     description: 'Export comprehensive report of Office 365 licenses to CSV',
     category: 'Licensing',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports a comprehensive inventory of all Office 365 license SKUs with allocation details for capacity planning and license management.
 
@@ -101,6 +103,7 @@ try {
     title: 'Export User License Assignments',
     description: 'Export detailed user license assignments to CSV',
     category: 'Licensing',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports user-level license assignment details showing which users have licenses and license counts for audit and optimization.
 
@@ -176,6 +179,7 @@ try {
     title: 'Export Service Health Status',
     description: 'Export current Office 365 service health status to CSV',
     category: 'Health Monitoring',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports real-time Office 365 service health status for monitoring outages, degradation, and service incidents.
 
@@ -247,6 +251,7 @@ try {
     title: 'Export Admin Role Assignments',
     description: 'Export Office 365 admin role assignments to CSV',
     category: 'Administration',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports all administrative role assignments for security audit, compliance, and privileged access review.
 
@@ -323,6 +328,7 @@ try {
     title: 'Export Tenant Domains',
     description: 'Export list of all domains in the Office 365 tenant to CSV',
     category: 'Tenant Configuration',
+    isPremium: true,
     instructions: `**How This Task Works:**
 This script exports all registered domains in Office 365 tenant with verification and default status for domain management and documentation.
 

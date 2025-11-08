@@ -3,8 +3,9 @@ import { escapePowerShellString } from './powershell-utils';
 export interface BulkTaskConfig {
   taskId: string;
   taskName: string;
+  parameters: any[];
   scriptTemplate: string;
-  parameterMappings: Record<string, string>; // Maps CSV column to parameter name
+  parameterMappings: Record<string, string>; // Maps parameter ID to CSV column name
 }
 
 export interface BulkScriptOptions {
@@ -96,16 +97,45 @@ export function generateBulkScript(
       lines.push(`    Write-Host "  → ${task.taskName}..." -ForegroundColor Gray`);
     }
 
-    // Build the command by replacing placeholders
-    let command = task.scriptTemplate;
-    
-    // Replace parameter placeholders with actual values from $Item
-    Object.entries(task.parameterMappings).forEach(([csvColumn, paramName]) => {
-      const placeholder = `{${csvColumn}}`;
-      command = command.replace(new RegExp(placeholder, 'g'), `$($Item.${csvColumn})`);
-    });
+    // For each parameter mapping, set the variable from CSV
+    if (Object.keys(task.parameterMappings).length > 0) {
+      lines.push('    # Set task parameters from CSV row');
+      Object.entries(task.parameterMappings).forEach(([paramId, csvColumn]) => {
+        lines.push(`    $${paramId} = $Item.${csvColumn}`);
+      });
+      lines.push('');
+    }
 
-    lines.push(`    ${command}`);
+    // Add the task script (without variable declarations that are now set above)
+    const taskLines = task.scriptTemplate.split('\n');
+    let skipVariableDeclarations = Object.keys(task.parameterMappings).length > 0;
+    
+    taskLines.forEach(line => {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines and header comments
+      if (!trimmedLine) return;
+      if (trimmedLine.startsWith('# Generated:')) return;
+      if (trimmedLine.match(/^#+\s*[A-Z][a-z]+.*$/)) {
+        // Keep section headers like "# Create New User"
+        lines.push(`    ${line}`);
+        return;
+      }
+      
+      // Skip variable declarations for mapped parameters
+      if (skipVariableDeclarations) {
+        const isVariableDeclaration = Object.keys(task.parameterMappings).some(paramId => {
+          return trimmedLine.match(new RegExp(`^\\$${paramId}\\s*=`, 'i'));
+        });
+        if (isVariableDeclaration) return;
+      }
+      
+      // Add the line
+      if (trimmedLine) {
+        lines.push(`    ${line}`);
+      }
+    });
+    
     lines.push('');
   });
 

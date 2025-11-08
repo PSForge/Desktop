@@ -14,6 +14,9 @@ import {
   type PlatformNotification,
   type InsertPlatformNotification,
   type PasswordResetToken,
+  type WelcomeEmailTemplate,
+  type InsertWelcomeEmailTemplate,
+  type UpdateWelcomeEmailTemplate,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -75,6 +78,13 @@ export interface IStorage {
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markTokenAsUsed(token: string): Promise<boolean>;
   deleteExpiredResetTokens(): Promise<number>;
+  
+  // Welcome Email Templates
+  getWelcomeEmailTemplate(type: string): Promise<WelcomeEmailTemplate | undefined>;
+  getAllWelcomeEmailTemplates(): Promise<WelcomeEmailTemplate[]>;
+  createWelcomeEmailTemplate(template: InsertWelcomeEmailTemplate): Promise<WelcomeEmailTemplate>;
+  updateWelcomeEmailTemplate(id: string, updates: UpdateWelcomeEmailTemplate): Promise<WelcomeEmailTemplate | undefined>;
+  deleteWelcomeEmailTemplate(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {

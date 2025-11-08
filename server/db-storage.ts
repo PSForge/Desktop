@@ -12,6 +12,7 @@ import {
   usageMetrics,
   platformNotifications,
   passwordResetTokens,
+  welcomeEmailTemplates,
   type User,
   type Session,
   type Script,
@@ -25,6 +26,9 @@ import {
   type PlatformNotification,
   type InsertPlatformNotification,
   type PasswordResetToken,
+  type WelcomeEmailTemplate,
+  type InsertWelcomeEmailTemplate,
+  type UpdateWelcomeEmailTemplate,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -478,5 +482,42 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return result.rowCount || 0;
+  }
+
+  // Welcome Email Templates
+  async getWelcomeEmailTemplate(type: string): Promise<WelcomeEmailTemplate | undefined> {
+    const result = await this.db.select().from(welcomeEmailTemplates).where(eq(welcomeEmailTemplates.type, type)).limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async getAllWelcomeEmailTemplates(): Promise<WelcomeEmailTemplate[]> {
+    const result = await this.db.select().from(welcomeEmailTemplates);
+    return result.map(t => this.convertTimestamps(t));
+  }
+
+  async createWelcomeEmailTemplate(template: InsertWelcomeEmailTemplate): Promise<WelcomeEmailTemplate> {
+    const result = await this.db.insert(welcomeEmailTemplates).values({
+      type: template.type,
+      subject: template.subject,
+      htmlContent: template.htmlContent,
+      enabled: template.enabled,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async updateWelcomeEmailTemplate(id: string, updates: UpdateWelcomeEmailTemplate): Promise<WelcomeEmailTemplate | undefined> {
+    const result = await this.db.update(welcomeEmailTemplates)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(welcomeEmailTemplates.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async deleteWelcomeEmailTemplate(id: string): Promise<boolean> {
+    const result = await this.db.delete(welcomeEmailTemplates).where(eq(welcomeEmailTemplates.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 }

@@ -147,8 +147,11 @@ export function ScriptWizardTab() {
   const [csvText, setCsvText] = useState('');
   const [generatedScript, setGeneratedScript] = useState('');
   const [csvValidationErrors, setCsvValidationErrors] = useState<string[]>([]);
+  
+  // Parameter mappings: { taskId: { parameterId: csvColumn } }
+  const [parameterMappings, setParameterMappings] = useState<Record<string, Record<string, string>>>({});
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   // Filter platforms based on subscription
   const availablePlatforms = useMemo(() => {
@@ -254,6 +257,16 @@ export function ScriptWizardTab() {
     });
   };
 
+  const handleParameterMappingChange = (taskId: string, parameterId: string, csvColumn: string) => {
+    setParameterMappings(prev => ({
+      ...prev,
+      [taskId]: {
+        ...prev[taskId],
+        [parameterId]: csvColumn
+      }
+    }));
+  };
+
   const handleGenerateScript = () => {
     if (selectedTasks.length === 0 || csvData.rows.length === 0) {
       toast({
@@ -264,13 +277,26 @@ export function ScriptWizardTab() {
       return;
     }
 
-    // Build bulk task configs
-    const bulkTasks: BulkTaskConfig[] = selectedTasks.map(task => ({
-      taskId: task.id,
-      taskName: task.name,
-      scriptTemplate: task.generateScript ? task.generateScript({}) : `# ${task.name}`,
-      parameterMappings: {}
-    }));
+    // Build bulk task configs with parameter mappings
+    const bulkTasks: BulkTaskConfig[] = selectedTasks.map(task => {
+      const taskMappings = parameterMappings[task.id] || {};
+      
+      // Get script template - use generateScript if available, otherwise use scriptTemplate
+      let scriptTemplateStr = '';
+      if (task.generateScript) {
+        scriptTemplateStr = task.generateScript({});
+      } else if ((task as any).scriptTemplate) {
+        scriptTemplateStr = (task as any).scriptTemplate({});
+      }
+      
+      return {
+        taskId: task.id,
+        taskName: task.name,
+        parameters: task.parameters || [],
+        scriptTemplate: scriptTemplateStr,
+        parameterMappings: taskMappings
+      };
+    });
 
     const script = generateBulkScript(bulkTasks, csvData.rows, {
       includeErrorHandling: true,
@@ -279,7 +305,7 @@ export function ScriptWizardTab() {
     });
 
     setGeneratedScript(script);
-    setCurrentStep(4);
+    setCurrentStep(5);
   };
 
   const handleExport = () => {
@@ -300,7 +326,7 @@ export function ScriptWizardTab() {
   };
 
   const handleNext = () => {
-    // Step 1 validation
+    // Step 1 validation - Platform Selection
     if (currentStep === 1) {
       if (selectedPlatforms.length === 0) {
         toast({
@@ -312,7 +338,7 @@ export function ScriptWizardTab() {
       }
     }
 
-    // Step 2 validation
+    // Step 2 validation - Task Selection
     if (currentStep === 2) {
       if (selectedTasks.length === 0) {
         toast({
@@ -324,12 +350,12 @@ export function ScriptWizardTab() {
       }
     }
 
-    // Step 3 validation
+    // Step 3 validation - CSV Upload
     if (currentStep === 3) {
       if (csvData.rows.length === 0) {
         toast({
           title: 'No Data Provided',
-          description: 'Please upload or enter CSV data before generating the script',
+          description: 'Please upload or enter CSV data before continuing',
           variant: 'destructive'
         });
         return;
@@ -342,6 +368,10 @@ export function ScriptWizardTab() {
         });
         return;
       }
+    }
+
+    // Step 4 validation - Parameter Mapping (optional, can proceed without)
+    if (currentStep === 4) {
       handleGenerateScript();
       return;
     }
@@ -364,6 +394,8 @@ export function ScriptWizardTab() {
     setCsvData({ headers: [], rows: [] });
     setCsvText('');
     setGeneratedScript('');
+    setParameterMappings({});
+    setCsvValidationErrors([]);
   };
 
   return (
@@ -372,7 +404,7 @@ export function ScriptWizardTab() {
       <div className="border-b px-6 py-4 bg-muted/30">
         <div className="flex items-center justify-between max-w-5xl mx-auto">
           <div className="flex items-center gap-2">
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3, 4, 5].map((step) => (
               <div key={step} className="flex items-center">
                 <div
                   className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors ${
@@ -386,7 +418,7 @@ export function ScriptWizardTab() {
                 >
                   {step}
                 </div>
-                {step < 4 && (
+                {step < 5 && (
                   <div
                     className={`w-12 h-0.5 mx-2 ${
                       step < currentStep ? 'bg-primary' : 'bg-muted-foreground/30'
@@ -629,8 +661,115 @@ export function ScriptWizardTab() {
             </div>
           )}
 
-          {/* Step 4: Preview & Export */}
+          {/* Step 4: Parameter Mapping */}
           {currentStep === 4 && (
+            <div className="space-y-6">
+              <Card data-testid="wizard-step-parameter-mapping">
+                <CardHeader>
+                  <CardTitle>Map CSV Columns to Task Parameters</CardTitle>
+                  <CardDescription>
+                    Connect your CSV data to task parameters for dynamic script generation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Alert className="mb-6">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Map CSV column names to task parameters. For each row in your CSV, the script will execute the selected tasks using values from that row.
+                      {csvData.headers.length > 0 && (
+                        <div className="mt-2">
+                          <strong>Available CSV Columns:</strong> {csvData.headers.join(', ')}
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+
+                  {csvData.headers.length === 0 ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        No CSV data loaded. Please go back to Step 3 and upload CSV data.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <ScrollArea className="h-[500px] pr-4">
+                      <div className="space-y-6">
+                        {selectedTasks.map((task, taskIndex) => {
+                          const taskParams = task.parameters || [];
+                          
+                          return (
+                            <Card key={task.id} className="border-primary/20">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <CardTitle className="text-base">{task.name}</CardTitle>
+                                    <CardDescription className="text-xs mt-1">
+                                      {task.platformName} • {taskParams.length} parameter{taskParams.length !== 1 ? 's' : ''}
+                                    </CardDescription>
+                                  </div>
+                                  <Badge variant="secondary" className="text-xs">
+                                    Task {taskIndex + 1}
+                                  </Badge>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                {taskParams.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground">
+                                    This task has no parameters to map.
+                                  </p>
+                                ) : (
+                                  taskParams.map((param) => (
+                                    <div key={param.id} className="grid grid-cols-2 gap-4 items-center">
+                                      <div>
+                                        <Label className="text-sm font-medium">
+                                          {param.label || param.id}
+                                          {param.required && <span className="text-destructive ml-1">*</span>}
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                          {param.type} parameter
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <select
+                                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                          value={parameterMappings[task.id]?.[param.id] || ''}
+                                          onChange={(e) => handleParameterMappingChange(task.id, param.id, e.target.value)}
+                                          data-testid={`select-mapping-${task.id}-${param.id}`}
+                                        >
+                                          <option value="">-- Not Mapped --</option>
+                                          {csvData.headers.map((header) => (
+                                            <option key={header} value={header}>
+                                              {header}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+
+                      {selectedTasks.length === 0 && (
+                        <Alert>
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>
+                            No tasks selected. Please go back to Step 2 to select automation tasks.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Step 5: Preview & Export */}
+          {currentStep === 5 && (
             <div className="space-y-6">
               <Card data-testid="wizard-step-preview-export">
                 <CardHeader>
@@ -692,7 +831,7 @@ export function ScriptWizardTab() {
             </Button>
             {currentStep < totalSteps ? (
               <Button onClick={handleNext} data-testid="button-wizard-next">
-                {currentStep === 3 ? 'Generate Script' : 'Next'}
+                {currentStep === 4 ? 'Generate Script' : 'Next'}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (

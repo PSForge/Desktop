@@ -808,4 +808,161 @@ if ($Processes) {
 }`;
     }
   },
+
+  {
+    id: 'start-process',
+    name: 'Start Process/Application',
+    category: 'Process Control',
+    description: 'Launch an application or executable with arguments',
+    instructions: `**How This Task Works:**
+- Starts a new process or application
+- Supports command-line arguments
+- Can run elevated (as Administrator)
+- Optionally waits for process to exit
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Execute permissions on the application
+- Administrator rights for elevated processes
+- Application/executable must exist
+
+**What You Need to Provide:**
+- Full path to executable or application name
+- Optional: Command-line arguments
+- Optional: Working directory
+- Run as Administrator: true or false
+- Wait for exit: true or false
+
+**What the Script Does:**
+1. Validates executable path/name
+2. Prepares process start options
+3. Starts the process with specified arguments
+4. Optionally runs elevated if requested
+5. Waits for completion if specified
+6. Reports PID and status
+
+**Important Notes:**
+- Use full path for non-system applications
+- System applications (notepad, calc) work with name only
+- Run as Administrator requires UAC prompt
+- Working directory is where relative paths resolve
+- Wait for exit blocks script until process completes
+- Typical use: launch installers, batch processing`,
+    parameters: [
+      { id: 'executablePath', label: 'Executable Path/Name', type: 'path', required: true, placeholder: 'C:\\Program Files\\App\\app.exe' },
+      { id: 'arguments', label: 'Command-Line Arguments', type: 'text', required: false, placeholder: '/silent /norestart' },
+      { id: 'workingDirectory', label: 'Working Directory', type: 'path', required: false, placeholder: 'C:\\Temp' },
+      { id: 'runAsAdmin', label: 'Run as Administrator', type: 'boolean', required: false, defaultValue: false },
+      { id: 'waitForExit', label: 'Wait for Exit', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const executablePath = escapePowerShellString(params.executablePath);
+      const arguments_ = params.arguments ? escapePowerShellString(params.arguments) : '';
+      const workingDirectory = params.workingDirectory ? escapePowerShellString(params.workingDirectory) : '';
+      const runAsAdmin = toPowerShellBoolean(params.runAsAdmin ?? false);
+      const waitForExit = toPowerShellBoolean(params.waitForExit ?? false);
+      
+      return `# Start Process/Application
+# Generated: ${new Date().toISOString()}
+
+$ExecutablePath = "${executablePath}"
+${arguments_ ? `$Arguments = "${arguments_}"` : ''}
+${workingDirectory ? `$WorkingDirectory = "${workingDirectory}"` : ''}
+
+$ProcessParams = @{
+    FilePath = $ExecutablePath
+    ${arguments_ ? 'ArgumentList = $Arguments' : ''}
+    ${workingDirectory ? 'WorkingDirectory = $WorkingDirectory' : ''}
+    ${runAsAdmin === '$true' ? 'Verb = "RunAs"' : ''}
+    PassThru = $true
+}
+
+try {
+    $Process = Start-Process @ProcessParams
+    
+    Write-Host "✓ Process started successfully" -ForegroundColor Green
+    Write-Host "  Process ID: $($Process.Id)" -ForegroundColor Gray
+    Write-Host "  Process Name: $($Process.ProcessName)" -ForegroundColor Gray
+    
+    ${waitForExit === '$true' ? `
+    Write-Host "Waiting for process to exit..." -ForegroundColor Cyan
+    $Process.WaitForExit()
+    Write-Host "✓ Process exited with code: $($Process.ExitCode)" -ForegroundColor Green` : ''}
+} catch {
+    Write-Host "✗ Failed to start process: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-process-details',
+    name: 'Get Process Details by Name',
+    category: 'Process Inventory',
+    description: 'Get detailed information about a specific process',
+    instructions: `**How This Task Works:**
+- Retrieves comprehensive information about a process
+- Shows PID, memory, CPU, threads, handles, start time
+- Useful for troubleshooting specific applications
+- Displays all instances if multiple running
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- No administrator rights required
+- Process must be running
+
+**What You Need to Provide:**
+- Process name (e.g., "chrome", "notepad", "sqlservr")
+
+**What the Script Does:**
+1. Searches for all processes matching name
+2. Retrieves detailed process information
+3. Shows PID, memory usage, CPU time, threads
+4. Displays start time and path
+5. Shows handle count and company name
+6. Lists all instances if multiple found
+
+**Important Notes:**
+- Process name without .exe extension
+- Shows all running instances
+- Memory shown in MB for readability
+- CPU time is cumulative since start
+- Handles are Windows kernel objects
+- Typical use: troubleshoot performance issues
+- Path shows executable location
+- Company name helps identify legitimate processes`,
+    parameters: [
+      { id: 'processName', label: 'Process Name', type: 'text', required: true, placeholder: 'chrome' }
+    ],
+    scriptTemplate: (params) => {
+      const processName = escapePowerShellString(params.processName);
+      
+      return `# Get Process Details
+# Generated: ${new Date().toISOString()}
+
+$ProcessName = "${processName}"
+
+$Processes = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
+
+if ($Processes) {
+    Write-Host "Found $($Processes.Count) instance(s) of $ProcessName:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    foreach ($Process in $Processes) {
+        Write-Host "Process: $($Process.ProcessName) (PID: $($Process.Id))" -ForegroundColor Yellow
+        Write-Host "  Path: $($Process.Path)" -ForegroundColor Gray
+        Write-Host "  Company: $($Process.Company)" -ForegroundColor Gray
+        Write-Host "  Started: $($Process.StartTime)" -ForegroundColor Gray
+        Write-Host "  Memory: $([math]::Round($Process.WS/1MB, 2)) MB" -ForegroundColor Gray
+        Write-Host "  CPU Time: $($Process.CPU) seconds" -ForegroundColor Gray
+        Write-Host "  Threads: $($Process.Threads.Count)" -ForegroundColor Gray
+        Write-Host "  Handles: $($Process.HandleCount)" -ForegroundColor Gray
+        Write-Host "  Responding: $($Process.Responding)" -ForegroundColor $(if ($Process.Responding) { 'Green' } else { 'Red' })
+        Write-Host ""
+    }
+} else {
+    Write-Host "✗ No process found with name: $ProcessName" -ForegroundColor Red
+}`;
+    }
+  },
 ];

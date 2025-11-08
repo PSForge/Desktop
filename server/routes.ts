@@ -17,6 +17,8 @@ import {
   supportRequestSchema,
   adminCreateUserSchema,
   insertPlatformNotificationSchema,
+  insertWelcomeEmailTemplateSchema,
+  updateWelcomeEmailTemplateSchema,
   saveScriptSchema,
   type ValidationResult,
   type SubscriptionStatus
@@ -1139,6 +1141,92 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     } catch (error) {
       console.error("Delete notification error:", error);
       return res.status(500).json({ error: "Failed to delete notification" });
+    }
+  });
+
+  // Welcome Email Template routes
+  app.get("/api/admin/email-templates", requireAdmin, async (req, res) => {
+    try {
+      const templates = await storage.getAllWelcomeEmailTemplates();
+      return res.json(templates);
+    } catch (error) {
+      console.error("Get email templates error:", error);
+      return res.status(500).json({ error: "Failed to retrieve email templates" });
+    }
+  });
+
+  app.get("/api/admin/email-templates/:type", requireAdmin, async (req, res) => {
+    try {
+      const { type } = req.params;
+      const template = await storage.getWelcomeEmailTemplate(type);
+      
+      if (!template) {
+        return res.status(404).json({ error: "Email template not found" });
+      }
+
+      return res.json(template);
+    } catch (error) {
+      console.error("Get email template error:", error);
+      return res.status(500).json({ error: "Failed to retrieve email template" });
+    }
+  });
+
+  app.post("/api/admin/email-templates", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertWelcomeEmailTemplateSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid email template data",
+          details: parsed.error.errors
+        });
+      }
+
+      const template = await storage.createWelcomeEmailTemplate(parsed.data);
+      return res.status(201).json(template);
+    } catch (error) {
+      console.error("Create email template error:", error);
+      return res.status(500).json({ error: "Failed to create email template" });
+    }
+  });
+
+  app.patch("/api/admin/email-templates/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parsed = updateWelcomeEmailTemplateSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid email template data",
+          details: parsed.error.errors
+        });
+      }
+
+      const template = await storage.updateWelcomeEmailTemplate(id, parsed.data);
+      if (!template) {
+        return res.status(404).json({ error: "Email template not found" });
+      }
+
+      return res.json(template);
+    } catch (error) {
+      console.error("Update email template error:", error);
+      return res.status(500).json({ error: "Failed to update email template" });
+    }
+  });
+
+  app.delete("/api/admin/email-templates/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteWelcomeEmailTemplate(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Email template not found" });
+      }
+
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Delete email template error:", error);
+      return res.status(500).json({ error: "Failed to delete email template" });
     }
   });
 

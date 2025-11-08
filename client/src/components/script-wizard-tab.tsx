@@ -277,33 +277,147 @@ export function ScriptWizardTab() {
       return;
     }
 
-    // Build bulk task configs with parameter mappings
-    const bulkTasks: BulkTaskConfig[] = selectedTasks.map(task => {
-      const taskMappings = parameterMappings[task.id] || {};
+    // Generate the bulk script manually to properly handle parameter mapping
+    const lines: string[] = [];
+    
+    // Header
+    lines.push('# PowerShell Bulk Operations Script');
+    lines.push(`# Generated: ${new Date().toISOString()}`);
+    lines.push(`# Total Items: ${csvData.rows.length}`);
+    lines.push(`# Total Tasks per Item: ${selectedTasks.length}`);
+    lines.push('');
+    
+    // Error handling setup
+    lines.push('$ErrorActionPreference = "Continue"');
+    lines.push('$SuccessCount = 0');
+    lines.push('$FailureCount = 0');
+    lines.push('$Errors = @()');
+    lines.push('');
+    
+    // Define data array
+    lines.push('# Define bulk data');
+    lines.push('$BulkData = @(');
+    csvData.rows.forEach((row, index) => {
+      lines.push('  @{');
+      Object.entries(row).forEach(([key, value]) => {
+        const escapedValue = value.replace(/'/g, "''");
+        lines.push(`    '${key}' = '${escapedValue}'`);
+      });
+      lines.push(`  }${index < csvData.rows.length - 1 ? ',' : ''}`);
+    });
+    lines.push(')');
+    lines.push('');
+    
+    // Progress output
+    lines.push('Write-Host "============================================" -ForegroundColor Cyan');
+    lines.push('Write-Host "Starting Bulk Operations" -ForegroundColor Cyan');
+    lines.push('Write-Host "============================================" -ForegroundColor Cyan');
+    lines.push('Write-Host ""');
+    lines.push('');
+    
+    // Main processing loop
+    lines.push('$ItemNumber = 0');
+    lines.push('foreach ($Item in $BulkData) {');
+    lines.push('  $ItemNumber++');
+    lines.push('  Write-Host "--------------------------------------------" -ForegroundColor Yellow');
+    lines.push('  Write-Host "Processing Item $ItemNumber of $($BulkData.Count)" -ForegroundColor Yellow');
+    lines.push('  Write-Host "--------------------------------------------" -ForegroundColor Yellow');
+    lines.push('  try {');
+    lines.push('');
+    
+    // Add each task with proper parameter mapping
+    selectedTasks.forEach((task, taskIndex) => {
+      lines.push(`    Write-Host "  → ${task.name}..." -ForegroundColor Gray`);
+      lines.push('');
       
-      // Get script template - use generateScript if available, otherwise use scriptTemplate
-      let scriptTemplateStr = '';
+      const taskMappings = parameterMappings[task.id] || {};
+      const taskParams = task.parameters || [];
+      
+      // Build parameter object with defaults for script generation
+      const paramObj: Record<string, any> = {};
+      taskParams.forEach(param => {
+        // Always use default values for script generation
+        // This allows transformations to work correctly
+        paramObj[param.id] = param.defaultValue || (param.type === 'number' ? 0 : param.type === 'boolean' ? false : '');
+      });
+      
+      // Generate the task script with default values
+      let taskScript = '';
       if (task.generateScript) {
-        scriptTemplateStr = task.generateScript({});
+        taskScript = task.generateScript(paramObj);
       } else if ((task as any).scriptTemplate) {
-        scriptTemplateStr = (task as any).scriptTemplate({});
+        taskScript = (task as any).scriptTemplate(paramObj);
       }
       
-      return {
-        taskId: task.id,
-        taskName: task.name,
-        parameters: task.parameters || [],
-        scriptTemplate: scriptTemplateStr,
-        parameterMappings: taskMappings
-      };
+      // Now set mapped variables from CSV BEFORE the task script
+      Object.entries(taskMappings).forEach(([paramId, csvColumn]) => {
+        // Quote column names to handle spaces and special characters
+        const quotedColumn = csvColumn.includes(' ') || csvColumn.includes('-') || csvColumn.match(/[^a-zA-Z0-9_]/)
+          ? `'${csvColumn.replace(/'/g, "''")}'`
+          : csvColumn;
+        lines.push(`    $${paramId} = $Item.${quotedColumn}`);
+      });
+      
+      if (Object.keys(taskMappings).length > 0) {
+        lines.push('');
+      }
+      
+      // Add task script, skipping variable declarations for mapped parameters
+      const mappedParamIds = Object.keys(taskMappings);
+      taskScript.split('\n').forEach(line => {
+        const trimmedLine = line.trim();
+        
+        // Skip empty lines and generated timestamp
+        if (!trimmedLine || trimmedLine.startsWith('# Generated:')) return;
+        
+        // Skip variable declarations for mapped parameters
+        if (mappedParamIds.length > 0) {
+          const isVariableDecl = mappedParamIds.some(paramId => {
+            return trimmedLine.match(new RegExp(`^\\$${paramId}\\s*=`, 'i'));
+          });
+          if (isVariableDecl) return;
+        }
+        
+        // Add the line
+        lines.push(`    ${line}`);
+      });
+      
+      lines.push('');
     });
-
-    const script = generateBulkScript(bulkTasks, csvData.rows, {
-      includeErrorHandling: true,
-      includeProgressOutput: true,
-      includeRetryLogic: false
-    });
-
+    
+    // End try-catch
+    lines.push('    Write-Host "  ✓ Successfully completed" -ForegroundColor Green');
+    lines.push('    $SuccessCount++');
+    lines.push('  } catch {');
+    lines.push('    $FailureCount++');
+    lines.push('    $ErrorMessage = $_.Exception.Message');
+    lines.push('    $Errors += @{');
+    lines.push('      ItemNumber = $ItemNumber');
+    lines.push('      Item = $Item');
+    lines.push('      Error = $ErrorMessage');
+    lines.push('    }');
+    lines.push('    Write-Host "  ✗ Failed: $ErrorMessage" -ForegroundColor Red');
+    lines.push('  }');
+    lines.push('}');
+    lines.push('');
+    
+    // Summary
+    lines.push('Write-Host ""');
+    lines.push('Write-Host "============================================" -ForegroundColor Cyan');
+    lines.push('Write-Host "Bulk Operations Complete" -ForegroundColor Cyan');
+    lines.push('Write-Host "============================================" -ForegroundColor Cyan');
+    lines.push('Write-Host "Total Items: $($BulkData.Count)" -ForegroundColor White');
+    lines.push('Write-Host "Successful: $SuccessCount" -ForegroundColor Green');
+    lines.push('Write-Host "Failed: $FailureCount" -ForegroundColor Red');
+    lines.push('if ($Errors.Count -gt 0) {');
+    lines.push('  Write-Host ""');
+    lines.push('  Write-Host "Errors Encountered:" -ForegroundColor Red');
+    lines.push('  $Errors | ForEach-Object {');
+    lines.push('    Write-Host "  Item $($_.ItemNumber): $($_.Error)" -ForegroundColor Red');
+    lines.push('  }');
+    lines.push('}');
+    
+    const script = lines.join('\n');
     setGeneratedScript(script);
     setCurrentStep(5);
   };
@@ -370,8 +484,29 @@ export function ScriptWizardTab() {
       }
     }
 
-    // Step 4 validation - Parameter Mapping (optional, can proceed without)
+    // Step 4 validation - Parameter Mapping
     if (currentStep === 4) {
+      // Check if any required parameters are not mapped
+      const unmappedRequired: string[] = [];
+      selectedTasks.forEach(task => {
+        const taskParams = task.parameters || [];
+        const taskMappings = parameterMappings[task.id] || {};
+        taskParams.forEach(param => {
+          if (param.required && !taskMappings[param.id]) {
+            unmappedRequired.push(`${task.name}: ${param.label || param.id}`);
+          }
+        });
+      });
+
+      if (unmappedRequired.length > 0) {
+        toast({
+          title: 'Required Parameters Not Mapped',
+          description: `Please map all required parameters: ${unmappedRequired.slice(0, 3).join(', ')}${unmappedRequired.length > 3 ? '...' : ''}`,
+          variant: 'destructive'
+        });
+        return;
+      }
+
       handleGenerateScript();
       return;
     }

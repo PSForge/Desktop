@@ -97,38 +97,33 @@ export function generateBulkScript(
       lines.push(`    Write-Host "  → ${task.taskName}..." -ForegroundColor Gray`);
     }
 
-    // For each parameter mapping, set the variable from CSV
-    if (Object.keys(task.parameterMappings).length > 0) {
-      lines.push('    # Set task parameters from CSV row');
-      Object.entries(task.parameterMappings).forEach(([paramId, csvColumn]) => {
-        lines.push(`    $${paramId} = $Item.${csvColumn}`);
-      });
-      lines.push('');
-    }
+    // Replace placeholder values with CSV column references
+    let taskScript = task.scriptTemplate;
+    
+    Object.entries(task.parameterMappings).forEach(([paramId, csvColumn]) => {
+      // Quote column names to handle spaces and special characters
+      const quotedColumn = csvColumn.includes(' ') || csvColumn.includes('-') || csvColumn.match(/[^a-zA-Z0-9_]/)
+        ? `'${csvColumn.replace(/'/g, "''")}'`
+        : csvColumn;
+      
+      const placeholder = `__CSVMAP_${paramId}__`;
+      const csvReference = `$($Item.${quotedColumn})`;
+      
+      // Replace all occurrences of placeholder with CSV reference
+      // Handle both quoted and unquoted contexts
+      taskScript = taskScript.replace(new RegExp(`["']${placeholder}["']`, 'g'), csvReference);
+      taskScript = taskScript.replace(new RegExp(placeholder, 'g'), csvReference);
+    });
 
-    // Add the task script (without variable declarations that are now set above)
-    const taskLines = task.scriptTemplate.split('\n');
-    let skipVariableDeclarations = Object.keys(task.parameterMappings).length > 0;
+    // Add the task script with CSV references
+    const taskLines = taskScript.split('\n');
     
     taskLines.forEach(line => {
       const trimmedLine = line.trim();
       
-      // Skip empty lines and header comments
+      // Skip empty lines and generated timestamp comments
       if (!trimmedLine) return;
       if (trimmedLine.startsWith('# Generated:')) return;
-      if (trimmedLine.match(/^#+\s*[A-Z][a-z]+.*$/)) {
-        // Keep section headers like "# Create New User"
-        lines.push(`    ${line}`);
-        return;
-      }
-      
-      // Skip variable declarations for mapped parameters
-      if (skipVariableDeclarations) {
-        const isVariableDeclaration = Object.keys(task.parameterMappings).some(paramId => {
-          return trimmedLine.match(new RegExp(`^\\$${paramId}\\s*=`, 'i'));
-        });
-        if (isVariableDeclaration) return;
-      }
       
       // Add the line
       if (trimmedLine) {

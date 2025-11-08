@@ -97,6 +97,16 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const welcomeEmailTemplates = pgTable("welcome_email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type", { length: 50 }).notNull().unique(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  htmlContent: text("html_content").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const userRoles = ["free", "subscriber", "admin"] as const;
 export type UserRole = typeof userRoles[number];
 
@@ -319,6 +329,24 @@ export const platformNotificationSchema = z.object({
 
 export const insertPlatformNotificationSchema = platformNotificationSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
+// Welcome Email Template Schemas
+export const welcomeEmailTypes = ["free_signup", "subscription"] as const;
+export type WelcomeEmailType = typeof welcomeEmailTypes[number];
+
+export const welcomeEmailTemplateSchema = z.object({
+  id: z.string(),
+  type: z.enum(welcomeEmailTypes),
+  subject: z.string(),
+  htmlContent: z.string(),
+  enabled: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const insertWelcomeEmailTemplateSchema = welcomeEmailTemplateSchema.omit({ id: true, createdAt: true, updatedAt: true });
+
+export const updateWelcomeEmailTemplateSchema = insertWelcomeEmailTemplateSchema.partial();
+
 // Password Reset Schemas
 export const passwordResetTokenSchema = z.object({
   id: z.string(),
@@ -362,6 +390,9 @@ export type AnalyticsOverview = z.infer<typeof analyticsOverviewSchema>;
 export type FeatureAccess = z.infer<typeof featureAccessSchema>;
 export type PlatformNotification = z.infer<typeof platformNotificationSchema>;
 export type InsertPlatformNotification = z.infer<typeof insertPlatformNotificationSchema>;
+export type WelcomeEmailTemplate = z.infer<typeof welcomeEmailTemplateSchema>;
+export type InsertWelcomeEmailTemplate = z.infer<typeof insertWelcomeEmailTemplateSchema>;
+export type UpdateWelcomeEmailTemplate = z.infer<typeof updateWelcomeEmailTemplateSchema>;
 export type PasswordResetToken = z.infer<typeof passwordResetTokenSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;

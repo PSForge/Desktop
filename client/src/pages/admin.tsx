@@ -33,6 +33,7 @@ import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, Arro
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";
+import { AdminEmailTemplatesSection } from "@/components/admin-email-templates-section";
 
 interface AnalyticsOverview {
   totalUsers: number;
@@ -637,6 +638,8 @@ export default function AdminDashboard() {
         </Card>
 
         <AdminNotificationsSection />
+        
+        <AdminEmailTemplatesSection />
       </div>
 
       <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>

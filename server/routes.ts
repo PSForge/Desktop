@@ -800,7 +800,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
             // Send subscription welcome email asynchronously
             (async () => {
               try {
-                const user = await storage.getUser(userId);
+                const user = await storage.getUserById(userId);
                 if (user) {
                   const template = await storage.getWelcomeEmailTemplate("subscription");
                   if (template && template.enabled) {

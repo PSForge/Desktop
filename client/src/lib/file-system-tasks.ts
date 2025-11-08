@@ -1059,4 +1059,601 @@ if ($Duplicates) {
 }`;
     }
   },
+
+  {
+    id: 'copy-files',
+    name: 'Copy Files/Folders',
+    category: 'File Operations',
+    description: 'Copy files or folders with progress tracking',
+    instructions: `**How This Task Works:**
+- Copies files or entire folder structures to destination
+- Shows progress and file count
+- Preserves timestamps and attributes
+- Option to overwrite existing files
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on source location
+- Write permissions on destination location
+
+**What You Need to Provide:**
+- Source path (file or folder)
+- Destination path
+- Overwrite existing files: true or false (default: false)
+- Recurse subfolders: true or false (default: true)
+
+**What the Script Does:**
+1. Validates source path exists
+2. Creates destination folder if needed
+3. Copies files/folders with specified options
+4. Reports total files copied and errors
+5. Preserves file attributes and timestamps
+
+**Important Notes:**
+- Large copies may take time
+- Network paths supported (UNC paths)
+- Locked files will be skipped with error
+- Use -Force to overwrite read-only files`,
+    parameters: [
+      { id: 'sourcePath', label: 'Source Path', type: 'path', required: true, placeholder: 'C:\\Source\\Files' },
+      { id: 'destinationPath', label: 'Destination Path', type: 'path', required: true, placeholder: 'D:\\Backup\\Files' },
+      { id: 'overwrite', label: 'Overwrite Existing Files', type: 'boolean', required: false, defaultValue: false },
+      { id: 'recurse', label: 'Include Subfolders', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const sourcePath = escapePowerShellString(params.sourcePath);
+      const destinationPath = escapePowerShellString(params.destinationPath);
+      const overwrite = toPowerShellBoolean(params.overwrite ?? false);
+      const recurse = toPowerShellBoolean(params.recurse ?? true);
+      
+      return `# Copy Files/Folders
+# Generated: ${new Date().toISOString()}
+
+$Source = "${sourcePath}"
+$Destination = "${destinationPath}"
+
+if (-not (Test-Path $Source)) {
+    Write-Host "✗ Source path not found: $Source" -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-Path $Destination)) {
+    New-Item -Path $Destination -ItemType Directory -Force | Out-Null
+    Write-Host "✓ Created destination folder" -ForegroundColor Green
+}
+
+Write-Host "Copying from $Source to $Destination..." -ForegroundColor Gray
+
+try {
+    Copy-Item -Path $Source -Destination $Destination ${recurse === '$true' ? '-Recurse' : ''} ${overwrite === '$true' ? '-Force' : ''} -ErrorAction Stop
+    Write-Host "✓ Copy completed successfully" -ForegroundColor Green
+} catch {
+    Write-Host "✗ Copy failed: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'delete-files',
+    name: 'Delete Files/Folders',
+    category: 'File Operations',
+    description: 'Safely delete files or folders with confirmation',
+    instructions: `**How This Task Works:**
+- Deletes files or folders permanently
+- Shows what will be deleted before action
+- Option for recursive deletion of folders
+- Safety confirmation required
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Delete permissions on target location
+- Administrator rights for system folders
+
+**What You Need to Provide:**
+- Path to delete (file or folder)
+- Force deletion of read-only files: true or false
+- Recurse (delete folders and contents): true or false
+
+**What the Script Does:**
+1. Validates path exists
+2. Shows what will be deleted
+3. Prompts for confirmation
+4. Deletes file/folder recursively if specified
+5. Reports success or errors
+
+**Important Notes:**
+- PERMANENT DELETION - no Recycle Bin
+- Use with extreme caution
+- Test with -WhatIf first
+- Locked/in-use files will fail
+- Force flag removes read-only attribute`,
+    parameters: [
+      { id: 'targetPath', label: 'Path to Delete', type: 'path', required: true, placeholder: 'C:\\Temp\\OldFiles' },
+      { id: 'force', label: 'Force (Delete Read-Only)', type: 'boolean', required: false, defaultValue: false },
+      { id: 'recurse', label: 'Recurse (Delete Subfolders)', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const force = toPowerShellBoolean(params.force ?? false);
+      const recurse = toPowerShellBoolean(params.recurse ?? false);
+      
+      return `# Delete Files/Folders
+# Generated: ${new Date().toISOString()}
+# WARNING: This permanently deletes files - no Recycle Bin
+
+$Target = "${targetPath}"
+
+if (-not (Test-Path $Target)) {
+    Write-Host "✗ Path not found: $Target" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "⚠ WARNING: The following will be PERMANENTLY deleted:" -ForegroundColor Yellow
+if (${recurse}) {
+    Get-ChildItem -Path $Target -Recurse | Select-Object -First 10 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+    $ItemCount = (Get-ChildItem -Path $Target -Recurse | Measure-Object).Count
+    Write-Host "  ... and $($ItemCount - 10) more items" -ForegroundColor Gray
+} else {
+    Write-Host "  $Target" -ForegroundColor Gray
+}
+
+$Confirm = Read-Host "Type 'DELETE' to confirm permanent deletion"
+if ($Confirm -ne 'DELETE') {
+    Write-Host "✓ Deletion cancelled" -ForegroundColor Green
+    exit 0
+}
+
+try {
+    Remove-Item -Path $Target ${recurse === '$true' ? '-Recurse' : ''} ${force === '$true' ? '-Force' : ''} -ErrorAction Stop
+    Write-Host "✓ Successfully deleted: $Target" -ForegroundColor Green
+} catch {
+    Write-Host "✗ Deletion failed: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'search-files',
+    name: 'Search for Files',
+    category: 'File Operations',
+    description: 'Search for files by name pattern, extension, or content',
+    instructions: `**How This Task Works:**
+- Searches for files matching pattern
+- Supports wildcards (*. ?)
+- Optional content search within files
+- Exports results to CSV
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on search path
+- No administrator rights required
+
+**What You Need to Provide:**
+- Search path (root directory)
+- File name pattern (wildcards supported)
+- Optional: Search for text content inside files
+- Optional: File extension filter
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Scans directory and subdirectories
+2. Filters by name pattern and extension
+3. Optionally searches file content
+4. Displays matches with path, size, date
+5. Exports to CSV if specified
+
+**Important Notes:**
+- Wildcards: * (any chars), ? (single char)
+- Content search works on text files only
+- Large directory scans take time
+- Hidden files excluded by default
+- Typical use: find logs, configs, documents`,
+    parameters: [
+      { id: 'searchPath', label: 'Search Path', type: 'path', required: true, placeholder: 'C:\\Users\\Documents' },
+      { id: 'filePattern', label: 'File Name Pattern', type: 'text', required: true, placeholder: '*.log' },
+      { id: 'searchContent', label: 'Search Content (Optional)', type: 'text', required: false, placeholder: 'error' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const searchPath = escapePowerShellString(params.searchPath);
+      const filePattern = escapePowerShellString(params.filePattern);
+      const searchContent = params.searchContent ? escapePowerShellString(params.searchContent) : '';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Search for Files
+# Generated: ${new Date().toISOString()}
+
+$SearchPath = "${searchPath}"
+$FilePattern = "${filePattern}"
+${searchContent ? `$SearchContent = "${searchContent}"` : ''}
+
+if (-not (Test-Path $SearchPath)) {
+    Write-Host "✗ Search path not found: $SearchPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Searching for: $FilePattern in $SearchPath..." -ForegroundColor Gray
+
+$Results = Get-ChildItem -Path $SearchPath -Filter $FilePattern -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+    ${searchContent ? `
+    # Search content if specified
+    $Match = Select-String -Path $_.FullName -Pattern $SearchContent -SimpleMatch -ErrorAction SilentlyContinue
+    if ($Match) {` : ''}
+        [PSCustomObject]@{
+            FileName = $_.Name
+            Path = $_.FullName
+            SizeMB = [math]::Round($_.Length/1MB, 2)
+            Modified = $_.LastWriteTime
+            ${searchContent ? 'MatchFound = if ($Match) { "Yes" } else { "No" }' : ''}
+        }
+    ${searchContent ? `}` : ''}
+}
+
+if ($Results) {
+    Write-Host ""
+    Write-Host "✓ Found $($Results.Count) matching files:" -ForegroundColor Green
+    $Results | Format-Table -AutoSize
+    
+    ${exportPath ? `$Results | Export-Csv "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+} else {
+    Write-Host "No files found matching pattern" -ForegroundColor Yellow
+}`;
+    }
+  },
+
+  {
+    id: 'get-folder-size',
+    name: 'Get Folder Size Report',
+    category: 'File Operations',
+    description: 'Calculate total size of folders and subfolders',
+    instructions: `**How This Task Works:**
+- Calculates total size of folder contents
+- Lists top folders by size
+- Includes subfolder breakdown
+- Exports to CSV for analysis
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target folder
+- No administrator rights required
+
+**What You Need to Provide:**
+- Folder path to analyze
+- Depth level (how many levels deep to report)
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Scans folder and all subfolders
+2. Calculates total size for each folder
+3. Sorts by size (largest first)
+4. Shows folder path, size, file count
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Large folders take time to scan
+- Size includes all subfolders
+- Useful for disk cleanup planning
+- Network paths supported
+- Locked files counted but not read`,
+    parameters: [
+      { id: 'folderPath', label: 'Folder Path', type: 'path', required: true, placeholder: 'C:\\Users' },
+      { id: 'depth', label: 'Depth Level', type: 'number', required: false, defaultValue: 1, description: 'How many levels deep (1-3)' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const folderPath = escapePowerShellString(params.folderPath);
+      const depth = Number(params.depth || 1);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Folder Size Report
+# Generated: ${new Date().toISOString()}
+
+$FolderPath = "${folderPath}"
+$Depth = ${depth}
+
+if (-not (Test-Path $FolderPath)) {
+    Write-Host "✗ Folder not found: $FolderPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Calculating folder sizes..." -ForegroundColor Gray
+
+function Get-FolderSize {
+    param([string]$Path, [int]$CurrentDepth, [int]$MaxDepth)
+    
+    if ($CurrentDepth -gt $MaxDepth) { return }
+    
+    $Folders = Get-ChildItem -Path $Path -Directory -ErrorAction SilentlyContinue
+    
+    foreach ($Folder in $Folders) {
+        $Size = (Get-ChildItem -Path $Folder.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+        $FileCount = (Get-ChildItem -Path $Folder.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object).Count
+        
+        [PSCustomObject]@{
+            FolderName = $Folder.Name
+            Path = $Folder.FullName
+            SizeGB = [math]::Round($Size/1GB, 2)
+            SizeMB = [math]::Round($Size/1MB, 2)
+            FileCount = $FileCount
+        }
+        
+        if ($CurrentDepth -lt $MaxDepth) {
+            Get-FolderSize -Path $Folder.FullName -CurrentDepth ($CurrentDepth + 1) -MaxDepth $MaxDepth
+        }
+    }
+}
+
+$Results = Get-FolderSize -Path $FolderPath -CurrentDepth 1 -MaxDepth $Depth | Sort-Object SizeGB -Descending
+
+if ($Results) {
+    Write-Host ""
+    Write-Host "✓ Folder size analysis complete:" -ForegroundColor Green
+    $Results | Format-Table FolderName, SizeGB, SizeMB, FileCount -AutoSize
+    
+    $TotalSize = ($Results | Measure-Object -Property SizeGB -Sum).Sum
+    Write-Host ""
+    Write-Host "Total size: $([math]::Round($TotalSize, 2)) GB" -ForegroundColor Cyan
+    
+    ${exportPath ? `$Results | Export-Csv "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+} else {
+    Write-Host "No subfolders found" -ForegroundColor Yellow
+}`;
+    }
+  },
+
+  {
+    id: 'compress-zip',
+    name: 'Compress to ZIP Archive',
+    category: 'File Operations',
+    description: 'Create ZIP archive from files or folders',
+    instructions: `**How This Task Works:**
+- Compresses files/folders into ZIP archive
+- Supports compression level selection
+- Preserves folder structure
+- Shows compression ratio
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- .NET Framework 4.5+
+- Read permissions on source
+- Write permissions on destination
+
+**What You Need to Provide:**
+- Source path (file or folder)
+- Destination ZIP file path
+- Compression level (Optimal, Fastest, or NoCompression)
+
+**What the Script Does:**
+1. Validates source path exists
+2. Creates ZIP archive with specified compression
+3. Includes all files and subfolders
+4. Reports original vs compressed size
+5. Confirms successful creation
+
+**Important Notes:**
+- Optimal: best compression, slower
+- Fastest: quick compression, larger files
+- NoCompression: fastest, no size reduction
+- Existing ZIP files overwritten
+- Network paths supported`,
+    parameters: [
+      { id: 'sourcePath', label: 'Source Path', type: 'path', required: true, placeholder: 'C:\\ProjectFiles' },
+      { id: 'zipPath', label: 'Destination ZIP Path', type: 'path', required: true, placeholder: 'C:\\Backups\\project.zip' },
+      { id: 'compressionLevel', label: 'Compression Level', type: 'select', required: false, options: ['Optimal', 'Fastest', 'NoCompression'], defaultValue: 'Optimal' }
+    ],
+    scriptTemplate: (params) => {
+      const sourcePath = escapePowerShellString(params.sourcePath);
+      const zipPath = escapePowerShellString(params.zipPath);
+      const compressionLevel = params.compressionLevel || 'Optimal';
+      
+      return `# Compress to ZIP Archive
+# Generated: ${new Date().toISOString()}
+
+$Source = "${sourcePath}"
+$Destination = "${zipPath}"
+$CompressionLevel = "${compressionLevel}"
+
+if (-not (Test-Path $Source)) {
+    Write-Host "✗ Source path not found: $Source" -ForegroundColor Red
+    exit 1
+}
+
+# Remove existing ZIP if present
+if (Test-Path $Destination) {
+    Remove-Item $Destination -Force
+    Write-Host "⚠ Removed existing ZIP file" -ForegroundColor Yellow
+}
+
+Write-Host "Compressing to ZIP archive..." -ForegroundColor Gray
+
+try {
+    $OriginalSize = (Get-ChildItem -Path $Source -Recurse -File | Measure-Object -Property Length -Sum).Sum
+    
+    Compress-Archive -Path $Source -DestinationPath $Destination -CompressionLevel $CompressionLevel -ErrorAction Stop
+    
+    $CompressedSize = (Get-Item $Destination).Length
+    $Ratio = [math]::Round((1 - ($CompressedSize / $OriginalSize)) * 100, 1)
+    
+    Write-Host ""
+    Write-Host "✓ ZIP archive created successfully" -ForegroundColor Green
+    Write-Host "  Original size: $([math]::Round($OriginalSize/1MB, 2)) MB" -ForegroundColor Gray
+    Write-Host "  Compressed size: $([math]::Round($CompressedSize/1MB, 2)) MB" -ForegroundColor Gray
+    Write-Host "  Compression ratio: $Ratio%" -ForegroundColor Cyan
+    Write-Host "  Location: $Destination" -ForegroundColor Gray
+} catch {
+    Write-Host "✗ Compression failed: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'extract-zip',
+    name: 'Extract ZIP Archive',
+    category: 'File Operations',
+    description: 'Extract contents from ZIP archive to folder',
+    instructions: `**How This Task Works:**
+- Extracts all files from ZIP archive
+- Preserves folder structure
+- Option to overwrite existing files
+- Shows extraction progress
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- .NET Framework 4.5+
+- Read permissions on ZIP file
+- Write permissions on destination
+
+**What You Need to Provide:**
+- ZIP file path
+- Destination folder path
+- Overwrite existing files: true or false
+
+**What the Script Does:**
+1. Validates ZIP file exists
+2. Creates destination folder if needed
+3. Extracts all contents
+4. Preserves original folder structure
+5. Reports file count and completion
+
+**Important Notes:**
+- Destination folder created automatically
+- Existing files overwritten if force flag set
+- Extracts full directory structure
+- Large archives take time
+- Network paths supported`,
+    parameters: [
+      { id: 'zipPath', label: 'ZIP File Path', type: 'path', required: true, placeholder: 'C:\\Downloads\\archive.zip' },
+      { id: 'destinationPath', label: 'Destination Folder', type: 'path', required: true, placeholder: 'C:\\Extracted' },
+      { id: 'overwrite', label: 'Overwrite Existing Files', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const zipPath = escapePowerShellString(params.zipPath);
+      const destinationPath = escapePowerShellString(params.destinationPath);
+      const overwrite = toPowerShellBoolean(params.overwrite ?? false);
+      
+      return `# Extract ZIP Archive
+# Generated: ${new Date().toISOString()}
+
+$ZipFile = "${zipPath}"
+$Destination = "${destinationPath}"
+
+if (-not (Test-Path $ZipFile)) {
+    Write-Host "✗ ZIP file not found: $ZipFile" -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-Path $Destination)) {
+    New-Item -Path $Destination -ItemType Directory -Force | Out-Null
+    Write-Host "✓ Created destination folder" -ForegroundColor Green
+}
+
+Write-Host "Extracting ZIP archive..." -ForegroundColor Gray
+
+try {
+    Expand-Archive -Path $ZipFile -DestinationPath $Destination ${overwrite === '$true' ? '-Force' : ''} -ErrorAction Stop
+    
+    $FileCount = (Get-ChildItem -Path $Destination -Recurse -File | Measure-Object).Count
+    
+    Write-Host ""
+    Write-Host "✓ Extraction complete" -ForegroundColor Green
+    Write-Host "  Files extracted: $FileCount" -ForegroundColor Gray
+    Write-Host "  Location: $Destination" -ForegroundColor Gray
+} catch {
+    Write-Host "✗ Extraction failed: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'list-files',
+    name: 'List Files in Directory',
+    category: 'File Operations',
+    description: 'Generate detailed file listing with sizes and dates',
+    instructions: `**How This Task Works:**
+- Lists all files in directory
+- Shows file name, size, modified date, attributes
+- Option to include subfolders
+- Exports to CSV for analysis
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on directory
+- No administrator rights required
+
+**What You Need to Provide:**
+- Directory path
+- Include subfolders: true or false
+- Include hidden files: true or false
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Scans directory for files
+2. Retrieves name, size, dates, attributes
+3. Formats results in table
+4. Sorts by name or size
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Hidden files excluded by default
+- System files excluded by default
+- Typical use: inventory, documentation
+- CSV export for Excel analysis
+- Shows file attributes (R, H, S, A)`,
+    parameters: [
+      { id: 'directoryPath', label: 'Directory Path', type: 'path', required: true, placeholder: 'C:\\Reports' },
+      { id: 'includeSubfolders', label: 'Include Subfolders', type: 'boolean', required: false, defaultValue: false },
+      { id: 'includeHidden', label: 'Include Hidden Files', type: 'boolean', required: false, defaultValue: false },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const directoryPath = escapePowerShellString(params.directoryPath);
+      const includeSubfolders = toPowerShellBoolean(params.includeSubfolders ?? false);
+      const includeHidden = toPowerShellBoolean(params.includeHidden ?? false);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# List Files in Directory
+# Generated: ${new Date().toISOString()}
+
+$Directory = "${directoryPath}"
+
+if (-not (Test-Path $Directory)) {
+    Write-Host "✗ Directory not found: $Directory" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Listing files..." -ForegroundColor Gray
+
+$Files = Get-ChildItem -Path $Directory ${includeSubfolders === '$true' ? '-Recurse' : ''} -File ${includeHidden === '$true' ? '-Force' : ''} -ErrorAction SilentlyContinue | ForEach-Object {
+    [PSCustomObject]@{
+        FileName = $_.Name
+        Path = $_.FullName
+        SizeMB = [math]::Round($_.Length/1MB, 2)
+        Modified = $_.LastWriteTime
+        Created = $_.CreationTime
+        Attributes = $_.Attributes
+    }
+} | Sort-Object FileName
+
+if ($Files) {
+    Write-Host ""
+    Write-Host "✓ Found $($Files.Count) files:" -ForegroundColor Green
+    $Files | Format-Table -AutoSize
+    
+    $TotalSize = ($Files | Measure-Object -Property SizeMB -Sum).Sum
+    Write-Host ""
+    Write-Host "Total size: $([math]::Round($TotalSize, 2)) MB" -ForegroundColor Cyan
+    
+    ${exportPath ? `$Files | Export-Csv "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+} else {
+    Write-Host "No files found" -ForegroundColor Yellow
+}`;
+    }
+  },
 ];

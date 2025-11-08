@@ -1059,4 +1059,424 @@ if ($Speed -eq "Auto" -and $Duplex -eq "Auto") {
 }`;
     }
   },
+
+  {
+    id: 'test-port',
+    name: 'Test Port Connectivity',
+    category: 'Troubleshooting',
+    description: 'Test if specific TCP port is open and accessible',
+    instructions: `**How This Task Works:**
+- Tests TCP port connectivity to remote host
+- Verifies if port is open and accepting connections
+- Useful for firewall and service troubleshooting
+- Shows response time for successful connections
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Network connectivity to target host
+- No administrator rights required
+
+**What You Need to Provide:**
+- Target hostname or IP address
+- Port number (e.g., 80, 443, 3389, 445)
+- Timeout in seconds (default: 5)
+
+**What the Script Does:**
+1. Attempts TCP connection to specified port
+2. Reports success or failure
+3. Shows connection time if successful
+4. Provides troubleshooting guidance
+
+**Important Notes:**
+- Does not test UDP ports (TCP only)
+- Common ports: 80 (HTTP), 443 (HTTPS), 3389 (RDP), 445 (SMB), 22 (SSH)
+- Firewall rules may block connection attempts
+- Timeout recommended: 5-10 seconds
+- Successful test means port is reachable and listening`,
+    parameters: [
+      { id: 'targetHost', label: 'Target Host/IP', type: 'text', required: true, placeholder: 'server.domain.com' },
+      { id: 'port', label: 'Port Number', type: 'number', required: true, placeholder: '443' },
+      { id: 'timeout', label: 'Timeout (seconds)', type: 'number', required: false, defaultValue: 5 }
+    ],
+    scriptTemplate: (params) => {
+      const targetHost = escapePowerShellString(params.targetHost);
+      const port = Number(params.port);
+      const timeout = Number(params.timeout || 5);
+      
+      return `# Test Port Connectivity
+# Generated: ${new Date().toISOString()}
+
+$Target = "${targetHost}"
+$Port = ${port}
+$Timeout = ${timeout}
+
+Write-Host "Testing TCP port $Port on $Target..." -ForegroundColor Gray
+
+try {
+    $tcpClient = New-Object System.Net.Sockets.TcpClient
+    $connectTask = $tcpClient.ConnectAsync($Target, $Port)
+    $timeoutTask = [System.Threading.Tasks.Task]::Delay($Timeout * 1000)
+    
+    $completedTask = [System.Threading.Tasks.Task]::WhenAny($connectTask, $timeoutTask).Result
+    
+    if ($completedTask -eq $connectTask) {
+        if ($tcpClient.Connected) {
+            Write-Host "✓ Port $Port is OPEN on $Target" -ForegroundColor Green
+            Write-Host "  Connection successful" -ForegroundColor Gray
+        } else {
+            Write-Host "✗ Port $Port is CLOSED on $Target" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "✗ Connection timed out after $Timeout seconds" -ForegroundColor Red
+        Write-Host "  Port may be filtered or host unreachable" -ForegroundColor Yellow
+    }
+    
+    $tcpClient.Close()
+} catch {
+    Write-Host "✗ Connection failed: $_" -ForegroundColor Red
+    Write-Host "  Check firewall rules and network connectivity" -ForegroundColor Yellow
+}`;
+    }
+  },
+
+  {
+    id: 'get-firewall-rules',
+    name: 'Get Firewall Rules Report',
+    category: 'Firewall',
+    description: 'List Windows Firewall rules with details',
+    instructions: `**How This Task Works:**
+- Lists all Windows Firewall rules
+- Filters by enabled/disabled status
+- Shows rule name, direction, action, protocol, ports
+- Exports to CSV for analysis
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Administrator privileges recommended (for full details)
+- Windows Firewall service must be running
+
+**What You Need to Provide:**
+- Rule status filter: All, Enabled, or Disabled
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Retrieves Windows Firewall rules
+2. Filters by enabled/disabled status
+3. Shows name, direction, action, protocol, port
+4. Formats results in table
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Administrator rights show all details
+- Direction: Inbound or Outbound
+- Action: Allow or Block
+- Typical use: security audit, troubleshooting
+- CSV export for documentation`,
+    parameters: [
+      { id: 'status', label: 'Filter by Status', type: 'select', required: false, options: ['All', 'Enabled', 'Disabled'], defaultValue: 'Enabled' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const status = params.status || 'Enabled';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Firewall Rules Report
+# Generated: ${new Date().toISOString()}
+
+$Status = "${status}"
+
+Write-Host "Retrieving firewall rules..." -ForegroundColor Gray
+
+if ($Status -eq "All") {
+    $Rules = Get-NetFirewallRule
+} elseif ($Status -eq "Enabled") {
+    $Rules = Get-NetFirewallRule | Where-Object { $_.Enabled -eq 'True' }
+} else {
+    $Rules = Get-NetFirewallRule | Where-Object { $_.Enabled -eq 'False' }
+}
+
+$Report = $Rules | ForEach-Object {
+    $PortFilter = $_ | Get-NetFirewallPortFilter -ErrorAction SilentlyContinue
+    [PSCustomObject]@{
+        Name = $_.DisplayName
+        Enabled = $_.Enabled
+        Direction = $_.Direction
+        Action = $_.Action
+        Protocol = $PortFilter.Protocol
+        LocalPort = $PortFilter.LocalPort
+        RemotePort = $PortFilter.RemotePort
+    }
+} | Sort-Object Name
+
+Write-Host ""
+Write-Host "✓ Found $($Report.Count) firewall rules ($Status):" -ForegroundColor Green
+$Report | Format-Table -AutoSize
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'add-firewall-rule',
+    name: 'Add Windows Firewall Rule',
+    category: 'Firewall',
+    description: 'Create new inbound or outbound firewall rule',
+    instructions: `**How This Task Works:**
+- Creates new Windows Firewall rule
+- Supports TCP/UDP protocols and specific ports
+- Configures inbound or outbound direction
+- Allows or blocks traffic as specified
+
+**Prerequisites:**
+- Administrator privileges REQUIRED
+- PowerShell 5.1 or later
+- Windows Firewall service must be running
+
+**What You Need to Provide:**
+- Rule name (unique identifier)
+- Direction: Inbound or Outbound
+- Action: Allow or Block
+- Protocol: TCP or UDP
+- Port number(s) - comma-separated for multiple
+- Optional: Description
+
+**What the Script Does:**
+1. Validates administrator privileges
+2. Checks if rule name already exists
+3. Creates firewall rule with specified settings
+4. Enables the rule automatically
+5. Confirms successful creation
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Rule names must be unique
+- Multiple ports: comma-separated (e.g., 80,443,8080)
+- Inbound: controls incoming connections
+- Outbound: controls outgoing connections
+- Test rule after creation`,
+    parameters: [
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Allow Web Traffic' },
+      { id: 'direction', label: 'Direction', type: 'select', required: true, options: ['Inbound', 'Outbound'], defaultValue: 'Inbound' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Allow', 'Block'], defaultValue: 'Allow' },
+      { id: 'protocol', label: 'Protocol', type: 'select', required: true, options: ['TCP', 'UDP'], defaultValue: 'TCP' },
+      { id: 'ports', label: 'Port(s)', type: 'text', required: true, placeholder: '80,443' },
+      { id: 'description', label: 'Description', type: 'text', required: false, placeholder: 'Allow HTTP and HTTPS traffic' }
+    ],
+    scriptTemplate: (params) => {
+      const ruleName = escapePowerShellString(params.ruleName);
+      const direction = params.direction;
+      const action = params.action;
+      const protocol = params.protocol;
+      const ports = escapePowerShellString(params.ports);
+      const description = params.description ? escapePowerShellString(params.description) : '';
+      
+      return `# Add Windows Firewall Rule
+# Generated: ${new Date().toISOString()}
+
+# Check for admin privileges
+$IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")
+if (-not $IsAdmin) {
+    Write-Host "✗ Administrator privileges required" -ForegroundColor Red
+    exit 1
+}
+
+$RuleName = "${ruleName}"
+$Direction = "${direction}"
+$Action = "${action}"
+$Protocol = "${protocol}"
+$Ports = "${ports}"
+${description ? `$Description = "${description}"` : ''}
+
+# Check if rule already exists
+$Existing = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
+if ($Existing) {
+    Write-Host "✗ Firewall rule already exists: $RuleName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Creating firewall rule..." -ForegroundColor Gray
+
+try {
+    New-NetFirewallRule \`
+        -DisplayName $RuleName \`
+        -Direction $Direction \`
+        -Action $Action \`
+        -Protocol $Protocol \`
+        -LocalPort $Ports \`
+        ${description ? '-Description $Description \\`' : ''}
+        -Enabled True \`
+        -ErrorAction Stop | Out-Null
+    
+    Write-Host ""
+    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    Write-Host "  Name: $RuleName" -ForegroundColor Gray
+    Write-Host "  Direction: $Direction" -ForegroundColor Gray
+    Write-Host "  Action: $Action" -ForegroundColor Gray
+    Write-Host "  Protocol: $Protocol" -ForegroundColor Gray
+    Write-Host "  Port(s): $Ports" -ForegroundColor Gray
+} catch {
+    Write-Host "✗ Failed to create firewall rule: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'traceroute',
+    name: 'Trace Network Route',
+    category: 'Troubleshooting',
+    description: 'Trace network path to destination with hop-by-hop details',
+    instructions: `**How This Task Works:**
+- Traces network route to destination
+- Shows each router/hop along the path
+- Displays response time for each hop
+- Identifies network bottlenecks
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Network connectivity
+- No administrator rights required
+- ICMP traffic allowed (not blocked by firewalls)
+
+**What You Need to Provide:**
+- Target hostname or IP address
+- Maximum hops (default: 30)
+
+**What the Script Does:**
+1. Sends ICMP packets with incrementing TTL
+2. Records each router hop response
+3. Shows hostname/IP and response time
+4. Identifies where failures occur
+5. Maps complete network path
+
+**Important Notes:**
+- May take 30-60 seconds to complete
+- Some hops may not respond (show as *)
+- Firewalls may block ICMP causing gaps
+- Useful for diagnosing routing issues
+- High latency hops indicate problems
+- Typical use: diagnose slow connections`,
+    parameters: [
+      { id: 'targetHost', label: 'Target Host/IP', type: 'text', required: true, placeholder: 'google.com' },
+      { id: 'maxHops', label: 'Maximum Hops', type: 'number', required: false, defaultValue: 30 }
+    ],
+    scriptTemplate: (params) => {
+      const targetHost = escapePowerShellString(params.targetHost);
+      const maxHops = Number(params.maxHops || 30);
+      
+      return `# Trace Network Route
+# Generated: ${new Date().toISOString()}
+
+$Target = "${targetHost}"
+$MaxHops = ${maxHops}
+
+Write-Host "Tracing route to $Target over maximum of $MaxHops hops..." -ForegroundColor Gray
+Write-Host ""
+
+tracert -h $MaxHops $Target
+
+Write-Host ""
+Write-Host "✓ Trace complete" -ForegroundColor Green
+Write-Host ""
+Write-Host "Interpreting results:" -ForegroundColor Cyan
+Write-Host "  * = Hop did not respond (may be firewalled)" -ForegroundColor Gray
+Write-Host "  High ms values (>100) indicate network congestion" -ForegroundColor Gray
+Write-Host "  Request timed out = connectivity issue at that hop" -ForegroundColor Gray`;
+    }
+  },
+
+  {
+    id: 'ping-multiple',
+    name: 'Ping Multiple Hosts',
+    category: 'Troubleshooting',
+    description: 'Test connectivity to multiple hosts and generate report',
+    instructions: `**How This Task Works:**
+- Pings multiple hosts from a list
+- Tests network connectivity and response time
+- Generates summary report
+- Identifies reachable vs unreachable hosts
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Network connectivity
+- No administrator rights required
+- ICMP traffic allowed
+
+**What You Need to Provide:**
+- Comma-separated list of hostnames/IPs
+- Ping count per host (default: 4)
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Parses host list
+2. Pings each host specified number of times
+3. Calculates average response time
+4. Identifies successful vs failed pings
+5. Generates summary report
+6. Optionally exports to CSV
+
+**Important Notes:**
+- Firewalls may block ICMP
+- Average response time shows network performance
+- Failed pings may indicate: host down, firewall block, routing issue
+- Typical use: verify multiple server connectivity
+- CSV export for documentation`,
+    parameters: [
+      { id: 'hostList', label: 'Host List (comma-separated)', type: 'textarea', required: true, placeholder: 'server1.domain.com, 192.168.1.10, google.com' },
+      { id: 'pingCount', label: 'Ping Count per Host', type: 'number', required: false, defaultValue: 4 },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const hostList = escapePowerShellString(params.hostList);
+      const pingCount = Number(params.pingCount || 4);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Ping Multiple Hosts
+# Generated: ${new Date().toISOString()}
+
+$HostList = "${hostList}" -split ',' | ForEach-Object { $_.Trim() }
+$PingCount = ${pingCount}
+
+Write-Host "Pinging $($HostList.Count) hosts ($PingCount pings each)..." -ForegroundColor Gray
+Write-Host ""
+
+$Results = foreach ($Host in $HostList) {
+    Write-Host "Testing: $Host..." -ForegroundColor Gray
+    
+    $PingResult = Test-Connection -ComputerName $Host -Count $PingCount -ErrorAction SilentlyContinue
+    
+    if ($PingResult) {
+        $AvgTime = ($PingResult | Measure-Object -Property ResponseTime -Average).Average
+        [PSCustomObject]@{
+            Host = $Host
+            Status = "Reachable"
+            AvgResponseTime = [math]::Round($AvgTime, 2)
+            PacketsReceived = $PingResult.Count
+            PacketsSent = $PingCount
+        }
+    } else {
+        [PSCustomObject]@{
+            Host = $Host
+            Status = "Unreachable"
+            AvgResponseTime = "N/A"
+            PacketsReceived = 0
+            PacketsSent = $PingCount
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "✓ Ping test complete:" -ForegroundColor Green
+$Results | Format-Table -AutoSize
+
+$Reachable = ($Results | Where-Object { $_.Status -eq "Reachable" }).Count
+$Total = $Results.Count
+Write-Host ""
+Write-Host "Summary: $Reachable of $Total hosts reachable" -ForegroundColor Cyan
+
+${exportPath ? `$Results | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
 ];

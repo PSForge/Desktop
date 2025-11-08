@@ -30,7 +30,7 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **Code Preview**: Syntax-highlighted PowerShell output.
     - **Validation Panel**: Real-time error and warning display.
     - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting **exactly 1000 automation tasks across 48 platforms** (909 premium tasks across 41 enterprise platforms + 91 free tasks across 7 Windows management platforms). Version 3.0 expansion added 91 new premium tasks distributed across Microsoft Identity (Hyper-V +8, Power Platform +8, Windows Server +6, AD +5), Office 365 ecosystems (Exchange Online +10, Exchange Server +8, Office 365 +5), Azure (Azure Resources +7), AWS +8, GCP +5, and virtualization/infrastructure platforms (Docker/K8s +5, VMware +6, Citrix +5, Veeam +5, Nutanix +5). All 909 premium tasks include `isPremium: true` runtime flags for subscription enforcement.
-    - **Script Wizard**: 4-step multi-platform bulk operations wizard supporting CSV import and task automation across all 48 platforms.
+    - **Script Wizard**: 5-step multi-platform bulk operations wizard supporting CSV file path reference (with sample upload for preview), embedded CSV data, manual entry, and parameter mapping. Generates production-ready bulk operation scripts using `Import-CSV` for external files or embedded data arrays. Supports task automation across all 48 platforms with intelligent parameter-to-CSV-column mapping.
     - **Export**: Download .ps1 file or save to profile with security analysis.
     - **Script Management**: Save, view, load, and delete user scripts.
 - **Security Features**:

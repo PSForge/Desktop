@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
 import { getAIHelperResponse } from "./ai-helper";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
-import { sendPasswordResetEmail, sendSupportRequestEmail } from "./email-service";
+import { sendPasswordResetEmail, sendSupportRequestEmail, sendWelcomeEmail } from "./email-service";
 import { 
   insertScriptSchema, 
   insertValidationRequestSchema,
@@ -136,6 +136,19 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         sameSite: "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
+
+      // Send welcome email asynchronously (don't block response)
+      (async () => {
+        try {
+          const template = await storage.getWelcomeEmailTemplate("free_signup");
+          if (template && template.enabled) {
+            await sendWelcomeEmail(user.email, user.name, template.htmlContent, template.subject);
+            console.log(`✓ Welcome email sent to ${user.email}`);
+          }
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+        }
+      })();
 
       return res.status(201).json({
         user: {
@@ -783,6 +796,22 @@ Sitemap: ${baseUrl}/sitemap.xml`;
             });
 
             console.log(`✅ Subscription created for user ${userId}`);
+
+            // Send subscription welcome email asynchronously
+            (async () => {
+              try {
+                const user = await storage.getUser(userId);
+                if (user) {
+                  const template = await storage.getWelcomeEmailTemplate("subscription");
+                  if (template && template.enabled) {
+                    await sendWelcomeEmail(user.email, user.name, template.htmlContent, template.subject);
+                    console.log(`✓ Subscription welcome email sent to ${user.email}`);
+                  }
+                }
+              } catch (emailError) {
+                console.error("Failed to send subscription welcome email:", emailError);
+              }
+            })();
           }
           break;
         }

@@ -286,6 +286,30 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+export async function sendWelcomeEmail(
+  to: string,
+  userName: string | null,
+  templateHtml: string,
+  templateSubject: string
+): Promise<void> {
+  // Replace placeholders in template
+  const userDisplayName = userName || 'there';
+  const replacedHtml = templateHtml
+    .replace(/\{userName\}/g, userDisplayName)
+    .replace(/\{userEmail\}/g, to)
+    .replace(/\{year\}/g, new Date().getFullYear().toString());
+  
+  const replacedSubject = templateSubject
+    .replace(/\{userName\}/g, userDisplayName)
+    .replace(/\{userEmail\}/g, to);
+
+  await sendEmail({ 
+    to, 
+    subject: replacedSubject, 
+    html: replacedHtml 
+  });
+}
+
 // Verify email configuration on startup
 export async function verifyEmailConfig(): Promise<boolean> {
   try {

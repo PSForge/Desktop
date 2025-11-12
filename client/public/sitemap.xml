@@ -36,20 +36,5 @@
     <priority>0.6</priority>
   </url>
 
-  <!-- Account Page (noindex via robots meta in page) -->
-  <url>
-    <loc>https://psforge.app/account</loc>
-    <lastmod>2025-01-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-
-  <!-- Admin Dashboard (noindex via robots meta in page) -->
-  <url>
-    <loc>https://psforge.app/admin</loc>
-    <lastmod>2025-01-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.1</priority>
-  </url>
 
 </urlset>

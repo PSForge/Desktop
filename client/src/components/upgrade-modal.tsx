@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Check, Sparkles, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface UpgradeModalProps {
@@ -23,10 +25,13 @@ interface UpgradeModalProps {
 export function UpgradeModal({ open, onOpenChange, feature }: UpgradeModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/billing/checkout");
+      const response = await apiRequest("POST", "/api/billing/checkout", {
+        promoCode: promoCode.trim() || undefined
+      });
       return response.json();
     },
     onSuccess: (data) => {
@@ -95,6 +100,26 @@ export function UpgradeModal({ open, onOpenChange, feature }: UpgradeModalProps)
             <p className="text-sm text-muted-foreground">
               Script Editor and 8 basic automation categories (File System, Network, Services, 
               Process Management, Event Logs, Active Directory, Registry, Security)
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="promo-code" className="flex items-center gap-2 text-sm">
+              <Tag className="h-3.5 w-3.5" />
+              Promo Code (Optional)
+            </Label>
+            <Input
+              id="promo-code"
+              type="text"
+              placeholder="Enter promo code"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              disabled={isLoading}
+              data-testid="input-promo-code"
+              className="uppercase"
+            />
+            <p className="text-xs text-muted-foreground">
+              Have a promo code for a free trial? Enter it above!
             </p>
           </div>
         </div>

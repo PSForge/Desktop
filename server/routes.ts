@@ -663,6 +663,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   app.post("/api/billing/checkout", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
+      const { promoCode } = req.body;
 
       if (!process.env.STRIPE_PRICE_ID) {
         return res.status(500).json({
@@ -684,7 +685,8 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         await storage.updateUser(user.id, { stripeCustomerId: customerId });
       }
 
-      const session = await stripe.checkout.sessions.create({
+      // Build checkout session config
+      const sessionConfig: any = {
         customer: customerId,
         mode: "subscription",
         payment_method_types: ["card"],
@@ -699,7 +701,47 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         metadata: {
           userId: user.id,
         },
-      });
+        // Always collect payment method even with free trial
+        payment_method_collection: 'always',
+      };
+
+      // Handle promo code if provided
+      if (promoCode && typeof promoCode === 'string' && promoCode.trim()) {
+        try {
+          // Look up the promotion code in Stripe
+          const promotionCodes = await stripe.promotionCodes.list({
+            code: promoCode.trim().toUpperCase(),
+            active: true,
+            limit: 1,
+          });
+
+          if (promotionCodes.data.length > 0) {
+            // Valid promo code found - apply it to the session
+            sessionConfig.discounts = [{
+              promotion_code: promotionCodes.data[0].id,
+            }];
+            console.log(`Applied promo code: ${promoCode} for user ${user.id}`);
+          } else {
+            // Promo code not found, but don't fail - just log and continue
+            console.log(`Promo code not found: ${promoCode} for user ${user.id}`);
+            return res.status(400).json({
+              error: "Invalid promo code",
+              details: "The promo code you entered is not valid or has expired."
+            });
+          }
+        } catch (promoError: any) {
+          console.error("Promo code lookup error:", promoError);
+          return res.status(400).json({
+            error: "Promo code validation failed",
+            details: "Unable to validate the promo code. Please try again or proceed without it."
+          });
+        }
+      } else {
+        // No promo code provided - enable manual promo code entry at checkout
+        sessionConfig.allow_promotion_codes = true;
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
 
       return res.json({ url: session.url });
     } catch (error: any) {

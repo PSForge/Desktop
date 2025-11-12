@@ -1,12 +1,47 @@
-# robots.txt for PSForge - PowerShell Script Builder
+# PSForge - PowerShell Script Builder
+# Robots.txt for Search Engine Crawlers
 
-# Allow all search engines to crawl the site
+# Allow all legitimate search engines
 User-agent: *
 Allow: /
 
-# Disallow admin and account pages from being indexed
-Disallow: /admin
-Disallow: /account
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+# Block AI scrapers that don't respect copyright
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
 
 # Sitemap location
 Sitemap: https://psforge.app/sitemap.xml

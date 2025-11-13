@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 255 }).notNull(),
   role: varchar("role", { length: 50 }).notNull().default("free"),
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  referralSource: varchar("referral_source", { length: 255 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -35,6 +36,8 @@ export const scripts = pgTable("scripts", {
     parameters: Record<string, any>;
     order: number;
   }>>(),
+  taskCategory: varchar("task_category", { length: 255 }),
+  taskName: varchar("task_name", { length: 255 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -308,6 +311,17 @@ export const analyticsOverviewSchema = z.object({
   churnRate: z.number().nullable(),
   newSignupsThisMonth: z.number(),
   cancellationsThisMonth: z.number(),
+  totalScriptsGenerated: z.number(),
+  topTasks: z.array(z.object({
+    taskName: z.string(),
+    taskCategory: z.string(),
+    count: z.number(),
+  })),
+  referralSources: z.array(z.object({
+    source: z.string(),
+    count: z.number(),
+    percentage: z.number(),
+  })),
 });
 
 // Feature Access Schema

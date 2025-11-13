@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { adminCreateUserSchema, type AdminCreateUserData } from "@shared/schema";
-import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus, Trash2 } from "lucide-react";
+import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus, Trash2, FileText } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";

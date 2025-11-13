@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,44 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [referralSource, setReferralSource] = useState<string | null>(null);
   const { register, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  // Capture UTM parameters and referrer on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmSource = urlParams.get('utm_source');
+    const utmMedium = urlParams.get('utm_medium');
+    const utmCampaign = urlParams.get('utm_campaign');
+    const ref = urlParams.get('ref');
+    
+    let source = null;
+    
+    if (utmSource) {
+      // Build referral source from UTM parameters
+      source = utmSource;
+      if (utmMedium) source += ` (${utmMedium})`;
+      if (utmCampaign) source += ` - ${utmCampaign}`;
+    } else if (ref) {
+      source = `referral:${ref}`;
+    } else if (document.referrer) {
+      // Extract domain from referrer
+      try {
+        const referrerUrl = new URL(document.referrer);
+        if (referrerUrl.hostname !== window.location.hostname) {
+          source = `external:${referrerUrl.hostname}`;
+        }
+      } catch {
+        // Invalid referrer URL, ignore
+      }
+    } else {
+      source = 'direct';
+    }
+    
+    setReferralSource(source);
+  }, []);
 
   if (isAuthenticated) {
     navigate("/builder");
@@ -47,7 +82,7 @@ export default function Signup() {
     setIsLoading(true);
 
     try {
-      await register(email, password, name);
+      await register(email, password, name, referralSource);
       toast({
         title: "Account created!",
         description: "Welcome to PSForge. You now have access to basic features.",

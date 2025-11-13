@@ -124,6 +124,7 @@ export class DatabaseStorage implements IStorage {
       name: user.name,
       role: user.role,
       stripeCustomerId: user.stripeCustomerId,
+      referralSource: user.referralSource,
     }).returning();
     return this.convertTimestamps(result[0]);
   }
@@ -146,7 +147,7 @@ export class DatabaseStorage implements IStorage {
     
     const userSubs = await this.db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, id));
     for (const sub of userSubs) {
-      await this.db.delete(subscriptionEvents).where(eq(subscriptionEvents.subscriptionId, sub.id));
+      await this.db.delete(subscriptionEvents).where(eq(subscriptionEvents.userSubscriptionId, sub.id));
     }
     
     await this.db.delete(userSubscriptions).where(eq(userSubscriptions.userId, id));
@@ -374,6 +375,41 @@ export class DatabaseStorage implements IStorage {
     const previousMonthSubs = previousMonthSubsResult[0]?.count || 0;
     const churnRate = previousMonthSubs > 0 ? (cancellationsThisMonth / previousMonthSubs) * 100 : null;
 
+    // Get total scripts generated
+    const totalScriptsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(scripts);
+    const totalScriptsGenerated = totalScriptsResult[0]?.count || 0;
+
+    // Get top tasks (most frequently used task categories and names)
+    const topTasksResult = await this.db.select({
+      taskName: scripts.taskName,
+      taskCategory: scripts.taskCategory,
+      count: sql<number>`count(*)::int`,
+    }).from(scripts)
+      .where(sql`${scripts.taskName} IS NOT NULL AND ${scripts.taskCategory} IS NOT NULL`)
+      .groupBy(scripts.taskName, scripts.taskCategory)
+      .orderBy(sql`count(*) DESC`)
+      .limit(10);
+
+    const topTasks = topTasksResult.map(task => ({
+      taskName: task.taskName || 'Unknown',
+      taskCategory: task.taskCategory || 'Unknown',
+      count: task.count,
+    }));
+
+    // Get referral sources with counts and percentages
+    const referralSourcesResult = await this.db.select({
+      source: sql<string>`COALESCE(${users.referralSource}, 'direct')`,
+      count: sql<number>`count(*)::int`,
+    }).from(users)
+      .groupBy(sql`COALESCE(${users.referralSource}, 'direct')`)
+      .orderBy(sql`count(*) DESC`);
+
+    const referralSources = referralSourcesResult.map(ref => ({
+      source: ref.source,
+      count: ref.count,
+      percentage: totalUsers > 0 ? (ref.count / totalUsers) * 100 : 0,
+    }));
+
     return {
       totalUsers,
       activeSubscribers,
@@ -383,6 +419,9 @@ export class DatabaseStorage implements IStorage {
       churnRate,
       newSignupsThisMonth,
       cancellationsThisMonth,
+      totalScriptsGenerated,
+      topTasks,
+      referralSources,
     };
   }
 

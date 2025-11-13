@@ -106,6 +106,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       }
 
       const { email, password, name } = parsed.data;
+      const { referralSource } = req.body;
 
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
@@ -122,6 +123,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         name,
         role: "free",
         stripeCustomerId: null,
+        referralSource: referralSource || null,
       });
 
       const session = await createUserSession(
@@ -1061,6 +1063,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         name,
         role,
         stripeCustomerId: null,
+        referralSource: null,
       });
 
       return res.status(201).json({

@@ -219,6 +219,7 @@ export const userSchema = z.object({
   name: z.string(),
   role: z.enum(userRoles),
   stripeCustomerId: z.string().nullable(),
+  referralSource: z.string().nullable(),
   createdAt: z.string(),
 });
 

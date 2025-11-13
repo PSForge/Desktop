@@ -44,6 +44,9 @@ interface AnalyticsOverview {
   churnRate: number | null;
   newSignupsThisMonth: number;
   cancellationsThisMonth: number;
+  totalScriptsGenerated: number;
+  topTasks: Array<{ taskName: string; taskCategory: string; count: number }>;
+  referralSources: Array<{ source: string; count: number; percentage: number }>;
 }
 
 interface AnalyticsData {
@@ -302,7 +305,22 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 mb-8">
+            <div className="grid gap-4 md:grid-cols-3 mb-8">
+              <Card data-testid="card-scripts-generated">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Scripts Generated</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold" data-testid="text-scripts-generated">
+                    {analytics.overview.totalScriptsGenerated}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Total saved to platform
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>User Breakdown</CardTitle>
@@ -381,6 +399,64 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 mb-8">
+              <Card data-testid="card-top-tasks">
+                <CardHeader>
+                  <CardTitle>Top Tasks</CardTitle>
+                  <CardDescription>Most frequently used automation tasks</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[300px] pr-4">
+                    {analytics.overview.topTasks.length > 0 ? (
+                      <div className="space-y-3">
+                        {analytics.overview.topTasks.map((task, index) => (
+                          <div key={index} className="flex items-center justify-between gap-2 pb-3 border-b last:border-0">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{task.taskName}</p>
+                              <p className="text-xs text-muted-foreground truncate">{task.taskCategory}</p>
+                            </div>
+                            <Badge variant="secondary" data-testid={`badge-task-count-${index}`}>
+                              {task.count}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No task data available yet</p>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              <Card data-testid="card-referral-sources">
+                <CardHeader>
+                  <CardTitle>Referral Sources</CardTitle>
+                  <CardDescription>Marketing attribution & user acquisition</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[300px] pr-4">
+                    {analytics.overview.referralSources.length > 0 ? (
+                      <div className="space-y-3">
+                        {analytics.overview.referralSources.map((source, index) => (
+                          <div key={index} className="flex items-center justify-between gap-2 pb-3 border-b last:border-0">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{source.source}</p>
+                              <p className="text-xs text-muted-foreground">{source.percentage.toFixed(1)}% of users</p>
+                            </div>
+                            <Badge variant="secondary" data-testid={`badge-source-count-${index}`}>
+                              {source.count}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No referral data available yet</p>
+                    )}
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </div>

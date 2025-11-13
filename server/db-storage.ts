@@ -92,12 +92,23 @@ export class DatabaseStorage implements IStorage {
       description: script.description,
       content: script.content,
       commands: script.commands || null,
+      taskCategory: script.taskCategory || null,
+      taskName: script.taskName || null,
     }).returning();
     return this.convertTimestamps(result[0]);
   }
 
   async updateScript(id: string, updates: Partial<InsertScript>): Promise<Script | undefined> {
-    const result = await this.db.update(scripts).set(updates).where(eq(scripts.id, id)).returning();
+    // Filter out undefined values to prevent setting required fields to null
+    const cleanedUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+    
+    if (Object.keys(cleanedUpdates).length === 0) {
+      return this.getScript(id);
+    }
+    
+    const result = await this.db.update(scripts).set(cleanedUpdates).where(eq(scripts.id, id)).returning();
     return result[0] ? this.convertTimestamps(result[0]) : undefined;
   }
 

@@ -622,6 +622,11 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   // User-specific script routes (authenticated)
   app.post("/api/scripts/save", requireAuth, async (req, res) => {
     try {
+      // Defensive check for authenticated user
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const parsed = saveScriptSchema.safeParse(req.body);
       
       if (!parsed.success) {
@@ -634,7 +639,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       const { name, content, description, taskCategory, taskName } = parsed.data;
       
       const script = await storage.createScript({
-        userId: req.user!.id,
+        userId: req.user.id,
         name,
         content,
         description,

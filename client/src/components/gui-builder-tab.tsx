@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TaskDetailForm } from "@/components/task-detail-form";
-import { ScriptPreviewDialog } from "@/components/script-preview-dialog";
+import { ExportDialog } from "@/components/export-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { useAuth } from "@/lib/auth-context";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
@@ -616,6 +616,11 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
 
   // If a task is selected, show the task detail form
   if (selectedTask) {
+    // Get the category name for metadata tracking
+    const category = categories.find(c => c.id === selectedCategory);
+    const taskName = (selectedTask as any).name || (selectedTask as any).title;
+    const categoryName = category?.name || 'Unknown';
+
     return (
       <>
         <TaskDetailForm
@@ -623,11 +628,12 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
           onBack={handleBackToTasks}
           onGenerateScript={handleGenerateScript}
         />
-        <ScriptPreviewDialog
+        <ExportDialog
           open={scriptDialogOpen}
           onOpenChange={setScriptDialogOpen}
-          script={generatedScript}
-          taskName={(selectedTask as any).name || (selectedTask as any).title}
+          code={generatedScript}
+          taskCategory={categoryName}
+          taskName={taskName}
         />
       </>
     );

@@ -631,13 +631,15 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         });
       }
 
-      const { name, content, description } = parsed.data;
+      const { name, content, description, taskCategory, taskName } = parsed.data;
       
       const script = await storage.createScript({
         userId: req.user!.id,
         name,
         content,
         description,
+        taskCategory,
+        taskName,
         commands: [], // Legacy field, not used for saved scripts
       });
 

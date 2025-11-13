@@ -24,9 +24,11 @@ interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   code: string;
+  taskCategory?: string;
+  taskName?: string;
 }
 
-export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
+export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName }: ExportDialogProps) {
   const [filename, setFilename] = useState("script.ps1");
   const [description, setDescription] = useState("");
   const { toast } = useToast();
@@ -39,6 +41,8 @@ export function ExportDialog({ open, onOpenChange, code }: ExportDialogProps) {
         name: scriptName,
         content: code,
         description: description || undefined,
+        taskCategory: taskCategory || undefined,
+        taskName: taskName || undefined,
       });
       return response.json();
     },

@@ -177,6 +177,8 @@ export const scriptSchema = z.object({
   description: z.string().optional(),
   content: z.string(),
   commands: z.array(scriptCommandSchema).optional(),
+  taskCategory: z.string().optional(),
+  taskName: z.string().optional(),
   createdAt: z.string().optional(),
 });
 
@@ -196,6 +198,8 @@ export const saveScriptSchema = z.object({
   name: z.string().min(1, "Script name is required"),
   content: z.string().min(1, "Script content is required"),
   description: z.string().optional(),
+  taskCategory: z.string().optional(),
+  taskName: z.string().optional(),
 });
 export const insertValidationRequestSchema = z.object({
   code: z.string(),

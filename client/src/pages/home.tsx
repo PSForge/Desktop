@@ -403,10 +403,10 @@ export default function Home() {
       <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
-            Four Ways to Build—Choose What Fits Your Workflow
+            Four Independent Ways to Build PowerShell Scripts
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Whether you're a PowerShell expert or just getting started, PSForge adapts to your expertise level.
+            Choose the method that matches your workflow. Each approach generates production-ready PowerShell with complete error handling.
           </p>
         </div>
 

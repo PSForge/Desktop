@@ -788,9 +788,16 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   });
 
   app.post("/webhooks/stripe", async (req, res) => {
+    console.log("🔔 Stripe webhook received!", {
+      hasSignature: !!req.headers['stripe-signature'],
+      bodyType: typeof req.body,
+      eventType: req.body?.type || 'unknown'
+    });
+
     const sig = req.headers['stripe-signature'];
     
     if (!sig) {
+      console.error("❌ Webhook rejected: No signature provided");
       return res.status(400).json({ error: "No signature provided" });
     }
 
@@ -800,13 +807,15 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       
       if (webhookSecret) {
+        console.log("🔐 Verifying webhook signature...");
         event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        console.log("✅ Webhook signature verified, event type:", event.type);
       } else {
         event = req.body;
         console.warn("⚠️ Webhook signature verification skipped (no STRIPE_WEBHOOK_SECRET set)");
       }
     } catch (err: any) {
-      console.error("Webhook signature verification failed:", err.message);
+      console.error("❌ Webhook signature verification failed:", err.message);
       return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
 

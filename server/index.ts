@@ -6,6 +6,11 @@ import { seedAdminAccount } from "./seed-admin";
 import { verifyEmailConfig } from "./email-service";
 
 const app = express();
+
+// Stripe webhook needs raw body for signature verification
+app.use("/webhooks/stripe", express.raw({ type: 'application/json' }));
+
+// All other routes use JSON parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

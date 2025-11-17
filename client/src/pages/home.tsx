@@ -36,23 +36,21 @@ export default function Home() {
   const { user } = useAuth();
   
   const freeTierFeatures = [
-    "Script Generator with 80+ PowerShell commands",
-    "8 basic Windows management categories",
-    "File System, Networking, Services automation",
-    "Process Management & Event Logs",
-    "Active Directory basics",
-    "Export to .ps1 files",
+    "7 core platforms (Windows, Active Directory, DNS, DHCP, IIS, SQL Server, Hyper-V)",
+    "200+ automation tasks",
+    "Visual builder + direct coding modes",
+    "Download unlimited .ps1 scripts",
+    "Automatic saving",
+    "Security validation built-in",
   ];
 
   const proTierFeatures = [
-    "Everything in Free tier",
-    "AI Assistant with OpenAI-powered chat",
-    "Natural language command suggestions",
-    "41 enterprise IT platforms unlocked",
-    "909 premium automation tasks",
-    "AWS, Azure, GCP, VMware, Docker/K8s",
-    "Microsoft 365, Intune, MECM, Teams",
-    "Security: CrowdStrike, Okta, Fortinet & more",
+    "Everything in Free, plus:",
+    "AI script assistant (describe tasks in plain English)",
+    "48 enterprise platforms (Exchange, Azure, AWS, VMware, SharePoint, Microsoft 365, and 42 more)",
+    "1000+ automation tasks across all platforms",
+    "Priority support (email response within 24 hours)",
+    "Early access to new platforms and features",
   ];
 
   const enterprisePlatforms = [
@@ -140,20 +138,19 @@ export default function Home() {
             <div className="text-center space-y-6">
               <Badge variant="secondary" className="mb-4">
                 <Sparkles className="h-3 w-3 mr-1" />
-                Professional PowerShell Automation Platform
+                Built by IT Pros, for IT Pros
               </Badge>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-                Build PowerShell Scripts
+                Stop Googling PowerShell Syntax.
                 <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500">
-                  with AI Assistance
+                  Start Automating in 5 Minutes.
                 </span>
               </h1>
               
               <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-                Professional web-based PowerShell script builder for IT technicians and system administrators. 
-                Create powerful automation scripts through an intuitive GUI, AI assistance, or direct coding.
+                PSForge generates enterprise-ready PowerShell scripts for Exchange, Azure, SharePoint, and 45+ platforms—no syntax memorization required. Build visually, ask AI, or code directly. Your choice.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-6">
@@ -161,13 +158,12 @@ export default function Home() {
                   <>
                     <Link href="/signup">
                       <Button size="lg" className="gap-2 w-full sm:w-auto" data-testid="button-hero-signup">
-                        <Sparkles className="h-5 w-5" />
-                        Start Free
+                        Create Your First Script Free—No Credit Card
                       </Button>
                     </Link>
-                    <a href="#pricing">
+                    <a href="#how-it-works">
                       <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
-                        View Pricing
+                        See How It Works
                         <ArrowRight className="h-5 w-5" />
                       </Button>
                     </a>
@@ -186,22 +182,131 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Key Stats */}
+      {/* Trust Bar */}
       <section className="border-y bg-muted/30">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 max-w-5xl mx-auto">
             <div className="text-center space-y-2">
-              <div className="text-3xl sm:text-4xl font-bold text-primary">1,000</div>
+              <div className="flex items-center justify-center gap-2">
+                <Zap className="h-6 w-6 text-primary" />
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">5 Min</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Setup Time</div>
+            </div>
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Terminal className="h-6 w-6 text-primary" />
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">1,000+</div>
+              </div>
               <div className="text-sm text-muted-foreground">Automation Tasks</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl sm:text-4xl font-bold text-primary">48</div>
-              <div className="text-sm text-muted-foreground">IT Platforms</div>
+              <div className="flex items-center justify-center gap-2">
+                <Server className="h-6 w-6 text-primary" />
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">48</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Enterprise Platforms</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl sm:text-4xl font-bold text-primary">$5</div>
-              <div className="text-sm text-muted-foreground">Per Month for Pro</div>
+              <div className="flex items-center justify-center gap-2">
+                <HardDrive className="h-6 w-6 text-primary" />
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">1,000+</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Scripts Generated</div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Problem/Solution Section */}
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-4xl mx-auto text-center mb-12">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-6">
+            Built by IT Pros, for IT Pros Who'd Rather Automate Than Memorize Syntax
+          </h2>
+          <p className="text-lg text-muted-foreground">
+            Still writing PowerShell scripts manually? You're losing 5+ hours per week to syntax lookups, cmdlet documentation, and troubleshooting formatting errors.
+          </p>
+          <p className="text-lg text-muted-foreground mt-4">
+            PSForge eliminates the guesswork. Every script is clean, properly formatted, and follows PowerShell best practices—whether you build it visually, describe it to our AI assistant, or code it directly.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <Card className="hover-elevate transition-all">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
+                <CheckCircle2 className="h-6 w-6 text-blue-500" />
+              </div>
+              <CardTitle>No Syntax Memorization</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Select what you need from visual menus. PSForge handles parameters, formatting, and error handling automatically.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover-elevate transition-all border-primary/50">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4">
+                <Sparkles className="h-6 w-6 text-purple-500" />
+              </div>
+              <CardTitle className="flex items-center gap-2">
+                AI Script Assistant
+                <Badge variant="secondary" className="text-xs">Pro</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Describe your automation task in plain English: "Create new Exchange mailboxes for 50 users from a CSV file." AI writes the script.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover-elevate transition-all">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
+                <HardDrive className="h-6 w-6 text-green-500" />
+              </div>
+              <CardTitle>Download & Deploy Instantly</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Get clean .ps1 files ready to run. No vendor lock-in, no proprietary formats. Just PowerShell that works.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Platform Coverage Section */}
+      <section className="bg-muted/30 py-12 sm:py-16 lg:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+              48 Enterprise Platforms. 1000+ Ready-to-Use Automation Tasks.
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Stop writing scripts from scratch. Start with pre-built tasks for your exact environment.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto mb-8">
+            <div className="bg-card border rounded-lg p-6 text-center">
+              <p className="text-muted-foreground leading-relaxed">
+                <span className="font-medium text-foreground">Exchange</span> • <span className="font-medium text-foreground">Azure</span> • <span className="font-medium text-foreground">SharePoint</span> • <span className="font-medium text-foreground">AWS</span> • <span className="font-medium text-foreground">VMware</span> • <span className="font-medium text-foreground">Active Directory</span> • Veeam • Nutanix • Citrix • Cisco • NetApp • JAMF • Microsoft 365 • Slack • Zoom • Salesforce • GitHub • Jira • Splunk • ServiceNow • Okta • Docker • Kubernetes • Terraform • Ansible • PagerDuty • Datadog • New Relic • Zabbix • SolarWinds + 19 more
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <Link href={user ? "/builder" : "/signup"}>
+              <Button size="lg" className="gap-2">
+                See All 48 Platforms & Tasks
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -226,11 +331,11 @@ export default function Home() {
               </Badge>
               <CardTitle className="text-3xl mb-2">Free</CardTitle>
               <CardDescription className="text-lg">
-                Perfect for getting started with PowerShell automation
+                Perfect for core Windows automation and learning PowerShell best practices
               </CardDescription>
               <div className="mt-6">
                 <div className="text-4xl font-bold text-foreground">$0</div>
-                <div className="text-sm text-muted-foreground">forever</div>
+                <div className="text-sm text-muted-foreground">per month</div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -245,7 +350,7 @@ export default function Home() {
               <Link href={user ? "/builder" : "/signup"} className="block pt-4">
                 <Button variant="outline" className="w-full gap-2" data-testid="button-free-tier">
                   <Code2 className="h-4 w-4" />
-                  {user ? "Go to Builder" : "Get Started Free"}
+                  {user ? "Go to Builder" : "Get Started Free—No Credit Card"}
                 </Button>
               </Link>
             </CardContent>
@@ -260,7 +365,7 @@ export default function Home() {
               </Badge>
               <CardTitle className="text-3xl mb-2">Pro</CardTitle>
               <CardDescription className="text-lg">
-                Unlock AI assistance and all enterprise IT platforms
+                For IT professionals managing enterprise environments and multi-platform automation
               </CardDescription>
               <div className="mt-6">
                 <div className="text-4xl font-bold text-foreground">$5</div>
@@ -279,77 +384,29 @@ export default function Home() {
               <Link href={user ? "/builder" : "/signup"} className="block pt-4">
                 <Button className="w-full gap-2" data-testid="button-pro-tier">
                   <Sparkles className="h-4 w-4" />
-                  {user ? "Upgrade to Pro" : "Start with Pro"}
+                  {user ? "Upgrade to Pro" : "Start 7-Day Pro Trial"}
                 </Button>
               </Link>
+              <p className="text-xs text-center text-muted-foreground pt-2">
+                No credit card required for trial. Cancel anytime.
+              </p>
             </CardContent>
           </Card>
         </div>
 
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          No trial period needed • Cancel anytime • No hidden fees
-        </div>
-      </section>
-
-      {/* Pro Features Showcase */}
-      <section className="bg-muted/30 py-12 sm:py-16 lg:py-24">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Badge variant="secondary" className="mb-4">
-              <Lock className="h-3 w-3 mr-1" />
-              Pro Features
-            </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-              Enterprise IT Platform Coverage
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Pro subscribers get access to 41 enterprise platforms with 909 pre-built automation tasks
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {enterprisePlatforms.map((platform, index) => (
-              <Card key={index} className="hover-elevate transition-all">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center`}>
-                      <platform.icon className={`h-5 w-5 ${platform.color}`} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-foreground text-sm">{platform.name}</div>
-                      <Badge variant="secondary" className="text-xs mt-1">
-                        <Sparkles className="h-2.5 w-2.5 mr-1" />
-                        Pro Only
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-muted-foreground mb-6">
-              Plus Exchange, SharePoint, Veeam, Nutanix, Citrix, Cisco, NetApp, JAMF, Slack, Zoom, Salesforce, GitHub, Jira, Splunk, and more...
-            </p>
-            <Link href={user ? "/builder" : "/signup"}>
-              <Button size="lg" variant="outline" className="gap-2">
-                <Sparkles className="h-5 w-5" />
-                Unlock All 48 Platforms - $5/month
-              </Button>
-            </Link>
-          </div>
+          Free forever. Upgrade to Pro anytime for $5/month.
         </div>
       </section>
 
       {/* Four Building Methods */}
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+      <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
         <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-            Four Ways to Build
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+            Four Ways to Build—Choose What Fits Your Workflow
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Choose the workflow that matches your expertise and needs
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Whether you're a PowerShell expert or just getting started, PSForge adapts to your expertise level.
           </p>
         </div>
 
@@ -359,24 +416,12 @@ export default function Home() {
               <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
                 <Code2 className="h-6 w-6 text-blue-500" />
               </div>
-              <CardTitle>Script Generator</CardTitle>
-              <CardDescription>
-                Direct code editing with 80+ commands and real-time preview
-              </CardDescription>
+              <CardTitle>Visual Builder</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Syntax highlighting</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Command library</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Live validation</span>
-              </div>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Point, click, configure. Build complex scripts without typing a single cmdlet. Perfect for quick tasks and team members new to PowerShell.
+              </p>
             </CardContent>
           </Card>
 
@@ -389,23 +434,11 @@ export default function Home() {
                 AI Assistant
                 <Badge variant="secondary" className="text-xs">Pro</Badge>
               </CardTitle>
-              <CardDescription>
-                Natural language command help powered by OpenAI
-              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Context-aware suggestions</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">One-click insertion</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Conversation history</span>
-              </div>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Describe what you need in plain English. AI generates the complete script with proper error handling and best practices built in.
+              </p>
             </CardContent>
           </Card>
 
@@ -414,108 +447,225 @@ export default function Home() {
               <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
                 <Terminal className="h-6 w-6 text-green-500" />
               </div>
-              <CardTitle>GUI Builder</CardTitle>
-              <CardDescription>
-                No-code automation with 1,000 pre-built tasks
-              </CardDescription>
+              <CardTitle>Direct Coding</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">User-friendly forms</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Parameter validation</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Secure generation</span>
-              </div>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Write PowerShell your way with syntax highlighting, auto-completion, and instant validation. For when you know exactly what you want.
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="hover-elevate transition-all border-primary/50">
+          <Card className="hover-elevate transition-all">
             <CardHeader>
               <div className="h-12 w-12 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
                 <Wand2 className="h-6 w-6 text-orange-500" />
               </div>
-              <CardTitle className="flex items-center gap-2">
-                Script Wizard
-                <Badge variant="secondary" className="text-xs">New</Badge>
-              </CardTitle>
-              <CardDescription>
-                Bulk automation with CSV import and multi-platform support
-              </CardDescription>
+              <CardTitle>Hybrid Approach</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">4-step guided wizard</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">CSV upload for bulk tasks</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-sm text-muted-foreground">Security analysis built-in</span>
-              </div>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Start with AI or visual builder, then refine with direct code edits. Get the best of all methods in one workflow.
+              </p>
             </CardContent>
           </Card>
         </div>
       </section>
 
-      {/* Security Features */}
+      {/* Social Proof Section */}
       <section className="bg-muted/30 py-12 sm:py-16 lg:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-                Built with Security & Best Practices
-              </h2>
-              <p className="text-muted-foreground">
-                Enterprise-grade security for your automation scripts
-              </p>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+              Trusted by IT Professionals. Proven by Results.
+            </h2>
+          </div>
 
-            <div className="grid sm:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="text-center">
-                  <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center mb-3 mx-auto">
-                    <Shield className="h-5 w-5 text-red-500" />
-                  </div>
-                  <CardTitle className="text-lg">Security First</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-center">
-                  <p className="text-sm text-muted-foreground">Injection prevention & input validation</p>
-                </CardContent>
-              </Card>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            <Card className="hover-elevate transition-all">
+              <CardHeader className="text-center pb-4">
+                <div className="text-3xl font-bold text-primary mb-2">1,000+</div>
+                <CardTitle className="text-base">Scripts Generated</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Real automation tasks created by IT professionals using PSForge
+                </p>
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader className="text-center">
-                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 mx-auto">
-                    <Zap className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <CardTitle className="text-lg">Auto-Save</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-center">
-                  <p className="text-sm text-muted-foreground">Never lose your work with automatic saving</p>
-                </CardContent>
-              </Card>
+            <Card className="hover-elevate transition-all">
+              <CardHeader className="text-center pb-4">
+                <div className="text-3xl font-bold text-primary mb-2">1+ Hour</div>
+                <CardTitle className="text-base">Saved Per Script</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Compared to manual scripting with documentation lookups and troubleshooting
+                </p>
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader className="text-center">
-                  <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3 mx-auto">
-                    <HardDrive className="h-5 w-5 text-green-500" />
-                  </div>
-                  <CardTitle className="text-lg">Export</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-center">
-                  <p className="text-sm text-muted-foreground">Download scripts as .ps1 files instantly</p>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="hover-elevate transition-all">
+              <CardHeader className="text-center pb-4">
+                <div className="text-3xl font-bold text-primary mb-2">5 Minutes</div>
+                <CardTitle className="text-base">Setup Time</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  From sign-up to your first working script—no installation, no configuration
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader className="text-center pb-4">
+                <div className="text-3xl font-bold text-primary mb-2">48</div>
+                <CardTitle className="text-base">Platforms Supported</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  From Windows basics to enterprise cloud platforms and DevOps tools
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Security Features */}
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+              Enterprise-Grade Security Built Into Every Script
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Your automation scripts handle sensitive systems and data. PSForge ensures they're secure by default.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6">
+            <Card className="hover-elevate transition-all">
+              <CardHeader className="text-center">
+                <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center mb-3 mx-auto">
+                  <Shield className="h-5 w-5 text-red-500" />
+                </div>
+                <CardTitle className="text-lg">Injection Prevention</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Built-in validation checks every parameter before execution. Your scripts are protected against command injection attacks automatically.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader className="text-center">
+                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 mx-auto">
+                  <Zap className="h-5 w-5 text-blue-500" />
+                </div>
+                <CardTitle className="text-lg">Auto-Save Protection</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Never lose your work. PSForge automatically saves your progress as you build, so connection issues or browser crashes won't cost you hours of work.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader className="text-center">
+                <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3 mx-auto">
+                  <HardDrive className="h-5 w-5 text-green-500" />
+                </div>
+                <CardTitle className="text-lg">Instant .ps1 Downloads</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Download scripts as standard PowerShell files instantly. Run them anywhere, modify them anytime, no vendor lock-in.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="bg-muted/30 py-12 sm:py-16 lg:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+              Frequently Asked Questions
+            </h2>
+          </div>
+
+          <div className="max-w-4xl mx-auto space-y-6">
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <CardTitle className="text-lg">Is PSForge just a script template generator?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  No. PSForge is an intelligent script builder that adapts to your specific parameters and environment. While we provide 1000+ pre-built automation tasks as starting points, every script is customized to your exact requirements—not generic templates.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <CardTitle className="text-lg">Do I need to install anything?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  No. PSForge is entirely web-based. Sign up, start building, and download your .ps1 scripts. No desktop software, no plugins, no configuration.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <CardTitle className="text-lg">Can I edit the scripts after downloading?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Absolutely. PSForge generates standard PowerShell .ps1 files. Edit them in any text editor, version control them in Git, run them anywhere PowerShell works. No vendor lock-in.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <CardTitle className="text-lg">What if I need a platform that's not supported yet?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  We're constantly adding new platforms. Contact us with your request, and we'll prioritize based on demand. Pro subscribers get early access to new platforms.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <CardTitle className="text-lg">Is my script data secure?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Yes. Scripts are generated in your browser with enterprise-grade security validation. We don't store your custom parameters or sensitive data. Download your scripts and they're yours forever.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <CardTitle className="text-lg">Can I upgrade or downgrade anytime?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Yes. Upgrade to Pro instantly to unlock AI assistance and enterprise platforms. Downgrade anytime and keep all the scripts you've already created.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -532,28 +682,26 @@ export default function Home() {
                   className="h-16 w-auto"
                 />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
                 Ready to Transform Your PowerShell Workflow?
               </h2>
               <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Join IT professionals who trust PSForge for their automation needs. 
-                Start free, upgrade when you need AI assistance and enterprise platforms.
+                Join IT professionals who've automated thousands of tasks with PSForge. Create your first script in 5 minutes—no credit card required.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                 {!user ? (
                   <>
                     <Link href="/signup">
                       <Button size="lg" className="gap-2 w-full sm:w-auto" data-testid="button-cta-signup">
-                        <Sparkles className="h-5 w-5" />
-                        Get Started Free
+                        Create Your First Script Free
                       </Button>
                     </Link>
-                    <Link href="/login">
+                    <a href="#pricing">
                       <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
-                        <LogIn className="h-5 w-5" />
-                        Sign In
+                        View Pro Features
+                        <ArrowRight className="h-5 w-5" />
                       </Button>
-                    </Link>
+                    </a>
                   </>
                 ) : (
                   <Link href="/builder">
@@ -564,27 +712,69 @@ export default function Home() {
                   </Link>
                 )}
               </div>
+              <p className="text-sm text-muted-foreground mt-6">
+                Free forever. Upgrade to Pro anytime for $5/month.
+              </p>
             </CardContent>
           </Card>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8">
+      <footer className="border-t bg-muted/30 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img 
-                src={iconTransparent} 
-                alt="PSForge Icon" 
-                className="h-8 w-auto"
-              />
-              <span className="text-sm text-muted-foreground">
-                PSForge - Professional PowerShell Script Builder
-              </span>
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Product</h3>
+              <ul className="space-y-3">
+                <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
+                <li><a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Supported Platforms</Link></li>
+              </ul>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Built for IT Professionals
+            
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Resources</h3>
+              <ul className="space-y-3">
+                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Documentation</Link></li>
+                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Script Examples</Link></li>
+                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">PowerShell Best Practices</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Company</h3>
+              <ul className="space-y-3">
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About PSForge</a></li>
+                <li><Link href="/account" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact Support</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Legal</h3>
+              <ul className="space-y-3">
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Security</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={iconTransparent} 
+                  alt="PSForge Icon" 
+                  className="h-8 w-auto"
+                />
+                <span className="text-sm text-muted-foreground">
+                  © 2025 PSForge - Professional PowerShell Script Builder
+                </span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Built by IT Pros, for IT Pros
+              </div>
             </div>
           </div>
         </div>

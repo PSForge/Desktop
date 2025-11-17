@@ -21,7 +21,8 @@ import {
   updateWelcomeEmailTemplateSchema,
   saveScriptSchema,
   type ValidationResult,
-  type SubscriptionStatus
+  type SubscriptionStatus,
+  type User
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { attachUser, requireAuth, requireSubscriber, requireAdmin } from "./middleware/auth";
@@ -845,16 +846,20 @@ Sitemap: ${baseUrl}/sitemap.xml`;
               break;
             }
 
-            // Step 3: Validate timestamps
-            const periodStart = (subscription as any).current_period_start;
-            const periodEnd = (subscription as any).current_period_end;
+            // Step 3: IMMEDIATELY upgrade user to Pro (subscription is verified active/trialing)
+            await storage.updateUser(userId, {
+              role: "subscriber",
+              stripeCustomerId: customerId,
+            });
+            console.log(`✅ User ${userId} upgraded to Pro tier`);
 
-            if (!periodStart || !periodEnd || periodStart <= 0 || periodEnd <= 0) {
-              console.error(`❌ Subscription ${subscriptionId} has invalid period dates`);
-              break;
-            }
+            // Step 4: Get period dates with safe defaults
+            const periodStart = (subscription as any).current_period_start || Math.floor(Date.now() / 1000);
+            const periodEnd = (subscription as any).current_period_end || Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+            
+            console.log(`📅 Period: ${new Date(periodStart * 1000).toISOString()} to ${new Date(periodEnd * 1000).toISOString()}`);
 
-            // Step 4: Create subscription record in database
+            // Step 5: Create subscription record in database
             const userSub = await storage.createUserSubscription({
               userId,
               planId: "pro",
@@ -867,13 +872,6 @@ Sitemap: ${baseUrl}/sitemap.xml`;
               trialEnd: null,
             });
             console.log(`✅ Subscription record created: ${userSub.id}`);
-
-            // Step 5: ONLY NOW upgrade user to Pro (after verification)
-            await storage.updateUser(userId, {
-              role: "subscriber",
-              stripeCustomerId: customerId,
-            });
-            console.log(`✅ User ${userId} upgraded to Pro tier`);
 
             // Step 6: Log the event
             await storage.createSubscriptionEvent({
@@ -900,28 +898,61 @@ Sitemap: ${baseUrl}/sitemap.xml`;
             })();
 
           } catch (error: any) {
-            console.error(`❌ Failed to process subscription ${subscriptionId}:`, error.message);
-            // Do NOT upgrade user if subscription verification fails
+            console.error(`❌ Failed to create subscription record ${subscriptionId}:`, error.message);
+            console.error(`⚠️ CRITICAL: User ${userId} upgraded to Pro but subscription record failed. Manual sync may be needed.`);
+            
+            // Alert: User has Pro access but no subscription record
+            // This ensures instant access (fixing the main bug) but creates data inconsistency
+            // The subscription.updated webhook or manual sync button will reconcile this
           }
           break;
         }
 
         case 'customer.subscription.updated': {
           const subscription = event.data.object as Stripe.Subscription;
-          const userSub = await storage.getUserSubscriptionByStripeId(subscription.id);
+          let userSub = await storage.getUserSubscriptionByStripeId(subscription.id);
+
+          const statusMap: Record<Stripe.Subscription.Status, SubscriptionStatus> = {
+            'active': 'active',
+            'trialing': 'trialing',
+            'past_due': 'past_due',
+            'canceled': 'canceled',
+            'unpaid': 'unpaid',
+            'incomplete': 'incomplete',
+            'incomplete_expired': 'canceled',
+            'paused': 'canceled',
+          };
+
+          if (!userSub) {
+            // RECOVERY MECHANISM: Subscription record missing (could happen if checkout.completed failed)
+            // Find user by Stripe customer ID and create missing subscription record
+            const customerId = subscription.customer as string;
+            const allUsers = await storage.getAllUsers();
+            const user = allUsers.find((u: User) => u.stripeCustomerId === customerId);
+            
+            if (user) {
+              console.log(`🔄 RECOVERY: Creating missing subscription record for user ${user.id}`);
+              const periodStart = (subscription as any).current_period_start || Math.floor(Date.now() / 1000);
+              const periodEnd = (subscription as any).current_period_end || Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+              
+              userSub = await storage.createUserSubscription({
+                userId: user.id,
+                planId: "pro",
+                stripeSubscriptionId: subscription.id,
+                status: statusMap[subscription.status] || 'canceled',
+                currentPeriodStart: new Date(periodStart * 1000).toISOString(),
+                currentPeriodEnd: new Date(periodEnd * 1000).toISOString(),
+                cancelAt: (subscription as any).cancel_at ? new Date((subscription as any).cancel_at * 1000).toISOString() : null,
+                canceledAt: (subscription as any).canceled_at ? new Date((subscription as any).canceled_at * 1000).toISOString() : null,
+                trialEnd: null,
+              });
+              console.log(`✅ RECOVERY: Subscription record created: ${userSub.id}`);
+            } else {
+              console.warn(`⚠️ Cannot recover subscription ${subscription.id}: No user found with customer ID ${customerId}`);
+            }
+          }
 
           if (userSub) {
-            const statusMap: Record<Stripe.Subscription.Status, SubscriptionStatus> = {
-              'active': 'active',
-              'trialing': 'trialing',
-              'past_due': 'past_due',
-              'canceled': 'canceled',
-              'unpaid': 'unpaid',
-              'incomplete': 'incomplete',
-              'incomplete_expired': 'canceled',
-              'paused': 'canceled',
-            };
-
             await storage.updateUserSubscription(userSub.id, {
               status: statusMap[subscription.status] || 'canceled',
               currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),

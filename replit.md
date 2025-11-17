@@ -39,6 +39,7 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **Security Dashboard**: Visual security score (0-100) with warnings and recommendations.
     - PowerShell injection prevention, robust input validation, comprehensive error handling.
 - **Admin Features**: Admin dashboard with analytics, user management, and a default admin account (admin@psforge.com / PSForge@dmin2025!Secure).
+    - **Analytics System**: Real-time dashboard metrics including total users, active subscribers (counted from `users.role='subscriber'`), free users, MRR (calculated from subscription_plans table price * subscriber count), total scripts generated, new signups, conversion rate, churn rate, and average revenue per user. All metrics accurately reflect actual database state.
 - **Notification System**: Admin-controlled notification banner system for homepage announcements with user dismissal.
 - **Support Request System**: User-facing support card on the account page, integrated with Office 365 SMTP for professional email communication.
 

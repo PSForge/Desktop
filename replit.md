@@ -45,5 +45,12 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 ## External Dependencies
 - **PostgreSQL**: Primary database for persistent storage of user accounts, sessions, scripts, and subscription data.
 - **OpenAI API**: Powers the AI Helper Bot for natural language processing and command suggestions.
-- **Stripe API**: Handles payment processing, subscription management, billing, and webhook events.
+- **Stripe API**: Handles payment processing, subscription management, billing, and webhook events with automated subscription fulfillment.
 - **Office 365 SMTP**: Used for sending transactional emails, specifically for password reset flows and support requests.
+
+## Subscription Management
+- **Automatic Webhook Processing**: Stripe webhooks automatically upgrade users to Pro tier when subscriptions are created. The webhook handler verifies subscription validity BEFORE granting access (security-first approach).
+- **Webhook Endpoint**: `/webhooks/stripe` - Configured with raw body parsing for signature verification, validates subscription status ('active' or 'trialing'), and ensures atomic database operations.
+- **Manual Sync Tool**: Admin dashboard includes a subscription sync button (`/api/admin/sync-subscriptions`) to reconcile any users with active Stripe subscriptions who haven't been upgraded yet.
+- **Promo Code Support**: TRIAL30 promo code provides 100% off first month (30-day free trial) while still requiring payment method on file.
+- **Environment Configuration**: Requires `STRIPE_SECRET_KEY` (production), `STRIPE_WEBHOOK_SECRET` (for signature verification), and `STRIPE_PRICE_ID` (subscription price). Test environment requires `TESTING_STRIPE_SECRET_KEY` (must be test mode secret key, not publishable key).

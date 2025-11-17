@@ -14,6 +14,7 @@ import { SecurityDashboard } from '@/components/security-dashboard';
 import { parseCSV, validateCSVData, generateCSVTemplate, downloadCSV, readCSVFile, ParsedCSV } from '@/lib/csv-utils';
 import { generateBulkScript, BulkTaskConfig } from '@/lib/bulk-script-generator';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 // Import all task libraries
 import { adTasks } from '@/lib/ad-tasks';
@@ -436,6 +437,18 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     const script = lines.join('\n');
     setGeneratedScript(script);
     setScript(script);
+    
+    // Track script generation for analytics (non-blocking, fails silently)
+    const firstTask = selectedTasks[0];
+    apiRequest("POST", "/api/metrics/script-generated", {
+      taskCategory: firstTask?.platformName,
+      taskName: `Bulk: ${firstTask?.name || 'Multiple Tasks'}`,
+      builderType: "script_wizard",
+    }).catch((error) => {
+      // Silently fail tracking - don't disrupt user experience
+      console.debug("Script generation tracking skipped:", error.message);
+    });
+    
     setCurrentStep(5);
   };
 

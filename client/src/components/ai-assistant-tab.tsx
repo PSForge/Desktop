@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Lock, CheckCircle, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface AIAssistantTabProps {
   scriptCommands: ScriptCommand[];
@@ -34,6 +35,15 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
     
     const generatedScript = generatePowerShellScript(scriptCommands);
     setScript(generatedScript);
+    
+    // Track script generation for analytics (non-blocking, fails silently)
+    apiRequest("POST", "/api/metrics/script-generated", {
+      builderType: "ai_assistant",
+    }).catch((error) => {
+      // Silently fail tracking - don't disrupt user experience
+      console.debug("Script generation tracking skipped:", error.message);
+    });
+    
     toast({
       title: "Script Generated!",
       description: "Switch to the Script tab to view and edit your generated script",

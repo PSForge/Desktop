@@ -201,6 +201,12 @@ export const saveScriptSchema = z.object({
   taskCategory: z.string().optional(),
   taskName: z.string().optional(),
 });
+
+export const trackScriptGenerationSchema = z.object({
+  taskCategory: z.string().optional(),
+  taskName: z.string().optional(),
+  builderType: z.enum(['ai_assistant', 'gui_builder', 'script_wizard', 'direct_coding']),
+});
 export const insertValidationRequestSchema = z.object({
   code: z.string(),
 });
@@ -214,6 +220,7 @@ export type InsertScriptCommand = z.infer<typeof insertScriptCommandSchema>;
 export type InsertScript = z.infer<typeof insertScriptSchema>;
 export type InsertValidationRequest = z.infer<typeof insertValidationRequestSchema>;
 export type SaveScript = z.infer<typeof saveScriptSchema>;
+export type TrackScriptGeneration = z.infer<typeof trackScriptGenerationSchema>;
 
 // User & Authentication Schemas
 export const userSchema = z.object({
@@ -317,6 +324,7 @@ export const analyticsOverviewSchema = z.object({
   newSignupsThisMonth: z.number(),
   cancellationsThisMonth: z.number(),
   totalScriptsGenerated: z.number(),
+  totalScriptsSaved: z.number(),
   topTasks: z.array(z.object({
     taskName: z.string(),
     taskCategory: z.string(),

@@ -379,18 +379,33 @@ export class DatabaseStorage implements IStorage {
     // Since we don't have historical data, we'll calculate based on current state
     const churnRate = activeSubscribers > 0 ? (cancellationsThisMonth / (activeSubscribers + cancellationsThisMonth)) * 100 : null;
 
-    // Get total scripts generated
-    const totalScriptsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(scripts);
-    const totalScriptsGenerated = totalScriptsResult[0]?.count || 0;
+    // Get total scripts generated (from usage metrics tracking)
+    const totalScriptsGeneratedResult = await this.db.select({ count: sql<number>`count(*)::int` })
+      .from(usageMetrics)
+      .where(eq(usageMetrics.metricType, 'script_generated'));
+    const totalScriptsGenerated = totalScriptsGeneratedResult[0]?.count || 0;
 
-    // Get top tasks (most frequently used task categories and names)
+    // Get total scripts saved (from scripts table)
+    const totalScriptsSavedResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(scripts);
+    const totalScriptsSaved = totalScriptsSavedResult[0]?.count || 0;
+
+    // Get top tasks from usage metrics (most frequently generated tasks)
     const topTasksResult = await this.db.select({
-      taskName: scripts.taskName,
-      taskCategory: scripts.taskCategory,
+      taskName: sql<string>`${usageMetrics.metadata}->>'taskName'`,
+      taskCategory: sql<string>`${usageMetrics.metadata}->>'taskCategory'`,
       count: sql<number>`count(*)::int`,
-    }).from(scripts)
-      .where(sql`${scripts.taskName} IS NOT NULL AND ${scripts.taskCategory} IS NOT NULL`)
-      .groupBy(scripts.taskName, scripts.taskCategory)
+    }).from(usageMetrics)
+      .where(
+        and(
+          eq(usageMetrics.metricType, 'script_generated'),
+          sql`${usageMetrics.metadata}->>'taskName' IS NOT NULL`,
+          sql`${usageMetrics.metadata}->>'taskCategory' IS NOT NULL`
+        )
+      )
+      .groupBy(
+        sql`${usageMetrics.metadata}->>'taskName'`,
+        sql`${usageMetrics.metadata}->>'taskCategory'`
+      )
       .orderBy(sql`count(*) DESC`)
       .limit(10);
 
@@ -424,6 +439,7 @@ export class DatabaseStorage implements IStorage {
       newSignupsThisMonth,
       cancellationsThisMonth,
       totalScriptsGenerated,
+      totalScriptsSaved,
       topTasks,
       referralSources,
     };

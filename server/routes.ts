@@ -20,6 +20,7 @@ import {
   insertWelcomeEmailTemplateSchema,
   updateWelcomeEmailTemplateSchema,
   saveScriptSchema,
+  trackScriptGenerationSchema,
   type ValidationResult,
   type SubscriptionStatus,
   type User
@@ -667,6 +668,41 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       return res.status(500).json({
         error: "Internal server error while fetching scripts"
       });
+    }
+  });
+
+  // Track script generation events (for analytics)
+  app.post("/api/metrics/script-generated", requireAuth, async (req, res) => {
+    try {
+      const parsed = trackScriptGenerationSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid tracking data",
+          details: parsed.error.errors
+        });
+      }
+
+      const { taskCategory, taskName, builderType } = parsed.data;
+      
+      // Record the script generation event
+      await storage.createUsageMetric({
+        userId: req.user!.id,
+        metricType: "script_generated",
+        value: 1,
+        metadata: {
+          taskCategory,
+          taskName,
+          builderType,
+        },
+        recordedAt: new Date().toISOString(),
+      });
+
+      return res.status(201).json({ success: true });
+    } catch (error) {
+      console.error("Error tracking script generation:", error);
+      // Don't fail the user's request if tracking fails
+      return res.status(200).json({ success: false });
     }
   });
 

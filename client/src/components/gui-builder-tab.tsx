@@ -5,6 +5,7 @@ import { TaskDetailForm } from "@/components/task-detail-form";
 import { ExportDialog } from "@/components/export-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { useAuth } from "@/lib/auth-context";
+import { apiRequest } from "@/lib/queryClient";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
 import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
 import { exchangeOnlineTasks, ExchangeOnlineTask } from "@/lib/exchange-online-tasks";
@@ -513,6 +514,17 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
 
   const handleGenerateScript = (generatedScript: string) => {
     setScript(generatedScript);
+    
+    // Track script generation for analytics (non-blocking, fails silently)
+    apiRequest("POST", "/api/metrics/script-generated", {
+      taskCategory: (selectedTask as any)?.category,
+      taskName: (selectedTask as any)?.name,
+      builderType: "gui_builder",
+    }).catch((error) => {
+      // Silently fail tracking - don't disrupt user experience
+      console.debug("Script generation tracking skipped:", error.message);
+    });
+    
     setScriptDialogOpen(true);
   };
 

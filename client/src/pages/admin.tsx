@@ -45,6 +45,7 @@ interface AnalyticsOverview {
   newSignupsThisMonth: number;
   cancellationsThisMonth: number;
   totalScriptsGenerated: number;
+  totalScriptsSaved: number;
   topTasks: Array<{ taskName: string; taskCategory: string; count: number }>;
   referralSources: Array<{ source: string; count: number; percentage: number }>;
 }
@@ -366,14 +367,29 @@ export default function AdminDashboard() {
               <Card data-testid="card-scripts-generated">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Scripts Generated</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <Activity className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold" data-testid="text-scripts-generated">
                     {analytics.overview.totalScriptsGenerated}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Total saved to platform
+                    Total scripts created by users
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card data-testid="card-scripts-saved">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Scripts Saved</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold" data-testid="text-scripts-saved">
+                    {analytics.overview.totalScriptsSaved}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Saved to user profiles
                   </p>
                 </CardContent>
               </Card>

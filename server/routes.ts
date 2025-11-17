@@ -829,53 +829,61 @@ Sitemap: ${baseUrl}/sitemap.xml`;
 
           console.log(`📋 Processing checkout for user ${userId}, subscription ${subscriptionId}`);
 
-          if (userId && subscriptionId) {
-            // Step 1: Upgrade user role FIRST (most important)
+          if (!userId || !subscriptionId) {
+            console.warn(`⚠️ Checkout session missing userId or subscriptionId - ignoring`);
+            break;
+          }
+
+          try {
+            // Step 1: VERIFY subscription exists and is valid in Stripe
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            console.log(`🔍 Retrieved subscription ${subscriptionId}, status: ${subscription.status}`);
+
+            // Step 2: Validate subscription is in good standing
+            if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+              console.error(`❌ Subscription ${subscriptionId} has invalid status: ${subscription.status}`);
+              break;
+            }
+
+            // Step 3: Validate timestamps
+            const periodStart = (subscription as any).current_period_start;
+            const periodEnd = (subscription as any).current_period_end;
+
+            if (!periodStart || !periodEnd || periodStart <= 0 || periodEnd <= 0) {
+              console.error(`❌ Subscription ${subscriptionId} has invalid period dates`);
+              break;
+            }
+
+            // Step 4: Create subscription record in database
+            const userSub = await storage.createUserSubscription({
+              userId,
+              planId: "pro",
+              stripeSubscriptionId: subscriptionId,
+              status: "active",
+              currentPeriodStart: new Date(periodStart * 1000).toISOString(),
+              currentPeriodEnd: new Date(periodEnd * 1000).toISOString(),
+              cancelAt: null,
+              canceledAt: null,
+              trialEnd: null,
+            });
+            console.log(`✅ Subscription record created: ${userSub.id}`);
+
+            // Step 5: ONLY NOW upgrade user to Pro (after verification)
             await storage.updateUser(userId, {
               role: "subscriber",
               stripeCustomerId: customerId,
             });
-            console.log(`✅ User ${userId} upgraded to subscriber role`);
+            console.log(`✅ User ${userId} upgraded to Pro tier`);
 
-            // Step 2: Try to create subscription record (best effort)
-            try {
-              const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-              const planId = "pro";
+            // Step 6: Log the event
+            await storage.createSubscriptionEvent({
+              userSubscriptionId: userSub.id,
+              type: "subscription.created",
+              payload: event.data.object as any,
+              occurredAt: new Date().toISOString(),
+            });
 
-              // Validate timestamps before using them
-              const periodStart = (subscription as any).current_period_start;
-              const periodEnd = (subscription as any).current_period_end;
-
-              if (periodStart && periodEnd) {
-                const userSub = await storage.createUserSubscription({
-                  userId,
-                  planId,
-                  stripeSubscriptionId: subscriptionId,
-                  status: "active",
-                  currentPeriodStart: new Date(periodStart * 1000).toISOString(),
-                  currentPeriodEnd: new Date(periodEnd * 1000).toISOString(),
-                  cancelAt: null,
-                  canceledAt: null,
-                  trialEnd: null,
-                });
-
-                await storage.createSubscriptionEvent({
-                  userSubscriptionId: userSub.id,
-                  type: "subscription.created",
-                  payload: event.data.object as any,
-                  occurredAt: new Date().toISOString(),
-                });
-
-                console.log(`✅ Subscription record created for user ${userId}`);
-              } else {
-                console.warn(`⚠️ Missing period dates for subscription ${subscriptionId}, user upgraded but no subscription record created`);
-              }
-            } catch (subError: any) {
-              console.error(`⚠️ Could not create subscription record:`, subError.message);
-              console.log(`✅ User still upgraded to Pro despite subscription record error`);
-            }
-
-            // Send subscription welcome email asynchronously
+            // Step 7: Send subscription welcome email asynchronously
             (async () => {
               try {
                 const user = await storage.getUserById(userId);
@@ -890,8 +898,10 @@ Sitemap: ${baseUrl}/sitemap.xml`;
                 console.error("Failed to send subscription welcome email:", emailError);
               }
             })();
-          } else {
-            console.warn(`⚠️ Checkout session missing userId or subscriptionId`);
+
+          } catch (error: any) {
+            console.error(`❌ Failed to process subscription ${subscriptionId}:`, error.message);
+            // Do NOT upgrade user if subscription verification fails
           }
           break;
         }

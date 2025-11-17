@@ -168,6 +168,33 @@ export default function AdminDashboard() {
     },
   });
 
+  const syncSubscriptionsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/sync-subscriptions", {});
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+      
+      const { summary, details } = data;
+      toast({
+        title: "Subscription Sync Complete",
+        description: `Scanned ${summary.total} users. Updated ${summary.updated} to Pro tier. ${summary.errors} errors.`,
+      });
+      
+      // Log details for admin review
+      console.log("Sync details:", details);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync subscriptions",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onCreateUserSubmit = (data: AdminCreateUserData) => {
     createUserMutation.mutate(data);
   };
@@ -221,6 +248,36 @@ export default function AdminDashboard() {
               Account Settings
             </Button>
           </div>
+          
+          <Card className="bg-muted/50">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold mb-1">Subscription Sync Tool</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Sync user accounts with Stripe to grant Pro access to paid subscribers
+                  </p>
+                </div>
+                <Button
+                  onClick={() => syncSubscriptionsMutation.mutate()}
+                  disabled={syncSubscriptionsMutation.isPending}
+                  data-testid="button-sync-subscriptions"
+                >
+                  {syncSubscriptionsMutation.isPending ? (
+                    <>
+                      <Activity className="h-4 w-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-4 w-4 mr-2" />
+                      Sync Subscriptions
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {analyticsLoading ? (

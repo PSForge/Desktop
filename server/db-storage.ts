@@ -328,9 +328,9 @@ export class DatabaseStorage implements IStorage {
     const totalUsersResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(users);
     const totalUsers = totalUsersResult[0]?.count || 0;
 
-    // Get active subscribers
-    const activeSubsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(userSubscriptions).where(
-      eq(userSubscriptions.status, "active")
+    // Get active subscribers (users with subscriber role - source of truth for access)
+    const activeSubsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(users).where(
+      eq(users.role, "subscriber")
     );
     const activeSubscribers = activeSubsResult[0]?.count || 0;
 
@@ -341,24 +341,22 @@ export class DatabaseStorage implements IStorage {
     const freeUsers = freeUsersResult[0]?.count || 0;
 
     // Calculate monthly recurring revenue
+    // Based on users with subscriber role (source of truth for active subscriptions)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const mrrResult = await this.db.select({
-      revenue: sql<number>`
-        COALESCE(SUM(
-          CASE 
-            WHEN ${subscriptionPlans.interval} = 'month' THEN ${subscriptionPlans.priceCents}
-            WHEN ${subscriptionPlans.interval} = 'year' THEN ${subscriptionPlans.priceCents} / 12
-            ELSE 0
-          END
-        )::int, 0)
-      `
-    }).from(userSubscriptions)
-      .innerJoin(subscriptionPlans, eq(userSubscriptions.planId, subscriptionPlans.id))
-      .where(eq(userSubscriptions.status, "active"));
+    // Get the Pro plan price from subscription_plans table
+    const proPlanResult = await this.db.select({
+      priceCents: subscriptionPlans.priceCents,
+      interval: subscriptionPlans.interval
+    }).from(subscriptionPlans).where(eq(subscriptionPlans.id, "premium")).limit(1);
     
-    const monthlyRecurringRevenue = mrrResult[0]?.revenue || 0;
+    const proPlanPrice = proPlanResult[0]?.priceCents || 500; // Default to 500 if not found
+    const proPlanInterval = proPlanResult[0]?.interval || 'month';
+    
+    // Calculate MRR (convert yearly to monthly if needed)
+    const monthlyPrice = proPlanInterval === 'year' ? proPlanPrice / 12 : proPlanPrice;
+    const monthlyRecurringRevenue = activeSubscribers * monthlyPrice;
 
     // Get new signups this month
     const newSignupsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(users).where(
@@ -366,7 +364,8 @@ export class DatabaseStorage implements IStorage {
     );
     const newSignupsThisMonth = newSignupsResult[0]?.count || 0;
 
-    // Get cancellations this month
+    // Get cancellations this month (users who downgraded from subscriber to free)
+    // Since we don't track role change history, we'll use subscription cancellations as a proxy
     const cancellationsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(userSubscriptions).where(
       and(
         sql`${userSubscriptions.canceledAt} IS NOT NULL`,
@@ -375,16 +374,10 @@ export class DatabaseStorage implements IStorage {
     );
     const cancellationsThisMonth = cancellationsResult[0]?.count || 0;
 
-    // Calculate churn rate
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const previousMonthSubsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(userSubscriptions).where(
-      and(
-        gte(userSubscriptions.createdAt, previousMonthStart),
-        sql`${userSubscriptions.createdAt} < ${startOfMonth}`
-      )
-    );
-    const previousMonthSubs = previousMonthSubsResult[0]?.count || 0;
-    const churnRate = previousMonthSubs > 0 ? (cancellationsThisMonth / previousMonthSubs) * 100 : null;
+    // Calculate churn rate based on current active subscribers
+    // Churn = (cancellations this month / total active subscribers at start of month) * 100
+    // Since we don't have historical data, we'll calculate based on current state
+    const churnRate = activeSubscribers > 0 ? (cancellationsThisMonth / (activeSubscribers + cancellationsThisMonth)) * 100 : null;
 
     // Get total scripts generated
     const totalScriptsResult = await this.db.select({ count: sql<number>`count(*)::int` }).from(scripts);

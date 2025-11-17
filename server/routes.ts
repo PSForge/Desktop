@@ -1148,6 +1148,102 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  app.post("/api/admin/sync-subscriptions", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const usersWithStripe = users.filter(u => u.stripeCustomerId);
+      
+      let updated = 0;
+      let errors = 0;
+      const details: Array<{ userId: string; email: string; status: string; message?: string }> = [];
+
+      for (const user of usersWithStripe) {
+        try {
+          // Get subscriptions for this customer from Stripe
+          const subscriptions = await stripe.subscriptions.list({
+            customer: user.stripeCustomerId!,
+            status: 'active',
+            limit: 1,
+          });
+
+          if (subscriptions.data.length > 0) {
+            const subscription = subscriptions.data[0];
+            
+            // Check if this subscription already exists in our database
+            const existingUserSub = await storage.getUserSubscriptionByStripeId(subscription.id);
+            
+            if (!existingUserSub) {
+              // Create new subscription record
+              await storage.createUserSubscription({
+                userId: user.id,
+                planId: "pro",
+                stripeSubscriptionId: subscription.id,
+                status: "active",
+                currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                cancelAt: null,
+                canceledAt: null,
+                trialEnd: null,
+              });
+            }
+
+            // Update user role to subscriber if not already
+            if (user.role !== "subscriber" && user.role !== "admin") {
+              await storage.updateUser(user.id, { role: "subscriber" });
+              updated++;
+              details.push({
+                userId: user.id,
+                email: user.email,
+                status: "updated",
+                message: "Upgraded to Pro (active subscription found)"
+              });
+            } else {
+              details.push({
+                userId: user.id,
+                email: user.email,
+                status: "already_pro",
+                message: "Already has Pro access"
+              });
+            }
+          } else {
+            // No active subscription found
+            details.push({
+              userId: user.id,
+              email: user.email,
+              status: "no_subscription",
+              message: "No active Stripe subscription found"
+            });
+          }
+        } catch (userError: any) {
+          console.error(`Error syncing user ${user.email}:`, userError);
+          errors++;
+          details.push({
+            userId: user.id,
+            email: user.email,
+            status: "error",
+            message: userError.message
+          });
+        }
+      }
+
+      return res.json({
+        success: true,
+        summary: {
+          total: usersWithStripe.length,
+          updated,
+          errors
+        },
+        details
+      });
+    } catch (error: any) {
+      console.error("Subscription sync error:", error);
+      return res.status(500).json({ 
+        error: "Failed to sync subscriptions",
+        message: error.message 
+      });
+    }
+  });
+
   // Platform notification routes
   app.get("/api/notifications/active", async (req, res) => {
     try {

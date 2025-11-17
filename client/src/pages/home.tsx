@@ -36,7 +36,7 @@ export default function Home() {
   const { user } = useAuth();
   
   const freeTierFeatures = [
-    "7 core platforms (Windows, Active Directory, DNS, DHCP, IIS, SQL Server, Hyper-V)",
+    "8 core platforms (File System, Network, Services, Process Management, Event Logs, Active Directory, Registry, Security)",
     "200+ automation tasks",
     "Visual builder + direct coding modes",
     "Download unlimited .ps1 scripts",

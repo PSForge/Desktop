@@ -1169,40 +1169,41 @@ Sitemap: ${baseUrl}/sitemap.xml`;
           if (subscriptions.data.length > 0) {
             const subscription = subscriptions.data[0];
             
-            // Check if this subscription already exists in our database
-            const existingUserSub = await storage.getUserSubscriptionByStripeId(subscription.id);
-            
-            if (!existingUserSub) {
-              // Create new subscription record
-              await storage.createUserSubscription({
-                userId: user.id,
-                planId: "pro",
-                stripeSubscriptionId: subscription.id,
-                status: "active",
-                currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),
-                currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
-                cancelAt: null,
-                canceledAt: null,
-                trialEnd: null,
-              });
-            }
-
-            // Update user role to subscriber if not already
+            // Update user role to subscriber FIRST (most important)
             if (user.role !== "subscriber" && user.role !== "admin") {
               await storage.updateUser(user.id, { role: "subscriber" });
               updated++;
+            }
+            
+            // Try to create subscription record (optional, for tracking)
+            try {
+              const existingUserSub = await storage.getUserSubscriptionByStripeId(subscription.id);
+              
+              if (!existingUserSub && (subscription as any).current_period_start && (subscription as any).current_period_end) {
+                await storage.createUserSubscription({
+                  userId: user.id,
+                  planId: "pro",
+                  stripeSubscriptionId: subscription.id,
+                  status: "active",
+                  currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                  currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                  cancelAt: null,
+                  canceledAt: null,
+                  trialEnd: null,
+                });
+              }
+            } catch (subError: any) {
+              // Log but don't fail - user role is already updated
+              console.warn(`Could not create subscription record for ${user.email}:`, subError.message);
+            }
+
+            // Report status
+            if (user.role === "subscriber" || user.role === "admin") {
               details.push({
                 userId: user.id,
                 email: user.email,
-                status: "updated",
-                message: "Upgraded to Pro (active subscription found)"
-              });
-            } else {
-              details.push({
-                userId: user.id,
-                email: user.email,
-                status: "already_pro",
-                message: "Already has Pro access"
+                status: user.role === "admin" ? "already_admin" : "updated",
+                message: user.role === "admin" ? "Admin account (has Pro access)" : "Upgraded to Pro (active subscription found)"
               });
             }
           } else {

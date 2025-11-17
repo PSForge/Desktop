@@ -482,12 +482,13 @@ const categories: CategoryConfig[] = [
 interface GUIBuilderTabProps {
   selectedCategory: string | null;
   onCategorySelect: (categoryId: string) => void;
+  script: string;
+  setScript: (script: string) => void;
 }
 
-export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilderTabProps) {
+export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript }: GUIBuilderTabProps) {
   const { featureAccess } = useAuth();
   const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | null>(null);
-  const [generatedScript, setGeneratedScript] = useState<string>('');
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>('');
@@ -510,8 +511,8 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     setSelectedTask(null);
   };
 
-  const handleGenerateScript = (script: string) => {
-    setGeneratedScript(script);
+  const handleGenerateScript = (generatedScript: string) => {
+    setScript(generatedScript);
     setScriptDialogOpen(true);
   };
 
@@ -624,14 +625,14 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect }: GUIBuilder
     return (
       <>
         <TaskDetailForm
-          task={selectedTask}
+          task={selectedTask as any}
           onBack={handleBackToTasks}
           onGenerateScript={handleGenerateScript}
         />
         <ExportDialog
           open={scriptDialogOpen}
           onOpenChange={setScriptDialogOpen}
-          code={generatedScript}
+          code={script}
           taskCategory={categoryName}
           taskName={taskName}
         />

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScriptCommand } from "@shared/schema";
 import { AIHelperBot } from "@/components/ai-helper-bot";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { useAuth } from "@/lib/auth-context";
 import { powershellCommands } from "@/lib/powershell-commands";
+import { generatePowerShellScript } from "@/lib/script-generator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Lock, CheckCircle } from "lucide-react";
@@ -11,15 +12,31 @@ import { Sparkles, Lock, CheckCircle } from "lucide-react";
 interface AIAssistantTabProps {
   scriptCommands: ScriptCommand[];
   setScriptCommands: (commands: ScriptCommand[]) => void;
+  script: string;
+  setScript: (script: string) => void;
 }
 
-export function AIAssistantTab({ scriptCommands, setScriptCommands }: AIAssistantTabProps) {
+export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setScript }: AIAssistantTabProps) {
+  const [isAIManaged, setIsAIManaged] = useState(false);
+
+  // Sync commands to script when commands change AND AI is managing the script
+  useEffect(() => {
+    if (isAIManaged) {
+      const generatedScript = scriptCommands.length > 0 
+        ? generatePowerShellScript(scriptCommands)
+        : '';
+      setScript(generatedScript);
+    }
+  }, [scriptCommands, isAIManaged, setScript]);
   const { featureAccess } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   const handleAddCommandFromBot = (commandId: string, suggestedParameters?: Record<string, string>) => {
     const command = powershellCommands.find(cmd => cmd.id === commandId);
     if (!command) return;
+
+    // Mark that AI is now managing the script
+    setIsAIManaged(true);
 
     const defaultParameters: Record<string, any> = {};
     

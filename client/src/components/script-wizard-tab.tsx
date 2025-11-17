@@ -127,7 +127,12 @@ const platforms: PlatformConfig[] = [
   { id: 'salesforce', name: 'Salesforce', description: 'CRM automation', isPremium: true, tasks: salesforceTasks },
 ];
 
-export function ScriptWizardTab() {
+interface ScriptWizardTabProps {
+  script: string;
+  setScript: (script: string) => void;
+}
+
+export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   const { featureAccess } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -430,6 +435,7 @@ export function ScriptWizardTab() {
     
     const script = lines.join('\n');
     setGeneratedScript(script);
+    setScript(script);
     setCurrentStep(5);
   };
 

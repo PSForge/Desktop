@@ -113,6 +113,8 @@ export default function ScriptBuilder() {
           <AIAssistantTab
             scriptCommands={scriptCommands}
             setScriptCommands={setScriptCommands}
+            script={script}
+            setScript={setScript}
           />
         </TabsContent>
 
@@ -120,11 +122,16 @@ export default function ScriptBuilder() {
           <GUIBuilderTab 
             selectedCategory={selectedGuiCategory}
             onCategorySelect={setSelectedGuiCategory}
+            script={script}
+            setScript={setScript}
           />
         </TabsContent>
 
         <TabsContent value="script-wizard" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
-          <ScriptWizardTab />
+          <ScriptWizardTab 
+            script={script}
+            setScript={setScript}
+          />
         </TabsContent>
       </Tabs>
     </div>

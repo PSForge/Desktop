@@ -461,11 +461,11 @@ export default function Home() {
               <div className="h-12 w-12 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
                 <Wand2 className="h-6 w-6 text-orange-500" />
               </div>
-              <CardTitle>Hybrid Approach</CardTitle>
+              <CardTitle>Script Wizard</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Start with AI or visual builder, then refine with direct code edits. Get the best of all methods in one workflow.
+                Bulk operations made easy. Upload CSV data and generate scripts that process hundreds of items automatically with full error handling.
               </p>
             </CardContent>
           </Card>

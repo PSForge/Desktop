@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ScriptCommand } from "@shared/schema";
 import { AIHelperBot } from "@/components/ai-helper-bot";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -7,7 +7,8 @@ import { powershellCommands } from "@/lib/powershell-commands";
 import { generatePowerShellScript } from "@/lib/script-generator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Lock, CheckCircle } from "lucide-react";
+import { Sparkles, Lock, CheckCircle, Code } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface AIAssistantTabProps {
   scriptCommands: ScriptCommand[];
@@ -17,26 +18,31 @@ interface AIAssistantTabProps {
 }
 
 export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setScript }: AIAssistantTabProps) {
-  const [isAIManaged, setIsAIManaged] = useState(false);
-
-  // Sync commands to script when commands change AND AI is managing the script
-  useEffect(() => {
-    if (isAIManaged) {
-      const generatedScript = scriptCommands.length > 0 
-        ? generatePowerShellScript(scriptCommands)
-        : '';
-      setScript(generatedScript);
-    }
-  }, [scriptCommands, isAIManaged, setScript]);
   const { featureAccess } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { toast } = useToast();
+  
+  const handleGenerateScript = () => {
+    if (scriptCommands.length === 0) {
+      toast({
+        title: "No commands to generate",
+        description: "Ask the AI to suggest commands first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const generatedScript = generatePowerShellScript(scriptCommands);
+    setScript(generatedScript);
+    toast({
+      title: "Script Generated!",
+      description: "Switch to the Script tab to view and edit your generated script",
+    });
+  };
   
   const handleAddCommandFromBot = (commandId: string, suggestedParameters?: Record<string, string>) => {
     const command = powershellCommands.find(cmd => cmd.id === commandId);
     if (!command) return;
-
-    // Mark that AI is now managing the script
-    setIsAIManaged(true);
 
     const defaultParameters: Record<string, any> = {};
     
@@ -169,14 +175,39 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden">
-      <div className="flex-1">
-        <AIHelperBot
-          onAddCommand={handleAddCommandFromBot}
-          isOpen={true}
-          onToggle={() => {}}
-        />
+    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="p-4 sm:p-6 border-b flex items-center justify-between">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">AI Assistant</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Describe your automation needs in plain English
+          </p>
+        </div>
+        {scriptCommands.length > 0 && (
+          <Button 
+            onClick={handleGenerateScript}
+            className="gap-2"
+            data-testid="button-generate-script"
+          >
+            <Code className="h-4 w-4" />
+            Generate Script ({scriptCommands.length} {scriptCommands.length === 1 ? 'command' : 'commands'})
+          </Button>
+        )}
       </div>
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1">
+          <AIHelperBot
+            onAddCommand={handleAddCommandFromBot}
+            isOpen={true}
+            onToggle={() => {}}
+          />
+        </div>
+      </div>
+      <UpgradeModal 
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="AI Assistant"
+      />
     </div>
   );
 }

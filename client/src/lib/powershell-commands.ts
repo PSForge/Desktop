@@ -2160,6 +2160,988 @@ export const powershellCommands: Command[] = [
       }
     ],
     example: 'Get-Acl "C:\\Source" | Set-Acl "C:\\Destination"'
+  },
+
+  // ===================================
+  // MICROSOFT GRAPH POWERSHELL CMDLETS
+  // ===================================
+  {
+    id: "connect-mggraph",
+    name: "Connect-MgGraph",
+    category: "Azure AD",
+    description: "Connects to Microsoft Graph API with specified scopes",
+    syntax: "Connect-MgGraph [-Scopes] <string[]> [-TenantId <string>]",
+    parameters: [
+      {
+        id: "scopes",
+        name: "Scopes",
+        type: "array",
+        description: "Specifies the permissions required for the connection",
+        required: true,
+        defaultValue: []
+      },
+      {
+        id: "tenantid",
+        name: "TenantId",
+        type: "string",
+        description: "Specifies the tenant ID",
+        required: false
+      }
+    ],
+    example: 'Connect-MgGraph -Scopes "User.Read.All","Group.ReadWrite.All"'
+  },
+  {
+    id: "get-mguser",
+    name: "Get-MgUser",
+    category: "Azure AD",
+    description: "Gets users from Azure Active Directory via Microsoft Graph",
+    syntax: "Get-MgUser [[-UserId] <string>] [-Filter <string>] [-All]",
+    parameters: [
+      {
+        id: "userid",
+        name: "UserId",
+        type: "string",
+        description: "Specifies the user ID or UPN",
+        required: false
+      },
+      {
+        id: "filter",
+        name: "Filter",
+        type: "string",
+        description: "Specifies an OData filter",
+        required: false
+      },
+      {
+        id: "all",
+        name: "All",
+        type: "switch",
+        description: "Retrieves all users",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Get-MgUser -Filter "startsWith(displayName,\'John\')"'
+  },
+  {
+    id: "new-mguser",
+    name: "New-MgUser",
+    category: "Azure AD",
+    description: "Creates a new user in Azure AD via Microsoft Graph",
+    syntax: "New-MgUser [-DisplayName] <string> [-UserPrincipalName] <string> [-MailNickname] <string> [-PasswordProfile] <hashtable> [-AccountEnabled] [-UsageLocation <string>]",
+    parameters: [
+      {
+        id: "displayname",
+        name: "DisplayName",
+        type: "string",
+        description: "Specifies the display name",
+        required: true
+      },
+      {
+        id: "userprincipalname",
+        name: "UserPrincipalName",
+        type: "string",
+        description: "Specifies the UPN (e.g., user@domain.com)",
+        required: true
+      },
+      {
+        id: "mailnickname",
+        name: "MailNickname",
+        type: "string",
+        description: "Specifies the mail nickname (email alias)",
+        required: true
+      },
+      {
+        id: "passwordprofile",
+        name: "PasswordProfile",
+        type: "string",
+        description: "Variable containing hashtable @{Password='value'; ForceChangePasswordNextSignIn=$true} - Create this variable before calling New-MgUser",
+        required: true,
+        defaultValue: "$PasswordProfile"
+      },
+      {
+        id: "accountenabled",
+        name: "AccountEnabled",
+        type: "boolean",
+        description: "Enables the user account (required when creating users)",
+        required: true,
+        defaultValue: true
+      },
+      {
+        id: "usagelocation",
+        name: "UsageLocation",
+        type: "string",
+        description: "Two-letter country code (ISO 3166-1 alpha-2, e.g., US, GB)",
+        required: false
+      }
+    ],
+    example: '$PasswordProfile = @{Password = "TempPass123!"; ForceChangePasswordNextSignIn = $true}\nNew-MgUser -DisplayName "John Doe" -UserPrincipalName "john@contoso.com" -MailNickname "john" -PasswordProfile $PasswordProfile -AccountEnabled -UsageLocation "US"'
+  },
+  {
+    id: "update-mguser",
+    name: "Update-MgUser",
+    category: "Azure AD",
+    description: "Updates properties of an existing Azure AD user",
+    syntax: "Update-MgUser [-UserId] <string> [-DisplayName <string>] [-JobTitle <string>]",
+    parameters: [
+      {
+        id: "userid",
+        name: "UserId",
+        type: "string",
+        description: "Specifies the user ID",
+        required: true
+      },
+      {
+        id: "displayname",
+        name: "DisplayName",
+        type: "string",
+        description: "Specifies the new display name",
+        required: false
+      },
+      {
+        id: "jobtitle",
+        name: "JobTitle",
+        type: "string",
+        description: "Specifies the job title",
+        required: false
+      }
+    ],
+    example: 'Update-MgUser -UserId "user@contoso.com" -JobTitle "Senior Developer"'
+  },
+  {
+    id: "remove-mguser",
+    name: "Remove-MgUser",
+    category: "Azure AD",
+    description: "Removes a user from Azure Active Directory",
+    syntax: "Remove-MgUser [-UserId] <string>",
+    parameters: [
+      {
+        id: "userid",
+        name: "UserId",
+        type: "string",
+        description: "Specifies the user ID or UPN to remove",
+        required: true
+      }
+    ],
+    example: 'Remove-MgUser -UserId "olduser@contoso.com"'
+  },
+  {
+    id: "get-mggroup",
+    name: "Get-MgGroup",
+    category: "Azure AD",
+    description: "Gets groups from Azure Active Directory",
+    syntax: "Get-MgGroup [[-GroupId] <string>] [-Filter <string>]",
+    parameters: [
+      {
+        id: "groupid",
+        name: "GroupId",
+        type: "string",
+        description: "Specifies the group ID",
+        required: false
+      },
+      {
+        id: "filter",
+        name: "Filter",
+        type: "string",
+        description: "Specifies an OData filter",
+        required: false
+      }
+    ],
+    example: 'Get-MgGroup -Filter "displayName eq \'Developers\'"'
+  },
+  {
+    id: "new-mggroup",
+    name: "New-MgGroup",
+    category: "Azure AD",
+    description: "Creates a new group in Azure AD (Security Group or Microsoft 365 Group)",
+    syntax: "New-MgGroup [-DisplayName] <string> [-MailNickname] <string> [-MailEnabled] <bool> [-SecurityEnabled] <bool> [-GroupTypes <string[]>]",
+    parameters: [
+      {
+        id: "displayname",
+        name: "DisplayName",
+        type: "string",
+        description: "Specifies the group display name",
+        required: true
+      },
+      {
+        id: "mailnickname",
+        name: "MailNickname",
+        type: "string",
+        description: "Specifies the mail nickname (no spaces)",
+        required: true
+      },
+      {
+        id: "mailenabled",
+        name: "MailEnabled",
+        type: "select",
+        description: "Set $true for Microsoft 365 Groups, $false for Security Groups (required)",
+        required: true,
+        options: ["$true", "$false"],
+        defaultValue: "$false"
+      },
+      {
+        id: "securityenabled",
+        name: "SecurityEnabled",
+        type: "select",
+        description: "Set $true for Security Groups, $false for Microsoft 365 Groups (required)",
+        required: true,
+        options: ["$true", "$false"],
+        defaultValue: "$true"
+      },
+      {
+        id: "grouptypes",
+        name: "GroupTypes",
+        type: "array",
+        description: "Use @('Unified') for Microsoft 365 Groups, @() for Security Groups",
+        required: false,
+        defaultValue: []
+      }
+    ],
+    example: '# Security Group:\nNew-MgGroup -DisplayName "IT Team" -MailNickname "it-team" -MailEnabled:$false -SecurityEnabled:$true\n\n# Microsoft 365 Group:\nNew-MgGroup -DisplayName "Sales" -MailNickname "sales" -MailEnabled:$true -SecurityEnabled:$false -GroupTypes "Unified"'
+  },
+  {
+    id: "set-mguserlicense",
+    name: "Set-MgUserLicense",
+    category: "Azure AD",
+    description: "Assigns or removes Microsoft 365 licenses for a user",
+    syntax: "Set-MgUserLicense [-UserId] <string> [-AddLicenses] <hashtable[]> [-RemoveLicenses] <string[]>",
+    parameters: [
+      {
+        id: "userid",
+        name: "UserId",
+        type: "string",
+        description: "Specifies the user ID or UPN",
+        required: true
+      },
+      {
+        id: "addlicenses",
+        name: "AddLicenses",
+        type: "array",
+        description: "Array of hashtables with SkuId property (e.g., @(@{SkuId='guid'})). Use @() if not adding licenses.",
+        required: true,
+        defaultValue: []
+      },
+      {
+        id: "removelicenses",
+        name: "RemoveLicenses",
+        type: "array",
+        description: "Array of SkuId strings to remove (e.g., @('guid1','guid2')). Use @() if not removing licenses.",
+        required: true,
+        defaultValue: []
+      }
+    ],
+    example: '# Add a license:\n$Sku = Get-MgSubscribedSku -All | Where SkuPartNumber -eq "SPE_E5"\nSet-MgUserLicense -UserId "user@contoso.com" -AddLicenses @(@{SkuId = $Sku.SkuId}) -RemoveLicenses @()\n\n# Remove a license:\nSet-MgUserLicense -UserId "user@contoso.com" -AddLicenses @() -RemoveLicenses @($Sku.SkuId)'
+  },
+  {
+    id: "get-mgsubscribedsku",
+    name: "Get-MgSubscribedSku",
+    category: "Azure AD",
+    description: "Gets subscribed SKUs (licenses) for the organization",
+    syntax: "Get-MgSubscribedSku",
+    parameters: [],
+    example: 'Get-MgSubscribedSku | Select SkuPartNumber,ConsumedUnits'
+  },
+  {
+    id: "new-mginvitation",
+    name: "New-MgInvitation",
+    category: "Azure AD",
+    description: "Creates an invitation for a guest user",
+    syntax: "New-MgInvitation [-InvitedUserEmailAddress] <string> [-InviteRedirectUrl] <string>",
+    parameters: [
+      {
+        id: "inviteduseremailaddress",
+        name: "InvitedUserEmailAddress",
+        type: "string",
+        description: "Email address of the user to invite",
+        required: true
+      },
+      {
+        id: "inviteredirecturl",
+        name: "InviteRedirectUrl",
+        type: "string",
+        description: "URL to redirect after accepting invitation",
+        required: true
+      }
+    ],
+    example: 'New-MgInvitation -InvitedUserEmailAddress "guest@external.com" -InviteRedirectUrl "https://myapp.com"'
+  },
+  {
+    id: "new-mgapplication",
+    name: "New-MgApplication",
+    category: "Azure AD",
+    description: "Creates a new application registration in Azure AD",
+    syntax: "New-MgApplication [-DisplayName] <string>",
+    parameters: [
+      {
+        id: "displayname",
+        name: "DisplayName",
+        type: "string",
+        description: "Display name for the application",
+        required: true
+      }
+    ],
+    example: 'New-MgApplication -DisplayName "My API Application"'
+  },
+  {
+    id: "new-mgserviceprincipal",
+    name: "New-MgServicePrincipal",
+    category: "Azure AD",
+    description: "Creates a service principal for an application",
+    syntax: "New-MgServicePrincipal [-AppId] <string>",
+    parameters: [
+      {
+        id: "appid",
+        name: "AppId",
+        type: "string",
+        description: "Application (client) ID",
+        required: true
+      }
+    ],
+    example: 'New-MgServicePrincipal -AppId "app-id-guid"'
+  },
+
+  // ===================================
+  // EXPANDED EXCHANGE ONLINE/SERVER CMDLETS
+  // ===================================
+  {
+    id: "connect-exchangeonline",
+    name: "Connect-ExchangeOnline",
+    category: "Exchange Online",
+    description: "Connects to Exchange Online PowerShell",
+    syntax: "Connect-ExchangeOnline [-UserPrincipalName] <string> [-ShowBanner <bool>]",
+    parameters: [
+      {
+        id: "userprincipalname",
+        name: "UserPrincipalName",
+        type: "string",
+        description: "Admin account UPN",
+        required: true
+      },
+      {
+        id: "showbanner",
+        name: "ShowBanner",
+        type: "boolean",
+        description: "Show connection banner",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'Connect-ExchangeOnline -UserPrincipalName "admin@contoso.com"'
+  },
+  {
+    id: "enable-mailbox",
+    name: "Enable-Mailbox",
+    category: "Exchange Online",
+    description: "Enables a mailbox for an existing Active Directory user",
+    syntax: "Enable-Mailbox [-Identity] <string> [-Alias <string>]",
+    parameters: [
+      {
+        id: "identity",
+        name: "Identity",
+        type: "string",
+        description: "User identity",
+        required: true
+      },
+      {
+        id: "alias",
+        name: "Alias",
+        type: "string",
+        description: "Email alias",
+        required: false
+      }
+    ],
+    example: 'Enable-Mailbox -Identity "jdoe" -Alias "john.doe"'
+  },
+  {
+    id: "add-mailboxpermission",
+    name: "Add-MailboxPermission",
+    category: "Exchange Online",
+    description: "Adds permissions to a mailbox",
+    syntax: "Add-MailboxPermission [-Identity] <string> [-User] <string> [-AccessRights] <string[]>",
+    parameters: [
+      {
+        id: "identity",
+        name: "Identity",
+        type: "string",
+        description: "Mailbox identity",
+        required: true
+      },
+      {
+        id: "user",
+        name: "User",
+        type: "string",
+        description: "User to grant permission to",
+        required: true
+      },
+      {
+        id: "accessrights",
+        name: "AccessRights",
+        type: "array",
+        description: "Permissions to grant",
+        required: true,
+        defaultValue: []
+      }
+    ],
+    example: 'Add-MailboxPermission -Identity "shared@contoso.com" -User "jdoe" -AccessRights "FullAccess"'
+  },
+  {
+    id: "get-mailboxdatabase",
+    name: "Get-MailboxDatabase",
+    category: "Exchange Server",
+    description: "Gets mailbox databases",
+    syntax: "Get-MailboxDatabase [[-Identity] <string>] [-Server <string>]",
+    parameters: [
+      {
+        id: "identity",
+        name: "Identity",
+        type: "string",
+        description: "Database identity",
+        required: false
+      },
+      {
+        id: "server",
+        name: "Server",
+        type: "string",
+        description: "Exchange server name",
+        required: false
+      }
+    ],
+    example: 'Get-MailboxDatabase -Server "EXCH01"'
+  },
+  {
+    id: "new-transportrule",
+    name: "New-TransportRule",
+    category: "Exchange Online",
+    description: "Creates a new transport rule",
+    syntax: "New-TransportRule [-Name] <string> [-Priority <int>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Rule name",
+        required: true
+      },
+      {
+        id: "priority",
+        name: "Priority",
+        type: "int",
+        description: "Rule priority",
+        required: false
+      }
+    ],
+    example: 'New-TransportRule -Name "Block External Auto-Forward" -Priority 0'
+  },
+  {
+    id: "get-retentionpolicy",
+    name: "Get-RetentionPolicy",
+    category: "Exchange Online",
+    description: "Gets retention policies",
+    syntax: "Get-RetentionPolicy [[-Identity] <string>]",
+    parameters: [
+      {
+        id: "identity",
+        name: "Identity",
+        type: "string",
+        description: "Policy identity",
+        required: false
+      }
+    ],
+    example: 'Get-RetentionPolicy -Identity "Default MRM Policy"'
+  },
+  {
+    id: "new-retentionpolicy",
+    name: "New-RetentionPolicy",
+    category: "Exchange Online",
+    description: "Creates a new retention policy",
+    syntax: "New-RetentionPolicy [-Name] <string>",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Policy name",
+        required: true
+      }
+    ],
+    example: 'New-RetentionPolicy -Name "Legal Hold Policy"'
+  },
+
+  // ===================================
+  // EXPANDED SHAREPOINT ONLINE CMDLETS
+  // ===================================
+  {
+    id: "new-sposite",
+    name: "New-SPOSite",
+    category: "SharePoint",
+    description: "Creates a new SharePoint Online site collection",
+    syntax: "New-SPOSite [-Url] <string> [-Owner] <string> [-StorageQuota] <int> [-Template <string>]",
+    parameters: [
+      {
+        id: "url",
+        name: "Url",
+        type: "string",
+        description: "Site URL",
+        required: true
+      },
+      {
+        id: "owner",
+        name: "Owner",
+        type: "string",
+        description: "Site owner UPN",
+        required: true
+      },
+      {
+        id: "storagequota",
+        name: "StorageQuota",
+        type: "int",
+        description: "Storage quota in MB",
+        required: true
+      },
+      {
+        id: "template",
+        name: "Template",
+        type: "string",
+        description: "Site template",
+        required: false
+      }
+    ],
+    example: 'New-SPOSite -Url "https://contoso.sharepoint.com/sites/team" -Owner "admin@contoso.com" -StorageQuota 1024'
+  },
+  {
+    id: "remove-sposite",
+    name: "Remove-SPOSite",
+    category: "SharePoint",
+    description: "Removes a SharePoint Online site collection",
+    syntax: "Remove-SPOSite [-Identity] <string> [-Confirm <bool>]",
+    parameters: [
+      {
+        id: "identity",
+        name: "Identity",
+        type: "string",
+        description: "Site URL",
+        required: true
+      },
+      {
+        id: "confirm",
+        name: "Confirm",
+        type: "boolean",
+        description: "Prompt for confirmation",
+        required: false,
+        defaultValue: true
+      }
+    ],
+    example: 'Remove-SPOSite -Identity "https://contoso.sharepoint.com/sites/oldsite"'
+  },
+  {
+    id: "set-sposite",
+    name: "Set-SPOSite",
+    category: "SharePoint",
+    description: "Modifies properties of a SharePoint Online site collection",
+    syntax: "Set-SPOSite [-Identity] <string> [-StorageQuota <int>] [-SharingCapability <string>]",
+    parameters: [
+      {
+        id: "identity",
+        name: "Identity",
+        type: "string",
+        description: "Site URL",
+        required: true
+      },
+      {
+        id: "storagequota",
+        name: "StorageQuota",
+        type: "int",
+        description: "Storage quota in MB",
+        required: false
+      },
+      {
+        id: "sharingcapability",
+        name: "SharingCapability",
+        type: "select",
+        description: "Sharing settings",
+        required: false,
+        options: ["Disabled", "ExternalUserSharingOnly", "ExternalUserAndGuestSharing", "ExistingExternalUserSharingOnly"]
+      }
+    ],
+    example: 'Set-SPOSite -Identity "https://contoso.sharepoint.com/sites/team" -StorageQuota 2048'
+  },
+  {
+    id: "get-spotenant",
+    name: "Get-SPOTenant",
+    category: "SharePoint",
+    description: "Gets SharePoint Online tenant settings",
+    syntax: "Get-SPOTenant",
+    parameters: [],
+    example: 'Get-SPOTenant | Select SharingCapability,OneDriveStorageQuota'
+  },
+
+  // ===================================
+  // SQL SERVER POWERSHELL CMDLETS
+  // ===================================
+  {
+    id: "invoke-sqlcmd",
+    name: "Invoke-Sqlcmd",
+    category: "SQL Server",
+    description: "Runs T-SQL and XQuery statements",
+    syntax: "Invoke-Sqlcmd [-Query] <string> [-ServerInstance] <string> [-Database <string>]",
+    parameters: [
+      {
+        id: "query",
+        name: "Query",
+        type: "string",
+        description: "SQL query to execute",
+        required: true
+      },
+      {
+        id: "serverinstance",
+        name: "ServerInstance",
+        type: "string",
+        description: "SQL Server instance",
+        required: true
+      },
+      {
+        id: "database",
+        name: "Database",
+        type: "string",
+        description: "Database name",
+        required: false
+      }
+    ],
+    example: 'Invoke-Sqlcmd -Query "SELECT * FROM Users" -ServerInstance "SQL01" -Database "AppDB"'
+  },
+  {
+    id: "backup-sqldatabase",
+    name: "Backup-SqlDatabase",
+    category: "SQL Server",
+    description: "Backs up a SQL Server database",
+    syntax: "Backup-SqlDatabase [-ServerInstance] <string> [-Database] <string> [-BackupFile] <string>",
+    parameters: [
+      {
+        id: "serverinstance",
+        name: "ServerInstance",
+        type: "string",
+        description: "SQL Server instance",
+        required: true
+      },
+      {
+        id: "database",
+        name: "Database",
+        type: "string",
+        description: "Database to backup",
+        required: true
+      },
+      {
+        id: "backupfile",
+        name: "BackupFile",
+        type: "path",
+        description: "Backup file path",
+        required: true
+      }
+    ],
+    example: 'Backup-SqlDatabase -ServerInstance "SQL01" -Database "AppDB" -BackupFile "C:\\Backups\\AppDB.bak"'
+  },
+  {
+    id: "restore-sqldatabase",
+    name: "Restore-SqlDatabase",
+    category: "SQL Server",
+    description: "Restores a SQL Server database",
+    syntax: "Restore-SqlDatabase [-ServerInstance] <string> [-Database] <string> [-BackupFile] <string>",
+    parameters: [
+      {
+        id: "serverinstance",
+        name: "ServerInstance",
+        type: "string",
+        description: "SQL Server instance",
+        required: true
+      },
+      {
+        id: "database",
+        name: "Database",
+        type: "string",
+        description: "Database to restore",
+        required: true
+      },
+      {
+        id: "backupfile",
+        name: "BackupFile",
+        type: "path",
+        description: "Backup file to restore from",
+        required: true
+      }
+    ],
+    example: 'Restore-SqlDatabase -ServerInstance "SQL01" -Database "AppDB" -BackupFile "C:\\Backups\\AppDB.bak"'
+  },
+
+  // ===================================
+  // GROUP POLICY CMDLETS
+  // ===================================
+  {
+    id: "new-gpo",
+    name: "New-GPO",
+    category: "Active Directory",
+    description: "Creates a new Group Policy Object",
+    syntax: "New-GPO [-Name] <string> [-Comment <string>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "GPO name",
+        required: true
+      },
+      {
+        id: "comment",
+        name: "Comment",
+        type: "string",
+        description: "GPO description",
+        required: false
+      }
+    ],
+    example: 'New-GPO -Name "Desktop Lockdown Policy" -Comment "Restricts desktop settings"'
+  },
+  {
+    id: "new-gplink",
+    name: "New-GPLink",
+    category: "Active Directory",
+    description: "Links a GPO to an Active Directory container",
+    syntax: "New-GPLink [-Name] <string> [-Target] <string> [-LinkEnabled <string>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "GPO name",
+        required: true
+      },
+      {
+        id: "target",
+        name: "Target",
+        type: "string",
+        description: "OU distinguished name",
+        required: true
+      },
+      {
+        id: "linkenabled",
+        name: "LinkEnabled",
+        type: "select",
+        description: "Link status",
+        required: false,
+        options: ["Yes", "No"],
+        defaultValue: "Yes"
+      }
+    ],
+    example: 'New-GPLink -Name "Desktop Policy" -Target "OU=Workstations,DC=contoso,DC=com"'
+  },
+  {
+    id: "backup-gpo",
+    name: "Backup-GPO",
+    category: "Active Directory",
+    description: "Backs up a Group Policy Object",
+    syntax: "Backup-GPO [-Name] <string> [-Path] <string>",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "GPO name",
+        required: true
+      },
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Backup folder path",
+        required: true
+      }
+    ],
+    example: 'Backup-GPO -Name "Desktop Policy" -Path "C:\\GPO Backups"'
+  },
+  {
+    id: "restore-gpo",
+    name: "Restore-GPO",
+    category: "Active Directory",
+    description: "Restores a Group Policy Object from backup",
+    syntax: "Restore-GPO [-Name] <string> [-Path] <string>",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "GPO name",
+        required: true
+      },
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Backup folder path",
+        required: true
+      }
+    ],
+    example: 'Restore-GPO -Name "Desktop Policy" -Path "C:\\GPO Backups"'
+  },
+  {
+    id: "get-gporeport",
+    name: "Get-GPOReport",
+    category: "Active Directory",
+    description: "Generates a report for a GPO",
+    syntax: "Get-GPOReport [-Name] <string> [-ReportType] <string> [-Path <string>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "GPO name",
+        required: true
+      },
+      {
+        id: "reporttype",
+        name: "ReportType",
+        type: "select",
+        description: "Report format",
+        required: true,
+        options: ["Html", "Xml"]
+      },
+      {
+        id: "path",
+        name: "Path",
+        type: "path",
+        description: "Output file path",
+        required: false
+      }
+    ],
+    example: 'Get-GPOReport -Name "Desktop Policy" -ReportType Html -Path "C:\\Reports\\GPO.html"'
+  },
+
+  // ===================================
+  // AD REPLICATION & SITE CMDLETS
+  // ===================================
+  {
+    id: "new-adreplicationsite",
+    name: "New-ADReplicationSite",
+    category: "Active Directory",
+    description: "Creates a new Active Directory site",
+    syntax: "New-ADReplicationSite [-Name] <string> [-Description <string>]",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Site name",
+        required: true
+      },
+      {
+        id: "description",
+        name: "Description",
+        type: "string",
+        description: "Site description",
+        required: false
+      }
+    ],
+    example: 'New-ADReplicationSite -Name "Chicago-Office" -Description "Chicago headquarters"'
+  },
+  {
+    id: "new-adreplicationsubnet",
+    name: "New-ADReplicationSubnet",
+    category: "Active Directory",
+    description: "Creates a new AD replication subnet",
+    syntax: "New-ADReplicationSubnet [-Name] <string> [-Site] <string>",
+    parameters: [
+      {
+        id: "name",
+        name: "Name",
+        type: "string",
+        description: "Subnet in CIDR notation",
+        required: true
+      },
+      {
+        id: "site",
+        name: "Site",
+        type: "string",
+        description: "Associated site",
+        required: true
+      }
+    ],
+    example: 'New-ADReplicationSubnet -Name "192.168.1.0/24" -Site "Chicago-Office"'
+  },
+  {
+    id: "get-adreplicationsite",
+    name: "Get-ADReplicationSite",
+    category: "Active Directory",
+    description: "Gets Active Directory replication sites",
+    syntax: "Get-ADReplicationSite [[-Identity] <string>]",
+    parameters: [
+      {
+        id: "identity",
+        name: "Identity",
+        type: "string",
+        description: "Site identity",
+        required: false
+      }
+    ],
+    example: 'Get-ADReplicationSite -Identity "Chicago-Office"'
+  },
+
+  // ===================================
+  // ADDITIONAL SECURITY CMDLETS
+  // ===================================
+  {
+    id: "convertto-securestring",
+    name: "ConvertTo-SecureString",
+    category: "Security",
+    description: "Converts plain text to a secure string",
+    syntax: "ConvertTo-SecureString [-String] <string> [-AsPlainText] [-Force]",
+    parameters: [
+      {
+        id: "string",
+        name: "String",
+        type: "string",
+        description: "String to convert",
+        required: true
+      },
+      {
+        id: "asplaintext",
+        name: "AsPlainText",
+        type: "switch",
+        description: "Convert from plain text",
+        required: false,
+        defaultValue: false
+      },
+      {
+        id: "force",
+        name: "Force",
+        type: "switch",
+        description: "Suppress security warning",
+        required: false,
+        defaultValue: false
+      }
+    ],
+    example: 'ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force'
+  },
+  {
+    id: "new-selfsignedcertificate",
+    name: "New-SelfSignedCertificate",
+    category: "Security",
+    description: "Creates a new self-signed certificate",
+    syntax: "New-SelfSignedCertificate [-DnsName] <string[]> [-CertStoreLocation <string>]",
+    parameters: [
+      {
+        id: "dnsname",
+        name: "DnsName",
+        type: "array",
+        description: "DNS names for the certificate",
+        required: true,
+        defaultValue: []
+      },
+      {
+        id: "certstorelocation",
+        name: "CertStoreLocation",
+        type: "string",
+        description: "Certificate store location",
+        required: false,
+        defaultValue: "Cert:\\LocalMachine\\My"
+      }
+    ],
+    example: 'New-SelfSignedCertificate -DnsName "myapp.contoso.com" -CertStoreLocation "Cert:\\LocalMachine\\My"'
   }
 ];
 

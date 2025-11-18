@@ -138,6 +138,7 @@ export const commandCategories = [
   "Exchange Server",
   "Hyper-V",
   "Windows Server",
+  "SQL Server",
 ] as const;
 export type CommandCategory = typeof commandCategories[number];
 

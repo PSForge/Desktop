@@ -5893,5 +5893,398 @@ try {
     Write-Host "- Output path is invalid or not writable" -ForegroundColor Gray
 }`;
     }
+  },
+
+  // ========================================
+  // SITE & REPLICATION MANAGEMENT CATEGORY
+  // ========================================
+  {
+    id: 'create-ad-site-subnet',
+    name: 'Create Active Directory Site and Subnet',
+    category: 'Site & Replication',
+    isPremium: true,
+    description: 'Create AD sites and associate subnets for replication topology',
+    instructions: `**How This Task Works:**
+This script creates Active Directory sites and associates IP subnets to optimize replication traffic and client authentication across geographical locations.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Enterprise Admin or Domain Admin permissions
+- Understanding of network topology and IP addressing
+- Site link infrastructure planned
+
+**What You Need to Provide:**
+- Site name and description
+- Associated IP subnet (CIDR notation)
+- Site link name for replication
+- Optional: Preferred domain controller
+
+**What the Script Does:**
+1. Creates new Active Directory site
+2. Defines IP subnet and associates with site
+3. Links site to replication topology
+4. Configures site settings and preferences
+5. Verifies site creation and subnet association
+
+**Important Notes:**
+- Sites control: Client authentication, replication topology, service location
+- Subnet format: Use CIDR notation (e.g., 192.168.1.0/24)
+- One subnet can only be associated with one site
+- Sites optimize logon traffic by directing clients to nearest DC
+- Plan sites based on network bandwidth and WAN links
+- Replication between sites uses site links (configure separately)
+- Default First Site Name can be renamed after creation
+- Minimum recommended sites: One per physical location with DC`,
+    parameters: [
+      { id: 'siteName', label: 'Site Name', type: 'text', required: true, placeholder: 'Chicago-Office' },
+      { id: 'siteDescription', label: 'Site Description', type: 'textarea', required: false, placeholder: 'Chicago headquarters and data center' },
+      { id: 'subnetAddress', label: 'Subnet Address (CIDR)', type: 'text', required: true, placeholder: '192.168.10.0/24' },
+      { id: 'siteLinkName', label: 'Site Link Name', type: 'text', required: false, placeholder: 'DEFAULTIPSITELINK' },
+      { id: 'location', label: 'Physical Location', type: 'text', required: false, placeholder: 'Chicago, IL, USA' }
+    ],
+    validate: (params) => {
+      const required = ['siteName', 'subnetAddress'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const siteName = escapePowerShellString(params.siteName);
+      const siteDescription = params.siteDescription ? escapePowerShellString(params.siteDescription) : '';
+      const subnetAddress = escapePowerShellString(params.subnetAddress);
+      const siteLinkName = params.siteLinkName ? escapePowerShellString(params.siteLinkName) : 'DEFAULTIPSITELINK';
+      const location = params.location ? escapePowerShellString(params.location) : '';
+
+      return `# Create Active Directory Site and Subnet
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    $SiteName = "${siteName}"
+    $SubnetAddress = "${subnetAddress}"
+    $SiteLinkName = "${siteLinkName}"
+    ${siteDescription ? `$Description = "${siteDescription}"` : '$Description = ""'}
+    ${location ? `$Location = "${location}"` : '$Location = ""'}
+    
+    Write-Host "Creating Active Directory Site and Subnet" -ForegroundColor Cyan
+    Write-Host "  Site Name: $SiteName" -ForegroundColor White
+    Write-Host "  Subnet: $SubnetAddress" -ForegroundColor White
+    ${location ? 'Write-Host "  Location: $Location" -ForegroundColor White' : ''}
+    Write-Host ""
+    
+    # Validate subnet format
+    if ($SubnetAddress -notmatch '^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$') {
+        Write-Error "Invalid subnet format. Use CIDR notation (e.g., 192.168.1.0/24)"
+        exit 1
+    }
+    
+    # Get domain configuration context
+    $ConfigContext = (Get-ADRootDSE).configurationNamingContext
+    $SitesContainer = "CN=Sites,$ConfigContext"
+    
+    # Check if site already exists
+    try {
+        $ExistingSite = Get-ADReplicationSite -Identity $SiteName -ErrorAction Stop
+        Write-Host "⚠ Site already exists: $SiteName" -ForegroundColor Yellow
+        Write-Host "  DN: $($ExistingSite.DistinguishedName)" -ForegroundColor Gray
+        Write-Host "  Created: $($ExistingSite.Created)" -ForegroundColor Gray
+        $Site = $ExistingSite
+    } catch {
+        # Create new site
+        Write-Host "Creating site: $SiteName..." -ForegroundColor Cyan
+        
+        $Site = New-ADReplicationSite -Name $SiteName -Description $Description -PassThru
+        
+        Write-Host "✓ Site created successfully" -ForegroundColor Green
+        Write-Host "  DN: $($Site.DistinguishedName)" -ForegroundColor Gray
+        
+        # Set location if provided
+        if ($Location) {
+            Set-ADReplicationSite -Identity $SiteName -Location $Location -ErrorAction SilentlyContinue
+            Write-Host "  Location: $Location" -ForegroundColor Gray
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Creating and associating subnet..." -ForegroundColor Cyan
+    
+    # Check if subnet already exists
+    try {
+        $ExistingSubnet = Get-ADReplicationSubnet -Identity $SubnetAddress -ErrorAction Stop
+        Write-Host "⚠ Subnet already exists: $SubnetAddress" -ForegroundColor Yellow
+        Write-Host "  Currently associated with site: $($ExistingSubnet.Site)" -ForegroundColor Yellow
+        
+        # Reassociate if needed
+        if ($ExistingSubnet.Site -ne $Site.DistinguishedName) {
+            Write-Host "  Reassociating subnet to $SiteName..." -ForegroundColor Cyan
+            Set-ADReplicationSubnet -Identity $SubnetAddress -Site $Site
+            Write-Host "✓ Subnet reassociated" -ForegroundColor Green
+        }
+    } catch {
+        # Create new subnet
+        $Subnet = New-ADReplicationSubnet -Name $SubnetAddress -Site $Site -PassThru
+        Write-Host "✓ Subnet created and associated" -ForegroundColor Green
+        Write-Host "  Subnet: $SubnetAddress" -ForegroundColor Gray
+        Write-Host "  Associated with: $SiteName" -ForegroundColor Gray
+    }
+    
+    # Associate site with site link
+    Write-Host ""
+    Write-Host "Configuring site link..." -ForegroundColor Cyan
+    
+    try {
+        $SiteLink = Get-ADReplicationSiteLink -Identity $SiteLinkName -ErrorAction Stop
+        
+        # Check if site is already in the site link
+        if ($SiteLink.SitesIncluded -notcontains $Site.DistinguishedName) {
+            $SitesIncluded = @($SiteLink.SitesIncluded) + @($Site.DistinguishedName)
+            Set-ADReplicationSiteLink -Identity $SiteLinkName -SitesIncluded $SitesIncluded
+            Write-Host "✓ Site added to site link: $SiteLinkName" -ForegroundColor Green
+        } else {
+            Write-Host "✓ Site already in site link: $SiteLinkName" -ForegroundColor Green
+        }
+        
+        Write-Host "  Replication Cost: $($SiteLink.Cost)" -ForegroundColor Gray
+        Write-Host "  Replication Interval: $($SiteLink.ReplicationFrequencyInMinutes) minutes" -ForegroundColor Gray
+    } catch {
+        Write-Host "⚠ Site link not found or cannot be configured: $SiteLinkName" -ForegroundColor Yellow
+        Write-Host "  Manually configure site links via AD Sites and Services" -ForegroundColor Yellow
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Site Name: $SiteName" -ForegroundColor Gray
+    Write-Host "Site DN: $($Site.DistinguishedName)" -ForegroundColor Gray
+    Write-Host "Subnet: $SubnetAddress" -ForegroundColor Gray
+    ${location ? 'Write-Host "Location: $Location" -ForegroundColor Gray' : ''}
+    Write-Host "Site Link: $SiteLinkName" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Install domain controller in new site" -ForegroundColor Yellow
+    Write-Host "2. Configure site link costs and replication schedule" -ForegroundColor Yellow
+    Write-Host "3. Configure site link bridges if needed" -ForegroundColor Yellow
+    Write-Host "4. Verify client computers authenticate to correct site" -ForegroundColor Yellow
+    Write-Host "5. Monitor replication: repadmin /showrepl" -ForegroundColor Yellow
+    
+    Write-Host ""
+    Write-Host "Best Practices:" -ForegroundColor Cyan
+    Write-Host "- Create sites based on physical network topology" -ForegroundColor Gray
+    Write-Host "- One subnet per site for optimal client location" -ForegroundColor Gray
+    Write-Host "- Configure site link costs to reflect WAN bandwidth" -ForegroundColor Gray
+    Write-Host "- Use 15-minute minimum replication interval for WAN links" -ForegroundColor Gray
+    Write-Host "- Document site topology and replication design" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create site/subnet: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Insufficient permissions (requires Enterprise/Domain Admin)" -ForegroundColor Gray
+    Write-Host "- Invalid subnet format (must be CIDR: IP/mask)" -ForegroundColor Gray
+    Write-Host "- Site or subnet name already in use" -ForegroundColor Gray
+    Write-Host "- Network connectivity to domain controller" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'force-ad-replication',
+    name: 'Force Active Directory Replication',
+    category: 'Site & Replication',
+    isPremium: true,
+    description: 'Force immediate replication between domain controllers',
+    instructions: `**How This Task Works:**
+This script forces immediate Active Directory replication between domain controllers, bypassing the normal replication schedule to ensure critical changes propagate immediately.
+
+**Prerequisites:**
+- Active Directory PowerShell module installed
+- Domain Admin or Replication permissions
+- Network connectivity to target domain controllers
+- Understanding of replication topology
+
+**What You Need to Provide:**
+- Source domain controller (optional - uses PDC if not specified)
+- Target domain controller (or all DCs)
+- Naming context to replicate (Domain, Configuration, Schema, or All)
+- Option to force full sync
+
+**What the Script Does:**
+1. Identifies source and target domain controllers
+2. Triggers immediate inbound replication
+3. Verifies replication completion
+4. Reports replication status and any failures
+5. Checks replication metadata
+
+**Important Notes:**
+- Normal replication interval: Every 5 minutes (intra-site), 15-180 minutes (inter-site)
+- Force replication when: Password resets, GPO changes, schema updates, emergency changes
+- Replication is always inbound (target pulls from source)
+- Use after: Creating users, making ACL changes, modifying groups
+- Full sync: Replicates all objects (slower but comprehensive)
+- Incremental: Only replicates changes since last sync (default, faster)
+- Replication topology: Managed by KCC (Knowledge Consistency Checker)
+- Monitor health: repadmin /showrepl, dcdiag /test:replications`,
+    parameters: [
+      { id: 'sourceDC', label: 'Source DC (leave empty for PDC emulator)', type: 'text', required: false, placeholder: 'DC01.company.com' },
+      { id: 'targetDC', label: 'Target DC (leave empty for all DCs)', type: 'text', required: false, placeholder: 'DC02.company.com' },
+      { id: 'namingContext', label: 'Naming Context', type: 'select', required: true, options: ['All', 'Domain', 'Configuration', 'Schema'], defaultValue: 'Domain' },
+      { id: 'fullSync', label: 'Force Full Synchronization', type: 'boolean', required: false, defaultValue: false }
+    ],
+    validate: (params) => {
+      const required = ['namingContext'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const sourceDC = params.sourceDC ? escapePowerShellString(params.sourceDC) : '';
+      const targetDC = params.targetDC ? escapePowerShellString(params.targetDC) : '';
+      const namingContext = params.namingContext || 'Domain';
+      const fullSync = toPowerShellBoolean(params.fullSync);
+
+      return `# Force Active Directory Replication
+# Generated: ${new Date().toISOString()}
+
+Import-Module ActiveDirectory
+
+try {
+    ${sourceDC ? `$SourceDC = "${sourceDC}"` : '$SourceDC = $null'}
+    ${targetDC ? `$TargetDC = "${targetDC}"` : '$TargetDC = $null'}
+    $NamingContext = "${namingContext}"
+    $FullSync = ${fullSync}
+    
+    Write-Host "Force Active Directory Replication" -ForegroundColor Cyan
+    Write-Host "  Naming Context: $NamingContext" -ForegroundColor White
+    Write-Host "  Full Sync: $FullSync" -ForegroundColor White
+    Write-Host ""
+    
+    # Get domain information
+    $Domain = Get-ADDomain
+    $Forest = Get-ADForest
+    
+    # Determine source DC
+    if (-not $SourceDC) {
+        $SourceDC = $Domain.PDCEmulator
+        Write-Host "✓ Using PDC Emulator as source: $SourceDC" -ForegroundColor Green
+    } else {
+        Write-Host "✓ Using specified source: $SourceDC" -ForegroundColor Green
+    }
+    
+    # Verify source DC is reachable
+    if (-not (Test-Connection -ComputerName $SourceDC -Count 1 -Quiet)) {
+        Write-Error "Source DC is not reachable: $SourceDC"
+        exit 1
+    }
+    
+    # Get target DCs
+    if ($TargetDC) {
+        $TargetDCs = @($TargetDC)
+        Write-Host "✓ Target DC: $TargetDC" -ForegroundColor Green
+    } else {
+        $TargetDCs = (Get-ADDomainController -Filter *).HostName | Where-Object { $_ -ne $SourceDC }
+        Write-Host "✓ Target: All domain controllers ($($TargetDCs.Count) DCs)" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    
+    # Determine naming contexts to replicate
+    $NamingContexts = @()
+    
+    if ($NamingContext -eq "All" -or $NamingContext -eq "Domain") {
+        $NamingContexts += $Domain.DistinguishedName
+    }
+    
+    if ($NamingContext -eq "All" -or $NamingContext -eq "Configuration") {
+        $NamingContexts += "CN=Configuration,$($Forest.RootDomain -replace '\\.',',DC=')"
+    }
+    
+    if ($NamingContext -eq "All" -or $NamingContext -eq "Schema") {
+        $NamingContexts += "CN=Schema,CN=Configuration,$($Forest.RootDomain -replace '\\.',',DC=')"
+    }
+    
+    # Force replication
+    $SuccessCount = 0
+    $FailCount = 0
+    
+    foreach ($DC in $TargetDCs) {
+        Write-Host "Processing: $DC" -ForegroundColor Cyan
+        
+        # Verify DC is reachable
+        if (-not (Test-Connection -ComputerName $DC -Count 1 -Quiet)) {
+            Write-Host "  ✗ DC not reachable" -ForegroundColor Red
+            $FailCount++
+            continue
+        }
+        
+        foreach ($NC in $NamingContexts) {
+            try {
+                $NCName = ($NC -split ',')[0] -replace 'CN=', '' -replace 'DC=', ''
+                Write-Host "  Replicating: $NCName" -ForegroundColor Gray
+                
+                if ($FullSync) {
+                    # Force full synchronization
+                    repadmin /syncall $DC $NC /A /e /P 2>&1 | Out-Null
+                } else {
+                    # Standard incremental sync
+                    repadmin /replicate $DC $SourceDC $NC 2>&1 | Out-Null
+                }
+                
+                # Verify replication
+                Start-Sleep -Seconds 2
+                $ReplStatus = repadmin /showrepl $DC $NC 2>&1
+                
+                if ($ReplStatus -match "successful") {
+                    Write-Host "  ✓ Replication successful" -ForegroundColor Green
+                    $SuccessCount++
+                } else {
+                    Write-Host "  ⚠ Replication status unclear - check manually" -ForegroundColor Yellow
+                }
+                
+            } catch {
+                Write-Host "  ✗ Replication failed: $_" -ForegroundColor Red
+                $FailCount++
+            }
+        }
+        
+        Write-Host ""
+    }
+    
+    # Summary
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Source DC: $SourceDC" -ForegroundColor Gray
+    Write-Host "Target DCs: $($TargetDCs.Count)" -ForegroundColor Gray
+    Write-Host "Naming Contexts: $($NamingContexts.Count)" -ForegroundColor Gray
+    Write-Host "Successful Replications: $SuccessCount" -ForegroundColor Green
+    Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { "Red" } else { "Gray" })
+    
+    Write-Host ""
+    Write-Host "Verification Commands:" -ForegroundColor Cyan
+    Write-Host "  Check replication status: repadmin /showrepl $SourceDC" -ForegroundColor Yellow
+    Write-Host "  Check replication queue: repadmin /queue" -ForegroundColor Yellow
+    Write-Host "  Test replication: dcdiag /test:replications" -ForegroundColor Yellow
+    Write-Host "  View replication partners: repadmin /showreps" -ForegroundColor Yellow
+    
+    Write-Host ""
+    Write-Host "When to Force Replication:" -ForegroundColor Cyan
+    Write-Host "1. After password resets (especially admin accounts)" -ForegroundColor Gray
+    Write-Host "2. After Group Policy changes requiring immediate effect" -ForegroundColor Gray
+    Write-Host "3. After schema modifications" -ForegroundColor Gray
+    Write-Host "4. After creating/modifying user accounts" -ForegroundColor Gray
+    Write-Host "5. Before maintenance windows or DC shutdowns" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to force replication: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Network connectivity between DCs" -ForegroundColor Gray
+    Write-Host "- Firewall blocking replication ports (TCP 135, 389, 636, 3268, 3269, dynamic RPC)" -ForegroundColor Gray
+    Write-Host "- Replication permissions insufficient" -ForegroundColor Gray
+    Write-Host "- DCs in different forests or domains" -ForegroundColor Gray
+    Write-Host "- DNS resolution failures" -ForegroundColor Gray
+}`;
+    }
   }
 ];

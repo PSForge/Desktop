@@ -5208,10 +5208,21 @@ try {
     
     $LinkedCount = 0
     $SkippedCount = 0
+    $FailedCount = 0
     
     foreach ($OU in $TargetOUs) {
         try {
             Write-Host "  Processing: $OU" -ForegroundColor Gray
+            
+            # Validate OU exists
+            try {
+                $OUObject = Get-ADOrganizationalUnit -Identity $OU -ErrorAction Stop
+                Write-Host "    ✓ OU verified" -ForegroundColor Gray
+            } catch {
+                Write-Host "    ✗ OU does not exist or is inaccessible" -ForegroundColor Red
+                $FailedCount++
+                continue
+            }
             
             # Check if link already exists
             $ExistingLink = Get-GPInheritance -Target $OU -ErrorAction Stop | 
@@ -5222,29 +5233,47 @@ try {
                 Write-Host "    ⚠ Link already exists - skipping" -ForegroundColor Yellow
                 $SkippedCount++
             } else {
-                # Create GPO link
-                $LinkParams = @{
-                    Name = $GPOName
-                    Target = $OU
-                    LinkEnabled = if ($LinkEnabled) { "Yes" } else { "No" }
-                    Order = $LinkOrder
+                # Create GPO link with error handling for link order conflicts
+                try {
+                    $LinkParams = @{
+                        Name = $GPOName
+                        Target = $OU
+                        LinkEnabled = if ($LinkEnabled) { "Yes" } else { "No" }
+                    }
+                    
+                    if ($Enforced) {
+                        $LinkParams.Enforced = "Yes"
+                    }
+                    
+                    # Try to create link with specified order
+                    try {
+                        $LinkParams.Order = $LinkOrder
+                        New-GPLink @LinkParams -ErrorAction Stop | Out-Null
+                    } catch {
+                        # If order fails, create without order and set it afterward
+                        $LinkParams.Remove('Order')
+                        $Link = New-GPLink @LinkParams -ErrorAction Stop
+                        try {
+                            Set-GPLink -Guid $GPO.Id -Target $OU -Order $LinkOrder -ErrorAction SilentlyContinue | Out-Null
+                        } catch {
+                            # Order setting failed, but link succeeded
+                        }
+                    }
+                    
+                    Write-Host "    ✓ Linked successfully" -ForegroundColor Green
+                    Write-Host "      Order: $LinkOrder" -ForegroundColor Gray
+                    Write-Host "      Enforced: $Enforced" -ForegroundColor Gray
+                    Write-Host "      Enabled: $LinkEnabled" -ForegroundColor Gray
+                    
+                    $LinkedCount++
+                } catch {
+                    Write-Host "    ✗ Failed to create link: $($_.Exception.Message)" -ForegroundColor Red
+                    $FailedCount++
                 }
-                
-                if ($Enforced) {
-                    $LinkParams.Enforced = "Yes"
-                }
-                
-                New-GPLink @LinkParams | Out-Null
-                
-                Write-Host "    ✓ Linked successfully" -ForegroundColor Green
-                Write-Host "      Order: $LinkOrder" -ForegroundColor Gray
-                Write-Host "      Enforced: $Enforced" -ForegroundColor Gray
-                Write-Host "      Enabled: $LinkEnabled" -ForegroundColor Gray
-                
-                $LinkedCount++
             }
         } catch {
-            Write-Host "    ✗ Failed to link: $_" -ForegroundColor Red
+            Write-Host "    ✗ Failed to process OU: $($_.Exception.Message)" -ForegroundColor Red
+            $FailedCount++
         }
     }
     
@@ -5255,6 +5284,7 @@ try {
     Write-Host "Target OUs: $($TargetOUs.Count)" -ForegroundColor Gray
     Write-Host "Successfully Linked: $LinkedCount" -ForegroundColor Green
     Write-Host "Skipped (already linked): $SkippedCount" -ForegroundColor Yellow
+    Write-Host "Failed: $FailedCount" -ForegroundColor $(if ($FailedCount -gt 0) { "Red" } else { "Gray" })
     
     Write-Host ""
     Write-Host "Next Steps:" -ForegroundColor Cyan
@@ -5354,13 +5384,41 @@ try {
     ${gpoName ? 'Write-Host "  GPO: $GPOName" -ForegroundColor White' : 'Write-Host "  Scope: All GPOs" -ForegroundColor White'}
     Write-Host ""
     
+    # Validate backup path
+    try {
+        $ParentPath = Split-Path -Path $BackupPath -Parent
+        if ($ParentPath -and -not (Test-Path -Path $ParentPath)) {
+            Write-Error "Parent directory does not exist: $ParentPath"
+            exit 1
+        }
+    } catch {
+        Write-Error "Invalid backup path: $BackupPath"
+        exit 1
+    }
+    
     if ($Operation -eq "Backup") {
         # ========== BACKUP OPERATION ==========
         
-        # Ensure backup folder exists
+        # Ensure backup folder exists and is writable
         if (-not (Test-Path -Path $BackupPath)) {
-            New-Item -Path $BackupPath -ItemType Directory -Force | Out-Null
-            Write-Host "✓ Created backup folder: $BackupPath" -ForegroundColor Green
+            try {
+                New-Item -Path $BackupPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                Write-Host "✓ Created backup folder: $BackupPath" -ForegroundColor Green
+            } catch {
+                Write-Error "Failed to create backup folder: $($_.Exception.Message)"
+                exit 1
+            }
+        } else {
+            # Verify write access
+            try {
+                $TestFile = Join-Path $BackupPath "test_write_access.tmp"
+                $null | Out-File -FilePath $TestFile -ErrorAction Stop
+                Remove-Item -Path $TestFile -Force -ErrorAction SilentlyContinue
+                Write-Host "✓ Backup folder verified: $BackupPath" -ForegroundColor Green
+            } catch {
+                Write-Error "Backup folder is not writable: $BackupPath"
+                exit 1
+            }
         }
         
         if ($GPOName) {
@@ -5412,20 +5470,38 @@ try {
             exit 1
         }
         
-        # List available backups
-        $Backups = Get-ChildItem -Path $BackupPath -Filter "manifest.xml" -Recurse | 
-            ForEach-Object {
-                $ManifestXml = [xml](Get-Content $_.FullName)
-                [PSCustomObject]@{
-                    GPOName = $ManifestXml.Backups.BackupInst.GPODisplayName.'#cdata-section'
-                    BackupID = $ManifestXml.Backups.BackupInst.ID.'#cdata-section'
-                    BackupTime = $ManifestXml.Backups.BackupInst.BackupTime.'#cdata-section'
-                    BackupFolder = $_.Directory.FullName
-                }
-            }
+        # Verify backup path is readable
+        try {
+            $null = Get-ChildItem -Path $BackupPath -ErrorAction Stop
+        } catch {
+            Write-Error "Cannot read backup path: $BackupPath - $($_.Exception.Message)"
+            exit 1
+        }
         
-        if ($Backups.Count -eq 0) {
-            Write-Error "No GPO backups found in: $BackupPath"
+        # List available backups with error handling
+        try {
+            $Backups = Get-ChildItem -Path $BackupPath -Filter "manifest.xml" -Recurse -ErrorAction Stop | 
+                ForEach-Object {
+                    try {
+                        $ManifestXml = [xml](Get-Content $_.FullName -ErrorAction Stop)
+                        [PSCustomObject]@{
+                            GPOName = $ManifestXml.Backups.BackupInst.GPODisplayName.'#cdata-section'
+                            BackupID = $ManifestXml.Backups.BackupInst.ID.'#cdata-section'
+                            BackupTime = $ManifestXml.Backups.BackupInst.BackupTime.'#cdata-section'
+                            BackupFolder = $_.Directory.FullName
+                        }
+                    } catch {
+                        Write-Warning "Skipping corrupted manifest: $($_.FullName)"
+                        $null
+                    }
+                } | Where-Object { $_ -ne $null }
+        } catch {
+            Write-Error "Failed to scan backup path: $($_.Exception.Message)"
+            exit 1
+        }
+        
+        if (-not $Backups -or $Backups.Count -eq 0) {
+            Write-Error "No valid GPO backups found in: $BackupPath"
             exit 1
         }
         
@@ -5447,19 +5523,43 @@ try {
             Write-Host "  Backup ID: $($TargetBackup.BackupID)" -ForegroundColor Gray
             Write-Host ""
             
-            if ($CreateNew) {
-                # Create new GPO from backup
-                $NewGPOName = "$GPOName (Restored)"
-                Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
-                    -TargetName $NewGPOName -CreateIfNeeded
-                
-                Write-Host "✓ GPO restored as new object: $NewGPOName" -ForegroundColor Green
-            } else {
-                # Overwrite existing GPO
-                Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
-                    -TargetName $GPOName
-                
-                Write-Host "✓ GPO settings restored to existing GPO: $GPOName" -ForegroundColor Green
+            try {
+                if ($CreateNew) {
+                    # Create new GPO from backup
+                    $NewGPOName = "$GPOName (Restored)"
+                    
+                    # Check if restored GPO name already exists
+                    $ExistingRestored = Get-GPO -Name $NewGPOName -ErrorAction SilentlyContinue
+                    if ($ExistingRestored) {
+                        $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+                        $NewGPOName = "$GPOName (Restored-$Timestamp)"
+                        Write-Host "  Using unique name: $NewGPOName" -ForegroundColor Yellow
+                    }
+                    
+                    Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
+                        -TargetName $NewGPOName -CreateIfNeeded -ErrorAction Stop
+                    
+                    Write-Host "✓ GPO restored as new object: $NewGPOName" -ForegroundColor Green
+                } else {
+                    # Overwrite existing GPO
+                    $ExistingGPO = Get-GPO -Name $GPOName -ErrorAction SilentlyContinue
+                    if (-not $ExistingGPO) {
+                        Write-Error "Target GPO does not exist: $GPOName. Use 'Create New' option instead."
+                        exit 1
+                    }
+                    
+                    Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
+                        -TargetName $GPOName -ErrorAction Stop
+                    
+                    Write-Host "✓ GPO settings restored to existing GPO: $GPOName" -ForegroundColor Green
+                }
+            } catch {
+                Write-Error "Failed to restore GPO: $($_.Exception.Message)"
+                Write-Host "Possible causes:" -ForegroundColor Yellow
+                Write-Host "- Backup files are corrupted or incomplete" -ForegroundColor Gray
+                Write-Host "- Insufficient permissions to create/modify GPO" -ForegroundColor Gray
+                Write-Host "- Backup version incompatibility" -ForegroundColor Gray
+                exit 1
             }
         } else {
             Write-Host "⚠ Bulk restore not recommended - Please specify GPO name" -ForegroundColor Yellow
@@ -5563,48 +5663,127 @@ try {
     Write-Host "  Output: $OutputPath" -ForegroundColor White
     Write-Host ""
     
-    # Ensure output directory exists
-    $OutputDir = Split-Path -Path $OutputPath -Parent
-    if ($OutputDir -and -not (Test-Path -Path $OutputDir)) {
-        New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
-        Write-Host "✓ Created output directory" -ForegroundColor Green
+    # Validate output path
+    try {
+        $OutputDir = Split-Path -Path $OutputPath -Parent
+        $OutputFileName = Split-Path -Path $OutputPath -Leaf
+        
+        if (-not $OutputFileName) {
+            Write-Error "Invalid output file path: $OutputPath"
+            exit 1
+        }
+        
+        # Ensure output directory exists and is writable
+        if ($OutputDir) {
+            if (-not (Test-Path -Path $OutputDir)) {
+                try {
+                    New-Item -Path $OutputDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                    Write-Host "✓ Created output directory: $OutputDir" -ForegroundColor Green
+                } catch {
+                    Write-Error "Failed to create output directory: $($_.Exception.Message)"
+                    exit 1
+                }
+            }
+            
+            # Test write access
+            try {
+                $TestFile = Join-Path $OutputDir "test_write.tmp"
+                $null | Out-File -FilePath $TestFile -ErrorAction Stop
+                Remove-Item -Path $TestFile -Force -ErrorAction SilentlyContinue
+            } catch {
+                Write-Error "Output directory is not writable: $OutputDir"
+                exit 1
+            }
+        }
+    } catch {
+        Write-Error "Invalid output path: $OutputPath - $($_.Exception.Message)"
+        exit 1
+    }
+    
+    # Verify Group Policy module cmdlets are available
+    try {
+        $null = Get-Command Get-GPOReport -ErrorAction Stop
+        Write-Host "✓ Group Policy cmdlets verified" -ForegroundColor Green
+    } catch {
+        Write-Error "Get-GPOReport cmdlet not available. Ensure Group Policy Management features are installed."
+        exit 1
     }
     
     if ($GPOName) {
         # Generate report for specific GPO
         Write-Host "Generating report for: $GPOName..." -ForegroundColor Cyan
         
-        $Report = Get-GPOReport -Name $GPOName -ReportType $ReportType
-        $Report | Out-File -FilePath $OutputPath -Encoding UTF8
+        # Verify GPO exists
+        try {
+            $GPO = Get-GPO -Name $GPOName -ErrorAction Stop
+            Write-Host "  ✓ GPO found: $($GPO.DisplayName)" -ForegroundColor Gray
+        } catch {
+            Write-Error "GPO not found: $GPOName"
+            exit 1
+        }
         
-        Write-Host "✓ Report generated successfully" -ForegroundColor Green
-        Write-Host "  File: $OutputPath" -ForegroundColor Gray
-        Write-Host "  Size: $([math]::Round((Get-Item $OutputPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
-        
-        # Get GPO details
-        $GPO = Get-GPO -Name $GPOName
+        # Generate report
+        try {
+            $Report = Get-GPOReport -Name $GPOName -ReportType $ReportType -ErrorAction Stop
+            
+            if (-not $Report) {
+                Write-Error "Failed to generate report (empty result)"
+                exit 1
+            }
+            
+            $Report | Out-File -FilePath $OutputPath -Encoding UTF8 -ErrorAction Stop
+            
+            Write-Host "✓ Report generated successfully" -ForegroundColor Green
+            Write-Host "  File: $OutputPath" -ForegroundColor Gray
+            Write-Host "  Size: $([math]::Round((Get-Item $OutputPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
+        } catch {
+            Write-Error "Failed to generate report: $($_.Exception.Message)"
+            exit 1
+        }
         
         if ($IncludeLinks) {
             Write-Host ""
             Write-Host "=== GPO LINK INFORMATION ===" -ForegroundColor Cyan
             
-            # Get all domains in forest
-            $Domains = (Get-ADForest).Domains
-            
-            foreach ($Domain in $Domains) {
-                Write-Host "Domain: $Domain" -ForegroundColor Yellow
+            try {
+                # Get all domains in forest
+                $Domains = (Get-ADForest -ErrorAction Stop).Domains
                 
-                $Links = Get-GPO -Name $GPOName -Domain $Domain -ErrorAction SilentlyContinue | 
-                    Get-GPInheritance -ErrorAction SilentlyContinue
-                
-                if ($Links) {
-                    $Links.GpoLinks | ForEach-Object {
-                        Write-Host "  ✓ Linked to: $($_.Target)" -ForegroundColor Green
-                        Write-Host "    Enabled: $($_.Enabled)" -ForegroundColor Gray
-                        Write-Host "    Enforced: $($_.Enforced)" -ForegroundColor Gray
-                        Write-Host "    Order: $($_.Order)" -ForegroundColor Gray
+                foreach ($Domain in $Domains) {
+                    try {
+                        Write-Host "Domain: $Domain" -ForegroundColor Yellow
+                        
+                        # Find GPO links across the domain
+                        $GPOLinks = [System.Collections.ArrayList]@()
+                        
+                        # Get domain root and OUs
+                        $SearchBase = (Get-ADDomain -Server $Domain -ErrorAction Stop).DistinguishedName
+                        $AllOUs = @($SearchBase) + (Get-ADOrganizationalUnit -Filter * -Server $Domain -ErrorAction SilentlyContinue | 
+                            Select-Object -ExpandProperty DistinguishedName)
+                        
+                        foreach ($OU in $AllOUs) {
+                            try {
+                                $Inheritance = Get-GPInheritance -Target $OU -Domain $Domain -ErrorAction SilentlyContinue
+                                if ($Inheritance.GpoLinks) {
+                                    $LinkedGPO = $Inheritance.GpoLinks | Where-Object { $_.DisplayName -eq $GPOName }
+                                    if ($LinkedGPO) {
+                                        Write-Host "  ✓ Linked to: $OU" -ForegroundColor Green
+                                        Write-Host "    Enabled: $($LinkedGPO.Enabled)" -ForegroundColor Gray
+                                        Write-Host "    Enforced: $($LinkedGPO.Enforced)" -ForegroundColor Gray
+                                        Write-Host "    Order: $($LinkedGPO.Order)" -ForegroundColor Gray
+                                    }
+                                }
+                            } catch {
+                                # Silently skip inaccessible OUs
+                            }
+                        }
+                    } catch {
+                        Write-Host "  ⚠ Cannot query domain: $Domain" -ForegroundColor Yellow
                     }
                 }
+            } catch {
+                Write-Host "⚠ Cannot retrieve forest information for link discovery" -ForegroundColor Yellow
+                Write-Host "  GPO report generated without link information" -ForegroundColor Gray
             }
         }
         
@@ -5612,46 +5791,66 @@ try {
         # Generate report for all GPOs
         Write-Host "Generating reports for all GPOs..." -ForegroundColor Cyan
         
-        $AllGPOs = Get-GPO -All
-        Write-Host "Found $($AllGPOs.Count) GPOs" -ForegroundColor Yellow
-        Write-Host ""
+        try {
+            $AllGPOs = Get-GPO -All -ErrorAction Stop
+            Write-Host "Found $($AllGPOs.Count) GPOs" -ForegroundColor Yellow
+            Write-Host ""
+        } catch {
+            Write-Error "Failed to retrieve GPOs: $($_.Exception.Message)"
+            exit 1
+        }
         
-        # Create combined report
-        $CombinedReport = @()
-        $CombinedReport += "<!DOCTYPE html><html><head><title>All GPOs Report</title>"
-        $CombinedReport += "<style>body{font-family:Arial;margin:20px;} h2{color:#0066cc;border-bottom:2px solid #0066cc;} table{border-collapse:collapse;width:100%;margin:20px 0;} th,td{border:1px solid #ddd;padding:8px;text-align:left;} th{background-color:#0066cc;color:white;}</style>"
-        $CombinedReport += "</head><body>"
-        $CombinedReport += "<h1>Group Policy Objects Report</h1>"
-        $CombinedReport += "<p>Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>"
-        $CombinedReport += "<p>Total GPOs: $($AllGPOs.Count)</p>"
+        if ($AllGPOs.Count -eq 0) {
+            Write-Host "⚠ No GPOs found in domain" -ForegroundColor Yellow
+            exit 0
+        }
         
+        # Create combined report for HTML
         $ReportCount = 0
+        $FailCount = 0
+        
+        if ($ReportType -eq "Html") {
+            $CombinedReport = @()
+            $CombinedReport += "<!DOCTYPE html><html><head><title>All GPOs Report</title>"
+            $CombinedReport += "<style>body{font-family:Arial;margin:20px;} h2{color:#0066cc;border-bottom:2px solid #0066cc;} table{border-collapse:collapse;width:100%;margin:20px 0;} th,td{border:1px solid #ddd;padding:8px;text-align:left;} th{background-color:#0066cc;color:white;}</style>"
+            $CombinedReport += "</head><body>"
+            $CombinedReport += "<h1>Group Policy Objects Report</h1>"
+            $CombinedReport += "<p>Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>"
+            $CombinedReport += "<p>Total GPOs: $($AllGPOs.Count)</p>"
+        }
         
         foreach ($GPO in $AllGPOs) {
             try {
                 Write-Host "  Processing: $($GPO.DisplayName)" -ForegroundColor Gray
                 
                 if ($ReportType -eq "Html") {
-                    $GPOReport = Get-GPOReport -Guid $GPO.Id -ReportType Html
+                    $GPOReport = Get-GPOReport -Guid $GPO.Id -ReportType Html -ErrorAction Stop
                     
-                    # Extract body content and append
-                    $GPOReport -match '<body.*?>(.*)</body>' | Out-Null
-                    if ($Matches) {
-                        $CombinedReport += "<div style='page-break-before:always;'>"
-                        $CombinedReport += $Matches[1]
-                        $CombinedReport += "</div>"
+                    if ($GPOReport) {
+                        # Extract body content and append
+                        $GPOReport -match '<body.*?>(.*)</body>' | Out-Null
+                        if ($Matches) {
+                            $CombinedReport += "<div style='page-break-before:always;'>"
+                            $CombinedReport += $Matches[1]
+                            $CombinedReport += "</div>"
+                        }
                     }
                 } else {
-                    # For XML, create separate files
-                    $FileName = "$($GPO.DisplayName -replace '[^a-zA-Z0-9]', '_').xml"
+                    # For XML, create separate files with safe filename
+                    $SafeName = $GPO.DisplayName -replace '[\\/:*?"<>|]', '_'
+                    $FileName = "$SafeName.xml"
                     $FilePath = Join-Path -Path $OutputDir -ChildPath $FileName
                     
-                    Get-GPOReport -Guid $GPO.Id -ReportType Xml | Out-File -FilePath $FilePath -Encoding UTF8
+                    $XMLReport = Get-GPOReport -Guid $GPO.Id -ReportType Xml -ErrorAction Stop
+                    if ($XMLReport) {
+                        $XMLReport | Out-File -FilePath $FilePath -Encoding UTF8 -ErrorAction Stop
+                    }
                 }
                 
                 $ReportCount++
             } catch {
-                Write-Host "    ✗ Failed: $_" -ForegroundColor Red
+                Write-Host "    ✗ Failed: $($_.Exception.Message)" -ForegroundColor Red
+                $FailCount++
             }
         }
         
@@ -5670,6 +5869,7 @@ try {
         Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
         Write-Host "Total GPOs: $($AllGPOs.Count)" -ForegroundColor Gray
         Write-Host "Reports Generated: $ReportCount" -ForegroundColor Green
+        Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { "Red" } else { "Gray" })
     }
     
     Write-Host ""

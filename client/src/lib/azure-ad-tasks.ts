@@ -5944,5 +5944,1002 @@ Additional Resources:" -ForegroundColor Cyan
 # Disconnect
 Disconnect-AzAccount`;
     }
+  },
+
+  // ========================================
+  // B2B GUEST USER MANAGEMENT CATEGORY
+  // ========================================
+  {
+    id: 'bulk-invite-guest-users',
+    name: 'Bulk Invite Guest Users (B2B)',
+    category: 'B2B Guest Management',
+    isPremium: true,
+    description: 'Bulk invite external guest users with customizable invitation messages',
+    instructions: `**How This Task Works:**
+This script sends B2B collaboration invitations to external users, granting them access to your organization's resources.
+
+**Prerequisites:**
+- Global Administrator or Guest Inviter role
+- Microsoft Graph PowerShell SDK
+- User.Invite.All permission
+- Azure AD Premium P1/P2 (for B2B features)
+
+**What You Need to Provide:**
+- Guest email addresses (comma-separated)
+- Invitation message
+- Redirect URL after redemption
+- Send invitation email (or silent invite)
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Validates guest emails
+3. Sends B2B invitations with custom message
+4. Tracks invitation status
+5. Reports success/failure
+6. Provides redemption links
+
+**Important Notes:**
+- Guests receive email invitation (unless SendInvitationMessage=false)
+- Guests must accept before accessing resources
+- Assign licenses/groups separately after invitation
+- Invitation expires based on tenant settings (default: never)
+- Common redirect: https://myapps.microsoft.com
+- Guest accounts created immediately (UserType: Guest)
+- Use Conditional Access to restrict guest access`,
+    parameters: [
+      { id: 'guestEmails', label: 'Guest Email Addresses (comma-separated)', type: 'textarea', required: true, placeholder: 'partner1@external.com, consultant@vendor.com, guest@partner.org' },
+      { id: 'invitationMessage', label: 'Invitation Message', type: 'textarea', required: false, placeholder: 'You have been invited to collaborate with our organization. Please accept this invitation to access shared resources.', defaultValue: 'You have been invited to collaborate with our organization.' },
+      { id: 'redirectUrl', label: 'Redirect URL After Acceptance', type: 'text', required: false, placeholder: 'https://myapps.microsoft.com', defaultValue: 'https://myapps.microsoft.com' },
+      { id: 'sendInvitationEmail', label: 'Send Invitation Email', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const guestEmailsRaw = (params.guestEmails as string).split(',').map((email: string) => email.trim());
+      const invitationMessage = params.invitationMessage ? escapePowerShellString(params.invitationMessage) : 'You have been invited to collaborate with our organization.';
+      const redirectUrl = params.redirectUrl ? escapePowerShellString(params.redirectUrl) : 'https://myapps.microsoft.com';
+      const sendEmail = params.sendInvitationEmail !== false;
+
+      return `# Bulk Invite Guest Users (B2B)
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "User.Invite.All", "User.ReadWrite.All"
+
+try {
+    $GuestEmails = @(${guestEmailsRaw.map(email => `"${escapePowerShellString(email)}"`).join(', ')})
+    $InvitationMessage = "${invitationMessage}"
+    $RedirectUrl = "${redirectUrl}"
+    $SendEmail = $${sendEmail}
+    
+    Write-Host "Inviting $($GuestEmails.Count) guest users..." -ForegroundColor Cyan
+    Write-Host "Redirect URL: $RedirectUrl" -ForegroundColor Gray
+    Write-Host "Send Email: $SendEmail" -ForegroundColor Gray
+    Write-Host ""
+    
+    $SuccessCount = 0
+    $FailCount = 0
+    $Results = @()
+    
+    foreach ($Email in $GuestEmails) {
+        try {
+            Write-Host "Processing: $Email" -ForegroundColor Cyan
+            
+            # Check if user already exists
+            $ExistingUser = Get-MgUser -Filter "mail eq '$Email' or userPrincipalName eq '$Email'" -ErrorAction SilentlyContinue
+            
+            if ($ExistingUser) {
+                Write-Host "  ⚠ User already exists: $Email" -ForegroundColor Yellow
+                Write-Host "    UserType: $($ExistingUser.UserType)" -ForegroundColor Gray
+                $FailCount++
+                continue
+            }
+            
+            # Create invitation
+            $InviteParams = @{
+                InvitedUserEmailAddress = $Email
+                InviteRedirectUrl = $RedirectUrl
+                SendInvitationMessage = $SendEmail
+            }
+            
+            if ($InvitationMessage) {
+                $InviteParams.InvitedUserMessageInfo = @{
+                    CustomizedMessageBody = $InvitationMessage
+                }
+            }
+            
+            $Invitation = New-MgInvitation @InviteParams
+            
+            Write-Host "  ✓ Invitation sent: $Email" -ForegroundColor Green
+            Write-Host "    Invitation ID: $($Invitation.Id)" -ForegroundColor Gray
+            Write-Host "    Redemption URL: $($Invitation.InviteRedeemUrl)" -ForegroundColor Gray
+            
+            $Results += [PSCustomObject]@{
+                Email = $Email
+                Status = "Success"
+                InvitationId = $Invitation.Id
+                RedemptionUrl = $Invitation.InviteRedeemUrl
+                InvitedUserId = $Invitation.InvitedUser.Id
+            }
+            
+            $SuccessCount++
+            
+        } catch {
+            Write-Host "  ✗ Failed: $Email - $_" -ForegroundColor Red
+            $FailCount++
+            
+            $Results += [PSCustomObject]@{
+                Email = $Email
+                Status = "Failed"
+                Error = $_.Exception.Message
+            }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Total Invitations: $($GuestEmails.Count)" -ForegroundColor Gray
+    Write-Host "Successful: $SuccessCount" -ForegroundColor Green
+    Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Red' } else { 'Gray' })
+    
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Guests will receive invitation email (if SendEmail=true)" -ForegroundColor Gray
+    Write-Host "2. Guests must accept invitation to access resources" -ForegroundColor Gray
+    Write-Host "3. Assign licenses/groups to guest users after acceptance" -ForegroundColor Gray
+    Write-Host "4. Configure Conditional Access for guest user restrictions" -ForegroundColor Gray
+    Write-Host "5. Monitor guest user activity via Azure AD Sign-in logs" -ForegroundColor Gray
+    
+    # Display results
+    if ($Results.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Invitation Results:" -ForegroundColor Cyan
+        $Results | Format-Table -AutoSize
+    }
+    
+} catch {
+    Write-Error "Failed to invite guest users: $_"
+    exit 1
+}
+
+Disconnect-MgGraph`;
+    }
+  },
+
+  {
+    id: 'remove-inactive-guest-users',
+    name: 'Remove Inactive Guest Users',
+    category: 'B2B Guest Management',
+    isPremium: true,
+    description: 'Identify and remove guest users who have not signed in for specified period',
+    instructions: `**How This Task Works:**
+This script identifies inactive guest users based on last sign-in date and removes them to reduce security risks and licensing costs.
+
+**Prerequisites:**
+- Global Administrator or User Administrator role
+- Microsoft Graph PowerShell SDK
+- User.ReadWrite.All and AuditLog.Read.All permissions
+- Azure AD Premium P1/P2 (for sign-in logs)
+
+**What You Need to Provide:**
+- Inactive threshold (days since last sign-in)
+- Test mode (preview before deletion)
+- Export report path (optional)
+
+**What the Script Does:**
+1. Retrieves all guest users
+2. Checks last sign-in activity
+3. Identifies guests inactive beyond threshold
+4. Deletes inactive guests (or preview in test mode)
+5. Exports report of removed users
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first with TestMode=true
+- Guest deletion is permanent (30-day recycle bin)
+- Consider disabling instead of deleting
+- Common threshold: 90 days for contractors, 180 days for partners
+- Guests who never signed in are considered inactive
+- Review access before deletion (assigned resources)
+- Critical for Zero Trust and least privilege compliance`,
+    parameters: [
+      { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: true, placeholder: '90', defaultValue: 90 },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Report CSV Path', type: 'path', required: false, placeholder: 'C:\\Reports\\inactive-guests.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const inactiveDays = params.inactiveDays || 90;
+      const testMode = params.testMode !== false;
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : null;
+
+      return `# Remove Inactive Guest Users
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "User.ReadWrite.All", "AuditLog.Read.All"
+
+try {
+    $InactiveDays = ${inactiveDays}
+    $TestMode = $${testMode}
+    ${exportPath ? `$ExportPath = "${exportPath}"` : ''}
+    
+    Write-Host "Finding inactive guest users ($InactiveDays days threshold)..." -ForegroundColor Cyan
+    
+    if ($TestMode) {
+        Write-Host "=== TEST MODE - No users will be deleted ===" -ForegroundColor Yellow
+    } else {
+        Write-Host "⚠ WARNING: This will PERMANENTLY DELETE inactive guests" -ForegroundColor Red
+    }
+    Write-Host ""
+    
+    # Get all guest users
+    Write-Host "Retrieving guest users..." -ForegroundColor Gray
+    $GuestUsers = Get-MgUser -Filter "userType eq 'Guest'" -All -Property Id,UserPrincipalName,DisplayName,Mail,SignInActivity,CreatedDateTime,AccountEnabled
+    
+    Write-Host "Found $($GuestUsers.Count) total guest users" -ForegroundColor Gray
+    Write-Host ""
+    
+    $InactiveThreshold = (Get-Date).AddDays(-$InactiveDays)
+    $Results = @()
+    $RemovedCount = 0
+    
+    foreach ($Guest in $GuestUsers) {
+        $LastSignIn = $Guest.SignInActivity.LastSignInDateTime
+        
+        if ($LastSignIn) {
+            $LastSignInDate = [DateTime]$LastSignIn
+            $IsInactive = $LastSignInDate -lt $InactiveThreshold
+            $DaysSinceSignIn = ((Get-Date) - $LastSignInDate).Days
+        } else {
+            # Never signed in - consider inactive
+            $IsInactive = $true
+            $DaysSinceSignIn = "Never"
+        }
+        
+        if ($IsInactive) {
+            $Results += [PSCustomObject]@{
+                DisplayName = $Guest.DisplayName
+                Email = $Guest.Mail
+                UserPrincipalName = $Guest.UserPrincipalName
+                LastSignIn = if ($LastSignIn) { $LastSignInDate.ToString("yyyy-MM-dd") } else { "Never" }
+                DaysSinceSignIn = $DaysSinceSignIn
+                CreatedDate = $Guest.CreatedDateTime
+                AccountEnabled = $Guest.AccountEnabled
+                Action = if ($TestMode) { "Would Delete" } else { "Deleted" }
+            }
+            
+            # Delete user (if not test mode)
+            if (-not $TestMode) {
+                try {
+                    Remove-MgUser -UserId $Guest.Id -Confirm:$false
+                    Write-Host "  ✓ Deleted: $($Guest.DisplayName) ($($Guest.Mail))" -ForegroundColor Yellow
+                    Write-Host "    Last sign-in: $(if ($LastSignIn) { $LastSignInDate.ToString('yyyy-MM-dd') } else { 'Never' })" -ForegroundColor Gray
+                    $RemovedCount++
+                } catch {
+                    Write-Host "  ✗ Failed to delete: $($Guest.DisplayName) - $_" -ForegroundColor Red
+                }
+            } else {
+                Write-Host "  [TEST] Would delete: $($Guest.DisplayName) ($($Guest.Mail))" -ForegroundColor Gray
+                Write-Host "    Last sign-in: $(if ($LastSignIn) { $LastSignInDate.ToString('yyyy-MM-dd') } else { 'Never' })" -ForegroundColor Gray
+            }
+        }
+    }
+    
+    ${exportPath ? `
+    # Export report if path specified
+    if ($ExportPath) {
+        $Results | Export-Csv -Path $ExportPath -NoTypeInformation
+        Write-Host ""
+        Write-Host "✓ Inactive guests report exported to: $ExportPath" -ForegroundColor Green
+    }
+    ` : ''}
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Total guest users: $($GuestUsers.Count)" -ForegroundColor Gray
+    Write-Host "Inactive guests found: $($Results.Count)" -ForegroundColor Yellow
+    if (-not $TestMode) {
+        Write-Host "Guests deleted: $RemovedCount" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Note: Deleted users are in recycle bin for 30 days" -ForegroundColor Gray
+    } else {
+        Write-Host ""
+        Write-Host "Run with TestMode=false to perform actual deletion" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Failed to process inactive guests: $_"
+    exit 1
+}
+
+Disconnect-MgGraph`;
+    }
+  },
+
+  {
+    id: 'configure-guest-user-settings',
+    name: 'Configure B2B Guest User Settings',
+    category: 'B2B Guest Management',
+    isPremium: true,
+    description: 'Configure organization-wide guest user access restrictions and permissions',
+    instructions: `**How This Task Works:**
+This script configures tenant-wide B2B guest user settings, controlling what guests can see and do in your organization.
+
+**Prerequisites:**
+- Global Administrator role
+- Microsoft Graph PowerShell SDK
+- Policy.ReadWrite.Authorization permission
+
+**What You Need to Provide:**
+- Guest user access level
+- Allow guest invitations
+- Who can invite guests
+- Guest invite restrictions
+
+**What the Script Does:**
+1. Connects to Microsoft Graph
+2. Retrieves current authorization policy
+3. Updates guest user access restrictions
+4. Configures invitation settings
+5. Reports policy changes
+
+**Important Notes:**
+- Guest User Access Levels:
+  * Restricted: Guests can't see other users/groups (most secure)
+  * Normal: Guests see limited directory info
+  * Same As Members: Guests have full directory access (least secure)
+- Who Can Invite:
+  * admins: Only Global Admins
+  * adminsAndGuestInviters: Admins + Guest Inviter role
+  * adminsGuestInvitersAndAllMembers: Admins + Members
+  * everyone: Anyone including guests
+- Settings apply organization-wide
+- Recommend: Restricted access + adminsAndGuestInviters
+- Use Conditional Access for additional controls`,
+    parameters: [
+      { id: 'guestAccessLevel', label: 'Guest User Access Level', type: 'select', required: true, options: ['Restricted', 'Normal', 'SameAsMembers'], defaultValue: 'Restricted', description: 'Directory information guests can access' },
+      { id: 'allowInvitations', label: 'Allow Guest Invitations', type: 'boolean', required: false, defaultValue: true },
+      { id: 'whoCanInvite', label: 'Who Can Invite Guests', type: 'select', required: true, options: ['admins', 'adminsAndGuestInviters', 'adminsGuestInvitersAndAllMembers', 'everyone'], defaultValue: 'adminsAndGuestInviters' },
+      { id: 'guestsCanInvite', label: 'Guests Can Invite Other Guests', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const guestAccessLevel = params.guestAccessLevel || 'Restricted';
+      const allowInvitations = params.allowInvitations !== false;
+      const whoCanInvite = params.whoCanInvite || 'adminsAndGuestInviters';
+      const guestsCanInvite = params.guestsCanInvite || false;
+
+      return `# Configure B2B Guest User Settings
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "Policy.ReadWrite.Authorization"
+
+try {
+    Write-Host "Configuring B2B guest user settings..." -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Get current authorization policy
+    $Policy = Get-MgPolicyAuthorizationPolicy
+    
+    Write-Host "Current Settings:" -ForegroundColor White
+    Write-Host "  Guest User Access: $($Policy.GuestUserRoleId)" -ForegroundColor Gray
+    Write-Host "  Allow Invitations: $($Policy.AllowInvitesFrom)" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Map access level to role GUID
+    $RoleId = switch ("${guestAccessLevel}") {
+        "Restricted" { "2af84b1e-32c8-42b7-82bc-daa82404023b" }  # Guest user with restricted access
+        "Normal" { "10dae51f-b6af-4016-8d66-8c2a99b929b3" }      # Guest user (default)
+        "SameAsMembers" { "a0b1b346-4d3e-4e8b-98f8-753987be4970" } # Directory reader
+        default { "2af84b1e-32c8-42b7-82bc-daa82404023b" }
+    }
+    
+    # Map invitation settings
+    $InviteFrom = if (${allowInvitations}) {
+        "${whoCanInvite}"
+    } else {
+        "none"
+    }
+    
+    Write-Host "New Settings:" -ForegroundColor Cyan
+    Write-Host "  Access Level: ${guestAccessLevel}" -ForegroundColor White
+    Write-Host "  Allow Invitations: ${allowInvitations}" -ForegroundColor White
+    Write-Host "  Who Can Invite: ${whoCanInvite}" -ForegroundColor White
+    Write-Host "  Guests Can Invite: ${guestsCanInvite}" -ForegroundColor White
+    Write-Host ""
+    
+    # Update authorization policy
+    $UpdateParams = @{
+        GuestUserRoleId = $RoleId
+        AllowInvitesFrom = $InviteFrom
+        AllowedToSignUpEmailBasedSubscriptions = $true
+    }
+    
+    Update-MgPolicyAuthorizationPolicy -AuthorizationPolicyId $Policy.Id -BodyParameter $UpdateParams
+    
+    Write-Host "✓ Guest user settings updated successfully" -ForegroundColor Green
+    Write-Host ""
+    
+    # Display security recommendations
+    Write-Host "Security Recommendations:" -ForegroundColor Cyan
+    Write-Host "1. Access Level:" -ForegroundColor White
+    Write-Host "   - Use 'Restricted' for maximum security" -ForegroundColor Gray
+    Write-Host "   - Prevents guests from enumerating users/groups" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "2. Invitation Rights:" -ForegroundColor White
+    Write-Host "   - Limit to 'adminsAndGuestInviters' role" -ForegroundColor Gray
+    Write-Host "   - Never allow 'everyone' for B2B invitations" -ForegroundColor Gray
+    Write-Host "   - Set GuestsCanInvite=false to prevent guest sprawl" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "3. Additional Controls:" -ForegroundColor White
+    Write-Host "   - Configure Conditional Access for guest users" -ForegroundColor Gray
+    Write-Host "   - Enable MFA for all guest users" -ForegroundColor Gray
+    Write-Host "   - Review guest access regularly (quarterly)" -ForegroundColor Gray
+    Write-Host "   - Use access reviews for automatic guest lifecycle" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "4. Monitoring:" -ForegroundColor White
+    Write-Host "   - Track guest invitations in Audit logs" -ForegroundColor Gray
+    Write-Host "   - Monitor guest sign-ins for suspicious activity" -ForegroundColor Gray
+    Write-Host "   - Set up alerts for bulk guest additions" -ForegroundColor Gray
+    
+    # Verify current settings
+    $UpdatedPolicy = Get-MgPolicyAuthorizationPolicy
+    
+    Write-Host ""
+    Write-Host "================= VERIFICATION =================" -ForegroundColor Cyan
+    Write-Host "Guest User Role ID: $($UpdatedPolicy.GuestUserRoleId)" -ForegroundColor Gray
+    Write-Host "Allow Invites From: $($UpdatedPolicy.AllowInvitesFrom)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Changes are now active organization-wide" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to configure guest settings: $_"
+    exit 1
+}
+
+Disconnect-MgGraph`;
+    }
+  },
+
+  // ========================================
+  // APP REGISTRATION MANAGEMENT CATEGORY
+  // ========================================
+  {
+    id: 'create-app-registration-certificate',
+    name: 'Create App Registration with Certificate Auth',
+    category: 'App Registration Management',
+    isPremium: true,
+    description: 'Create Azure AD app registration with self-signed certificate for secure authentication',
+    instructions: `**How This Task Works:**
+This script creates an Azure AD app registration configured for certificate-based authentication, enabling secure daemon/service applications.
+
+**Prerequisites:**
+- Global Administrator or Application Administrator role
+- Microsoft Graph PowerShell SDK
+- Application.ReadWrite.All permission
+
+**What You Need to Provide:**
+- App registration name
+- Certificate subject name
+- Certificate validity period
+- Optional: API permissions to grant
+
+**What the Script Does:**
+1. Creates self-signed certificate for authentication
+2. Registers application in Azure AD
+3. Uploads certificate to app registration
+4. Configures application permissions
+5. Exports certificate and app details
+
+**Important Notes:**
+- Certificate auth is more secure than client secrets
+- Certificates don't expire like secrets (but still have validity period)
+- Common use: Service accounts, automation, daemon apps
+- Store certificate private key securely (Key Vault recommended)
+- For production, use CA-signed certificates instead of self-signed
+- Grant least privilege API permissions only
+- Common cert validity: 1 year (dev), 2 years (prod)`,
+    parameters: [
+      { id: 'appName', label: 'Application Name', type: 'text', required: true, placeholder: 'MyAutomationApp' },
+      { id: 'certSubject', label: 'Certificate Subject', type: 'text', required: true, placeholder: 'CN=MyAutomationApp', defaultValue: 'CN=MyApp' },
+      { id: 'certValidityMonths', label: 'Certificate Validity (Months)', type: 'number', required: true, placeholder: '12', defaultValue: 12 },
+      { id: 'certExportPath', label: 'Certificate Export Path', type: 'path', required: true, placeholder: 'C:\\Certs\\MyApp.pfx' },
+      { id: 'certPassword', label: 'Certificate Password', type: 'text', required: true, placeholder: 'SecureP@ssw0rd!' }
+    ],
+    scriptTemplate: (params) => {
+      const appName = escapePowerShellString(params.appName);
+      const certSubject = escapePowerShellString(params.certSubject);
+      const certValidityMonths = params.certValidityMonths || 12;
+      const certExportPath = escapePowerShellString(params.certExportPath);
+      const certPassword = escapePowerShellString(params.certPassword);
+
+      return `# Create App Registration with Certificate Authentication
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "Application.ReadWrite.All"
+
+try {
+    $AppName = "${appName}"
+    $CertSubject = "${certSubject}"
+    $CertValidityMonths = ${certValidityMonths}
+    $CertExportPath = "${certExportPath}"
+    $CertPassword = "${certPassword}"
+    
+    Write-Host "Creating app registration with certificate authentication..." -ForegroundColor Cyan
+    Write-Host "App Name: $AppName" -ForegroundColor Gray
+    Write-Host "Certificate Validity: $CertValidityMonths months" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Create self-signed certificate
+    Write-Host "Creating self-signed certificate..." -ForegroundColor Cyan
+    
+    $CertNotAfter = (Get-Date).AddMonths($CertValidityMonths)
+    $Cert = New-SelfSignedCertificate -Subject $CertSubject \`
+        -CertStoreLocation "Cert:\\CurrentUser\\My" \`
+        -KeyExportPolicy Exportable \`
+        -KeySpec Signature \`
+        -KeyLength 2048 \`
+        -KeyAlgorithm RSA \`
+        -HashAlgorithm SHA256 \`
+        -NotAfter $CertNotAfter
+    
+    Write-Host "✓ Certificate created" -ForegroundColor Green
+    Write-Host "  Thumbprint: $($Cert.Thumbprint)" -ForegroundColor Gray
+    Write-Host "  Valid until: $CertNotAfter" -ForegroundColor Gray
+    
+    # Export certificate to PFX
+    Write-Host ""
+    Write-Host "Exporting certificate to PFX..." -ForegroundColor Cyan
+    
+    $CertPasswordSecure = ConvertTo-SecureString -String $CertPassword -Force -AsPlainText
+    Export-PfxCertificate -Cert $Cert -FilePath $CertExportPath -Password $CertPasswordSecure | Out-Null
+    
+    Write-Host "✓ Certificate exported to: $CertExportPath" -ForegroundColor Green
+    
+    # Get certificate key credentials for app registration
+    $CertBase64 = [System.Convert]::ToBase64String($Cert.GetRawCertData())
+    $KeyCredential = @{
+        Type = "AsymmetricX509Cert"
+        Usage = "Verify"
+        Key = [System.Text.Encoding]::UTF8.GetBytes($CertBase64)
+    }
+    
+    # Create app registration
+    Write-Host ""
+    Write-Host "Creating app registration..." -ForegroundColor Cyan
+    
+    $AppParams = @{
+        DisplayName = $AppName
+        SignInAudience = "AzureADMyOrg"
+        KeyCredentials = @($KeyCredential)
+    }
+    
+    $App = New-MgApplication @AppParams
+    
+    Write-Host "✓ App registration created" -ForegroundColor Green
+    Write-Host "  Application ID: $($App.AppId)" -ForegroundColor Gray
+    Write-Host "  Object ID: $($App.Id)" -ForegroundColor Gray
+    
+    # Create service principal
+    Write-Host ""
+    Write-Host "Creating service principal..." -ForegroundColor Cyan
+    
+    $SpParams = @{
+        AppId = $App.AppId
+    }
+    
+    $ServicePrincipal = New-MgServicePrincipal @SpParams
+    
+    Write-Host "✓ Service principal created" -ForegroundColor Green
+    Write-Host "  Service Principal ID: $($ServicePrincipal.Id)" -ForegroundColor Gray
+    
+    # Export connection details
+    Write-Host ""
+    Write-Host "================= IMPORTANT INFO =================" -ForegroundColor Cyan
+    Write-Host "Save these details for connecting your application:" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Tenant ID: $(Get-MgContext | Select-Object -ExpandProperty TenantId)" -ForegroundColor Yellow
+    Write-Host "Client ID (Application ID): $($App.AppId)" -ForegroundColor Yellow
+    Write-Host "Certificate Thumbprint: $($Cert.Thumbprint)" -ForegroundColor Yellow
+    Write-Host "Certificate Path: $CertExportPath" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Sample PowerShell Connection Code:" -ForegroundColor Cyan
+    Write-Host @"
+# Connect using certificate
+\\$TenantId = "$(Get-MgContext | Select-Object -ExpandProperty TenantId)"
+\\$ClientId = "$($App.AppId)"
+\\$CertThumbprint = "$($Cert.Thumbprint)"
+
+Connect-MgGraph -ClientId \\$ClientId -TenantId \\$TenantId -CertificateThumbprint \\$CertThumbprint
+"@ -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Grant API permissions via Azure Portal:" -ForegroundColor White
+    Write-Host "   - Navigate to: Azure AD > App Registrations > $AppName" -ForegroundColor Gray
+    Write-Host "   - Select: API Permissions > Add a permission" -ForegroundColor Gray
+    Write-Host "   - Grant admin consent after adding permissions" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "2. Store certificate securely:" -ForegroundColor White
+    Write-Host "   - Upload PFX to Azure Key Vault (recommended)" -ForegroundColor Gray
+    Write-Host "   - Or use Windows Certificate Store" -ForegroundColor Gray
+    Write-Host "   - Never commit certificate to source control" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "3. Monitor certificate expiration:" -ForegroundColor White
+    Write-Host "   - Certificate expires: $CertNotAfter" -ForegroundColor Gray
+    Write-Host "   - Set reminder to renew before expiration" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create app registration: $_"
+    exit 1
+}
+
+Disconnect-MgGraph`;
+    }
+  },
+
+  {
+    id: 'manage-app-registration-permissions',
+    name: 'Manage App Registration API Permissions',
+    category: 'App Registration Management',
+    isPremium: true,
+    description: 'Grant or remove Microsoft Graph API permissions for app registrations',
+    instructions: `**How This Task Works:**
+This script manages API permissions for Azure AD app registrations, enabling applications to access Microsoft Graph and other APIs.
+
+**Prerequisites:**
+- Global Administrator or Application Administrator role
+- Microsoft Graph PowerShell SDK
+- Application.ReadWrite.All and AppRoleAssignment.ReadWrite.All permissions
+
+**What You Need to Provide:**
+- Application (client) ID
+- API to grant permissions for (Microsoft Graph, etc.)
+- Permission names (delegated or application permissions)
+- Grant admin consent automatically
+
+**What the Script Does:**
+1. Retrieves app registration and service principal
+2. Adds requested API permissions
+3. Grants admin consent (if specified)
+4. Reports permission changes
+5. Shows current permission status
+
+**Important Notes:**
+- Permission Types:
+  * Delegated: User context (User.Read, Mail.Send)
+  * Application: App-only context (User.Read.All, Mail.ReadWrite)
+- Admin consent required for high-privilege permissions
+- Common Microsoft Graph permissions:
+  * User.Read.All (read all user profiles)
+  * Directory.Read.All (read directory)
+  * Mail.Send (send mail as user)
+  * Files.ReadWrite.All (access all files)
+- Always follow least privilege principle
+- Review permissions quarterly for compliance`,
+    parameters: [
+      { id: 'appId', label: 'Application (Client) ID', type: 'text', required: true, placeholder: '00000000-0000-0000-0000-000000000000' },
+      { id: 'permissionType', label: 'Permission Type', type: 'select', required: true, options: ['Application', 'Delegated'], defaultValue: 'Application' },
+      { id: 'permissions', label: 'Permissions (comma-separated)', type: 'textarea', required: true, placeholder: 'User.Read.All, Directory.Read.All, Mail.Send', description: 'Microsoft Graph permission names' },
+      { id: 'grantAdminConsent', label: 'Grant Admin Consent', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const appId = escapePowerShellString(params.appId);
+      const permissionType = params.permissionType || 'Application';
+      const permissionsRaw = (params.permissions as string).split(',').map((p: string) => p.trim());
+      const grantConsent = params.grantAdminConsent !== false;
+
+      return `# Manage App Registration API Permissions
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "Application.ReadWrite.All", "AppRoleAssignment.ReadWrite.All"
+
+try {
+    $AppId = "${appId}"
+    $PermissionType = "${permissionType}"
+    $Permissions = @(${permissionsRaw.map(p => `"${escapePowerShellString(p)}"`).join(', ')})
+    $GrantAdminConsent = $${grantConsent}
+    
+    Write-Host "Managing API permissions for app..." -ForegroundColor Cyan
+    Write-Host "Application ID: $AppId" -ForegroundColor Gray
+    Write-Host "Permission Type: $PermissionType" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Get application
+    Write-Host "Retrieving application..." -ForegroundColor Cyan
+    $App = Get-MgApplication -Filter "appId eq '$AppId'"
+    
+    if (-not $App) {
+        Write-Error "Application not found: $AppId"
+        exit 1
+    }
+    
+    Write-Host "✓ Found application: $($App.DisplayName)" -ForegroundColor Green
+    Write-Host "  Object ID: $($App.Id)" -ForegroundColor Gray
+    
+    # Get Microsoft Graph service principal
+    $GraphSp = Get-MgServicePrincipal -Filter "appId eq '00000003-0000-0000-c000-000000000000'"
+    
+    # Build required resource access
+    $ResourceAccess = @()
+    
+    foreach ($Permission in $Permissions) {
+        Write-Host ""
+        Write-Host "Looking up permission: $Permission" -ForegroundColor Cyan
+        
+        if ($PermissionType -eq "Application") {
+            # Find app role (application permission)
+            $AppRole = $GraphSp.AppRoles | Where-Object { $_.Value -eq $Permission }
+            
+            if ($AppRole) {
+                $ResourceAccess += @{
+                    Id = $AppRole.Id
+                    Type = "Role"
+                }
+                Write-Host "  ✓ Found application permission: $Permission" -ForegroundColor Green
+                Write-Host "    Role ID: $($AppRole.Id)" -ForegroundColor Gray
+            } else {
+                Write-Host "  ✗ Permission not found: $Permission" -ForegroundColor Red
+            }
+        } else {
+            # Find delegated permission (OAuth2Permission)
+            $OAuth2Permission = $GraphSp.Oauth2PermissionScopes | Where-Object { $_.Value -eq $Permission }
+            
+            if ($OAuth2Permission) {
+                $ResourceAccess += @{
+                    Id = $OAuth2Permission.Id
+                    Type = "Scope"
+                }
+                Write-Host "  ✓ Found delegated permission: $Permission" -ForegroundColor Green
+                Write-Host "    Scope ID: $($OAuth2Permission.Id)" -ForegroundColor Gray
+            } else {
+                Write-Host "  ✗ Permission not found: $Permission" -ForegroundColor Red
+            }
+        }
+    }
+    
+    if ($ResourceAccess.Count -eq 0) {
+        Write-Error "No valid permissions found to add"
+        exit 1
+    }
+    
+    # Update application required resource access
+    Write-Host ""
+    Write-Host "Updating app registration permissions..." -ForegroundColor Cyan
+    
+    $RequiredResourceAccess = @{
+        ResourceAppId = "00000003-0000-0000-c000-000000000000"  # Microsoft Graph
+        ResourceAccess = $ResourceAccess
+    }
+    
+    Update-MgApplication -ApplicationId $App.Id -RequiredResourceAccess @($RequiredResourceAccess)
+    
+    Write-Host "✓ Permissions added to app registration" -ForegroundColor Green
+    
+    # Grant admin consent if requested
+    if ($GrantAdminConsent -and $PermissionType -eq "Application") {
+        Write-Host ""
+        Write-Host "Granting admin consent..." -ForegroundColor Cyan
+        
+        # Get service principal for app
+        $AppSp = Get-MgServicePrincipal -Filter "appId eq '$AppId'"
+        
+        foreach ($Access in $ResourceAccess) {
+            try {
+                $GrantParams = @{
+                    PrincipalId = $AppSp.Id
+                    ResourceId = $GraphSp.Id
+                    AppRoleId = $Access.Id
+                }
+                
+                New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $AppSp.Id -BodyParameter $GrantParams
+                
+                $PermissionName = ($GraphSp.AppRoles | Where-Object { $_.Id -eq $Access.Id }).Value
+                Write-Host "  ✓ Admin consent granted: $PermissionName" -ForegroundColor Green
+            } catch {
+                if ($_.Exception.Message -like "*already exists*") {
+                    Write-Host "  ⚠ Permission already granted" -ForegroundColor Yellow
+                } else {
+                    Write-Host "  ✗ Failed to grant consent: $_" -ForegroundColor Red
+                }
+            }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Application: $($App.DisplayName)" -ForegroundColor Gray
+    Write-Host "Permissions Added: $($ResourceAccess.Count)" -ForegroundColor Gray
+    Write-Host "Admin Consent Granted: $GrantAdminConsent" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Permissions:" -ForegroundColor White
+    $ResourceAccess | ForEach-Object {
+        $PermName = if ($_.Type -eq "Role") {
+            ($GraphSp.AppRoles | Where-Object { $_.Id -eq $_.Id }).Value
+        } else {
+            ($GraphSp.Oauth2PermissionScopes | Where-Object { $_.Id -eq $_.Id }).Value
+        }
+        Write-Host "  - $PermName ($($_.Type))" -ForegroundColor Gray
+    }
+    
+    if (-not $GrantAdminConsent -or $PermissionType -eq "Delegated") {
+        Write-Host ""
+        Write-Host "⚠ Admin consent required - Complete in Azure Portal:" -ForegroundColor Yellow
+        Write-Host "1. Navigate to: Azure AD > App Registrations > $($App.DisplayName)" -ForegroundColor White
+        Write-Host "2. Select: API Permissions" -ForegroundColor White
+        Write-Host "3. Click: Grant admin consent for [tenant]" -ForegroundColor White
+    }
+    
+} catch {
+    Write-Error "Failed to manage app permissions: $_"
+    exit 1
+}
+
+Disconnect-MgGraph`;
+    }
+  },
+
+  {
+    id: 'delete-unused-app-registrations',
+    name: 'Delete Unused App Registrations',
+    category: 'App Registration Management',
+    isPremium: true,
+    description: 'Identify and delete app registrations with no recent activity or sign-ins',
+    instructions: `**How This Task Works:**
+This script identifies unused app registrations based on sign-in activity and optionally deletes them to reduce security risks.
+
+**Prerequisites:**
+- Global Administrator or Application Administrator role
+- Microsoft Graph PowerShell SDK
+- Application.ReadWrite.All and AuditLog.Read.All permissions
+- Azure AD Premium P1/P2 (for sign-in logs)
+
+**What You Need to Provide:**
+- Inactive threshold (days since last sign-in)
+- Test mode (preview before deletion)
+- Export report path
+
+**What the Script Does:**
+1. Retrieves all app registrations
+2. Checks service principal sign-in activity
+3. Identifies apps with no recent activity
+4. Deletes unused apps (or preview in test mode)
+5. Exports report of removed apps
+6. Provides summary statistics
+
+**Important Notes:**
+- ALWAYS test first with TestMode=true
+- Deletion is permanent (30-day recycle bin)
+- Apps with no service principal are considered unused
+- Common threshold: 90 days for dev apps, 180 days for prod
+- Review dependencies before deletion
+- Consider disabling instead of deleting
+- Critical for reducing attack surface and license costs`,
+    parameters: [
+      { id: 'inactiveDays', label: 'Inactive Days Threshold', type: 'number', required: true, placeholder: '90', defaultValue: 90 },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Report CSV Path', type: 'path', required: false, placeholder: 'C:\\Reports\\unused-apps.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const inactiveDays = params.inactiveDays || 90;
+      const testMode = params.testMode !== false;
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : null;
+
+      return `# Delete Unused App Registrations
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "Application.ReadWrite.All", "AuditLog.Read.All"
+
+try {
+    $InactiveDays = ${inactiveDays}
+    $TestMode = $${testMode}
+    ${exportPath ? `$ExportPath = "${exportPath}"` : ''}
+    
+    Write-Host "Finding unused app registrations ($InactiveDays days threshold)..." -ForegroundColor Cyan
+    
+    if ($TestMode) {
+        Write-Host "=== TEST MODE - No apps will be deleted ===" -ForegroundColor Yellow
+    } else {
+        Write-Host "⚠ WARNING: This will PERMANENTLY DELETE unused apps" -ForegroundColor Red
+    }
+    Write-Host ""
+    
+    # Get all applications
+    Write-Host "Retrieving app registrations..." -ForegroundColor Gray
+    $Apps = Get-MgApplication -All -Property Id,AppId,DisplayName,CreatedDateTime,SignInAudience
+    
+    Write-Host "Found $($Apps.Count) app registrations" -ForegroundColor Gray
+    Write-Host ""
+    
+    $InactiveThreshold = (Get-Date).AddDays(-$InactiveDays)
+    $Results = @()
+    $DeletedCount = 0
+    
+    foreach ($App in $Apps) {
+        # Get service principal for app
+        $ServicePrincipal = Get-MgServicePrincipal -Filter "appId eq '$($App.AppId)'" -ErrorAction SilentlyContinue
+        
+        $IsUnused = $false
+        $LastSignIn = "N/A"
+        $DaysSinceSignIn = "N/A"
+        
+        if (-not $ServicePrincipal) {
+            # No service principal - app likely unused
+            $IsUnused = $true
+            $LastSignIn = "No service principal"
+        } else {
+            # Check sign-in activity via service principal
+            $SignInActivity = $ServicePrincipal.SignInActivity
+            
+            if ($SignInActivity -and $SignInActivity.LastSignInDateTime) {
+                $LastSignInDate = [DateTime]$SignInActivity.LastSignInDateTime
+                $DaysSinceSignIn = ((Get-Date) - $LastSignInDate).Days
+                $LastSignIn = $LastSignInDate.ToString("yyyy-MM-dd")
+                
+                if ($LastSignInDate -lt $InactiveThreshold) {
+                    $IsUnused = $true
+                }
+            } else {
+                # Never signed in
+                $IsUnused = $true
+                $LastSignIn = "Never signed in"
+                $DaysSinceSignIn = "Never"
+            }
+        }
+        
+        if ($IsUnused) {
+            $Results += [PSCustomObject]@{
+                DisplayName = $App.DisplayName
+                ApplicationId = $App.AppId
+                ObjectId = $App.Id
+                CreatedDate = $App.CreatedDateTime
+                LastSignIn = $LastSignIn
+                DaysSinceSignIn = $DaysSinceSignIn
+                SignInAudience = $App.SignInAudience
+                Action = if ($TestMode) { "Would Delete" } else { "Deleted" }
+            }
+            
+            # Delete app (if not test mode)
+            if (-not $TestMode) {
+                try {
+                    Remove-MgApplication -ApplicationId $App.Id -Confirm:$false
+                    Write-Host "  ✓ Deleted: $($App.DisplayName)" -ForegroundColor Yellow
+                    Write-Host "    Last activity: $LastSignIn" -ForegroundColor Gray
+                    $DeletedCount++
+                } catch {
+                    Write-Host "  ✗ Failed to delete: $($App.DisplayName) - $_" -ForegroundColor Red
+                }
+            } else {
+                Write-Host "  [TEST] Would delete: $($App.DisplayName)" -ForegroundColor Gray
+                Write-Host "    Last activity: $LastSignIn" -ForegroundColor Gray
+            }
+        }
+    }
+    
+    ${exportPath ? `
+    # Export report if path specified
+    if ($ExportPath) {
+        $Results | Export-Csv -Path $ExportPath -NoTypeInformation
+        Write-Host ""
+        Write-Host "✓ Unused apps report exported to: $ExportPath" -ForegroundColor Green
+    }
+    ` : ''}
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Total app registrations: $($Apps.Count)" -ForegroundColor Gray
+    Write-Host "Unused apps found: $($Results.Count)" -ForegroundColor Yellow
+    if (-not $TestMode) {
+        Write-Host "Apps deleted: $DeletedCount" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Note: Deleted apps are in recycle bin for 30 days" -ForegroundColor Gray
+    } else {
+        Write-Host ""
+        Write-Host "Run with TestMode=false to perform actual deletion" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Failed to process unused apps: $_"
+    exit 1
+}
+
+Disconnect-MgGraph`;
+    }
   }
 ];

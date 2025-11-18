@@ -2938,6 +2938,683 @@ try {
     Write-Error "Failed to export usage analytics: $_"
 }`;
     }
+  },
+
+  {
+    id: 'spo-create-site-collection',
+    title: 'Create SharePoint Online Site Collection',
+    description: 'Create new modern or classic SharePoint site collection with configuration',
+    category: 'Site Management',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates new SharePoint Online site collection (team or communication site)
+- Configures owner, storage quota, and template
+- Enables external sharing and hub association
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+- Available site URL (not previously used)
+
+**What You Need to Provide:**
+- Site URL (relative path)
+- Site title
+- Site owner email
+- Site template (Team, Communication, Classic)
+- Storage quota (MB)
+- External sharing settings
+
+**What the Script Does:**
+1. Validates site URL availability
+2. Creates site collection with specified template
+3. Configures owner and storage quota
+4. Sets external sharing permissions
+5. Optionally associates with hub site
+6. Reports site creation status and URL
+
+**Important Notes:**
+- URL cannot be changed after creation
+- Modern sites (Team/Communication) recommended over Classic
+- Team Site: Collaboration with Office 365 group
+- Communication Site: Broadcasting, no Office 365 group
+- Storage quota: 1GB minimum, 25TB maximum
+- External sharing: Follow organizational policy
+- Site appears in SharePoint Admin Center immediately
+- Full provisioning may take 5-10 minutes
+- Delete permanently removes all content (30-day recycle)`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL (relative path)',
+        type: 'text',
+        required: true,
+        placeholder: '/sites/ProjectAlpha',
+        helpText: 'Relative URL path, must be unique'
+      },
+      {
+        name: 'siteTitle',
+        label: 'Site Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Project Alpha Team Site',
+        helpText: 'Display name for the site'
+      },
+      {
+        name: 'ownerEmail',
+        label: 'Site Owner Email',
+        type: 'text',
+        required: true,
+        placeholder: 'admin@contoso.com',
+        helpText: 'Primary site collection administrator'
+      },
+      {
+        name: 'siteTemplate',
+        label: 'Site Template',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'SITEPAGEPUBLISHING#0', label: 'Communication Site' },
+          { value: 'STS#3', label: 'Team Site (Modern)' },
+          { value: 'STS#0', label: 'Team Site (Classic)' }
+        ],
+        defaultValue: 'SITEPAGEPUBLISHING#0',
+        helpText: 'Type of site to create'
+      },
+      {
+        name: 'storageQuotaMB',
+        label: 'Storage Quota (MB)',
+        type: 'number',
+        required: true,
+        placeholder: '5120',
+        defaultValue: 5120,
+        helpText: 'Storage limit in megabytes (1024 MB = 1 GB)'
+      },
+      {
+        name: 'externalSharing',
+        label: 'External Sharing',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Disabled', label: 'Disabled' },
+          { value: 'ExternalUserSharingOnly', label: 'Existing Guests Only' },
+          { value: 'ExternalUserAndGuestSharing', label: 'New and Existing Guests' },
+          { value: 'ExistingExternalUserSharingOnly', label: 'Anyone with Link' }
+        ],
+        defaultValue: 'ExternalUserSharingOnly',
+        helpText: 'External sharing permissions'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const siteTitle = escapePowerShellString(params.siteTitle);
+      const ownerEmail = escapePowerShellString(params.ownerEmail);
+      const siteTemplate = params.siteTemplate;
+      const storageQuotaMB = params.storageQuotaMB || 5120;
+      const externalSharing = params.externalSharing || 'ExternalUserSharingOnly';
+
+      return `# Create SharePoint Online Site Collection
+# Generated: ${new Date().toISOString()}
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $SiteTitle = "${siteTitle}"
+    $Owner = "${ownerEmail}"
+    $Template = "${siteTemplate}"
+    $StorageQuota = ${storageQuotaMB}
+    $ExternalSharing = "${externalSharing}"
+    
+    # Get tenant URL
+    $TenantUrl = (Get-SPOTenant).Url
+    $FullSiteUrl = $TenantUrl + $SiteUrl
+    
+    Write-Host "Creating SharePoint site collection..." -ForegroundColor Cyan
+    Write-Host "  URL: $FullSiteUrl" -ForegroundColor White
+    Write-Host "  Title: $SiteTitle" -ForegroundColor White
+    Write-Host "  Template: $Template" -ForegroundColor White
+    Write-Host "  Owner: $Owner" -ForegroundColor White
+    Write-Host "  Storage Quota: $([math]::Round($StorageQuota/1024, 2)) GB" -ForegroundColor White
+    Write-Host ""
+    
+    # Check if site already exists
+    $ExistingSite = Get-SPOSite -Identity $FullSiteUrl -ErrorAction SilentlyContinue
+    
+    if ($ExistingSite) {
+        Write-Host "⚠ Site already exists at: $FullSiteUrl" -ForegroundColor Yellow
+        Write-Host "  Title: $($ExistingSite.Title)" -ForegroundColor Gray
+        Write-Host "  Owner: $($ExistingSite.Owner)" -ForegroundColor Gray
+        exit 0
+    }
+    
+    # Create site collection
+    $NewSiteParams = @{
+        Url = $FullSiteUrl
+        Title = $SiteTitle
+        Owner = $Owner
+        StorageQuota = $StorageQuota
+        Template = $Template
+    }
+    
+    New-SPOSite @NewSiteParams
+    
+    Write-Host "✓ Site collection created successfully" -ForegroundColor Green
+    Write-Host ""
+    
+    # Wait for site provisioning
+    Write-Host "Waiting for site provisioning..." -ForegroundColor Cyan
+    Start-Sleep -Seconds 10
+    
+    # Configure external sharing
+    Write-Host "Configuring external sharing..." -ForegroundColor Cyan
+    Set-SPOSite -Identity $FullSiteUrl -SharingCapability $ExternalSharing
+    Write-Host "✓ External sharing set to: $ExternalSharing" -ForegroundColor Green
+    
+    # Get final site details
+    $Site = Get-SPOSite -Identity $FullSiteUrl
+    
+    Write-Host ""
+    Write-Host "================= SITE DETAILS =================" -ForegroundColor Cyan
+    Write-Host "Title: $($Site.Title)" -ForegroundColor Gray
+    Write-Host "URL: $($Site.Url)" -ForegroundColor Gray
+    Write-Host "Owner: $($Site.Owner)" -ForegroundColor Gray
+    Write-Host "Template: $($Site.Template)" -ForegroundColor Gray
+    Write-Host "Storage Quota: $([math]::Round($Site.StorageQuota/1024, 2)) GB" -ForegroundColor Gray
+    Write-Host "Storage Used: $([math]::Round($Site.StorageUsageCurrent/1024, 2)) GB" -ForegroundColor Gray
+    Write-Host "External Sharing: $($Site.SharingCapability)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "✓ Site is ready for use" -ForegroundColor Green
+    Write-Host "  Access at: $($Site.Url)" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to create site collection: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- URL already in use or previously deleted (wait 30 days or restore from recycle bin)" -ForegroundColor Gray
+    Write-Host "- Invalid owner email address" -ForegroundColor Gray
+    Write-Host "- Insufficient tenant storage quota" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-delete-site-collection',
+    title: 'Delete SharePoint Site Collection',
+    description: 'Delete SharePoint site collection with optional permanent removal',
+    category: 'Site Management',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Deletes SharePoint Online site collection
+- Moves site to recycle bin (soft delete) or permanently deletes
+- Supports bulk deletion with confirmation
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL to delete
+- Permanent deletion (or soft delete to recycle bin)
+- Confirmation (safety check)
+
+**What the Script Does:**
+1. Validates site exists
+2. Shows site details for confirmation
+3. Deletes site to recycle bin (default)
+4. Optionally permanently deletes (bypass recycle bin)
+5. Reports deletion status
+
+**Important Notes:**
+- Soft Delete: Site moves to recycle bin for 93 days
+- Permanent Delete: Immediate removal, cannot be recovered
+- Recycle bin sites count against tenant storage
+- Restore from recycle bin: Restore-SPODeletedSite
+- URL cannot be reused for 93 days after deletion
+- All content (lists, libraries, permissions) deleted
+- Use permanent delete only when absolutely necessary
+- ALWAYS verify site URL before deletion
+- Consider archiving critical content first
+- Export site as template for reuse if needed`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/OldProject',
+        helpText: 'Full URL of site to delete'
+      },
+      {
+        name: 'permanentDelete',
+        label: 'Permanent Delete (bypass recycle bin)',
+        type: 'checkbox',
+        required: false,
+        defaultValue: false,
+        helpText: 'WARNING: Cannot be undone!'
+      },
+      {
+        name: 'confirmDelete',
+        label: 'Confirm Deletion',
+        type: 'checkbox',
+        required: true,
+        defaultValue: false,
+        helpText: 'Must confirm to proceed with deletion'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const permanentDelete = params.permanentDelete || false;
+      const confirmDelete = params.confirmDelete || false;
+
+      return `# Delete SharePoint Site Collection
+# Generated: ${new Date().toISOString()}
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $PermanentDelete = $${permanentDelete}
+    $ConfirmDelete = $${confirmDelete}
+    
+    if (-not $ConfirmDelete) {
+        Write-Host "⚠ Deletion not confirmed - Set ConfirmDelete=true to proceed" -ForegroundColor Red
+        exit 1
+    }
+    
+    Write-Host "Deleting SharePoint site collection..." -ForegroundColor Cyan
+    Write-Host "  URL: $SiteUrl" -ForegroundColor White
+    Write-Host "  Permanent: $PermanentDelete" -ForegroundColor $(if ($PermanentDelete) { 'Red' } else { 'Yellow' })
+    Write-Host ""
+    
+    # Get site details
+    $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
+    
+    Write-Host "Site Details:" -ForegroundColor Yellow
+    Write-Host "  Title: $($Site.Title)" -ForegroundColor White
+    Write-Host "  Owner: $($Site.Owner)" -ForegroundColor White
+    Write-Host "  Storage Used: $([math]::Round($Site.StorageUsageCurrent/1024, 2)) GB" -ForegroundColor White
+    Write-Host "  Last Modified: $($Site.LastContentModifiedDate)" -ForegroundColor White
+    Write-Host ""
+    
+    if ($PermanentDelete) {
+        Write-Host "⚠⚠⚠ WARNING: PERMANENT DELETION ⚠⚠⚠" -ForegroundColor Red
+        Write-Host "This will PERMANENTLY delete the site and all content" -ForegroundColor Red
+        Write-Host "This action CANNOT be undone" -ForegroundColor Red
+        Write-Host ""
+    }
+    
+    # Delete site
+    if ($PermanentDelete) {
+        # Permanent deletion (bypass recycle bin)
+        Remove-SPOSite -Identity $SiteUrl -Confirm:$false
+        
+        # Also remove from recycle bin immediately
+        Remove-SPODeletedSite -Identity $SiteUrl -Confirm:$false -ErrorAction SilentlyContinue
+        
+        Write-Host "✓ Site permanently deleted" -ForegroundColor Red
+        Write-Host "  Site and all content are gone forever" -ForegroundColor Gray
+    } else {
+        # Soft delete (move to recycle bin)
+        Remove-SPOSite -Identity $SiteUrl -Confirm:$false
+        
+        Write-Host "✓ Site moved to recycle bin" -ForegroundColor Yellow
+        Write-Host "  Site will be automatically deleted after 93 days" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "To restore this site, run:" -ForegroundColor Cyan
+        Write-Host "  Restore-SPODeletedSite -Identity '$SiteUrl'" -ForegroundColor White
+    }
+    
+    Write-Host ""
+    Write-Host "Important Notes:" -ForegroundColor Cyan
+    Write-Host "- URL '$SiteUrl' cannot be reused for 93 days" -ForegroundColor Gray
+    Write-Host "- All content, permissions, and history deleted" -ForegroundColor Gray
+    if (-not $PermanentDelete) {
+        Write-Host "- View deleted sites: Get-SPODeletedSite" -ForegroundColor Gray
+    }
+    
+} catch {
+    Write-Error "Failed to delete site: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Site URL not found or already deleted" -ForegroundColor Gray
+    Write-Host "- Insufficient permissions" -ForegroundColor Gray
+    Write-Host "- Site is hub site (must unregister first)" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-configure-external-sharing',
+    title: 'Configure Site External Sharing Settings',
+    description: 'Configure external sharing permissions and anonymous link settings for SharePoint site',
+    category: 'Sharing',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures external sharing for specific SharePoint site
+- Controls anonymous links and guest access
+- Enforces compliance with organizational policies
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL
+- Sharing capability level
+- Anonymous link configuration
+- Sharing permissions
+
+**What the Script Does:**
+1. Retrieves current site sharing settings
+2. Updates sharing capability (guest access level)
+3. Configures anonymous link expiration
+4. Sets default sharing permissions
+5. Reports sharing configuration changes
+
+**Important Notes:**
+- Sharing Levels (from most to least permissive):
+  * Anyone: Anonymous links allowed (anyone with link)
+  * ExternalUserAndGuestSharing: New and existing guests
+  * ExternalUserSharingOnly: Existing guests only
+  * Disabled: No external sharing
+- Cannot be more permissive than tenant-level settings
+- Anonymous links: Automatically expire for security
+- Default expiration: 30 days recommended
+- Guest access requires Azure AD B2B licensing
+- Track sharing via Audit logs
+- Review external sharing quarterly
+- Use for: Partner collaboration, client portals
+- Disable for: Confidential/sensitive sites`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/ProjectAlpha',
+        helpText: 'Full URL of site to configure'
+      },
+      {
+        name: 'sharingCapability',
+        label: 'Sharing Capability',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Disabled', label: 'Disabled - No external sharing' },
+          { value: 'ExternalUserSharingOnly', label: 'Existing Guests Only' },
+          { value: 'ExternalUserAndGuestSharing', label: 'New and Existing Guests' },
+          { value: 'ExistingExternalUserSharingOnly', label: 'Anyone with Link (Anonymous)' }
+        ],
+        defaultValue: 'ExternalUserSharingOnly'
+      },
+      {
+        name: 'anonymousLinkExpiration',
+        label: 'Anonymous Link Expiration (Days)',
+        type: 'number',
+        required: false,
+        placeholder: '30',
+        defaultValue: 30,
+        helpText: 'Days until anonymous links expire (security)'
+      },
+      {
+        name: 'defaultLinkPermission',
+        label: 'Default Link Permission',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'View', label: 'View Only' },
+          { value: 'Edit', label: 'Edit' }
+        ],
+        defaultValue: 'View'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const sharingCapability = params.sharingCapability || 'ExternalUserSharingOnly';
+      const anonymousLinkExpiration = params.anonymousLinkExpiration || 30;
+      const defaultLinkPermission = params.defaultLinkPermission || 'View';
+
+      return `# Configure Site External Sharing Settings
+# Generated: ${new Date().toISOString()}
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $SharingCapability = "${sharingCapability}"
+    $AnonymousLinkExpiration = ${anonymousLinkExpiration}
+    $DefaultLinkPermission = "${defaultLinkPermission}"
+    
+    Write-Host "Configuring external sharing for site..." -ForegroundColor Cyan
+    Write-Host "  Site: $SiteUrl" -ForegroundColor White
+    Write-Host ""
+    
+    # Get current site settings
+    $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
+    
+    Write-Host "Current Settings:" -ForegroundColor Yellow
+    Write-Host "  Sharing Capability: $($Site.SharingCapability)" -ForegroundColor White
+    Write-Host "  Default Link Permission: $($Site.DefaultLinkPermission)" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "New Settings:" -ForegroundColor Cyan
+    Write-Host "  Sharing Capability: $SharingCapability" -ForegroundColor White
+    Write-Host "  Anonymous Link Expiration: $AnonymousLinkExpiration days" -ForegroundColor White
+    Write-Host "  Default Link Permission: $DefaultLinkPermission" -ForegroundColor White
+    Write-Host ""
+    
+    # Configure sharing settings
+    $SetParams = @{
+        Identity = $SiteUrl
+        SharingCapability = $SharingCapability
+        DefaultLinkPermission = $DefaultLinkPermission
+    }
+    
+    if ($SharingCapability -ne "Disabled") {
+        $SetParams.OverrideTenantAnonymousLinkExpirationPolicy = $true
+        $SetParams.AnonymousLinkExpirationInDays = $AnonymousLinkExpiration
+    }
+    
+    Set-SPOSite @SetParams
+    
+    Write-Host "✓ External sharing configured successfully" -ForegroundColor Green
+    
+    # Verify changes
+    $UpdatedSite = Get-SPOSite -Identity $SiteUrl
+    
+    Write-Host ""
+    Write-Host "================= VERIFICATION =================" -ForegroundColor Cyan
+    Write-Host "Sharing Capability: $($UpdatedSite.SharingCapability)" -ForegroundColor Gray
+    Write-Host "Default Link Permission: $($UpdatedSite.DefaultLinkPermission)" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Security recommendations
+    Write-Host "Security Recommendations:" -ForegroundColor Cyan
+    Write-Host "1. External Sharing Level:" -ForegroundColor White
+    Write-Host "   - Use 'Disabled' for sensitive/confidential sites" -ForegroundColor Gray
+    Write-Host "   - Use 'ExternalUserSharingOnly' for business partners" -ForegroundColor Gray
+    Write-Host "   - Avoid 'Anyone' links for compliance-sensitive data" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "2. Anonymous Link Expiration:" -ForegroundColor White
+    Write-Host "   - Set to 30 days or less for security" -ForegroundColor Gray
+    Write-Host "   - Links expire automatically to prevent stale access" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "3. Monitoring:" -ForegroundColor White
+    Write-Host "   - Review external user access quarterly" -ForegroundColor Gray
+    Write-Host "   - Enable audit logging for sharing events" -ForegroundColor Gray
+    Write-Host "   - Track anonymous link usage via reports" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "4. Governance:" -ForegroundColor White
+    Write-Host "   - Document sharing policy in site" -ForegroundColor Gray
+    Write-Host "   - Train users on secure sharing practices" -ForegroundColor Gray
+    Write-Host "   - Review shared files for sensitivity labels" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure external sharing: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Sharing capability more permissive than tenant setting" -ForegroundColor Gray
+    Write-Host "- Site not found or insufficient permissions" -ForegroundColor Gray
+    Write-Host "- Invalid sharing capability value" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-manage-storage-quota',
+    title: 'Manage Site Storage Quotas',
+    description: 'Update storage quota and warning levels for SharePoint sites',
+    category: 'Storage',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures storage quota limits for SharePoint sites
+- Sets warning thresholds for proactive management
+- Enables capacity planning and cost control
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Connected to SharePoint Online admin center
+
+**What You Need to Provide:**
+- Site URL
+- Storage quota (MB or GB)
+- Warning level (percentage or MB)
+- Apply to multiple sites (optional)
+
+**What the Script Does:**
+1. Retrieves current site storage usage
+2. Updates storage quota limit
+3. Sets warning threshold
+4. Reports quota changes and utilization
+
+**Important Notes:**
+- Quota Range: 1 GB minimum, 25 TB maximum
+- Warning Level: 75-90% recommended
+- Site collection admin notified at warning threshold
+- Exceeding quota: Users can't upload, admins can still manage
+- Tenant quota: Sum of all site quotas cannot exceed tenant limit
+- Automatic quota: Let SharePoint manage (pooled storage)
+- Manual quota: Fixed limits per site (legacy)
+- Modern sites use pooled storage by default
+- Monitor usage monthly for capacity planning
+- Use for: High-storage sites, archive sites, media sites`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/ProjectAlpha',
+        helpText: 'Full URL of site'
+      },
+      {
+        name: 'storageQuotaGB',
+        label: 'Storage Quota (GB)',
+        type: 'number',
+        required: true,
+        placeholder: '10',
+        defaultValue: 10,
+        helpText: 'Maximum storage in gigabytes'
+      },
+      {
+        name: 'warningLevelPercent',
+        label: 'Warning Level (%)',
+        type: 'number',
+        required: false,
+        placeholder: '85',
+        defaultValue: 85,
+        helpText: 'Percentage threshold for warnings (75-90% recommended)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const storageQuotaGB = params.storageQuotaGB || 10;
+      const warningLevelPercent = params.warningLevelPercent || 85;
+      const storageQuotaMB = storageQuotaGB * 1024;
+      const warningLevelMB = Math.floor(storageQuotaMB * (warningLevelPercent / 100));
+
+      return `# Manage Site Storage Quotas
+# Generated: ${new Date().toISOString()}
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $StorageQuotaGB = ${storageQuotaGB}
+    $WarningLevelPercent = ${warningLevelPercent}
+    $StorageQuotaMB = ${storageQuotaMB}
+    $WarningLevelMB = ${warningLevelMB}
+    
+    Write-Host "Managing storage quota for site..." -ForegroundColor Cyan
+    Write-Host "  Site: $SiteUrl" -ForegroundColor White
+    Write-Host ""
+    
+    # Get current site storage details
+    $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
+    
+    $CurrentUsageGB = [math]::Round($Site.StorageUsageCurrent / 1024, 2)
+    $CurrentQuotaGB = [math]::Round($Site.StorageQuota / 1024, 2)
+    $UtilizationPercent = [math]::Round(($Site.StorageUsageCurrent / $Site.StorageQuota) * 100, 1)
+    
+    Write-Host "Current Storage Status:" -ForegroundColor Yellow
+    Write-Host "  Usage: $CurrentUsageGB GB" -ForegroundColor White
+    Write-Host "  Quota: $CurrentQuotaGB GB" -ForegroundColor White
+    Write-Host "  Utilization: $UtilizationPercent%" -ForegroundColor White
+    Write-Host "  Warning Level: $([math]::Round($Site.StorageWarningLevel / 1024, 2)) GB" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "New Quota Settings:" -ForegroundColor Cyan
+    Write-Host "  Quota: $StorageQuotaGB GB" -ForegroundColor White
+    Write-Host "  Warning: $([math]::Round($WarningLevelMB / 1024, 2)) GB ($WarningLevelPercent%)" -ForegroundColor White
+    Write-Host ""
+    
+    # Validate new quota is larger than current usage
+    if ($StorageQuotaMB -lt $Site.StorageUsageCurrent) {
+        Write-Host "⚠ WARNING: New quota ($StorageQuotaGB GB) is less than current usage ($CurrentUsageGB GB)" -ForegroundColor Red
+        Write-Host "This will prevent users from uploading new content until usage decreases" -ForegroundColor Yellow
+        Write-Host ""
+    }
+    
+    # Update storage quota
+    Set-SPOSite -Identity $SiteUrl \`
+        -StorageQuota $StorageQuotaMB \`
+        -StorageQuotaWarningLevel $WarningLevelMB
+    
+    Write-Host "✓ Storage quota updated successfully" -ForegroundColor Green
+    
+    # Verify changes
+    $UpdatedSite = Get-SPOSite -Identity $SiteUrl
+    $NewQuotaGB = [math]::Round($UpdatedSite.StorageQuota / 1024, 2)
+    $NewWarningGB = [math]::Round($UpdatedSite.StorageWarningLevel / 1024, 2)
+    $NewUtilization = [math]::Round(($UpdatedSite.StorageUsageCurrent / $UpdatedSite.StorageQuota) * 100, 1)
+    
+    Write-Host ""
+    Write-Host "================= VERIFICATION =================" -ForegroundColor Cyan
+    Write-Host "Current Usage: $CurrentUsageGB GB" -ForegroundColor Gray
+    Write-Host "New Quota: $NewQuotaGB GB" -ForegroundColor Gray
+    Write-Host "New Warning Level: $NewWarningGB GB ($WarningLevelPercent%)" -ForegroundColor Gray
+    Write-Host "New Utilization: $NewUtilization%" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Storage management recommendations
+    Write-Host "Storage Management Tips:" -ForegroundColor Cyan
+    Write-Host "1. Monitoring:" -ForegroundColor White
+    Write-Host "   - Review storage usage monthly" -ForegroundColor Gray
+    Write-Host "   - Set warning level to 75-90% for proactive alerts" -ForegroundColor Gray
+    Write-Host "   - Site admins notified when warning threshold reached" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "2. Optimization:" -ForegroundColor White
+    Write-Host "   - Delete old versions (versioning settings)" -ForegroundColor Gray
+    Write-Host "   - Empty recycle bin regularly" -ForegroundColor Gray
+    Write-Host "   - Archive old content to separate site" -ForegroundColor Gray
+    Write-Host "   - Use retention policies for automatic cleanup" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "3. Capacity Planning:" -ForegroundColor White
+    Write-Host "   - Monitor growth trends for forecasting" -ForegroundColor Gray
+    Write-Host "   - Request tenant quota increase if needed" -ForegroundColor Gray
+    Write-Host "   - Consider Microsoft 365 Archive for cold storage" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to update storage quota: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Site not found or insufficient permissions" -ForegroundColor Gray
+    Write-Host "- Quota exceeds tenant available storage" -ForegroundColor Gray
+    Write-Host "- Invalid quota values (min: 1 GB, max: 25 TB)" -ForegroundColor Gray
+}`;
+    }
   }
 ];
 

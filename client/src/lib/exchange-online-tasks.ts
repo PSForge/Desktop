@@ -3658,5 +3658,470 @@ try {
     exit 1
 }`;
     }
+  },
+
+  // ========================================
+  // RETENTION & COMPLIANCE CATEGORY
+  // ========================================
+  {
+    id: 'create-retention-policy',
+    name: 'Create Retention Policy',
+    category: 'Retention & Compliance',
+    isPremium: true,
+    description: 'Create retention policy with retention tags for compliance',
+    instructions: `**How This Task Works:**
+This script creates a retention policy in Exchange Online for automated email retention and deletion based on compliance requirements.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Understanding of retention requirements
+- Compliance policies defined
+
+**What You Need to Provide:**
+- Policy name
+- Retention tags to include
+- Whether to make it default policy
+
+**What the Script Does:**
+1. Creates retention policy
+2. Links specified retention tags
+3. Optionally sets as default policy
+4. Reports policy configuration
+
+**Important Notes:**
+- Retention policies automate email lifecycle management
+- Tags define retention actions (delete, move to archive)
+- Default policy applies to all new mailboxes
+- Common tags: Default 2 year move to archive, Personal 1 year, Deleted Items 30 days
+- Policies don't delete immediately - deletion occurs during managed folder assistant run
+- Test with pilot group before organization-wide deployment`,
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'Corporate Retention Policy' },
+      { id: 'retentionTags', label: 'Retention Tags (comma-separated)', type: 'textarea', required: true, placeholder: 'Default 2 year move to archive, Personal 1 year delete and allow recovery, Deleted Items 30 days delete and allow recovery', description: 'Names of existing retention tags to include in policy' },
+      { id: 'setAsDefault', label: 'Set as Default Policy', type: 'boolean', required: false, defaultValue: false, description: 'Apply to all new mailboxes automatically' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const retentionTagsRaw = (params.retentionTags as string).split(',').map((tag: string) => tag.trim());
+      const setAsDefault = params.setAsDefault || false;
+
+      return `# Create Retention Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $PolicyName = "${policyName}"
+    $RetentionTags = @(${retentionTagsRaw.map(tag => `"${escapePowerShellString(tag)}"`).join(', ')})
+    $SetAsDefault = $${setAsDefault}
+    
+    Write-Host "Creating retention policy: $PolicyName" -ForegroundColor Cyan
+    Write-Host "Retention tags to include:" -ForegroundColor Gray
+    $RetentionTags | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
+    Write-Host ""
+    
+    # Check if policy already exists
+    $Existing = Get-RetentionPolicy -Identity $PolicyName -ErrorAction SilentlyContinue
+    
+    if ($Existing) {
+        Write-Host "⚠ Policy already exists: $PolicyName" -ForegroundColor Yellow
+        Write-Host "Updating existing policy..." -ForegroundColor Cyan
+        
+        # Update retention policy links
+        Set-RetentionPolicy -Identity $PolicyName -RetentionPolicyTagLinks $RetentionTags
+        Write-Host "✓ Updated retention policy tags" -ForegroundColor Green
+    } else {
+        # Create new retention policy
+        New-RetentionPolicy -Name $PolicyName -RetentionPolicyTagLinks $RetentionTags
+        Write-Host "✓ Created retention policy: $PolicyName" -ForegroundColor Green
+    }
+    
+    # Set as default if requested
+    if ($SetAsDefault) {
+        Set-RetentionPolicy -Identity $PolicyName -IsDefault $true
+        Write-Host "✓ Set as default retention policy" -ForegroundColor Green
+        Write-Host "  All new mailboxes will receive this policy automatically" -ForegroundColor Gray
+    }
+    
+    # Display policy details
+    $Policy = Get-RetentionPolicy -Identity $PolicyName
+    Write-Host ""
+    Write-Host "================= POLICY DETAILS =================" -ForegroundColor Cyan
+    Write-Host "Policy Name: $($Policy.Name)" -ForegroundColor Gray
+    Write-Host "Is Default: $($Policy.IsDefault)" -ForegroundColor Gray
+    Write-Host "Retention Tags: $($Policy.RetentionPolicyTagLinks.Count)" -ForegroundColor Gray
+    
+    $Policy.RetentionPolicyTagLinks | ForEach-Object {
+        Write-Host "  - $_" -ForegroundColor Gray
+    }
+    
+} catch {
+    Write-Error "Failed to create retention policy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'apply-retention-policy-mailboxes',
+    name: 'Apply Retention Policy to Mailboxes',
+    category: 'Retention & Compliance',
+    isPremium: true,
+    description: 'Apply retention policy to single or multiple mailboxes',
+    instructions: `**How This Task Works:**
+This script assigns a retention policy to mailboxes for automated email retention management.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Retention policy already created
+- Target mailboxes exist
+
+**What You Need to Provide:**
+- Retention policy name
+- Target user emails (single or multiple)
+
+**What the Script Does:**
+1. Validates retention policy exists
+2. Applies policy to each mailbox
+3. Reports success/failure per user
+4. Provides summary statistics
+
+**Important Notes:**
+- Policy changes take effect during next managed folder assistant run
+- Users see retention tags in Outlook/OWA
+- Existing items are processed based on policy
+- Use Get-RetentionPolicy to see available policies
+- Can apply to all mailboxes using Get-EXOMailbox | Set-Mailbox pattern
+- Policy assignment is immediate but processing is scheduled`,
+    parameters: [
+      { id: 'policyName', label: 'Retention Policy Name', type: 'text', required: true, placeholder: 'Corporate Retention Policy' },
+      { id: 'userEmails', label: 'User Emails (comma-separated)', type: 'textarea', required: true, placeholder: 'user1@contoso.com, user2@contoso.com, user3@contoso.com' },
+      { id: 'forceAssistant', label: 'Force Managed Folder Assistant', type: 'boolean', required: false, defaultValue: false, description: 'Immediately run retention processing (may take time)' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const userEmailsRaw = (params.userEmails as string).split(',').map((email: string) => email.trim());
+      const forceAssistant = params.forceAssistant || false;
+
+      return `# Apply Retention Policy to Mailboxes
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $PolicyName = "${policyName}"
+    $Users = @(${userEmailsRaw.map(email => `"${escapePowerShellString(email)}"`).join(', ')})
+    $ForceAssistant = $${forceAssistant}
+    
+    Write-Host "Applying retention policy: $PolicyName" -ForegroundColor Cyan
+    Write-Host "Target mailboxes: $($Users.Count)" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Verify policy exists
+    $Policy = Get-RetentionPolicy -Identity $PolicyName -ErrorAction SilentlyContinue
+    if (-not $Policy) {
+        Write-Error "Retention policy not found: $PolicyName"
+        Write-Host "Available policies:" -ForegroundColor Yellow
+        Get-RetentionPolicy | Select-Object Name, IsDefault | Format-Table -AutoSize
+        exit 1
+    }
+    
+    Write-Host "✓ Verified retention policy exists" -ForegroundColor Green
+    Write-Host ""
+    
+    $SuccessCount = 0
+    $FailCount = 0
+    
+    foreach ($User in $Users) {
+        try {
+            Set-Mailbox -Identity $User -RetentionPolicy $PolicyName -ErrorAction Stop
+            Write-Host "✓ Applied to: $User" -ForegroundColor Green
+            
+            # Force managed folder assistant if requested
+            if ($ForceAssistant) {
+                Start-ManagedFolderAssistant -Identity $User -ErrorAction SilentlyContinue
+                Write-Host "  ↳ Triggered managed folder assistant" -ForegroundColor Gray
+            }
+            
+            $SuccessCount++
+        } catch {
+            Write-Host "✗ Failed: $User - $_" -ForegroundColor Red
+            $FailCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Policy: $PolicyName" -ForegroundColor Gray
+    Write-Host "Total Mailboxes: $($Users.Count)" -ForegroundColor Gray
+    Write-Host "Successful: $SuccessCount" -ForegroundColor Green
+    Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Red' } else { 'Gray' })
+    
+    if (-not $ForceAssistant) {
+        Write-Host ""
+        Write-Host "Note: Policy will be processed during next managed folder assistant run" -ForegroundColor Yellow
+        Write-Host "      To force immediate processing, run Start-ManagedFolderAssistant" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Failed to apply retention policy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'create-retention-tag',
+    name: 'Create Retention Tag',
+    category: 'Retention & Compliance',
+    isPremium: true,
+    description: 'Create retention tag with custom retention action and age limit',
+    instructions: `**How This Task Works:**
+This script creates a retention policy tag that defines how and when to retain or delete email items.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Understanding of retention actions
+- Compliance requirements documented
+
+**What You Need to Provide:**
+- Tag name and type
+- Retention action (Delete, MoveToArchive, etc.)
+- Retention age limit in days
+- Retention enabled status
+
+**What the Script Does:**
+1. Creates retention tag with specified settings
+2. Configures retention action and age limit
+3. Makes tag available for retention policies
+4. Reports tag configuration
+
+**Important Notes:**
+- Tag Types:
+  * Default: Applied to all items without specific tag
+  * Personal: Users can apply manually in Outlook
+  * All: Applies to entire mailbox
+  * Inbox, SentItems, DeletedItems, etc.: Folder-specific
+- Retention Actions:
+  * Delete: Permanently deletes items
+  * DeleteAndAllowRecovery: Moves to Recoverable Items
+  * MoveToArchive: Moves to archive mailbox
+  * PermanentlyDelete: Cannot be recovered
+- Age limit determines when action triggers
+- Common patterns: 7 day deleted items, 30 day junk, 2 year archive`,
+    parameters: [
+      { id: 'tagName', label: 'Tag Name', type: 'text', required: true, placeholder: 'Delete 30 Days', description: 'Descriptive name for the tag' },
+      { id: 'tagType', label: 'Tag Type', type: 'select', required: true, options: ['Default', 'Personal', 'All', 'Inbox', 'DeletedItems', 'SentItems', 'JunkEmail', 'Calendar', 'Contacts', 'Tasks', 'Notes'], defaultValue: 'Default', description: 'Scope where tag applies' },
+      { id: 'retentionAction', label: 'Retention Action', type: 'select', required: true, options: ['DeleteAndAllowRecovery', 'PermanentlyDelete', 'MoveToArchive', 'Delete', 'MarkAsPastRetentionLimit'], defaultValue: 'DeleteAndAllowRecovery' },
+      { id: 'ageLimitDays', label: 'Age Limit (Days)', type: 'number', required: true, placeholder: '30', description: 'Number of days before action triggers' },
+      { id: 'retentionEnabled', label: 'Retention Enabled', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const tagName = escapePowerShellString(params.tagName);
+      const tagType = params.tagType || 'Default';
+      const retentionAction = params.retentionAction || 'DeleteAndAllowRecovery';
+      const ageLimitDays = params.ageLimitDays || 30;
+      const retentionEnabled = params.retentionEnabled !== false;
+
+      return `# Create Retention Tag
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $TagName = "${tagName}"
+    $Type = "${tagType}"
+    $Action = "${retentionAction}"
+    $AgeLimitDays = ${ageLimitDays}
+    $Enabled = $${retentionEnabled}
+    
+    Write-Host "Creating retention tag..." -ForegroundColor Cyan
+    Write-Host "  Name: $TagName" -ForegroundColor Gray
+    Write-Host "  Type: $Type" -ForegroundColor Gray
+    Write-Host "  Action: $Action" -ForegroundColor Gray
+    Write-Host "  Age Limit: $AgeLimitDays days" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Check if tag already exists
+    $Existing = Get-RetentionPolicyTag -Identity $TagName -ErrorAction SilentlyContinue
+    
+    if ($Existing) {
+        Write-Host "⚠ Retention tag already exists: $TagName" -ForegroundColor Yellow
+        Write-Host "Updating existing tag..." -ForegroundColor Cyan
+        
+        Set-RetentionPolicyTag -Identity $TagName \`
+            -RetentionAction $Action \`
+            -AgeLimitForRetention $AgeLimitDays \`
+            -RetentionEnabled $Enabled
+        
+        Write-Host "✓ Updated retention tag" -ForegroundColor Green
+    } else {
+        # Create new retention tag
+        New-RetentionPolicyTag -Name $TagName \`
+            -Type $Type \`
+            -RetentionAction $Action \`
+            -AgeLimitForRetention $AgeLimitDays \`
+            -RetentionEnabled $Enabled
+        
+        Write-Host "✓ Created retention tag: $TagName" -ForegroundColor Green
+    }
+    
+    # Display tag details
+    $Tag = Get-RetentionPolicyTag -Identity $TagName
+    
+    Write-Host ""
+    Write-Host "================= TAG DETAILS =================" -ForegroundColor Cyan
+    Write-Host "Tag Name: $($Tag.Name)" -ForegroundColor Gray
+    Write-Host "Type: $($Tag.Type)" -ForegroundColor Gray
+    Write-Host "Retention Action: $($Tag.RetentionAction)" -ForegroundColor Gray
+    Write-Host "Age Limit: $($Tag.AgeLimitForRetention) days" -ForegroundColor Gray
+    Write-Host "Retention Enabled: $($Tag.RetentionEnabled)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Add this tag to a retention policy using New-RetentionPolicy or Set-RetentionPolicy" -ForegroundColor Gray
+    Write-Host "2. Apply the retention policy to mailboxes" -ForegroundColor Gray
+    Write-Host "3. Users will see this tag in Outlook/OWA if Type is 'Personal'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create retention tag: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'enable-litigation-hold-with-duration',
+    name: 'Enable Litigation Hold with Duration',
+    category: 'Retention & Compliance',
+    isPremium: true,
+    description: 'Place mailbox on litigation hold with unlimited or time-based retention',
+    instructions: `**How This Task Works:**
+This script enables litigation hold on mailboxes to preserve all content for legal/compliance purposes, preventing deletion even by users.
+
+**Prerequisites:**
+- Exchange Administrator role
+- Exchange Online Plan 2 license (or E3/E5)
+- Legal or compliance requirement documented
+
+**What You Need to Provide:**
+- Target user emails
+- Hold duration (unlimited or days)
+- Optional hold comment
+- Optional owner notification
+
+**What the Script Does:**
+1. Verifies mailbox has required license
+2. Enables litigation hold
+3. Sets hold duration and comment
+4. Optionally notifies mailbox owner
+5. Reports hold status
+
+**Important Notes:**
+- Litigation hold preserves ALL mailbox content forever (or until duration expires)
+- Users cannot permanently delete items while on hold
+- Items remain searchable for eDiscovery
+- Hold applies to main mailbox and archive
+- Requires Exchange Online Plan 2 or E3/E5 license
+- Hold comment visible to users in Outlook/OWA
+- Duration in days (leave blank for unlimited)
+- Use for legal holds, investigations, compliance audits
+- Consider In-Place Hold for more granular control`,
+    parameters: [
+      { id: 'userEmails', label: 'User Emails (comma-separated)', type: 'textarea', required: true, placeholder: 'user1@contoso.com, user2@contoso.com' },
+      { id: 'holdDuration', label: 'Hold Duration (Days)', type: 'number', required: false, placeholder: 'Leave blank for unlimited', description: 'Number of days to retain, blank = unlimited' },
+      { id: 'holdComment', label: 'Hold Comment', type: 'textarea', required: false, placeholder: 'This mailbox is on litigation hold per legal case #2024-001. Contact legal@contoso.com for questions.', description: 'Message displayed to mailbox owner' },
+      { id: 'notifyOwner', label: 'Notify Mailbox Owner', type: 'boolean', required: false, defaultValue: true, description: 'Send email notification to user' }
+    ],
+    scriptTemplate: (params) => {
+      const userEmailsRaw = (params.userEmails as string).split(',').map((email: string) => email.trim());
+      const holdDuration = params.holdDuration || null;
+      const holdComment = params.holdComment ? escapePowerShellString(params.holdComment) : '';
+      const notifyOwner = params.notifyOwner !== false;
+
+      return `# Enable Litigation Hold with Duration
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $Users = @(${userEmailsRaw.map(email => `"${escapePowerShellString(email)}"`).join(', ')})
+    ${holdDuration ? `$HoldDuration = ${holdDuration}` : '$HoldDuration = $null'}
+    $HoldComment = "${holdComment}"
+    $NotifyOwner = $${notifyOwner}
+    
+    Write-Host "Enabling litigation hold for $($Users.Count) mailboxes..." -ForegroundColor Cyan
+    ${holdDuration ? `Write-Host "Hold Duration: $HoldDuration days" -ForegroundColor Gray` : `Write-Host "Hold Duration: Unlimited" -ForegroundColor Gray`}
+    Write-Host ""
+    
+    $SuccessCount = 0
+    $FailCount = 0
+    
+    foreach ($User in $Users) {
+        try {
+            # Get mailbox details
+            $Mailbox = Get-EXOMailbox -Identity $User -Properties LitigationHoldEnabled, LitigationHoldDuration, LitigationHoldDate -ErrorAction Stop
+            
+            if ($Mailbox.LitigationHoldEnabled) {
+                Write-Host "⚠ $User - Already on litigation hold" -ForegroundColor Yellow
+                Write-Host "  Existing hold date: $($Mailbox.LitigationHoldDate)" -ForegroundColor Gray
+                ${holdDuration ? `Write-Host "  Updating hold duration to $HoldDuration days..." -ForegroundColor Cyan` : ''}
+            } else {
+                Write-Host "Enabling litigation hold: $User" -ForegroundColor Cyan
+            }
+            
+            # Build command parameters
+            $HoldParams = @{
+                Identity = $User
+                LitigationHoldEnabled = $true
+            }
+            
+            if ($HoldDuration) {
+                $HoldParams.LitigationHoldDuration = $HoldDuration
+            } else {
+                $HoldParams.LitigationHoldDuration = 'Unlimited'
+            }
+            
+            if ($HoldComment) {
+                $HoldParams.LitigationHoldOwner = $HoldComment
+            }
+            
+            # Enable litigation hold
+            Set-Mailbox @HoldParams
+            
+            Write-Host "✓ Litigation hold enabled: $User" -ForegroundColor Green
+            ${holdDuration ? `Write-Host "  Duration: $HoldDuration days" -ForegroundColor Gray` : `Write-Host "  Duration: Unlimited" -ForegroundColor Gray`}
+            
+            # Send notification if requested
+            if ($NotifyOwner -and $HoldComment) {
+                Write-Host "  ↳ Owner will see hold comment in Outlook/OWA" -ForegroundColor Gray
+            }
+            
+            $SuccessCount++
+        } catch {
+            Write-Host "✗ Failed: $User - $_" -ForegroundColor Red
+            $FailCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Total Mailboxes: $($Users.Count)" -ForegroundColor Gray
+    Write-Host "Successful: $SuccessCount" -ForegroundColor Green
+    Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Red' } else { 'Gray' })
+    ${holdDuration ? `Write-Host "Hold Duration: $HoldDuration days" -ForegroundColor Gray` : `Write-Host "Hold Duration: Unlimited" -ForegroundColor Gray`}
+    
+    Write-Host ""
+    Write-Host "Important Notes:" -ForegroundColor Yellow
+    Write-Host "- Items in mailbox cannot be permanently deleted" -ForegroundColor Gray
+    Write-Host "- Hold applies to main mailbox and archive" -ForegroundColor Gray
+    Write-Host "- All content preserved for eDiscovery searches" -ForegroundColor Gray
+    Write-Host "- Users may see notification in Outlook/OWA" -ForegroundColor Gray
+    ${holdDuration ? `Write-Host "- Hold will automatically release after $HoldDuration days" -ForegroundColor Gray` : `Write-Host "- Hold remains until manually disabled" -ForegroundColor Gray`}
+    
+} catch {
+    Write-Error "Failed to enable litigation hold: $_"
+    exit 1
+}`;
+    }
   }
 ];

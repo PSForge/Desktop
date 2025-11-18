@@ -5101,5 +5101,597 @@ try {
     Write-Error "Failed to generate security report: $_"
 }`;
     }
+  },
+
+  // ========================================
+  // GROUP POLICY MANAGEMENT CATEGORY
+  // ========================================
+  {
+    id: 'create-link-gpo',
+    name: 'Create and Link Group Policy Object',
+    category: 'Group Policy',
+    isPremium: true,
+    description: 'Create new GPO, configure settings, and link to organizational units',
+    instructions: `**How This Task Works:**
+This script creates a new Group Policy Object, configures basic settings, and links it to specified organizational units for automatic application to users and computers.
+
+**Prerequisites:**
+- Group Policy Management PowerShell module installed
+- Domain Admin or delegated GPO creation permissions
+- Target organizational units must exist
+- RSAT (Remote Server Administration Tools) installed
+
+**What You Need to Provide:**
+- GPO name and description
+- Target OU distinguished names to link
+- Link order (processing priority)
+- Enforcement and enabled status
+
+**What the Script Does:**
+1. Creates new Group Policy Object
+2. Configures GPO description and comments
+3. Links GPO to specified organizational units
+4. Sets link order and enforcement
+5. Reports GPO GUID and link status
+
+**Important Notes:**
+- GPO Link Order: Lower numbers process first (1 = highest priority)
+- Enforced GPOs cannot be blocked by child OUs
+- Link Enabled: Controls whether GPO is active on linked OU
+- Always test GPOs in non-production OU first
+- Use Security Filtering to target specific users/computers
+- GPO replication takes 5-15 minutes across domain
+- Run 'gpupdate /force' on clients to apply immediately
+- Common uses: Password policies, software deployment, security settings`,
+    parameters: [
+      { id: 'gpoName', label: 'GPO Name', type: 'text', required: true, placeholder: 'Workstation Security Policy' },
+      { id: 'gpoDescription', label: 'GPO Description', type: 'textarea', required: false, placeholder: 'Enforces security settings for all workstations' },
+      { id: 'targetOUs', label: 'Target OUs (comma-separated)', type: 'textarea', required: true, placeholder: 'OU=Workstations,DC=company,DC=com' },
+      { id: 'linkOrder', label: 'Link Order', type: 'number', required: false, defaultValue: 1, placeholder: '1' },
+      { id: 'enforced', label: 'Enforce GPO (Cannot be Blocked)', type: 'boolean', required: false, defaultValue: false },
+      { id: 'linkEnabled', label: 'Enable Link', type: 'boolean', required: false, defaultValue: true }
+    ],
+    validate: (params) => {
+      const required = ['gpoName', 'targetOUs'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const gpoName = escapePowerShellString(params.gpoName);
+      const gpoDescription = params.gpoDescription ? escapePowerShellString(params.gpoDescription) : '';
+      const targetOUsRaw = (params.targetOUs as string).split(',').map((ou: string) => ou.trim());
+      const linkOrder = params.linkOrder || 1;
+      const enforced = toPowerShellBoolean(params.enforced);
+      const linkEnabled = toPowerShellBoolean(params.linkEnabled);
+
+      return `# Create and Link Group Policy Object
+# Generated: ${new Date().toISOString()}
+
+Import-Module GroupPolicy
+
+try {
+    $GPOName = "${gpoName}"
+    $GPODescription = "${gpoDescription}"
+    $TargetOUs = @(${targetOUsRaw.map(ou => `"${escapePowerShellString(ou)}"`).join(', ')})
+    $LinkOrder = ${linkOrder}
+    $Enforced = ${enforced}
+    $LinkEnabled = ${linkEnabled}
+    
+    Write-Host "Creating Group Policy Object..." -ForegroundColor Cyan
+    Write-Host "  Name: $GPOName" -ForegroundColor White
+    ${gpoDescription ? `Write-Host "  Description: $GPODescription" -ForegroundColor White` : ''}
+    Write-Host ""
+    
+    # Check if GPO already exists
+    $ExistingGPO = Get-GPO -Name $GPOName -ErrorAction SilentlyContinue
+    
+    if ($ExistingGPO) {
+        Write-Host "⚠ GPO already exists: $GPOName" -ForegroundColor Yellow
+        Write-Host "  GUID: $($ExistingGPO.Id)" -ForegroundColor Gray
+        Write-Host "  Created: $($ExistingGPO.CreationTime)" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "Using existing GPO for linking..." -ForegroundColor Cyan
+        $GPO = $ExistingGPO
+    } else {
+        # Create new GPO
+        $GPO = New-GPO -Name $GPOName -Comment $GPODescription
+        Write-Host "✓ GPO created successfully" -ForegroundColor Green
+        Write-Host "  GUID: $($GPO.Id)" -ForegroundColor Gray
+        Write-Host "  Created: $($GPO.CreationTime)" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "Linking GPO to organizational units..." -ForegroundColor Cyan
+    
+    $LinkedCount = 0
+    $SkippedCount = 0
+    
+    foreach ($OU in $TargetOUs) {
+        try {
+            Write-Host "  Processing: $OU" -ForegroundColor Gray
+            
+            # Check if link already exists
+            $ExistingLink = Get-GPInheritance -Target $OU -ErrorAction Stop | 
+                Select-Object -ExpandProperty GpoLinks | 
+                Where-Object { $_.DisplayName -eq $GPOName }
+            
+            if ($ExistingLink) {
+                Write-Host "    ⚠ Link already exists - skipping" -ForegroundColor Yellow
+                $SkippedCount++
+            } else {
+                # Create GPO link
+                $LinkParams = @{
+                    Name = $GPOName
+                    Target = $OU
+                    LinkEnabled = if ($LinkEnabled) { "Yes" } else { "No" }
+                    Order = $LinkOrder
+                }
+                
+                if ($Enforced) {
+                    $LinkParams.Enforced = "Yes"
+                }
+                
+                New-GPLink @LinkParams | Out-Null
+                
+                Write-Host "    ✓ Linked successfully" -ForegroundColor Green
+                Write-Host "      Order: $LinkOrder" -ForegroundColor Gray
+                Write-Host "      Enforced: $Enforced" -ForegroundColor Gray
+                Write-Host "      Enabled: $LinkEnabled" -ForegroundColor Gray
+                
+                $LinkedCount++
+            }
+        } catch {
+            Write-Host "    ✗ Failed to link: $_" -ForegroundColor Red
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "GPO Name: $GPOName" -ForegroundColor Gray
+    Write-Host "GPO GUID: $($GPO.Id)" -ForegroundColor Gray
+    Write-Host "Target OUs: $($TargetOUs.Count)" -ForegroundColor Gray
+    Write-Host "Successfully Linked: $LinkedCount" -ForegroundColor Green
+    Write-Host "Skipped (already linked): $SkippedCount" -ForegroundColor Yellow
+    
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Configure GPO settings via Group Policy Management Console" -ForegroundColor Gray
+    Write-Host "2. GPO will replicate across domain (5-15 minutes)" -ForegroundColor Gray
+    Write-Host "3. Client policy refresh occurs every 90 minutes + random 0-30 minutes" -ForegroundColor Gray
+    Write-Host "4. Force immediate client update: gpupdate /force" -ForegroundColor Gray
+    Write-Host "5. View GPO report: Get-GPOReport -Name '$GPOName' -ReportType Html" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Security & Best Practices:" -ForegroundColor Cyan
+    Write-Host "- Test GPO in non-production OU before linking to production" -ForegroundColor Yellow
+    Write-Host "- Use Security Filtering to target specific users/computers" -ForegroundColor Yellow
+    Write-Host "- Document GPO purpose and settings in description" -ForegroundColor Yellow
+    Write-Host "- Review GPO links quarterly to remove unused policies" -ForegroundColor Yellow
+    Write-Host "- Use WMI filters for advanced targeting if needed" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create/link GPO: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Insufficient permissions (requires Domain Admin or delegated GPO rights)" -ForegroundColor Gray
+    Write-Host "- Target OU does not exist or is invalid" -ForegroundColor Gray
+    Write-Host "- Group Policy Management PowerShell module not installed" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'backup-restore-gpo',
+    name: 'Backup and Restore Group Policy Objects',
+    category: 'Group Policy',
+    isPremium: true,
+    description: 'Backup all GPOs or restore from backup for disaster recovery',
+    instructions: `**How This Task Works:**
+This script backs up Group Policy Objects to a specified location or restores them from backup, essential for disaster recovery, migration, and change management.
+
+**Prerequisites:**
+- Group Policy Management PowerShell module installed
+- Domain Admin or delegated GPO backup permissions
+- Backup folder with write permissions (for backup)
+- Valid GPO backup (for restore)
+
+**What You Need to Provide:**
+- Operation (Backup or Restore)
+- Backup folder path
+- Specific GPO name (or all GPOs)
+- Create new GPO vs migrate settings (for restore)
+
+**What the Script Does:**
+1. **Backup:** Exports GPO settings to XML backup files
+2. **Restore:** Imports GPO settings from backup
+3. Preserves GPO settings, WMI filters, and descriptions
+4. Reports backup/restore status with timestamps
+
+**Important Notes:**
+- Backup ALL GPOs before major changes (best practice)
+- Backup location should be on separate server/storage
+- Backups include GPO settings but NOT links/permissions
+- Restore creates new GPO with same settings
+- Use Migration Tables for cross-domain/forest migrations
+- Common backup schedule: Weekly automated + before changes
+- Backup size: Typically 100-500 KB per GPO
+- Keep 3-6 months of backups for compliance`,
+    parameters: [
+      { id: 'operation', label: 'Operation', type: 'select', required: true, options: ['Backup', 'Restore'], defaultValue: 'Backup' },
+      { id: 'backupPath', label: 'Backup Folder Path', type: 'path', required: true, placeholder: 'C:\\GPO_Backups' },
+      { id: 'gpoName', label: 'GPO Name (leave empty for all GPOs)', type: 'text', required: false, placeholder: '' },
+      { id: 'createNew', label: 'Create New GPO (Restore only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    validate: (params) => {
+      const required = ['operation', 'backupPath'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const operation = params.operation;
+      const backupPath = escapePowerShellString(params.backupPath);
+      const gpoName = params.gpoName ? escapePowerShellString(params.gpoName) : '';
+      const createNew = toPowerShellBoolean(params.createNew);
+
+      return `# Backup and Restore Group Policy Objects
+# Generated: ${new Date().toISOString()}
+
+Import-Module GroupPolicy
+
+try {
+    $Operation = "${operation}"
+    $BackupPath = "${backupPath}"
+    ${gpoName ? '$GPOName = "' + gpoName + '"' : '$GPOName = $null'}
+    $CreateNew = ${createNew}
+    
+    Write-Host "GPO $Operation Operation" -ForegroundColor Cyan
+    Write-Host "  Backup Path: $BackupPath" -ForegroundColor White
+    ${gpoName ? 'Write-Host "  GPO: $GPOName" -ForegroundColor White' : 'Write-Host "  Scope: All GPOs" -ForegroundColor White'}
+    Write-Host ""
+    
+    if ($Operation -eq "Backup") {
+        # ========== BACKUP OPERATION ==========
+        
+        # Ensure backup folder exists
+        if (-not (Test-Path -Path $BackupPath)) {
+            New-Item -Path $BackupPath -ItemType Directory -Force | Out-Null
+            Write-Host "✓ Created backup folder: $BackupPath" -ForegroundColor Green
+        }
+        
+        if ($GPOName) {
+            # Backup specific GPO
+            Write-Host "Backing up GPO: $GPOName..." -ForegroundColor Cyan
+            
+            $Backup = Backup-GPO -Name $GPOName -Path $BackupPath
+            
+            Write-Host "✓ GPO backed up successfully" -ForegroundColor Green
+            Write-Host "  GPO Name: $($Backup.DisplayName)" -ForegroundColor Gray
+            Write-Host "  Backup ID: $($Backup.Id)" -ForegroundColor Gray
+            Write-Host "  Timestamp: $($Backup.BackupTime)" -ForegroundColor Gray
+            Write-Host "  Location: $($Backup.BackupDirectory)" -ForegroundColor Gray
+        } else {
+            # Backup all GPOs
+            Write-Host "Backing up all GPOs..." -ForegroundColor Cyan
+            
+            $AllGPOs = Get-GPO -All
+            Write-Host "Found $($AllGPOs.Count) GPOs to backup" -ForegroundColor Yellow
+            Write-Host ""
+            
+            $BackupCount = 0
+            $FailCount = 0
+            
+            foreach ($GPO in $AllGPOs) {
+                try {
+                    $Backup = Backup-GPO -Name $GPO.DisplayName -Path $BackupPath
+                    Write-Host "  ✓ Backed up: $($GPO.DisplayName)" -ForegroundColor Green
+                    $BackupCount++
+                } catch {
+                    Write-Host "  ✗ Failed: $($GPO.DisplayName) - $_" -ForegroundColor Red
+                    $FailCount++
+                }
+            }
+            
+            Write-Host ""
+            Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+            Write-Host "Total GPOs: $($AllGPOs.Count)" -ForegroundColor Gray
+            Write-Host "Successfully Backed Up: $BackupCount" -ForegroundColor Green
+            Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { "Red" } else { "Gray" })
+            Write-Host "Backup Location: $BackupPath" -ForegroundColor Cyan
+        }
+        
+    } else {
+        # ========== RESTORE OPERATION ==========
+        
+        if (-not (Test-Path -Path $BackupPath)) {
+            Write-Error "Backup path does not exist: $BackupPath"
+            exit 1
+        }
+        
+        # List available backups
+        $Backups = Get-ChildItem -Path $BackupPath -Filter "manifest.xml" -Recurse | 
+            ForEach-Object {
+                $ManifestXml = [xml](Get-Content $_.FullName)
+                [PSCustomObject]@{
+                    GPOName = $ManifestXml.Backups.BackupInst.GPODisplayName.'#cdata-section'
+                    BackupID = $ManifestXml.Backups.BackupInst.ID.'#cdata-section'
+                    BackupTime = $ManifestXml.Backups.BackupInst.BackupTime.'#cdata-section'
+                    BackupFolder = $_.Directory.FullName
+                }
+            }
+        
+        if ($Backups.Count -eq 0) {
+            Write-Error "No GPO backups found in: $BackupPath"
+            exit 1
+        }
+        
+        Write-Host "Found $($Backups.Count) GPO backup(s)" -ForegroundColor Yellow
+        Write-Host ""
+        
+        if ($GPOName) {
+            # Restore specific GPO
+            $TargetBackup = $Backups | Where-Object { $_.GPOName -eq $GPOName } | 
+                Sort-Object BackupTime -Descending | Select-Object -First 1
+            
+            if (-not $TargetBackup) {
+                Write-Error "No backup found for GPO: $GPOName"
+                exit 1
+            }
+            
+            Write-Host "Restoring GPO: $GPOName" -ForegroundColor Cyan
+            Write-Host "  Backup Date: $($TargetBackup.BackupTime)" -ForegroundColor Gray
+            Write-Host "  Backup ID: $($TargetBackup.BackupID)" -ForegroundColor Gray
+            Write-Host ""
+            
+            if ($CreateNew) {
+                # Create new GPO from backup
+                $NewGPOName = "$GPOName (Restored)"
+                Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
+                    -TargetName $NewGPOName -CreateIfNeeded
+                
+                Write-Host "✓ GPO restored as new object: $NewGPOName" -ForegroundColor Green
+            } else {
+                # Overwrite existing GPO
+                Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
+                    -TargetName $GPOName
+                
+                Write-Host "✓ GPO settings restored to existing GPO: $GPOName" -ForegroundColor Green
+            }
+        } else {
+            Write-Host "⚠ Bulk restore not recommended - Please specify GPO name" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "Available GPO backups:" -ForegroundColor Cyan
+            $Backups | ForEach-Object {
+                Write-Host "  - $($_.GPOName) (Backup: $($_.BackupTime))" -ForegroundColor Gray
+            }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Best Practices:" -ForegroundColor Cyan
+    Write-Host "1. Backup all GPOs weekly (automated scheduled task)" -ForegroundColor Yellow
+    Write-Host "2. Always backup before making GPO changes" -ForegroundColor Yellow
+    Write-Host "3. Store backups on separate server/storage" -ForegroundColor Yellow
+    Write-Host "4. Test restore process quarterly" -ForegroundColor Yellow
+    Write-Host "5. Keep 3-6 months of backups for compliance" -ForegroundColor Yellow
+    Write-Host "6. Document GPO backup/restore procedures" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to $Operation GPO: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Insufficient permissions (requires Domain Admin or delegated rights)" -ForegroundColor Gray
+    Write-Host "- Backup folder does not exist or is inaccessible" -ForegroundColor Gray
+    Write-Host "- Invalid backup ID or corrupted backup files" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'generate-gpo-report',
+    name: 'Generate Group Policy Object Report',
+    category: 'Group Policy',
+    isPremium: true,
+    description: 'Generate comprehensive HTML or XML reports for GPO settings and links',
+    instructions: `**How This Task Works:**
+This script generates detailed reports of Group Policy Object settings, links, and configurations in HTML or XML format for documentation and compliance.
+
+**Prerequisites:**
+- Group Policy Management PowerShell module installed
+- Read access to GPO objects
+- Sufficient disk space for report generation
+
+**What You Need to Provide:**
+- Report type (HTML or XML)
+- Specific GPO name (or all GPOs)
+- Output file path
+- Include GPO links and inheritance
+
+**What the Script Does:**
+1. Retrieves GPO settings and configuration
+2. Generates detailed report in specified format
+3. Includes GPO links, permissions, and inheritance
+4. Exports to HTML (readable) or XML (parseable) format
+5. Reports generation statistics
+
+**Important Notes:**
+- HTML reports: Human-readable, perfect for documentation
+- XML reports: Machine-parseable, perfect for automation
+- Report includes: Settings, links, permissions, WMI filters
+- Use for: Compliance audits, change documentation, troubleshooting
+- Large GPOs may take 30-60 seconds to report
+- Run monthly for GPO documentation
+- Compare reports before/after changes
+- Archive reports for audit trail`,
+    parameters: [
+      { id: 'reportType', label: 'Report Type', type: 'select', required: true, options: ['Html', 'Xml'], defaultValue: 'Html' },
+      { id: 'gpoName', label: 'GPO Name (leave empty for all GPOs)', type: 'text', required: false, placeholder: '' },
+      { id: 'outputPath', label: 'Output File Path', type: 'path', required: true, placeholder: 'C:\\Reports\\GPO_Report.html' },
+      { id: 'includeLinks', label: 'Include GPO Links', type: 'boolean', required: false, defaultValue: true }
+    ],
+    validate: (params) => {
+      const required = ['reportType', 'outputPath'];
+      const missing = validateRequiredFields(params, required);
+      if (missing.length > 0) {
+        return `Missing required fields: ${missing.join(', ')}`;
+      }
+      return null;
+    },
+    scriptTemplate: (params) => {
+      const reportType = params.reportType || 'Html';
+      const gpoName = params.gpoName ? escapePowerShellString(params.gpoName) : '';
+      const outputPath = escapePowerShellString(params.outputPath);
+      const includeLinks = toPowerShellBoolean(params.includeLinks);
+
+      return `# Generate Group Policy Object Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module GroupPolicy
+
+try {
+    $ReportType = "${reportType}"
+    ${gpoName ? `$GPOName = "${gpoName}"` : '$GPOName = $null'}
+    $OutputPath = "${outputPath}"
+    $IncludeLinks = ${includeLinks}
+    
+    Write-Host "Generating GPO Report..." -ForegroundColor Cyan
+    Write-Host "  Report Type: $ReportType" -ForegroundColor White
+    ${gpoName ? `Write-Host "  GPO: $GPOName" -ForegroundColor White` : 'Write-Host "  Scope: All GPOs" -ForegroundColor White'}
+    Write-Host "  Output: $OutputPath" -ForegroundColor White
+    Write-Host ""
+    
+    # Ensure output directory exists
+    $OutputDir = Split-Path -Path $OutputPath -Parent
+    if ($OutputDir -and -not (Test-Path -Path $OutputDir)) {
+        New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+        Write-Host "✓ Created output directory" -ForegroundColor Green
+    }
+    
+    if ($GPOName) {
+        # Generate report for specific GPO
+        Write-Host "Generating report for: $GPOName..." -ForegroundColor Cyan
+        
+        $Report = Get-GPOReport -Name $GPOName -ReportType $ReportType
+        $Report | Out-File -FilePath $OutputPath -Encoding UTF8
+        
+        Write-Host "✓ Report generated successfully" -ForegroundColor Green
+        Write-Host "  File: $OutputPath" -ForegroundColor Gray
+        Write-Host "  Size: $([math]::Round((Get-Item $OutputPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
+        
+        # Get GPO details
+        $GPO = Get-GPO -Name $GPOName
+        
+        if ($IncludeLinks) {
+            Write-Host ""
+            Write-Host "=== GPO LINK INFORMATION ===" -ForegroundColor Cyan
+            
+            # Get all domains in forest
+            $Domains = (Get-ADForest).Domains
+            
+            foreach ($Domain in $Domains) {
+                Write-Host "Domain: $Domain" -ForegroundColor Yellow
+                
+                $Links = Get-GPO -Name $GPOName -Domain $Domain -ErrorAction SilentlyContinue | 
+                    Get-GPInheritance -ErrorAction SilentlyContinue
+                
+                if ($Links) {
+                    $Links.GpoLinks | ForEach-Object {
+                        Write-Host "  ✓ Linked to: $($_.Target)" -ForegroundColor Green
+                        Write-Host "    Enabled: $($_.Enabled)" -ForegroundColor Gray
+                        Write-Host "    Enforced: $($_.Enforced)" -ForegroundColor Gray
+                        Write-Host "    Order: $($_.Order)" -ForegroundColor Gray
+                    }
+                }
+            }
+        }
+        
+    } else {
+        # Generate report for all GPOs
+        Write-Host "Generating reports for all GPOs..." -ForegroundColor Cyan
+        
+        $AllGPOs = Get-GPO -All
+        Write-Host "Found $($AllGPOs.Count) GPOs" -ForegroundColor Yellow
+        Write-Host ""
+        
+        # Create combined report
+        $CombinedReport = @()
+        $CombinedReport += "<!DOCTYPE html><html><head><title>All GPOs Report</title>"
+        $CombinedReport += "<style>body{font-family:Arial;margin:20px;} h2{color:#0066cc;border-bottom:2px solid #0066cc;} table{border-collapse:collapse;width:100%;margin:20px 0;} th,td{border:1px solid #ddd;padding:8px;text-align:left;} th{background-color:#0066cc;color:white;}</style>"
+        $CombinedReport += "</head><body>"
+        $CombinedReport += "<h1>Group Policy Objects Report</h1>"
+        $CombinedReport += "<p>Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>"
+        $CombinedReport += "<p>Total GPOs: $($AllGPOs.Count)</p>"
+        
+        $ReportCount = 0
+        
+        foreach ($GPO in $AllGPOs) {
+            try {
+                Write-Host "  Processing: $($GPO.DisplayName)" -ForegroundColor Gray
+                
+                if ($ReportType -eq "Html") {
+                    $GPOReport = Get-GPOReport -Guid $GPO.Id -ReportType Html
+                    
+                    # Extract body content and append
+                    $GPOReport -match '<body.*?>(.*)</body>' | Out-Null
+                    if ($Matches) {
+                        $CombinedReport += "<div style='page-break-before:always;'>"
+                        $CombinedReport += $Matches[1]
+                        $CombinedReport += "</div>"
+                    }
+                } else {
+                    # For XML, create separate files
+                    $FileName = "$($GPO.DisplayName -replace '[^a-zA-Z0-9]', '_').xml"
+                    $FilePath = Join-Path -Path $OutputDir -ChildPath $FileName
+                    
+                    Get-GPOReport -Guid $GPO.Id -ReportType Xml | Out-File -FilePath $FilePath -Encoding UTF8
+                }
+                
+                $ReportCount++
+            } catch {
+                Write-Host "    ✗ Failed: $_" -ForegroundColor Red
+            }
+        }
+        
+        if ($ReportType -eq "Html") {
+            $CombinedReport += "</body></html>"
+            $CombinedReport | Out-File -FilePath $OutputPath -Encoding UTF8
+            
+            Write-Host ""
+            Write-Host "✓ Combined report generated: $OutputPath" -ForegroundColor Green
+        } else {
+            Write-Host ""
+            Write-Host "✓ Individual XML reports generated in: $OutputDir" -ForegroundColor Green
+        }
+        
+        Write-Host ""
+        Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+        Write-Host "Total GPOs: $($AllGPOs.Count)" -ForegroundColor Gray
+        Write-Host "Reports Generated: $ReportCount" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "Report Uses:" -ForegroundColor Cyan
+    Write-Host "1. Compliance documentation and audits" -ForegroundColor Yellow
+    Write-Host "2. Change management (before/after comparison)" -ForegroundColor Yellow
+    Write-Host "3. Troubleshooting GPO application issues" -ForegroundColor Yellow
+    Write-Host "4. Security reviews and access control verification" -ForegroundColor Yellow
+    Write-Host "5. Disaster recovery documentation" -ForegroundColor Yellow
+    
+    if ($ReportType -eq "Html") {
+        Write-Host ""
+        Write-Host "✓ Open HTML report in browser for readable view" -ForegroundColor Green
+    }
+    
+} catch {
+    Write-Error "Failed to generate GPO report: $_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Insufficient permissions to read GPO" -ForegroundColor Gray
+    Write-Host "- GPO not found or invalid name" -ForegroundColor Gray
+    Write-Host "- Output path is invalid or not writable" -ForegroundColor Gray
+}`;
+    }
   }
 ];

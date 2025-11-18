@@ -54,6 +54,7 @@ import { splunkTasks, SplunkTask } from "@/lib/splunk-tasks";
 import { dockerTasks, DockerTask } from "@/lib/docker-tasks";
 import { jiraTasks, JiraTask } from "@/lib/jira-tasks";
 import { salesforceTasks, SalesforceTask } from "@/lib/salesforce-tasks";
+import { sqlServerTasks, SQLServerTask } from "@/lib/sql-server-tasks";
 import {
   FolderOpen,
   Network,
@@ -476,6 +477,14 @@ const categories: CategoryConfig[] = [
     icon: Landmark,
     description: "CRM automation",
     color: "text-sky-700",
+    isPremium: true
+  },
+  {
+    id: "sql-server",
+    name: "SQL Server",
+    icon: Database,
+    description: "Database administration and maintenance",
+    color: "text-indigo-700",
     isPremium: true
   }
 ];

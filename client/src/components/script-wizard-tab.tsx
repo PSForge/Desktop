@@ -65,6 +65,7 @@ import { splunkTasks } from '@/lib/splunk-tasks';
 import { dockerTasks } from '@/lib/docker-tasks';
 import { jiraTasks } from '@/lib/jira-tasks';
 import { salesforceTasks } from '@/lib/salesforce-tasks';
+import { sqlServerTasks } from '@/lib/sql-server-tasks';
 
 interface PlatformConfig {
   id: string;
@@ -126,6 +127,7 @@ const platforms: PlatformConfig[] = [
   { id: 'docker', name: 'Docker/Kubernetes', description: 'Container orchestration', isPremium: true, tasks: dockerTasks },
   { id: 'jira', name: 'Jira/Confluence', description: 'Project management automation', isPremium: true, tasks: jiraTasks },
   { id: 'salesforce', name: 'Salesforce', description: 'CRM automation', isPremium: true, tasks: salesforceTasks },
+  { id: 'sql-server', name: 'SQL Server', description: 'Database administration and maintenance', isPremium: true, tasks: sqlServerTasks },
 ];
 
 interface ScriptWizardTabProps {

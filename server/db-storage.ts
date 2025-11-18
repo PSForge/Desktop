@@ -13,6 +13,7 @@ import {
   platformNotifications,
   passwordResetTokens,
   welcomeEmailTemplates,
+  webhookEvents,
   type User,
   type Session,
   type Script,
@@ -578,5 +579,35 @@ export class DatabaseStorage implements IStorage {
   async deleteWelcomeEmailTemplate(id: string): Promise<boolean> {
     const result = await this.db.delete(welcomeEmailTemplates).where(eq(welcomeEmailTemplates.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Webhook Events
+  async createWebhookEvent(event: Omit<import("@shared/schema").WebhookEvent, "id" | "createdAt">): Promise<import("@shared/schema").WebhookEvent> {
+    const result = await this.db.insert(webhookEvents).values({
+      eventType: event.eventType,
+      eventId: event.eventId,
+      status: event.status,
+      userId: event.userId,
+      subscriptionId: event.subscriptionId,
+      payload: event.payload,
+      errorMessage: event.errorMessage,
+      processingTimeMs: event.processingTimeMs,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getRecentWebhookEvents(limit: number = 50): Promise<import("@shared/schema").WebhookEvent[]> {
+    const result = await this.db.select().from(webhookEvents)
+      .orderBy(sql`${webhookEvents.createdAt} DESC`)
+      .limit(limit);
+    return result.map(e => this.convertTimestamps(e));
+  }
+
+  async getWebhookEventsByType(eventType: string, limit: number = 50): Promise<import("@shared/schema").WebhookEvent[]> {
+    const result = await this.db.select().from(webhookEvents)
+      .where(eq(webhookEvents.eventType, eventType))
+      .orderBy(sql`${webhookEvents.createdAt} DESC`)
+      .limit(limit);
+    return result.map(e => this.convertTimestamps(e));
   }
 }

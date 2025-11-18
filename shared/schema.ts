@@ -110,6 +110,19 @@ export const welcomeEmailTemplates = pgTable("welcome_email_templates", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const webhookEvents = pgTable("webhook_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: varchar("event_type", { length: 100 }).notNull(),
+  eventId: varchar("event_id", { length: 255 }),
+  status: varchar("status", { length: 50 }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  subscriptionId: varchar("subscription_id", { length: 255 }),
+  payload: json("payload").$type<Record<string, any>>(),
+  errorMessage: text("error_message"),
+  processingTimeMs: integer("processing_time_ms"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const userRoles = ["free", "subscriber", "admin"] as const;
 export type UserRole = typeof userRoles[number];
 
@@ -305,6 +318,19 @@ export const subscriptionEventSchema = z.object({
   occurredAt: z.string(),
 });
 
+export const webhookEventSchema = z.object({
+  id: z.string(),
+  eventType: z.string(),
+  eventId: z.string().nullable(),
+  status: z.enum(["success", "failed", "processing"]),
+  userId: z.string().nullable(),
+  subscriptionId: z.string().nullable(),
+  payload: z.record(z.any()).nullable(),
+  errorMessage: z.string().nullable(),
+  processingTimeMs: z.number().nullable(),
+  createdAt: z.string(),
+});
+
 // Analytics & Metrics Schemas
 export const usageMetricSchema = z.object({
   id: z.string(),
@@ -413,6 +439,7 @@ export type AdminCreateUserData = z.infer<typeof adminCreateUserSchema>;
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
 export type UserSubscription = z.infer<typeof userSubscriptionSchema>;
 export type SubscriptionEvent = z.infer<typeof subscriptionEventSchema>;
+export type WebhookEvent = z.infer<typeof webhookEventSchema>;
 export type UsageMetric = z.infer<typeof usageMetricSchema>;
 export type AnalyticsOverview = z.infer<typeof analyticsOverviewSchema>;
 export type FeatureAccess = z.infer<typeof featureAccessSchema>;

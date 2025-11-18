@@ -85,6 +85,11 @@ export interface IStorage {
   createWelcomeEmailTemplate(template: InsertWelcomeEmailTemplate): Promise<WelcomeEmailTemplate>;
   updateWelcomeEmailTemplate(id: string, updates: UpdateWelcomeEmailTemplate): Promise<WelcomeEmailTemplate | undefined>;
   deleteWelcomeEmailTemplate(id: string): Promise<boolean>;
+  
+  // Webhook Events
+  createWebhookEvent(event: Omit<import("@shared/schema").WebhookEvent, "id" | "createdAt">): Promise<import("@shared/schema").WebhookEvent>;
+  getRecentWebhookEvents(limit?: number): Promise<import("@shared/schema").WebhookEvent[]>;
+  getWebhookEventsByType(eventType: string, limit?: number): Promise<import("@shared/schema").WebhookEvent[]>;
 }
 
 export class MemStorage implements IStorage {

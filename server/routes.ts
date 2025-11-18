@@ -825,6 +825,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   });
 
   app.post("/webhooks/stripe", async (req, res) => {
+    const startTime = Date.now();
     console.log("🔔 Stripe webhook received!", {
       hasSignature: !!req.headers['stripe-signature'],
       bodyType: typeof req.body,
@@ -838,7 +839,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       return res.status(400).json({ error: "No signature provided" });
     }
 
-    let event: Stripe.Event;
+    let event: Stripe.Event | undefined;
 
     try {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -853,10 +854,30 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       }
     } catch (err: any) {
       console.error("❌ Webhook signature verification failed:", err.message);
+      // Log failed webhook event
+      try {
+        await storage.createWebhookEvent({
+          eventType: req.body?.type || 'unknown',
+          eventId: req.body?.id || null,
+          status: 'failed',
+          userId: null,
+          subscriptionId: null,
+          payload: req.body,
+          errorMessage: `Signature verification failed: ${err.message}`,
+          processingTimeMs: Date.now() - startTime,
+        });
+      } catch (logError) {
+        console.error("Failed to log webhook event:", logError);
+      }
       return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
 
     try {
+      if (!event) {
+        console.error("❌ Event is undefined after signature verification");
+        return res.status(500).json({ error: "Event processing failed" });
+      }
+      
       switch (event.type) {
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
@@ -1087,10 +1108,94 @@ Sitemap: ${baseUrl}/sitemap.xml`;
           console.log(`Unhandled event type: ${event.type}`);
       }
 
+      // Log successful webhook processing
+      const processingTime = Date.now() - startTime;
+      console.log(`✅ Webhook processed successfully in ${processingTime}ms`);
+      
+      try {
+        // Extract subscription ID based on event type
+        let subscriptionId = null;
+        const eventData = event.data.object as any;
+        if (event.type === 'checkout.session.completed') {
+          subscriptionId = eventData.subscription;
+        } else if (event.type.startsWith('customer.subscription.')) {
+          subscriptionId = eventData.id;
+        } else if (event.type.startsWith('invoice.')) {
+          subscriptionId = typeof eventData.subscription === 'string' 
+            ? eventData.subscription 
+            : eventData.subscription?.id || null;
+        }
+        
+        await storage.createWebhookEvent({
+          eventType: event.type,
+          eventId: event.id || null,
+          status: 'success',
+          userId: eventData.metadata?.userId || null,
+          subscriptionId,
+          payload: event.data.object as any,
+          errorMessage: null,
+          processingTimeMs: processingTime,
+        });
+      } catch (logError) {
+        console.error("Failed to log successful webhook event:", logError);
+      }
+
       return res.json({ received: true });
-    } catch (error) {
+    } catch (error: any) {
+      const processingTime = Date.now() - startTime;
       console.error("Webhook handler error:", error);
+      
+      // Log failed webhook processing
+      try {
+        await storage.createWebhookEvent({
+          eventType: event?.type || 'unknown',
+          eventId: event?.id || null,
+          status: 'failed',
+          userId: null,
+          subscriptionId: null,
+          payload: event?.data?.object as any || null,
+          errorMessage: error.message || String(error),
+          processingTimeMs: processingTime,
+        });
+      } catch (logError) {
+        console.error("Failed to log failed webhook event:", logError);
+      }
+      
       return res.status(500).json({ error: "Webhook handler failed" });
+    }
+  });
+
+  // Webhook diagnostics endpoint
+  app.get("/api/admin/webhooks", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const eventType = req.query.eventType as string;
+      
+      let webhooks;
+      if (eventType) {
+        webhooks = await storage.getWebhookEventsByType(eventType, limit);
+      } else {
+        webhooks = await storage.getRecentWebhookEvents(limit);
+      }
+      
+      // Calculate statistics
+      const stats = {
+        total: webhooks.length,
+        successful: webhooks.filter(w => w.status === 'success').length,
+        failed: webhooks.filter(w => w.status === 'failed').length,
+        avgProcessingTime: webhooks.length > 0 
+          ? Math.round(webhooks.reduce((sum, w) => sum + (w.processingTimeMs || 0), 0) / webhooks.length)
+          : 0,
+        eventTypes: Array.from(new Set(webhooks.map(w => w.eventType))),
+      };
+      
+      return res.json({
+        webhooks,
+        stats,
+      });
+    } catch (error) {
+      console.error("Webhook diagnostics error:", error);
+      return res.status(500).json({ error: "Failed to fetch webhook events" });
     }
   });
 

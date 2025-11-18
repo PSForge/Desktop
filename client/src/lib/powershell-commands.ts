@@ -2311,7 +2311,7 @@ export const powershellCommands: Command[] = [
     id: "remove-mguser",
     name: "Remove-MgUser",
     category: "Azure AD",
-    description: "Removes a user from Azure Active Directory",
+    description: "Removes a user from Azure Active Directory via Microsoft Graph",
     syntax: "Remove-MgUser [-UserId] <string>",
     parameters: [
       {
@@ -2352,7 +2352,7 @@ export const powershellCommands: Command[] = [
     id: "new-mggroup",
     name: "New-MgGroup",
     category: "Azure AD",
-    description: "Creates a new group in Azure AD (Security Group or Microsoft 365 Group)",
+    description: "Creates a new group in Azure AD (Security Group or Microsoft 365 Group) via Microsoft Graph",
     syntax: "New-MgGroup [-DisplayName] <string> [-MailNickname] <string> [-MailEnabled] <bool> [-SecurityEnabled] <bool> [-GroupTypes <string[]>]",
     parameters: [
       {
@@ -2402,7 +2402,7 @@ export const powershellCommands: Command[] = [
     id: "set-mguserlicense",
     name: "Set-MgUserLicense",
     category: "Azure AD",
-    description: "Assigns or removes Microsoft 365 licenses for a user",
+    description: "Assigns or removes Microsoft 365 licenses for a user via Microsoft Graph",
     syntax: "Set-MgUserLicense [-UserId] <string> [-AddLicenses] <hashtable[]> [-RemoveLicenses] <string[]>",
     parameters: [
       {
@@ -2435,7 +2435,7 @@ export const powershellCommands: Command[] = [
     id: "get-mgsubscribedsku",
     name: "Get-MgSubscribedSku",
     category: "Azure AD",
-    description: "Gets subscribed SKUs (licenses) for the organization",
+    description: "Gets subscribed SKUs (licenses) for the organization via Microsoft Graph",
     syntax: "Get-MgSubscribedSku",
     parameters: [],
     example: 'Get-MgSubscribedSku | Select SkuPartNumber,ConsumedUnits'
@@ -2444,7 +2444,7 @@ export const powershellCommands: Command[] = [
     id: "new-mginvitation",
     name: "New-MgInvitation",
     category: "Azure AD",
-    description: "Creates an invitation for a guest user",
+    description: "Creates an invitation for a guest user via Microsoft Graph",
     syntax: "New-MgInvitation [-InvitedUserEmailAddress] <string> [-InviteRedirectUrl] <string>",
     parameters: [
       {
@@ -2468,7 +2468,7 @@ export const powershellCommands: Command[] = [
     id: "new-mgapplication",
     name: "New-MgApplication",
     category: "Azure AD",
-    description: "Creates a new application registration in Azure AD",
+    description: "Creates a new application registration in Azure AD via Microsoft Graph",
     syntax: "New-MgApplication [-DisplayName] <string>",
     parameters: [
       {
@@ -2531,7 +2531,7 @@ export const powershellCommands: Command[] = [
     id: "enable-mailbox",
     name: "Enable-Mailbox",
     category: "Exchange Online",
-    description: "Enables a mailbox for an existing Active Directory user",
+    description: "Enables a mailbox for an existing Active Directory user in Exchange Online",
     syntax: "Enable-Mailbox [-Identity] <string> [-Alias <string>]",
     parameters: [
       {
@@ -2555,7 +2555,7 @@ export const powershellCommands: Command[] = [
     id: "add-mailboxpermission",
     name: "Add-MailboxPermission",
     category: "Exchange Online",
-    description: "Adds permissions to a mailbox",
+    description: "Adds permissions to a mailbox in Exchange Online",
     syntax: "Add-MailboxPermission [-Identity] <string> [-User] <string> [-AccessRights] <string[]>",
     parameters: [
       {
@@ -2611,7 +2611,7 @@ export const powershellCommands: Command[] = [
     id: "new-transportrule",
     name: "New-TransportRule",
     category: "Exchange Online",
-    description: "Creates a new transport rule",
+    description: "Creates a new transport rule in Exchange Online",
     syntax: "New-TransportRule [-Name] <string> [-Priority <int>]",
     parameters: [
       {
@@ -2635,7 +2635,7 @@ export const powershellCommands: Command[] = [
     id: "get-retentionpolicy",
     name: "Get-RetentionPolicy",
     category: "Exchange Online",
-    description: "Gets retention policies",
+    description: "Gets retention policies in Exchange Online",
     syntax: "Get-RetentionPolicy [[-Identity] <string>]",
     parameters: [
       {
@@ -2652,7 +2652,7 @@ export const powershellCommands: Command[] = [
     id: "new-retentionpolicy",
     name: "New-RetentionPolicy",
     category: "Exchange Online",
-    description: "Creates a new retention policy",
+    description: "Creates a new retention policy in Exchange Online",
     syntax: "New-RetentionPolicy [-Name] <string>",
     parameters: [
       {

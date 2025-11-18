@@ -498,7 +498,7 @@ interface GUIBuilderTabProps {
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript }: GUIBuilderTabProps) {
   const { featureAccess } = useAuth();
-  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | SQLServerTask | null>(null);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>('');
@@ -513,7 +513,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
     setSelectedTask(null);
   };
 
-  const handleTaskSelect = (task: ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask) => {
+  const handleTaskSelect = (task: ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | SQLServerTask) => {
     setSelectedTask(task);
   };
 
@@ -620,6 +620,8 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
     ? jiraTasks
     : selectedCategory === 'salesforce'
     ? salesforceTasks
+    : selectedCategory === 'sql-server'
+    ? sqlServerTasks
     : selectedCategory === 'event-logs'
     ? eventLogTasks
     : selectedCategory === 'file-system'

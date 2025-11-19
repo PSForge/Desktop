@@ -25,7 +25,11 @@ import {
   Plus,
   X,
   FileText,
-  Calendar
+  Calendar,
+  Code2,
+  Sparkles,
+  LayoutGrid,
+  Wand2
 } from "lucide-react";
 import type { Script, Tag } from "@shared/schema";
 
@@ -314,6 +318,67 @@ export default function ScriptLibrary() {
     <>
       <Header onExport={() => {}} hasCommands={false} />
       <div className="container mx-auto p-6 space-y-6">
+      
+      {/* Quick Navigation to Builder Tabs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Script Builder</CardTitle>
+          <CardDescription>Jump back to the builder to create new scripts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="hover-elevate"
+              data-testid="button-goto-script"
+            >
+              <a href="/?tab=script">
+                <Code2 className="w-4 h-4 mr-2" />
+                Script Editor
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="hover-elevate"
+              data-testid="button-goto-ai"
+            >
+              <a href="/?tab=ai">
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI Assistant
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="hover-elevate"
+              data-testid="button-goto-gui"
+            >
+              <a href="/?tab=gui">
+                <LayoutGrid className="w-4 h-4 mr-2" />
+                GUI Builder
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="hover-elevate"
+              data-testid="button-goto-wizard"
+            >
+              <a href="/?tab=wizard">
+                <Wand2 className="w-4 h-4 mr-2" />
+                Script Wizard
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-library-title">Script Library</h1>

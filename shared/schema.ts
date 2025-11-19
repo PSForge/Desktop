@@ -38,6 +38,24 @@ export const scripts = pgTable("scripts", {
   }>>(),
   taskCategory: varchar("task_category", { length: 255 }),
   taskName: varchar("task_name", { length: 255 }),
+  isFavorite: boolean("is_favorite").notNull().default(false),
+  lastAccessed: timestamp("last_accessed"),
+  documentation: text("documentation"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const tags = pgTable("tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 100 }).notNull(),
+  color: varchar("color", { length: 7 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const scriptTags = pgTable("script_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scriptId: varchar("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  tagId: varchar("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -193,6 +211,24 @@ export const scriptSchema = z.object({
   commands: z.array(scriptCommandSchema).optional(),
   taskCategory: z.string().optional(),
   taskName: z.string().optional(),
+  isFavorite: z.boolean().optional(),
+  lastAccessed: z.string().optional(),
+  documentation: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
+export const tagSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().optional(),
+  name: z.string(),
+  color: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
+export const scriptTagSchema = z.object({
+  id: z.string().optional(),
+  scriptId: z.string(),
+  tagId: z.string(),
   createdAt: z.string().optional(),
 });
 
@@ -256,13 +292,26 @@ export const comprehensiveValidationResultSchema = z.object({
 });
 
 export const insertScriptCommandSchema = scriptCommandSchema.omit({ id: true });
-export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true });
+export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true, lastAccessed: true });
+export const insertTagSchema = tagSchema.omit({ id: true, createdAt: true });
+export const insertScriptTagSchema = scriptTagSchema.omit({ id: true, createdAt: true });
+
 export const saveScriptSchema = z.object({
   name: z.string().min(1, "Script name is required"),
   content: z.string().min(1, "Script content is required"),
   description: z.string().optional(),
   taskCategory: z.string().optional(),
   taskName: z.string().optional(),
+  documentation: z.string().optional(),
+});
+
+export const updateScriptSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  content: z.string().optional(),
+  description: z.string().optional(),
+  isFavorite: z.boolean().optional(),
+  documentation: z.string().optional(),
 });
 
 export const trackScriptGenerationSchema = z.object({
@@ -278,6 +327,8 @@ export type Parameter = z.infer<typeof parameterSchema>;
 export type Command = z.infer<typeof commandSchema>;
 export type ScriptCommand = z.infer<typeof scriptCommandSchema>;
 export type Script = z.infer<typeof scriptSchema>;
+export type Tag = z.infer<typeof tagSchema>;
+export type ScriptTag = z.infer<typeof scriptTagSchema>;
 export type ValidationResult = z.infer<typeof validationResultSchema>;
 export type ValidationIssue = z.infer<typeof validationIssueSchema>;
 export type DependencyInfo = z.infer<typeof dependencyInfoSchema>;
@@ -287,8 +338,11 @@ export type ComplianceCheck = z.infer<typeof complianceCheckSchema>;
 export type ComprehensiveValidationResult = z.infer<typeof comprehensiveValidationResultSchema>;
 export type InsertScriptCommand = z.infer<typeof insertScriptCommandSchema>;
 export type InsertScript = z.infer<typeof insertScriptSchema>;
+export type InsertTag = z.infer<typeof insertTagSchema>;
+export type InsertScriptTag = z.infer<typeof insertScriptTagSchema>;
 export type InsertValidationRequest = z.infer<typeof insertValidationRequestSchema>;
 export type SaveScript = z.infer<typeof saveScriptSchema>;
+export type UpdateScript = z.infer<typeof updateScriptSchema>;
 export type TrackScriptGeneration = z.infer<typeof trackScriptGenerationSchema>;
 
 // User & Authentication Schemas

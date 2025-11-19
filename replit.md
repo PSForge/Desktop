@@ -57,6 +57,14 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 
 ## Version History
 
+### 🎯 PSForge v4.0 Strategic Roadmap
+
+**Phase 1 (v4.0)**: Script Library + AI Optimization ✅ COMPLETED
+**Phase 2 (v4.1)**: Git Integration 🚧 IN PROGRESS
+**Phase 3 (v4.2)**: Templates Marketplace 📋 PLANNED
+
+---
+
 ### v4.0 Phase 1 (November 2025) - Enhanced Script Library & AI Optimization ✅ COMPLETED
 **Script Library Management:**
 - Tag system with custom colors and many-to-many script-tag relationships
@@ -91,6 +99,35 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - Fixed unique constraint on script_tags to prevent duplicate tag assignments
 - Fixed scriptTags state updates after mutations for real-time UI updates
 - Fixed priority styling in optimization panel using Tailwind classes instead of CSS variables
+- Fixed navigation URLs from /library to /builder with correct tab parameters
+
+### v4.1 Phase 2 (November 2025) - Git Integration 🚧 IN PROGRESS
+**Planned Features:**
+- GitHub OAuth integration using Replit's native GitHub connector
+- Push/pull/commit operations directly from PSForge
+- Branch management and version control
+- Commit message templating for PowerShell scripts
+- Git panel in script editor with visual status indicators
+- Repository linking and automatic sync
+- Conflict resolution UI
+- GitLab and Azure DevOps support (manual OAuth + API integration)
+
+**Target Complexity**: High | **Timeline**: 3-4 days
+**Enterprise Value**: Provides enterprise credibility and workflow integration
+
+### v4.2 Phase 3 (Future) - Templates Marketplace 📋 PLANNED
+**Planned Features:**
+- Public marketplace for PowerShell script templates
+- Community-contributed templates with ratings/reviews
+- Revenue sharing model (70/30 split for creators)
+- Admin moderation tools
+- Featured collections and categories
+- Template versioning and updates
+- Search and discovery features
+- Author profiles and analytics
+
+**Target Complexity**: High | **Timeline**: 3-4 days
+**Business Value**: Community growth engine and additional revenue stream
 
 ### v3.1.0 (November 2025) - Comprehensive Script Validation
 - Dual-mode validation system with Basic (automatic) and Comprehensive (on-demand)

@@ -909,6 +909,365 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  // Git Integration Routes
+  const { 
+    getGitHubUser, 
+    listRepositories, 
+    getRepository, 
+    listBranches, 
+    getFileContent, 
+    createOrUpdateFile, 
+    createBranch, 
+    deleteBranch, 
+    listCommits 
+  } = await import("./github-client");
+
+  // Get authenticated GitHub user
+  app.get("/api/git/user", requireAuth, async (req, res) => {
+    try {
+      const user = await getGitHubUser(req.user!.id);
+      return res.json(user);
+    } catch (error: any) {
+      console.error("Error fetching GitHub user:", error);
+      return res.status(500).json({ error: error.message || "Failed to fetch GitHub user" });
+    }
+  });
+
+  // List user's connected repositories
+  app.get("/api/git/repositories", requireAuth, async (req, res) => {
+    try {
+      const repositories = await storage.getUserGitRepositories(req.user!.id);
+      return res.json(repositories);
+    } catch (error) {
+      console.error("Error fetching repositories:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // List available GitHub repositories
+  app.get("/api/git/github/repositories", requireAuth, async (req, res) => {
+    try {
+      const repos = await listRepositories(req.user!.id);
+      return res.json(repos);
+    } catch (error: any) {
+      console.error("Error fetching GitHub repositories:", error);
+      return res.status(500).json({ error: error.message || "Failed to fetch repositories" });
+    }
+  });
+
+  // Connect a repository
+  app.post("/api/git/repositories", requireAuth, async (req, res) => {
+    try {
+      const { repoOwner, repoName, defaultBranch } = req.body;
+      
+      if (!repoOwner || !repoName) {
+        return res.status(400).json({ error: "Repository owner and name are required" });
+      }
+
+      // Verify repository exists
+      const repo = await getRepository(req.user!.id, repoOwner, repoName);
+      
+      const repository = await storage.createGitRepository({
+        userId: req.user!.id,
+        provider: "github",
+        repoOwner,
+        repoName,
+        defaultBranch: defaultBranch || repo.default_branch || "main",
+        currentBranch: defaultBranch || repo.default_branch || "main",
+      });
+      
+      return res.status(201).json(repository);
+    } catch (error: any) {
+      console.error("Error connecting repository:", error);
+      return res.status(500).json({ error: error.message || "Failed to connect repository" });
+    }
+  });
+
+  // Get repository details
+  app.get("/api/git/repositories/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      return res.json(repository);
+    } catch (error) {
+      console.error("Error fetching repository:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete repository connection
+  app.delete("/api/git/repositories/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      await storage.deleteGitRepository(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting repository:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // List branches
+  app.get("/api/git/repositories/:id/branches", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      const branches = await listBranches(req.user!.id, repository.repoOwner, repository.repoName);
+      return res.json(branches);
+    } catch (error: any) {
+      console.error("Error fetching branches:", error);
+      return res.status(500).json({ error: error.message || "Failed to fetch branches" });
+    }
+  });
+
+  // Create a new branch
+  app.post("/api/git/repositories/:id/branches", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { branchName, fromBranch } = req.body;
+      
+      if (!branchName) {
+        return res.status(400).json({ error: "Branch name is required" });
+      }
+      
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      const branch = await createBranch(
+        req.user!.id,
+        repository.repoOwner, 
+        repository.repoName, 
+        branchName, 
+        fromBranch || repository.defaultBranch
+      );
+      
+      return res.status(201).json(branch);
+    } catch (error: any) {
+      console.error("Error creating branch:", error);
+      return res.status(500).json({ error: error.message || "Failed to create branch" });
+    }
+  });
+
+  // Delete a branch
+  app.delete("/api/git/repositories/:id/branches/:name", requireAuth, async (req, res) => {
+    try {
+      const { id, name } = req.params;
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      if (name === repository.defaultBranch) {
+        return res.status(400).json({ error: "Cannot delete default branch" });
+      }
+      
+      await deleteBranch(req.user!.id, repository.repoOwner, repository.repoName, name);
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting branch:", error);
+      return res.status(500).json({ error: error.message || "Failed to delete branch" });
+    }
+  });
+
+  // Switch branch
+  app.post("/api/git/repositories/:id/checkout", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { branch } = req.body;
+      
+      if (!branch) {
+        return res.status(400).json({ error: "Branch name is required" });
+      }
+      
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      const updated = await storage.updateGitRepository(id, { currentBranch: branch });
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error switching branch:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Commit and push script to GitHub
+  app.post("/api/git/repositories/:id/commit", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { scriptId, message, path } = req.body;
+      
+      if (!scriptId || !message || !path) {
+        return res.status(400).json({ error: "Script ID, commit message, and file path are required" });
+      }
+      
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      const script = await storage.getScript(scriptId);
+      
+      if (!script || script.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Script not found or unauthorized" });
+      }
+      
+      // Get existing file to get SHA if it exists
+      const existingFile = await getFileContent(
+        req.user!.id,
+        repository.repoOwner,
+        repository.repoName,
+        path,
+        repository.currentBranch || repository.defaultBranch
+      );
+      
+      // Commit the file
+      const result = await createOrUpdateFile(
+        req.user!.id,
+        repository.repoOwner,
+        repository.repoName,
+        path,
+        script.content,
+        message,
+        repository.currentBranch || repository.defaultBranch,
+        existingFile?.sha
+      );
+      
+      // Record commit in database
+      const commit = await storage.createGitCommit({
+        repositoryId: id,
+        scriptId,
+        commitSha: result.commit.sha,
+        message,
+        branch: repository.currentBranch || repository.defaultBranch,
+        author: req.user!.email,
+      });
+      
+      // Update repository sync time
+      await storage.updateGitRepository(id, { lastSyncedAt: new Date().toISOString() });
+      
+      return res.status(201).json({ commit, githubCommit: result });
+    } catch (error: any) {
+      console.error("Error committing to GitHub:", error);
+      return res.status(500).json({ error: error.message || "Failed to commit changes" });
+    }
+  });
+
+  // Get commit history
+  app.get("/api/git/repositories/:id/commits", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      const commits = await storage.getRepositoryCommits(id);
+      return res.json(commits);
+    } catch (error) {
+      console.error("Error fetching commits:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get GitHub commits for comparison
+  app.get("/api/git/repositories/:id/github-commits", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { path } = req.query;
+      
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      const commits = await listCommits(
+        req.user!.id,
+        repository.repoOwner,
+        repository.repoName,
+        repository.currentBranch || repository.defaultBranch,
+        path as string | undefined
+      );
+      
+      return res.json(commits);
+    } catch (error: any) {
+      console.error("Error fetching GitHub commits:", error);
+      return res.status(500).json({ error: error.message || "Failed to fetch commits" });
+    }
+  });
+
+  // Pull script from GitHub
+  app.post("/api/git/repositories/:id/pull", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { path, scriptId } = req.body;
+      
+      if (!path) {
+        return res.status(400).json({ error: "File path is required" });
+      }
+      
+      const repository = await storage.getGitRepository(id);
+      
+      if (!repository || repository.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Repository not found or unauthorized" });
+      }
+      
+      const fileContent = await getFileContent(
+        req.user!.id,
+        repository.repoOwner,
+        repository.repoName,
+        path,
+        repository.currentBranch || repository.defaultBranch
+      );
+      
+      if (!fileContent) {
+        return res.status(404).json({ error: "File not found in repository" });
+      }
+      
+      // Update existing script or return content to create new one
+      if (scriptId) {
+        const script = await storage.getScript(scriptId);
+        
+        if (!script || script.userId !== req.user!.id) {
+          return res.status(404).json({ error: "Script not found or unauthorized" });
+        }
+        
+        const updated = await storage.updateScript(scriptId, { content: fileContent.content });
+        return res.json({ script: updated, content: fileContent.content });
+      }
+      
+      return res.json({ content: fileContent.content, sha: fileContent.sha });
+    } catch (error: any) {
+      console.error("Error pulling from GitHub:", error);
+      return res.status(500).json({ error: error.message || "Failed to pull changes" });
+    }
+  });
+
   // AI Documentation & Optimization
   app.post("/api/ai/generate-docs", requireAuth, async (req, res) => {
     try {

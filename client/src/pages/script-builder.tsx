@@ -7,8 +7,9 @@ import { ScriptGeneratorTab } from "@/components/script-generator-tab";
 import { AIAssistantTab } from "@/components/ai-assistant-tab";
 import { GUIBuilderTab } from "@/components/gui-builder-tab";
 import { ScriptWizardTab } from "@/components/script-wizard-tab";
+import { GitPanel } from "@/components/git-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileCode, Sparkles, LayoutGrid, Wand2 } from "lucide-react";
+import { FileCode, Sparkles, LayoutGrid, Wand2, GitBranch } from "lucide-react";
 import { generatePowerShellScript } from "@/lib/script-generator";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,7 +25,7 @@ export default function ScriptBuilder() {
   const defaultTab = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab === 'ai-assistant' || tab === 'gui-builder' || tab === 'script-wizard') {
+    if (tab === 'ai-assistant' || tab === 'gui-builder' || tab === 'script-wizard' || tab === 'git') {
       return tab;
     }
     return 'script-generator';
@@ -96,6 +97,10 @@ export default function ScriptBuilder() {
                 <Wand2 className="h-4 w-4" />
                 <span>Wizard</span>
               </TabsTrigger>
+              <TabsTrigger value="git" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-git">
+                <GitBranch className="h-4 w-4" />
+                <span>Git</span>
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -132,6 +137,20 @@ export default function ScriptBuilder() {
             script={script}
             setScript={setScript}
           />
+        </TabsContent>
+
+        <TabsContent value="git" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
+          <div className="flex-1 flex flex-col overflow-auto p-6">
+            <div className="max-w-4xl mx-auto w-full">
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold mb-2">Git Integration</h1>
+                <p className="text-muted-foreground">
+                  Connect your GitHub repositories and manage PowerShell scripts with version control
+                </p>
+              </div>
+              <GitPanel />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

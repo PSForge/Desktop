@@ -102,15 +102,55 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - Fixed navigation URLs from /library to /builder with correct tab parameters
 
 ### v4.1 Phase 2 (November 2025) - Git Integration 🚧 IN PROGRESS
-**Planned Features:**
+**Implemented Features:**
 - GitHub OAuth integration using Replit's native GitHub connector
-- Push/pull/commit operations directly from PSForge
-- Branch management and version control
-- Commit message templating for PowerShell scripts
-- Git panel in script editor with visual status indicators
-- Repository linking and automatic sync
-- Conflict resolution UI
+- Repository connection/disconnection with user-specific isolation
+- Branch management (create, switch, delete) with protection for default branches
+- Commit and push operations directly from PSForge to GitHub
+- Pull scripts from GitHub repositories
+- Git panel in script builder with visual status indicators
+- Commit history tracking with database persistence
+- Visual diff viewer for comparing script versions
+
+**Database Schema:**
+- `git_repositories` table: userId, provider, repoOwner, repoName, defaultBranch, currentBranch, lastSyncedAt, createdAt
+- `git_commits` table: repositoryId, scriptId, commitSha, message, branch, author, createdAt
+- Foreign key relationships ensuring data integrity
+
+**API Endpoints (12 total):**
+- GET /api/git/user - Fetch authenticated GitHub user
+- GET /api/git/repositories - List connected repositories (database)
+- GET /api/git/github/repositories - List available GitHub repositories
+- POST /api/git/repositories - Connect repository
+- GET /api/git/repositories/:id - Get repository details
+- DELETE /api/git/repositories/:id - Disconnect repository
+- GET /api/git/repositories/:id/branches - List branches
+- POST /api/git/repositories/:id/branches - Create branch
+- DELETE /api/git/repositories/:id/branches/:name - Delete branch
+- POST /api/git/repositories/:id/checkout - Switch branch
+- POST /api/git/repositories/:id/commit - Commit and push to GitHub
+- POST /api/git/repositories/:id/pull - Pull script from GitHub
+- GET /api/git/repositories/:id/commits - Get commit history
+- GET /api/git/repositories/:id/github-commits - Get GitHub commits
+
+**UI Components:**
+- Git Panel (`client/src/components/git-panel.tsx`): Repository connection, branch management, commit interface
+- Diff Viewer (`client/src/components/diff-viewer.tsx`): Visual comparison of script versions
+- Git Tab in script builder: Dedicated interface for Git operations
+
+**Security Architecture:**
+- **CRITICAL FIX**: Per-user GitHub credential isolation
+  - All GitHub client functions accept userId parameter
+  - NO module-level credential caching
+  - Connector settings fetched per-request to prevent cross-user contamination
+  - Each request validates user authorization before accessing Git resources
+  - Prevents severe multi-tenant credential leakage vulnerability
+
+**Remaining Work:**
 - GitLab and Azure DevOps support (manual OAuth + API integration)
+- Enhanced conflict resolution UI
+- Multi-file commit support
+- Git integration testing
 
 **Target Complexity**: High | **Timeline**: 3-4 days
 **Enterprise Value**: Provides enterprise credibility and workflow integration

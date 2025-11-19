@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Send, Loader2, Plus, ChevronRight, Sparkles } from "lucide-react";
+import { Bot, Send, Loader2, Plus, ChevronRight, Sparkles, Code2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -12,6 +12,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   suggestions?: CommandSuggestion[];
+  customScript?: string;
   timestamp: Date;
 }
 
@@ -24,11 +25,12 @@ interface CommandSuggestion {
 
 interface AIHelperBotProps {
   onAddCommand: (commandId: string, parameters?: Record<string, string>) => void;
+  onUseCustomScript?: (script: string) => void;
   isOpen: boolean;
   onToggle: () => void;
 }
 
-export function AIHelperBot({ onAddCommand, isOpen, onToggle }: AIHelperBotProps) {
+export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle }: AIHelperBotProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('ai-bot-messages');
     if (saved) {
@@ -53,6 +55,7 @@ export function AIHelperBot({ onAddCommand, isOpen, onToggle }: AIHelperBotProps
   });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +109,7 @@ export function AIHelperBot({ onAddCommand, isOpen, onToggle }: AIHelperBotProps
         role: "assistant",
         content: data.response,
         suggestions: data.suggestions || [],
+        customScript: data.customScript,
         timestamp: new Date(),
       };
 
@@ -125,6 +129,22 @@ export function AIHelperBot({ onAddCommand, isOpen, onToggle }: AIHelperBotProps
 
   const handleAddSuggestion = (suggestion: CommandSuggestion) => {
     onAddCommand(suggestion.commandId, suggestion.suggestedParameters);
+  };
+
+  const handleUseCustomScript = (script: string) => {
+    if (onUseCustomScript) {
+      onUseCustomScript(script);
+    }
+  };
+
+  const handleCopyScript = async (script: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(script);
+      setCopiedScriptId(messageId);
+      setTimeout(() => setCopiedScriptId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   if (!isOpen) {
@@ -215,6 +235,44 @@ export function AIHelperBot({ onAddCommand, isOpen, onToggle }: AIHelperBotProps
                         </div>
                       </Card>
                     ))}
+                  </div>
+                )}
+                {message.customScript && (
+                  <div className="space-y-2 w-full">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Code2 className="h-3 w-3" />
+                        Custom PowerShell Script
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyScript(message.customScript!, message.id)}
+                        data-testid={`button-copy-script-${message.id}`}
+                      >
+                        {copiedScriptId === message.id ? (
+                          <><Check className="h-3 w-3 mr-1" />Copied</>
+                        ) : (
+                          <><Copy className="h-3 w-3 mr-1" />Copy</>
+                        )}
+                      </Button>
+                    </div>
+                    <Card className="p-3 bg-muted/50">
+                      <pre className="text-xs font-mono overflow-x-auto whitespace-pre-wrap break-words">
+                        {message.customScript}
+                      </pre>
+                    </Card>
+                    {onUseCustomScript && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleUseCustomScript(message.customScript!)}
+                        className="w-full gap-2"
+                        data-testid={`button-use-custom-script-${message.id}`}
+                      >
+                        <Code2 className="h-3 w-3" />
+                        Use This Script
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

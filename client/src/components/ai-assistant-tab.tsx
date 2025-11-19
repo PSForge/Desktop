@@ -107,6 +107,22 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
     setScriptCommands([...scriptCommands, newCommand]);
   };
 
+  const handleUseCustomScript = (customScript: string) => {
+    setScript(customScript);
+    
+    // Track script generation for analytics
+    apiRequest("POST", "/api/metrics/script-generated", {
+      builderType: "ai_assistant",
+    }).catch((error) => {
+      console.debug("Script generation tracking skipped:", error.message);
+    });
+    
+    toast({
+      title: "Custom Script Added!",
+      description: "Switch to the Script tab to view and edit your script",
+    });
+  };
+
   if (!featureAccess?.hasAIAccess) {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
@@ -208,6 +224,7 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
         <div className="flex-1">
           <AIHelperBot
             onAddCommand={handleAddCommandFromBot}
+            onUseCustomScript={handleUseCustomScript}
             isOpen={true}
             onToggle={() => {}}
           />

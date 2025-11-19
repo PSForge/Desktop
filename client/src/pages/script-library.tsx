@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ export default function ScriptLibrary() {
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState("#3b82f6");
   const [activeTab, setActiveTab] = useState("all");
+  const [managingTagsForScript, setManagingTagsForScript] = useState<string | null>(null);
+  const [scriptTags, setScriptTags] = useState<Record<string, Tag[]>>({});
 
   // Fetch all user scripts
   const { data: scripts = [], isLoading: scriptsLoading } = useQuery<Script[]>({
@@ -57,6 +59,41 @@ export default function ScriptLibrary() {
   const { data: tags = [] } = useQuery<Tag[]>({
     queryKey: ['/api/tags'],
   });
+
+  // Fetch script tags when managing tags for a script
+  const { data: currentScriptTags = [] } = useQuery<Tag[]>({
+    queryKey: ['/api/scripts', managingTagsForScript, 'tags'],
+    enabled: !!managingTagsForScript,
+  });
+
+  // Fetch tags for all scripts when they load
+  useEffect(() => {
+    async function fetchAllScriptTags() {
+      const newScriptTags: Record<string, Tag[]> = {};
+      
+      for (const script of scripts) {
+        if (script.id) {
+          try {
+            const response = await fetch(`/api/scripts/${script.id}/tags`, {
+              credentials: 'include',
+            });
+            if (response.ok) {
+              const tags = await response.json();
+              newScriptTags[script.id] = tags;
+            }
+          } catch (error) {
+            console.error(`Failed to fetch tags for script ${script.id}:`, error);
+          }
+        }
+      }
+      
+      setScriptTags(newScriptTags);
+    }
+    
+    if (scripts.length > 0) {
+      fetchAllScriptTags();
+    }
+  }, [scripts]);
 
   // Create tag mutation
   const createTagMutation = useMutation({
@@ -133,6 +170,65 @@ export default function ScriptLibrary() {
     },
   });
 
+  // Add tag to script mutation
+  const addTagToScriptMutation = useMutation({
+    mutationFn: async ({ scriptId, tagId }: { scriptId: string; tagId: string }) => {
+      return await apiRequest(`/api/scripts/${scriptId}/tags/${tagId}`, 'POST');
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scripts', variables.scriptId, 'tags'] });
+      
+      // Update scriptTags state immediately
+      const tag = tags.find(t => t.id === variables.tagId);
+      if (tag) {
+        setScriptTags(prev => ({
+          ...prev,
+          [variables.scriptId]: [...(prev[variables.scriptId] || []), tag]
+        }));
+      }
+      
+      toast({
+        title: "Tag added",
+        description: "Tag has been added to the script.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add tag to script",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Remove tag from script mutation
+  const removeTagFromScriptMutation = useMutation({
+    mutationFn: async ({ scriptId, tagId }: { scriptId: string; tagId: string }) => {
+      return await apiRequest(`/api/scripts/${scriptId}/tags/${tagId}`, 'DELETE');
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scripts', variables.scriptId, 'tags'] });
+      
+      // Update scriptTags state immediately
+      setScriptTags(prev => ({
+        ...prev,
+        [variables.scriptId]: (prev[variables.scriptId] || []).filter(t => t.id !== variables.tagId)
+      }));
+      
+      toast({
+        title: "Tag removed",
+        description: "Tag has been removed from the script.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove tag from script",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Filter scripts based on search and filters
   const filteredScripts = scripts.filter(script => {
     const matchesSearch = !searchQuery || 
@@ -143,9 +239,13 @@ export default function ScriptLibrary() {
       script.taskCategory === filterCategory || 
       !script.taskCategory;
     
-    // TODO: Filter by tags when we have script tags loaded
+    // Filter by selected tags - script must have ALL selected tags
+    const matchesTags = selectedTags.length === 0 || 
+      (scriptTags[script.id!] && selectedTags.every(tagId => 
+        scriptTags[script.id!]?.some(tag => tag.id === tagId)
+      ));
     
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesCategory && matchesTags;
   });
 
   // Get display scripts based on active tab
@@ -420,9 +520,22 @@ export default function ScriptLibrary() {
                         Last accessed: {new Date(script.lastAccessed).toLocaleDateString()}
                       </div>
                     )}
+                    {scriptTags[script.id!] && scriptTags[script.id!].length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {scriptTags[script.id!].map(tag => (
+                          <Badge 
+                            key={tag.id} 
+                            style={{ backgroundColor: tag.color || undefined }}
+                            className="text-xs"
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
 
-                  <CardFooter className="flex justify-between gap-2">
+                  <CardFooter className="flex justify-between gap-2 flex-wrap">
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -442,6 +555,15 @@ export default function ScriptLibrary() {
                         <Download className="w-3 h-3 mr-1" />
                         Download
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => script.id && setManagingTagsForScript(script.id)}
+                        data-testid={`button-manage-tags-${script.id}`}
+                      >
+                        <TagIcon className="w-3 h-3 mr-1" />
+                        Tags
+                      </Button>
                     </div>
                     <Button
                       size="sm"
@@ -458,6 +580,89 @@ export default function ScriptLibrary() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Tag Management Dialog */}
+      <Dialog open={!!managingTagsForScript} onOpenChange={(open) => !open && setManagingTagsForScript(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Script Tags</DialogTitle>
+            <DialogDescription>
+              Add or remove tags from this script
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {currentScriptTags.length > 0 && (
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Current Tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {currentScriptTags.map(tag => (
+                    <Badge 
+                      key={tag.id}
+                      style={{ backgroundColor: tag.color || undefined }}
+                      className="cursor-pointer"
+                      data-testid={`badge-current-tag-${tag.id}`}
+                    >
+                      {tag.name}
+                      <button
+                        onClick={() => {
+                          if (managingTagsForScript && tag.id) {
+                            removeTagFromScriptMutation.mutate({
+                              scriptId: managingTagsForScript,
+                              tagId: tag.id
+                            });
+                          }
+                        }}
+                        className="ml-2 hover:text-destructive"
+                        data-testid={`button-remove-current-tag-${tag.id}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {tags.filter(t => !currentScriptTags.some(ct => ct.id === t.id)).length > 0 && (
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Available Tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {tags.filter(t => !currentScriptTags.some(ct => ct.id === t.id)).map(tag => (
+                    <Badge
+                      key={tag.id}
+                      variant="outline"
+                      className="cursor-pointer hover-elevate"
+                      onClick={() => {
+                        if (managingTagsForScript && tag.id) {
+                          addTagToScriptMutation.mutate({
+                            scriptId: managingTagsForScript,
+                            tagId: tag.id
+                          });
+                        }
+                      }}
+                      data-testid={`badge-available-tag-${tag.id}`}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {tags.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No tags available. Create a tag first using the "New Tag" button.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setManagingTagsForScript(null)} data-testid="button-close-tag-dialog">
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

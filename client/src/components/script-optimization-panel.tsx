@@ -41,10 +41,17 @@ interface ScriptOptimizationPanelProps {
 }
 
 const priorityColors = {
-  critical: 'bg-red-500',
-  high: 'bg-orange-500',
-  medium: 'bg-yellow-500',
-  low: 'bg-blue-500',
+  critical: 'bg-red-500 text-white',
+  high: 'bg-orange-500 text-white',
+  medium: 'bg-yellow-500 text-black',
+  low: 'bg-blue-500 text-white',
+};
+
+const priorityBorderColors = {
+  critical: 'border-l-red-500',
+  high: 'border-l-orange-500',
+  medium: 'border-l-yellow-500',
+  low: 'border-l-blue-500',
 };
 
 const priorityIcons = {
@@ -205,7 +212,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                       {optimization.performance.map((rec, idx) => {
                         const PriorityIcon = priorityIcons[rec.priority];
                         return (
-                          <Card key={idx} className="border-l-4" style={{ borderLeftColor: `var(--${rec.priority})` }}>
+                          <Card key={idx} className={`border-l-4 ${priorityBorderColors[rec.priority]}`}>
                             <CardHeader className="pb-3">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
@@ -213,7 +220,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                                     <PriorityIcon className="w-4 h-4" />
                                     <CardTitle className="text-sm">{rec.title}</CardTitle>
                                   </div>
-                                  <Badge variant="secondary" className={priorityColors[rec.priority]}>
+                                  <Badge className={priorityColors[rec.priority]}>
                                     {rec.priority.toUpperCase()}
                                   </Badge>
                                   {rec.line && (
@@ -265,7 +272,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                       {optimization.security.map((rec, idx) => {
                         const PriorityIcon = priorityIcons[rec.priority];
                         return (
-                          <Card key={idx} className="border-l-4 border-l-red-500">
+                          <Card key={idx} className={`border-l-4 ${priorityBorderColors[rec.priority]}`}>
                             <CardHeader className="pb-3">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
@@ -273,7 +280,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                                     <PriorityIcon className="w-4 h-4" />
                                     <CardTitle className="text-sm">{rec.title}</CardTitle>
                                   </div>
-                                  <Badge variant="secondary" className={priorityColors[rec.priority]}>
+                                  <Badge className={priorityColors[rec.priority]}>
                                     {rec.priority.toUpperCase()}
                                   </Badge>
                                   {rec.line && (
@@ -325,7 +332,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                       {optimization.bestPractices.map((rec, idx) => {
                         const PriorityIcon = priorityIcons[rec.priority];
                         return (
-                          <Card key={idx} className="border-l-4 border-l-green-500">
+                          <Card key={idx} className={`border-l-4 ${priorityBorderColors[rec.priority]}`}>
                             <CardHeader className="pb-3">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
@@ -333,7 +340,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                                     <PriorityIcon className="w-4 h-4" />
                                     <CardTitle className="text-sm">{rec.title}</CardTitle>
                                   </div>
-                                  <Badge variant="secondary" className={priorityColors[rec.priority]}>
+                                  <Badge className={priorityColors[rec.priority]}>
                                     {rec.priority.toUpperCase()}
                                   </Badge>
                                   {rec.line && (

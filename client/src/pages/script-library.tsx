@@ -26,7 +26,7 @@ import {
   X,
   FileText,
   Calendar,
-  Code2,
+  FileCode,
   Sparkles,
   LayoutGrid,
   Wand2
@@ -317,69 +317,61 @@ export default function ScriptLibrary() {
   return (
     <>
       <Header onExport={() => {}} hasCommands={false} />
-      <div className="container mx-auto p-6 space-y-6">
-      
-      {/* Quick Navigation to Builder Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Script Builder</CardTitle>
-          <CardDescription>Jump back to the builder to create new scripts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="hover-elevate"
-              data-testid="button-goto-script"
-            >
-              <a href="/?tab=script">
-                <Code2 className="w-4 h-4 mr-2" />
-                Script Editor
-              </a>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="hover-elevate"
-              data-testid="button-goto-ai"
-            >
-              <a href="/?tab=ai">
-                <Sparkles className="w-4 h-4 mr-2" />
-                AI Assistant
-              </a>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="hover-elevate"
-              data-testid="button-goto-gui"
-            >
-              <a href="/?tab=gui">
-                <LayoutGrid className="w-4 h-4 mr-2" />
-                GUI Builder
-              </a>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="hover-elevate"
-              data-testid="button-goto-wizard"
-            >
-              <a href="/?tab=wizard">
-                <Wand2 className="w-4 h-4 mr-2" />
-                Script Wizard
-              </a>
-            </Button>
+      <div className="flex flex-col min-h-screen">
+        {/* Builder Navigation Tabs */}
+        <div className="border-b px-3 sm:px-6">
+          <div className="flex flex-row gap-2 h-10 sm:h-12 overflow-x-auto">
+            <TabsList className="h-full inline-flex">
+              <TabsTrigger 
+                value="script-generator" 
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+                data-testid="tab-script-generator"
+                asChild
+              >
+                <a href="/?tab=script-generator">
+                  <FileCode className="h-4 w-4" />
+                  <span>Script</span>
+                </a>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="ai-assistant" 
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+                data-testid="tab-ai-assistant"
+                asChild
+              >
+                <a href="/?tab=ai-assistant">
+                  <Sparkles className="h-4 w-4" />
+                  <span>AI</span>
+                </a>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="gui-builder" 
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+                data-testid="tab-gui-builder"
+                asChild
+              >
+                <a href="/?tab=gui-builder">
+                  <LayoutGrid className="h-4 w-4" />
+                  <span>GUI</span>
+                </a>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="script-wizard" 
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+                data-testid="tab-script-wizard"
+                asChild
+              >
+                <a href="/?tab=script-wizard">
+                  <Wand2 className="h-4 w-4" />
+                  <span>Wizard</span>
+                </a>
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </CardContent>
-      </Card>
+        </div>
       
-      <div className="flex items-center justify-between">
+        <div className="container mx-auto p-6 space-y-6">
+          <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-library-title">Script Library</h1>
           <p className="text-muted-foreground">
@@ -734,6 +726,7 @@ export default function ScriptLibrary() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </div>
       </div>
     </>
   );

@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Header } from "@/components/header";
 import { 
   Star, 
   Clock, 
@@ -300,14 +301,19 @@ export default function ScriptLibrary() {
 
   if (scriptsLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center text-muted-foreground">Loading your script library...</div>
-      </div>
+      <>
+        <Header onExport={() => {}} hasCommands={false} />
+        <div className="container mx-auto p-6">
+          <div className="text-center text-muted-foreground">Loading your script library...</div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <>
+      <Header onExport={() => {}} hasCommands={false} />
+      <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-library-title">Script Library</h1>
@@ -663,6 +669,7 @@ export default function ScriptLibrary() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 }

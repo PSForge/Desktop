@@ -16,6 +16,8 @@ import {
   passwordResetTokens,
   welcomeEmailTemplates,
   webhookEvents,
+  gitRepositories,
+  gitCommits,
   type User,
   type Session,
   type Script,
@@ -35,6 +37,10 @@ import {
   type WelcomeEmailTemplate,
   type InsertWelcomeEmailTemplate,
   type UpdateWelcomeEmailTemplate,
+  type GitRepository,
+  type GitCommit,
+  type InsertGitRepository,
+  type InsertGitCommit,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -737,5 +743,76 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`${webhookEvents.createdAt} DESC`)
       .limit(limit);
     return result.map(e => this.convertTimestamps(e));
+  }
+
+  // Git Repository Management
+  async createGitRepository(repository: InsertGitRepository): Promise<GitRepository> {
+    const result = await this.db.insert(gitRepositories).values({
+      userId: repository.userId!,
+      provider: repository.provider,
+      repoOwner: repository.repoOwner,
+      repoName: repository.repoName,
+      defaultBranch: repository.defaultBranch,
+      currentBranch: repository.currentBranch || null,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getUserGitRepositories(userId: string): Promise<GitRepository[]> {
+    const result = await this.db.select().from(gitRepositories)
+      .where(eq(gitRepositories.userId, userId))
+      .orderBy(desc(gitRepositories.createdAt));
+    return result.map(r => this.convertTimestamps(r));
+  }
+
+  async getGitRepository(id: string): Promise<GitRepository | undefined> {
+    const result = await this.db.select().from(gitRepositories)
+      .where(eq(gitRepositories.id, id))
+      .limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async updateGitRepository(id: string, updates: Partial<GitRepository>): Promise<GitRepository | undefined> {
+    const result = await this.db.update(gitRepositories)
+      .set({
+        ...updates,
+        lastSyncedAt: updates.lastSyncedAt ? new Date(updates.lastSyncedAt) : undefined,
+      })
+      .where(eq(gitRepositories.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async deleteGitRepository(id: string): Promise<boolean> {
+    const result = await this.db.delete(gitRepositories).where(eq(gitRepositories.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Git Commits
+  async createGitCommit(commit: InsertGitCommit): Promise<GitCommit> {
+    const result = await this.db.insert(gitCommits).values({
+      repositoryId: commit.repositoryId,
+      scriptId: commit.scriptId || null,
+      commitSha: commit.commitSha,
+      message: commit.message,
+      branch: commit.branch,
+      author: commit.author || null,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getRepositoryCommits(repositoryId: string, limit: number = 20): Promise<GitCommit[]> {
+    const result = await this.db.select().from(gitCommits)
+      .where(eq(gitCommits.repositoryId, repositoryId))
+      .orderBy(desc(gitCommits.createdAt))
+      .limit(limit);
+    return result.map(c => this.convertTimestamps(c));
+  }
+
+  async getScriptCommits(scriptId: string): Promise<GitCommit[]> {
+    const result = await this.db.select().from(gitCommits)
+      .where(eq(gitCommits.scriptId, scriptId))
+      .orderBy(desc(gitCommits.createdAt));
+    return result.map(c => this.convertTimestamps(c));
   }
 }

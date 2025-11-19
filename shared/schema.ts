@@ -120,6 +120,29 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const gitRepositories = pgTable("git_repositories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: varchar("provider", { length: 50 }).notNull().default("github"),
+  repoOwner: varchar("repo_owner", { length: 255 }).notNull(),
+  repoName: varchar("repo_name", { length: 255 }).notNull(),
+  defaultBranch: varchar("default_branch", { length: 255 }).notNull().default("main"),
+  currentBranch: varchar("current_branch", { length: 255 }),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const gitCommits = pgTable("git_commits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  repositoryId: varchar("repository_id").notNull().references(() => gitRepositories.id, { onDelete: "cascade" }),
+  scriptId: varchar("script_id").references(() => scripts.id, { onDelete: "set null" }),
+  commitSha: varchar("commit_sha", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  branch: varchar("branch", { length: 255 }).notNull(),
+  author: varchar("author", { length: 255 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const welcomeEmailTemplates = pgTable("welcome_email_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   type: varchar("type", { length: 50 }).notNull().unique(),
@@ -293,10 +316,35 @@ export const comprehensiveValidationResultSchema = z.object({
   summary: z.string(),
 });
 
+export const gitRepositorySchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().optional(),
+  provider: z.string(),
+  repoOwner: z.string(),
+  repoName: z.string(),
+  defaultBranch: z.string(),
+  currentBranch: z.string().optional(),
+  lastSyncedAt: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
+export const gitCommitSchema = z.object({
+  id: z.string().optional(),
+  repositoryId: z.string(),
+  scriptId: z.string().optional(),
+  commitSha: z.string(),
+  message: z.string(),
+  branch: z.string(),
+  author: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
 export const insertScriptCommandSchema = scriptCommandSchema.omit({ id: true });
 export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true, lastAccessed: true });
 export const insertTagSchema = tagSchema.omit({ id: true, createdAt: true });
 export const insertScriptTagSchema = scriptTagSchema.omit({ id: true, createdAt: true });
+export const insertGitRepositorySchema = gitRepositorySchema.omit({ id: true, createdAt: true, lastSyncedAt: true });
+export const insertGitCommitSchema = gitCommitSchema.omit({ id: true, createdAt: true });
 
 export const saveScriptSchema = z.object({
   name: z.string().min(1, "Script name is required"),
@@ -563,6 +611,10 @@ export type PasswordResetToken = z.infer<typeof passwordResetTokenSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 export type SupportRequestData = z.infer<typeof supportRequestSchema>;
+export type GitRepository = z.infer<typeof gitRepositorySchema>;
+export type GitCommit = z.infer<typeof gitCommitSchema>;
+export type InsertGitRepository = z.infer<typeof insertGitRepositorySchema>;
+export type InsertGitCommit = z.infer<typeof insertGitCommitSchema>;
 
 // Basic categories accessible to free users
 export const freeTierCategories = [

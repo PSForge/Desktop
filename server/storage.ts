@@ -103,6 +103,18 @@ export interface IStorage {
   createWebhookEvent(event: Omit<import("@shared/schema").WebhookEvent, "id" | "createdAt">): Promise<import("@shared/schema").WebhookEvent>;
   getRecentWebhookEvents(limit?: number): Promise<import("@shared/schema").WebhookEvent[]>;
   getWebhookEventsByType(eventType: string, limit?: number): Promise<import("@shared/schema").WebhookEvent[]>;
+  
+  // Git Repository management
+  createGitRepository(repository: import("@shared/schema").InsertGitRepository): Promise<import("@shared/schema").GitRepository>;
+  getUserGitRepositories(userId: string): Promise<import("@shared/schema").GitRepository[]>;
+  getGitRepository(id: string): Promise<import("@shared/schema").GitRepository | undefined>;
+  updateGitRepository(id: string, updates: Partial<import("@shared/schema").GitRepository>): Promise<import("@shared/schema").GitRepository | undefined>;
+  deleteGitRepository(id: string): Promise<boolean>;
+  
+  // Git Commits
+  createGitCommit(commit: import("@shared/schema").InsertGitCommit): Promise<import("@shared/schema").GitCommit>;
+  getRepositoryCommits(repositoryId: string, limit?: number): Promise<import("@shared/schema").GitCommit[]>;
+  getScriptCommits(scriptId: string): Promise<import("@shared/schema").GitCommit[]>;
 }
 
 export class MemStorage implements IStorage {

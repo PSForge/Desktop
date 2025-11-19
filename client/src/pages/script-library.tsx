@@ -321,10 +321,11 @@ export default function ScriptLibrary() {
         {/* Builder Navigation Tabs */}
         <div className="border-b px-3 sm:px-6">
           <div className="flex flex-row gap-2 h-10 sm:h-12 overflow-x-auto">
-            <TabsList className="h-full inline-flex">
-              <TabsTrigger 
-                value="script-generator" 
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+            <div className="h-full inline-flex gap-1 bg-muted p-1 text-muted-foreground rounded-md">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap"
                 data-testid="tab-script-generator"
                 asChild
               >
@@ -332,10 +333,11 @@ export default function ScriptLibrary() {
                   <FileCode className="h-4 w-4" />
                   <span>Script</span>
                 </a>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="ai-assistant" 
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap"
                 data-testid="tab-ai-assistant"
                 asChild
               >
@@ -343,10 +345,11 @@ export default function ScriptLibrary() {
                   <Sparkles className="h-4 w-4" />
                   <span>AI</span>
                 </a>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="gui-builder" 
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap"
                 data-testid="tab-gui-builder"
                 asChild
               >
@@ -354,10 +357,11 @@ export default function ScriptLibrary() {
                   <LayoutGrid className="h-4 w-4" />
                   <span>GUI</span>
                 </a>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="script-wizard" 
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap" 
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap"
                 data-testid="tab-script-wizard"
                 asChild
               >
@@ -365,8 +369,8 @@ export default function ScriptLibrary() {
                   <Wand2 className="h-4 w-4" />
                   <span>Wizard</span>
                 </a>
-              </TabsTrigger>
-            </TabsList>
+              </Button>
+            </div>
           </div>
         </div>
       

@@ -206,6 +206,55 @@ export const validationResultSchema = z.object({
   warnings: z.array(z.string()).optional(),
 });
 
+// Comprehensive validation schemas
+export const validationIssueSchema = z.object({
+  type: z.enum(['error', 'warning', 'info']),
+  category: z.enum(['syntax', 'dependency', 'impact', 'best-practice', 'compliance', 'security']),
+  line: z.number().optional(),
+  message: z.string(),
+  recommendation: z.string(),
+  severity: z.enum(['critical', 'high', 'medium', 'low']),
+});
+
+export const dependencyInfoSchema = z.object({
+  modules: z.array(z.string()),
+  permissions: z.array(z.string()),
+  externalTools: z.array(z.string()),
+});
+
+export const impactAnalysisSchema = z.object({
+  modifiesObjects: z.boolean(),
+  deletesObjects: z.boolean(),
+  createsObjects: z.boolean(),
+  estimatedImpact: z.string(),
+  affectedResources: z.array(z.string()),
+});
+
+export const bestPracticeSchema = z.object({
+  category: z.string(),
+  passed: z.boolean(),
+  message: z.string(),
+  recommendation: z.string().optional(),
+});
+
+export const complianceCheckSchema = z.object({
+  standard: z.string(),
+  passed: z.boolean(),
+  issues: z.array(z.string()),
+  recommendations: z.array(z.string()),
+});
+
+export const comprehensiveValidationResultSchema = z.object({
+  isValid: z.boolean(),
+  score: z.number(),
+  issues: z.array(validationIssueSchema),
+  dependencies: dependencyInfoSchema,
+  impact: impactAnalysisSchema,
+  bestPractices: z.array(bestPracticeSchema),
+  compliance: z.array(complianceCheckSchema),
+  summary: z.string(),
+});
+
 export const insertScriptCommandSchema = scriptCommandSchema.omit({ id: true });
 export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true });
 export const saveScriptSchema = z.object({
@@ -230,6 +279,12 @@ export type Command = z.infer<typeof commandSchema>;
 export type ScriptCommand = z.infer<typeof scriptCommandSchema>;
 export type Script = z.infer<typeof scriptSchema>;
 export type ValidationResult = z.infer<typeof validationResultSchema>;
+export type ValidationIssue = z.infer<typeof validationIssueSchema>;
+export type DependencyInfo = z.infer<typeof dependencyInfoSchema>;
+export type ImpactAnalysis = z.infer<typeof impactAnalysisSchema>;
+export type BestPractice = z.infer<typeof bestPracticeSchema>;
+export type ComplianceCheck = z.infer<typeof complianceCheckSchema>;
+export type ComprehensiveValidationResult = z.infer<typeof comprehensiveValidationResultSchema>;
 export type InsertScriptCommand = z.infer<typeof insertScriptCommandSchema>;
 export type InsertScript = z.infer<typeof insertScriptSchema>;
 export type InsertValidationRequest = z.infer<typeof insertValidationRequestSchema>;

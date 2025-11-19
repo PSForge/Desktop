@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
+import { validatePowerShellScript as validateComprehensive } from "./script-validator";
 import { getAIHelperResponse } from "./ai-helper";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
 import { sendPasswordResetEmail, sendSupportRequestEmail, sendWelcomeEmail } from "./email-service";
@@ -468,6 +469,30 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       console.error("Validation error:", error);
       return res.status(500).json({
         error: "Internal server error during validation"
+      });
+    }
+  });
+
+  // Comprehensive validation with pre-flight checks, dependencies, impact analysis, and compliance
+  app.post("/api/validate/comprehensive", async (req, res) => {
+    try {
+      const parsed = insertValidationRequestSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid request body",
+          details: parsed.error.errors
+        });
+      }
+
+      const { code } = parsed.data;
+      const result = validateComprehensive(code);
+
+      return res.json(result);
+    } catch (error) {
+      console.error("Comprehensive validation error:", error);
+      return res.status(500).json({
+        error: "Internal server error during comprehensive validation"
       });
     }
   });

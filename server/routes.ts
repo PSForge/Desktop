@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
 import { validatePowerShellScript as validateComprehensive } from "./script-validator";
 import { getAIHelperResponse } from "./ai-helper";
+import { generateScriptDocumentation, analyzeScriptOptimization } from "./ai-optimizer";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
 import { sendPasswordResetEmail, sendSupportRequestEmail, sendWelcomeEmail } from "./email-service";
 import { 
@@ -21,7 +22,9 @@ import {
   insertWelcomeEmailTemplateSchema,
   updateWelcomeEmailTemplateSchema,
   saveScriptSchema,
+  updateScriptSchema,
   trackScriptGenerationSchema,
+  insertTagSchema,
   type ValidationResult,
   type SubscriptionStatus,
   type User
@@ -728,6 +731,214 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       console.error("Error tracking script generation:", error);
       // Don't fail the user's request if tracking fails
       return res.status(200).json({ success: false });
+    }
+  });
+
+  // Script Library - Favorites
+  app.patch("/api/scripts/:id/favorite", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const script = await storage.toggleScriptFavorite(id, req.user!.id);
+      
+      if (!script) {
+        return res.status(404).json({ error: "Script not found or unauthorized" });
+      }
+      
+      return res.json(script);
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/scripts/library/favorites", requireAuth, async (req, res) => {
+    try {
+      const scripts = await storage.getFavoriteScripts(req.user!.id);
+      return res.json(scripts);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/scripts/library/recent", requireAuth, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const scripts = await storage.getRecentScripts(req.user!.id, limit);
+      return res.json(scripts);
+    } catch (error) {
+      console.error("Error fetching recent scripts:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/scripts/:id/access", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const script = await storage.getScript(id);
+      
+      if (!script || script.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Script not found or unauthorized" });
+      }
+      
+      await storage.updateScriptLastAccessed(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating access time:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Tag Management
+  app.post("/api/tags", requireAuth, async (req, res) => {
+    try {
+      const parsed = insertTagSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid tag data",
+          details: parsed.error.errors
+        });
+      }
+
+      const tag = await storage.createTag({
+        ...parsed.data,
+        userId: req.user!.id
+      });
+      
+      return res.status(201).json(tag);
+    } catch (error) {
+      console.error("Error creating tag:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/tags", requireAuth, async (req, res) => {
+    try {
+      const tags = await storage.getUserTags(req.user!.id);
+      return res.json(tags);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/tags/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteTag(id, req.user!.id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Tag not found or unauthorized" });
+      }
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting tag:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/scripts/:scriptId/tags/:tagId", requireAuth, async (req, res) => {
+    try {
+      const { scriptId, tagId } = req.params;
+      
+      // Verify ownership
+      const script = await storage.getScript(scriptId);
+      if (!script || script.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Script not found or unauthorized" });
+      }
+      
+      const scriptTag = await storage.addTagToScript(scriptId, tagId);
+      return res.status(201).json(scriptTag);
+    } catch (error) {
+      console.error("Error adding tag to script:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/scripts/:scriptId/tags/:tagId", requireAuth, async (req, res) => {
+    try {
+      const { scriptId, tagId } = req.params;
+      
+      // Verify ownership
+      const script = await storage.getScript(scriptId);
+      if (!script || script.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Script not found or unauthorized" });
+      }
+      
+      const deleted = await storage.removeTagFromScript(scriptId, tagId);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Tag assignment not found" });
+      }
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing tag from script:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/scripts/:id/tags", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Verify ownership
+      const script = await storage.getScript(id);
+      if (!script || script.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Script not found or unauthorized" });
+      }
+      
+      const tags = await storage.getScriptTags(id);
+      return res.json(tags);
+    } catch (error) {
+      console.error("Error fetching script tags:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/tags/:id/scripts", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const scripts = await storage.getScriptsByTag(id, req.user!.id);
+      return res.json(scripts);
+    } catch (error) {
+      console.error("Error fetching scripts by tag:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // AI Documentation & Optimization
+  app.post("/api/ai/generate-docs", requireAuth, async (req, res) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ error: "Code is required" });
+      }
+      
+      const documentation = await generateScriptDocumentation(code);
+      return res.json({ documentation });
+    } catch (error) {
+      console.error("Error generating documentation:", error);
+      return res.status(500).json({ error: "Failed to generate documentation" });
+    }
+  });
+
+  app.post("/api/ai/optimize", requireAuth, requireSubscriber, async (req, res) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ error: "Code is required" });
+      }
+      
+      const optimization = await analyzeScriptOptimization(code);
+      return res.json(optimization);
+    } catch (error) {
+      console.error("Error optimizing script:", error);
+      return res.status(500).json({ error: "Failed to analyze script" });
     }
   });
 

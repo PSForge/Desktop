@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth-context";
 import Home from "@/pages/home";
 import ScriptBuilder from "@/pages/script-builder";
+import ScriptLibrary from "@/pages/script-library";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import ForgotPassword from "@/pages/forgot-password";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/builder" component={ScriptBuilder} />
+      <Route path="/library" component={ScriptLibrary} />
       <Route path="/account" component={Account} />
       <Route path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />

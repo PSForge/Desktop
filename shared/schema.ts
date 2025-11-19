@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, varchar, text, timestamp, boolean, integer, json } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, boolean, integer, json, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // Drizzle Database Tables
@@ -57,7 +57,9 @@ export const scriptTags = pgTable("script_tags", {
   scriptId: varchar("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
   tagId: varchar("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  uniqueScriptTag: unique().on(table.scriptId, table.tagId),
+}));
 
 export const subscriptionPlans = pgTable("subscription_plans", {
   id: varchar("id").primaryKey(),

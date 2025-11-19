@@ -184,11 +184,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addTagToScript(scriptId: string, tagId: string): Promise<ScriptTag> {
-    const result = await this.db.insert(scriptTags).values({
-      scriptId,
-      tagId,
-    }).returning();
-    return this.convertTimestamps(result[0]);
+    try {
+      const result = await this.db.insert(scriptTags).values({
+        scriptId,
+        tagId,
+      }).returning();
+      return this.convertTimestamps(result[0]);
+    } catch (error: any) {
+      // Handle duplicate key violation (unique constraint)
+      if (error.code === '23505') {
+        // Find and return existing relationship
+        const existing = await this.db.select().from(scriptTags)
+          .where(and(eq(scriptTags.scriptId, scriptId), eq(scriptTags.tagId, tagId)))
+          .limit(1);
+        if (existing[0]) {
+          return this.convertTimestamps(existing[0]);
+        }
+      }
+      throw error;
+    }
   }
 
   async removeTagFromScript(scriptId: string, tagId: string): Promise<boolean> {

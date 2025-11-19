@@ -27,7 +27,18 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting exactly 1000 automation tasks across 48 platforms.
     - **Script Wizard**: 5-step multi-platform bulk operations wizard supporting CSV file path reference, embedded CSV data, manual entry, and parameter mapping.
     - **Export**: Download .ps1 file or save to profile with security analysis.
-    - **Script Management**: Save, view, load, and delete user scripts.
+    - **Script Management (v4.0)**: Comprehensive script library with advanced features:
+        - **Tag System**: Create custom tags with colors, add/remove tags from scripts, filter scripts by tags
+        - **Favorites**: Mark scripts as favorites for quick access, dedicated favorites view
+        - **Recent Scripts**: Track last accessed timestamp, view recently used scripts (up to 10)
+        - **Advanced Search**: Filter scripts by name, description, platform category, and tags
+        - **AI Documentation**: Auto-generate comment-based help documentation following Microsoft PowerShell standards
+    - **AI Script Optimization (v4.0 - Pro Feature)**: Advanced AI-powered script analysis with:
+        - **Performance Analysis**: Detect inefficient patterns, suggest parallel processing opportunities, loop optimizations, memory improvements
+        - **Security Deep-Scan**: Identify hardcoded credentials, unsafe cmdlets, privilege escalation risks, code injection vulnerabilities
+        - **Best Practices Enforcement**: Check for missing error handling, parameter validation, approved verbs, comment-based help, WhatIf/Confirm support
+        - **Alternative Approaches**: Provide 2-3 different implementation methods with pros/cons analysis
+        - **Categorized Recommendations**: Organized by priority (critical, high, medium, low) with line numbers and code snippets
 - **Security Features**:
     - **Malicious Code Scanner**: Detects 15+ dangerous PowerShell patterns.
     - **Script Integrity**: SHA-256 hashing for script verification.
@@ -40,6 +51,47 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for persistent storage.
-- **OpenAI API**: Powers the AI Assistant for natural language processing, command suggestions, and custom PowerShell script generation.
+- **OpenAI API**: Powers the AI Assistant for natural language processing, command suggestions, custom PowerShell script generation, AI documentation generation, and script optimization analysis (v4.0).
 - **Stripe API**: Handles payment processing, subscription management, and webhook events.
 - **Office 365 SMTP**: Used for sending transactional emails (password reset, support requests).
+
+## Version History
+
+### v4.0 Phase 1 (November 2025) - Enhanced Script Library & AI Optimization
+**Script Library Management:**
+- Tag system with custom colors and many-to-many script-tag relationships
+- Favorites system with toggle capability and dedicated favorites view
+- Recent scripts tracking with last_accessed timestamps
+- Advanced filtering by platform category, tags, name, and description
+- Comprehensive script library page at `/library` with tabs for All/Favorites/Recent
+
+**AI-Powered Features (Pro Tier):**
+- AI Documentation Generator: Auto-generate PowerShell comment-based help
+- AI Script Optimizer with four analysis categories:
+  - Performance recommendations (parallel processing, loop optimization)
+  - Security vulnerability detection (credentials, unsafe cmdlets)
+  - Best practices enforcement (error handling, parameter validation)
+  - Alternative implementation approaches with pros/cons
+
+**Database Schema Updates:**
+- `tags` table: id, userId, name, color, createdAt
+- `script_tags` junction table with unique constraint on (script_id, tag_id)
+- `scripts` table: Added is_favorite, last_accessed, documentation fields
+
+**API Endpoints:**
+- Tag management: POST /api/tags, GET /api/tags, DELETE /api/tags/:id
+- Script-tag relationships: POST /api/scripts/:scriptId/tags/:tagId, DELETE /api/scripts/:scriptId/tags/:tagId
+- Library features: GET /api/scripts/library/favorites, GET /api/scripts/library/recent, PATCH /api/scripts/:id/favorite
+- AI features: POST /api/ai/generate-docs, POST /api/ai/optimize (Pro only)
+
+### v3.1.0 (November 2025) - Comprehensive Script Validation
+- Dual-mode validation system with Basic (automatic) and Comprehensive (on-demand)
+- Scored assessment (0-100) with dependency detection and impact analysis
+- Microsoft PowerShell best practices checking and compliance validation
+- Stale-results prevention logic with toast notifications for errors
+
+### v3.0.0 (October 2025) - Initial Production Release
+- 1000 automation tasks across 48 enterprise IT platforms
+- Stripe subscription system with webhook processing
+- Admin dashboard with real-time analytics
+- Password reset system with Office 365 email integration

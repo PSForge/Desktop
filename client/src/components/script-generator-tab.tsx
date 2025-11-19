@@ -12,6 +12,7 @@ import { powershellCommands } from "@/lib/powershell-commands";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileCheck, List } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ScriptGeneratorTabProps {
   script: string;
@@ -26,12 +27,14 @@ export function ScriptGeneratorTab({
   exportDialogOpen,
   setExportDialogOpen
 }: ScriptGeneratorTabProps) {
+  const { toast } = useToast();
   const [validationResult, setValidationResult] = useState<ValidationResult>({
     isValid: true,
     errors: [],
   });
   const [comprehensiveValidation, setComprehensiveValidation] = useState<ComprehensiveValidationResult | null>(null);
   const [lastValidatedCode, setLastValidatedCode] = useState<string>('');
+  const [lastComprehensiveCode, setLastComprehensiveCode] = useState<string>('');
   const [cursorPosition, setCursorPosition] = useState<number>(0);
   const [validationMode, setValidationMode] = useState<'basic' | 'comprehensive'>('basic');
 
@@ -63,11 +66,19 @@ export function ScriptGeneratorTab({
       const response = await apiRequest('POST', '/api/validate/comprehensive', { code });
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setComprehensiveValidation(data);
+      setLastComprehensiveCode(variables);
     },
     onError: (error) => {
       console.error('Comprehensive validation failed:', error);
+      toast({
+        title: 'Validation Failed',
+        description: 'Failed to run comprehensive validation. Please try again.',
+        variant: 'destructive',
+      });
+      // Clear comprehensive results on error
+      setComprehensiveValidation(null);
     },
   });
 
@@ -79,13 +90,25 @@ export function ScriptGeneratorTab({
       });
       setComprehensiveValidation(null);
       setLastValidatedCode('');
+      setLastComprehensiveCode('');
+      // Reset to basic mode when script is empty
+      setValidationMode('basic');
       return;
     }
 
+    // Run basic validation
     if (script !== lastValidatedCode && !validationMutation.isPending) {
       validationMutation.mutate(script);
     }
-  }, [script, lastValidatedCode]);
+
+    // If script changed and we have comprehensive results, they're now stale
+    if (script !== lastComprehensiveCode && comprehensiveValidation !== null) {
+      // Clear stale comprehensive validation results
+      setComprehensiveValidation(null);
+      // Switch back to basic mode to show current validation
+      setValidationMode('basic');
+    }
+  }, [script, lastValidatedCode, lastComprehensiveCode, comprehensiveValidation]);
 
   const runComprehensiveValidation = () => {
     if (script.trim()) {

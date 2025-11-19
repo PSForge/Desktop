@@ -57,13 +57,14 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 
 ## Version History
 
-### v4.0 Phase 1 (November 2025) - Enhanced Script Library & AI Optimization
+### v4.0 Phase 1 (November 2025) - Enhanced Script Library & AI Optimization ✅ COMPLETED
 **Script Library Management:**
 - Tag system with custom colors and many-to-many script-tag relationships
 - Favorites system with toggle capability and dedicated favorites view
 - Recent scripts tracking with last_accessed timestamps
 - Advanced filtering by platform category, tags, name, and description
 - Comprehensive script library page at `/library` with tabs for All/Favorites/Recent
+- Real-time tag state updates after add/remove mutations (prevents stale UI data)
 
 **AI-Powered Features (Pro Tier):**
 - AI Documentation Generator: Auto-generate PowerShell comment-based help
@@ -72,10 +73,11 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
   - Security vulnerability detection (credentials, unsafe cmdlets)
   - Best practices enforcement (error handling, parameter validation)
   - Alternative implementation approaches with pros/cons
+- Priority-based styling with Tailwind classes for all recommendations
 
 **Database Schema Updates:**
 - `tags` table: id, userId, name, color, createdAt
-- `script_tags` junction table with unique constraint on (script_id, tag_id)
+- `script_tags` junction table with UNIQUE constraint on (script_id, tag_id) to prevent duplicates
 - `scripts` table: Added is_favorite, last_accessed, documentation fields
 
 **API Endpoints:**
@@ -83,6 +85,12 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - Script-tag relationships: POST /api/scripts/:scriptId/tags/:tagId, DELETE /api/scripts/:scriptId/tags/:tagId
 - Library features: GET /api/scripts/library/favorites, GET /api/scripts/library/recent, PATCH /api/scripts/:id/favorite
 - AI features: POST /api/ai/generate-docs, POST /api/ai/optimize (Pro only)
+
+**Critical Bug Fixes:**
+- Fixed apiRequest parameter order (url, method, data) across entire codebase
+- Fixed unique constraint on script_tags to prevent duplicate tag assignments
+- Fixed scriptTags state updates after mutations for real-time UI updates
+- Fixed priority styling in optimization panel using Tailwind classes instead of CSS variables
 
 ### v3.1.0 (November 2025) - Comprehensive Script Validation
 - Dual-mode validation system with Basic (automatic) and Comprehensive (on-demand)

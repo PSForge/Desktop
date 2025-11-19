@@ -67,7 +67,7 @@ export function AdminEmailTemplatesSection() {
 
   const createTemplateMutation = useMutation({
     mutationFn: async (data: { type: string; subject: string; htmlContent: string; enabled: boolean }) => {
-      const response = await apiRequest("POST", "/api/admin/email-templates", data);
+      const response = await apiRequest("/api/admin/email-templates", "POST", data);
       return response.json();
     },
     onSuccess: () => {

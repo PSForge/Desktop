@@ -125,7 +125,7 @@ export default function AdminDashboard() {
 
   const createUserMutation = useMutation({
     mutationFn: async (data: AdminCreateUserData) => {
-      const response = await apiRequest("POST", "/api/admin/users", data);
+      const response = await apiRequest("/api/admin/users", "POST", data);
       return response.json();
     },
     onSuccess: () => {
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
 
   const syncSubscriptionsMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/admin/sync-subscriptions", {});
+      const response = await apiRequest("/api/admin/sync-subscriptions", "POST", {});
       return response.json();
     },
     onSuccess: (data: any) => {

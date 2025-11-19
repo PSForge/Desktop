@@ -29,7 +29,7 @@ export function UpgradeModal({ open, onOpenChange, feature }: UpgradeModalProps)
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/billing/checkout", {
+      const response = await apiRequest("/api/billing/checkout", "POST", {
         promoCode: promoCode.trim() || undefined
       });
       return response.json();

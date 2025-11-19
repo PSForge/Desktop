@@ -37,7 +37,7 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
     setScript(generatedScript);
     
     // Track script generation for analytics (non-blocking, fails silently)
-    apiRequest("POST", "/api/metrics/script-generated", {
+    apiRequest("/api/metrics/script-generated", "POST", {
       builderType: "ai_assistant",
     }).catch((error) => {
       // Silently fail tracking - don't disrupt user experience
@@ -111,7 +111,7 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
     setScript(customScript);
     
     // Track script generation for analytics
-    apiRequest("POST", "/api/metrics/script-generated", {
+    apiRequest("/api/metrics/script-generated", "POST", {
       builderType: "ai_assistant",
     }).catch((error) => {
       console.debug("Script generation tracking skipped:", error.message);

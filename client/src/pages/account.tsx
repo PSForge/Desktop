@@ -73,7 +73,7 @@ export default function Account() {
 
   const portalMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/billing/portal");
+      const response = await apiRequest("/api/billing/portal", "POST");
       return response.json();
     },
     onSuccess: (data) => {
@@ -101,7 +101,7 @@ export default function Account() {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: ChangePasswordData) => {
-      const response = await apiRequest("POST", "/auth/change-password", data);
+      const response = await apiRequest("/auth/change-password", "POST", data);
       return response.json();
     },
     onSuccess: () => {
@@ -134,7 +134,7 @@ export default function Account() {
 
   const supportMutation = useMutation({
     mutationFn: async (data: SupportRequestData) => {
-      const response = await apiRequest("POST", "/api/support/request", data);
+      const response = await apiRequest("/api/support/request", "POST", data);
       return response.json();
     },
     onSuccess: (data) => {

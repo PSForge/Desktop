@@ -22,7 +22,7 @@ export function AdminNotificationsSection() {
 
   const createMutation = useMutation({
     mutationFn: async (data: { message: string; enabled: boolean }) => {
-      const response = await apiRequest("POST", "/api/admin/notifications", data);
+      const response = await apiRequest("/api/admin/notifications", "POST", data);
       return response.json();
     },
     onSuccess: () => {

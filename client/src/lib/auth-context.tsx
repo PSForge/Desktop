@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const response = await apiRequest("POST", "/auth/login", { email, password });
+      const response = await apiRequest("/auth/login", "POST", { email, password });
       return response.json();
     },
     onSuccess: () => {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async ({ email, password, name, referralSource }: { email: string; password: string; name: string; referralSource?: string | null }) => {
-      const response = await apiRequest("POST", "/auth/register", { email, password, name, referralSource });
+      const response = await apiRequest("/auth/register", "POST", { email, password, name, referralSource });
       return response.json();
     },
     onSuccess: () => {
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/auth/logout", {});
+      await apiRequest("/auth/logout", "POST", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/auth/me"] });

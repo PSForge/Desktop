@@ -442,7 +442,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     
     // Track script generation for analytics (non-blocking, fails silently)
     const firstTask = selectedTasks[0];
-    apiRequest("POST", "/api/metrics/script-generated", {
+    apiRequest("/api/metrics/script-generated", "POST", {
       taskCategory: firstTask?.platformName,
       taskName: `Bulk: ${firstTask?.name || 'Multiple Tasks'}`,
       builderType: "script_wizard",

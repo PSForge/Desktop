@@ -525,7 +525,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
     setScript(generatedScript);
     
     // Track script generation for analytics (non-blocking, fails silently)
-    apiRequest("POST", "/api/metrics/script-generated", {
+    apiRequest("/api/metrics/script-generated", "POST", {
       taskCategory: (selectedTask as any)?.category,
       taskName: (selectedTask as any)?.name,
       builderType: "gui_builder",

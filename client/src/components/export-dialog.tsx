@@ -37,7 +37,7 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const scriptName = filename.replace(/\.ps1$/, '');
-      const response = await apiRequest("POST", "/api/scripts/save", {
+      const response = await apiRequest("/api/scripts/save", "POST", {
         name: scriptName,
         content: code,
         description: description || undefined,

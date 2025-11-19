@@ -957,16 +957,35 @@ Sitemap: ${baseUrl}/sitemap.xml`;
 
   // Connect a repository
   app.post("/api/git/repositories", requireAuth, async (req, res) => {
-    try {
-      const { repoOwner, repoName, defaultBranch } = req.body;
-      
-      if (!repoOwner || !repoName) {
-        return res.status(400).json({ error: "Repository owner and name are required" });
-      }
+    const { repoOwner, repoName, defaultBranch } = req.body;
+    
+    if (!repoOwner || !repoName) {
+      return res.status(400).json({ error: "Repository owner and name are required" });
+    }
 
-      // Verify repository exists
-      const repo = await getRepository(req.user!.id, repoOwner, repoName);
+    // Verify repository exists on GitHub first (before creating DB record)
+    let repo;
+    try {
+      repo = await getRepository(req.user!.id, repoOwner, repoName);
+    } catch (error: any) {
+      console.error("Error verifying repository:", error);
       
+      // Check if it's a GitHub 404 error (Octokit errors have status property)
+      if (error.status === 404 || error.message?.toLowerCase().includes("not found")) {
+        return res.status(404).json({ error: `Repository ${repoOwner}/${repoName} not found or you don't have access to it` });
+      }
+      
+      // Other errors (network, auth, etc.)
+      return res.status(500).json({ error: error.message || "Failed to verify repository" });
+    }
+    
+    // Ensure repo exists and has valid data
+    if (!repo) {
+      return res.status(404).json({ error: `Repository ${repoOwner}/${repoName} not found or you don't have access to it` });
+    }
+    
+    // Only create DB record after successfully verifying repository exists on GitHub
+    try {
       const repository = await storage.createGitRepository({
         userId: req.user!.id,
         provider: "github",
@@ -978,8 +997,8 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       
       return res.status(201).json(repository);
     } catch (error: any) {
-      console.error("Error connecting repository:", error);
-      return res.status(500).json({ error: error.message || "Failed to connect repository" });
+      console.error("Error creating repository record:", error);
+      return res.status(500).json({ error: "Failed to save repository connection" });
     }
   });
 

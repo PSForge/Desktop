@@ -152,6 +152,16 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - Multi-file commit support
 - Git integration testing
 
+**Admin Credentials (for testing):**
+- Email: admin@psforge.com
+- Password: PSForge@dmin2025!Secure
+
+**Critical Fixes Applied:**
+- Repository connection now prevents orphaned DB records (verify GitHub existence BEFORE creating DB record)
+- Per-user GitHub credential isolation (no global caching)
+- Proper 404 error handling with user-friendly messages
+- Error toast notifications with JSON error extraction
+
 **Target Complexity**: High | **Timeline**: 3-4 days
 **Enterprise Value**: Provides enterprise credibility and workflow integration
 

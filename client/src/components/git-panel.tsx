@@ -116,9 +116,32 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
       });
     },
     onError: (error: any) => {
+      // Extract error message from JSON response
+      // Error format from apiRequest: "404: {\"error\":\"message\"}"
+      let errorMessage = "Failed to connect repository";
+      
+      console.error("Repository connection error:", error);
+      
+      try {
+        const errorText = error.message || "";
+        // Try to extract JSON from error message
+        const jsonMatch = errorText.match(/\{.*\}/);
+        if (jsonMatch) {
+          const errorData = JSON.parse(jsonMatch[0]);
+          errorMessage = errorData.error || errorMessage;
+        } else if (errorText.includes("not found") || errorText.includes("404")) {
+          errorMessage = "Repository not found or you don't have access to it";
+        } else {
+          errorMessage = errorText || errorMessage;
+        }
+      } catch (e) {
+        console.error("Error parsing error message:", e);
+        errorMessage = error.message || errorMessage;
+      }
+      
       toast({
         title: "Connection Failed",
-        description: error.message || "Failed to connect repository",
+        description: errorMessage,
         variant: "destructive",
       });
     },

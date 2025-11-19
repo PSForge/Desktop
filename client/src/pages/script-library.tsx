@@ -329,7 +329,7 @@ export default function ScriptLibrary() {
                 data-testid="tab-script-generator"
                 asChild
               >
-                <a href="/?tab=script-generator">
+                <a href="/builder?tab=script-generator">
                   <FileCode className="h-4 w-4" />
                   <span>Script</span>
                 </a>
@@ -341,7 +341,7 @@ export default function ScriptLibrary() {
                 data-testid="tab-ai-assistant"
                 asChild
               >
-                <a href="/?tab=ai-assistant">
+                <a href="/builder?tab=ai-assistant">
                   <Sparkles className="h-4 w-4" />
                   <span>AI</span>
                 </a>
@@ -353,7 +353,7 @@ export default function ScriptLibrary() {
                 data-testid="tab-gui-builder"
                 asChild
               >
-                <a href="/?tab=gui-builder">
+                <a href="/builder?tab=gui-builder">
                   <LayoutGrid className="h-4 w-4" />
                   <span>GUI</span>
                 </a>
@@ -365,7 +365,7 @@ export default function ScriptLibrary() {
                 data-testid="tab-script-wizard"
                 asChild
               >
-                <a href="/?tab=script-wizard">
+                <a href="/builder?tab=script-wizard">
                   <Wand2 className="h-4 w-4" />
                   <span>Wizard</span>
                 </a>

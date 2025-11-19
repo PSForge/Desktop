@@ -1,11 +1,13 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pkg from "pg";
 const { Pool } = pkg;
-import { eq, and, or, gte, sql } from "drizzle-orm";
+import { eq, and, or, gte, sql, desc, inArray } from "drizzle-orm";
 import {
   users,
   sessions,
   scripts,
+  tags,
+  scriptTags,
   subscriptionPlans,
   userSubscriptions,
   subscriptionEvents,
@@ -18,6 +20,9 @@ import {
   type Session,
   type Script,
   type InsertScript,
+  type Tag,
+  type InsertTag,
+  type ScriptTag,
   type SubscriptionPlan,
   type UserSubscription,
   type SubscriptionEvent,
@@ -95,6 +100,7 @@ export class DatabaseStorage implements IStorage {
       commands: script.commands || null,
       taskCategory: script.taskCategory || null,
       taskName: script.taskName || null,
+      documentation: script.documentation || null,
     }).returning();
     return this.convertTimestamps(result[0]);
   }
@@ -116,6 +122,114 @@ export class DatabaseStorage implements IStorage {
   async deleteScript(id: string): Promise<boolean> {
     const result = await this.db.delete(scripts).where(eq(scripts.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async toggleScriptFavorite(id: string, userId: string): Promise<Script | undefined> {
+    const script = await this.getScript(id);
+    if (!script || script.userId !== userId) {
+      return undefined;
+    }
+    const result = await this.db.update(scripts)
+      .set({ isFavorite: !script.isFavorite })
+      .where(eq(scripts.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async updateScriptLastAccessed(id: string): Promise<void> {
+    await this.db.update(scripts)
+      .set({ lastAccessed: new Date() })
+      .where(eq(scripts.id, id));
+  }
+
+  async getFavoriteScripts(userId: string): Promise<Script[]> {
+    const result = await this.db.select()
+      .from(scripts)
+      .where(and(eq(scripts.userId, userId), eq(scripts.isFavorite, true)))
+      .orderBy(desc(scripts.createdAt));
+    return result.map(s => this.convertTimestamps(s));
+  }
+
+  async getRecentScripts(userId: string, limit: number = 10): Promise<Script[]> {
+    const result = await this.db.select()
+      .from(scripts)
+      .where(eq(scripts.userId, userId))
+      .orderBy(desc(scripts.lastAccessed))
+      .limit(limit);
+    return result.map(s => this.convertTimestamps(s));
+  }
+
+  // Tag management
+  async createTag(tag: InsertTag): Promise<Tag> {
+    const result = await this.db.insert(tags).values({
+      userId: tag.userId!,
+      name: tag.name,
+      color: tag.color || null,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getUserTags(userId: string): Promise<Tag[]> {
+    const result = await this.db.select()
+      .from(tags)
+      .where(eq(tags.userId, userId))
+      .orderBy(tags.name);
+    return result.map(t => this.convertTimestamps(t));
+  }
+
+  async deleteTag(id: string, userId: string): Promise<boolean> {
+    const result = await this.db.delete(tags)
+      .where(and(eq(tags.id, id), eq(tags.userId, userId)));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async addTagToScript(scriptId: string, tagId: string): Promise<ScriptTag> {
+    const result = await this.db.insert(scriptTags).values({
+      scriptId,
+      tagId,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async removeTagFromScript(scriptId: string, tagId: string): Promise<boolean> {
+    const result = await this.db.delete(scriptTags)
+      .where(and(eq(scriptTags.scriptId, scriptId), eq(scriptTags.tagId, tagId)));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getScriptTags(scriptId: string): Promise<Tag[]> {
+    const result = await this.db.select({
+      id: tags.id,
+      userId: tags.userId,
+      name: tags.name,
+      color: tags.color,
+      createdAt: tags.createdAt,
+    })
+    .from(scriptTags)
+    .innerJoin(tags, eq(scriptTags.tagId, tags.id))
+    .where(eq(scriptTags.scriptId, scriptId));
+    return result.map(t => this.convertTimestamps(t));
+  }
+
+  async getScriptsByTag(tagId: string, userId: string): Promise<Script[]> {
+    const result = await this.db.select({
+      id: scripts.id,
+      userId: scripts.userId,
+      name: scripts.name,
+      description: scripts.description,
+      content: scripts.content,
+      commands: scripts.commands,
+      taskCategory: scripts.taskCategory,
+      taskName: scripts.taskName,
+      isFavorite: scripts.isFavorite,
+      lastAccessed: scripts.lastAccessed,
+      documentation: scripts.documentation,
+      createdAt: scripts.createdAt,
+    })
+    .from(scriptTags)
+    .innerJoin(scripts, eq(scriptTags.scriptId, scripts.id))
+    .where(and(eq(scriptTags.tagId, tagId), eq(scripts.userId, userId)));
+    return result.map(s => this.convertTimestamps(s));
   }
 
   // User management

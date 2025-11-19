@@ -28,6 +28,19 @@ export interface IStorage {
   createScript(script: InsertScript): Promise<Script>;
   updateScript(id: string, script: Partial<InsertScript>): Promise<Script | undefined>;
   deleteScript(id: string): Promise<boolean>;
+  toggleScriptFavorite(id: string, userId: string): Promise<Script | undefined>;
+  updateScriptLastAccessed(id: string): Promise<void>;
+  getFavoriteScripts(userId: string): Promise<Script[]>;
+  getRecentScripts(userId: string, limit?: number): Promise<Script[]>;
+  
+  // Tag management
+  createTag(tag: import("@shared/schema").InsertTag): Promise<import("@shared/schema").Tag>;
+  getUserTags(userId: string): Promise<import("@shared/schema").Tag[]>;
+  deleteTag(id: string, userId: string): Promise<boolean>;
+  addTagToScript(scriptId: string, tagId: string): Promise<import("@shared/schema").ScriptTag>;
+  removeTagFromScript(scriptId: string, tagId: string): Promise<boolean>;
+  getScriptTags(scriptId: string): Promise<import("@shared/schema").Tag[]>;
+  getScriptsByTag(tagId: string, userId: string): Promise<Script[]>;
 
   // User management
   getUserById(id: string): Promise<User | undefined>;

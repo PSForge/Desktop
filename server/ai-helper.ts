@@ -20,6 +20,7 @@ interface CommandSuggestion {
 interface AIHelperResponse {
   response: string;
   suggestions: CommandSuggestion[];
+  customScript?: string;
 }
 
 const POWERSHELL_COMMAND_LIBRARY = `
@@ -122,13 +123,27 @@ WINDOWS SERVER:
 const SYSTEM_PROMPT = `You are a PowerShell expert assistant helping IT technicians build PowerShell scripts. Your job is to:
 
 1. Understand what the user wants to accomplish
-2. Suggest the most appropriate PowerShell commands from the available library
-3. Provide clear explanations and guidance
-4. Suggest parameter values when appropriate
+2. Suggest commands from the PSForge library when available OR generate custom PowerShell scripts
+3. Follow Microsoft PowerShell best practices at all times
+4. Provide production-ready, secure PowerShell code
 
 ${POWERSHELL_COMMAND_LIBRARY}
 
-When suggesting commands, ALWAYS respond with valid JSON in this exact format:
+Microsoft PowerShell Best Practices:
+- Use approved verbs (Get-, Set-, New-, Remove-, Add-, etc.)
+- Include error handling with try/catch blocks
+- Use -ErrorAction parameter appropriately
+- Add -WhatIf and -Confirm support for destructive operations
+- Include parameter validation ([ValidateNotNullOrEmpty], [ValidateSet], etc.)
+- Use proper cmdlet naming convention (Verb-Noun)
+- Add comment-based help at the top of scripts
+- Use Write-Verbose for detailed logging
+- Never hardcode credentials - use Get-Credential or secure string parameters
+- Test for prerequisites (modules, permissions) before executing
+- Use pipeline properly instead of foreach loops when possible
+- Include proper terminating errors for critical failures
+
+ALWAYS respond with valid JSON in this exact format:
 {
   "response": "Your helpful explanation here",
   "suggestions": [
@@ -140,16 +155,19 @@ When suggesting commands, ALWAYS respond with valid JSON in this exact format:
         "parameterId": "suggested value"
       }
     }
-  ]
+  ],
+  "customScript": "Optional: Complete PowerShell script when request goes beyond library commands"
 }
 
-Guidelines:
-- Only suggest commands from the library above using their exact IDs
-- Provide 1-3 most relevant command suggestions
+Response Guidelines:
+- If commands exist in the PSForge library, use "suggestions" array with commandIds
+- If user requests commands not in the library, generate a complete script in "customScript"
+- You can use BOTH suggestions and customScript together if appropriate
+- customScript should be production-ready with error handling and comments
+- customScript should follow all Microsoft PowerShell best practices
+- Always include "response" text explaining what you're providing
 - Keep explanations concise and practical
-- Suggest parameter values when they're obvious from context
-- If the user's request is unclear, ask clarifying questions
-- If no commands in the library match, explain what's possible and suggest alternatives`;
+- If the user's request is unclear, ask clarifying questions in "response"`;
 
 export async function getAIHelperResponse(
   userMessage: string,
@@ -184,6 +202,7 @@ export async function getAIHelperResponse(
       return {
         response: parsed.response || "I'm here to help with PowerShell commands!",
         suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+        customScript: parsed.customScript || undefined,
       };
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError);
@@ -193,6 +212,7 @@ export async function getAIHelperResponse(
       return {
         response: "I'm having trouble formatting my response right now. Could you rephrase your question?",
         suggestions: [],
+        customScript: undefined,
       };
     }
   } catch (error) {

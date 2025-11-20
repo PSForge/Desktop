@@ -58,6 +58,13 @@ interface GitCommitData {
   createdAt: string;
 }
 
+interface GitHubUser {
+  login: string;
+  id: number;
+  avatar_url: string;
+  name?: string;
+}
+
 interface GitPanelProps {
   scriptId?: string;
   scriptName?: string;
@@ -84,7 +91,7 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
   });
 
   // Fetch GitHub user
-  const { data: githubUser } = useQuery({
+  const { data: githubUser, isError: githubUserError, isLoading: githubUserLoading } = useQuery<GitHubUser>({
     queryKey: ["/api/git/user"],
     retry: false,
   });
@@ -271,7 +278,8 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
     });
   };
 
-  if (!githubUser) {
+  // Show disconnected state if GitHub user is not available
+  if (!githubUser || githubUserError || githubUserLoading) {
     return (
       <Card>
         <CardHeader>
@@ -280,13 +288,15 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
             Git Integration
           </CardTitle>
           <CardDescription>
-            GitHub is not connected. Please connect your GitHub account to use Git features.
+            {githubUserLoading 
+              ? "Checking GitHub connection..." 
+              : "GitHub is not connected. Please connect your GitHub account in Account Settings to use Git features."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" disabled>
+          <Button variant="outline" disabled data-testid="button-github-not-connected">
             <X className="h-4 w-4 mr-2" />
-            GitHub Not Connected
+            {githubUserLoading ? "Connecting..." : "GitHub Not Connected"}
           </Button>
         </CardContent>
       </Card>

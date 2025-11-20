@@ -40,7 +40,7 @@ export function ScriptGeneratorTab({
 
   const validationMutation = useMutation({
     mutationFn: async (code: string) => {
-      const response = await apiRequest('POST', '/api/validate', { code });
+      const response = await apiRequest('/api/validate', 'POST', { code });
       return response.json();
     },
     onSuccess: (data, variables) => {
@@ -63,7 +63,7 @@ export function ScriptGeneratorTab({
 
   const comprehensiveValidationMutation = useMutation({
     mutationFn: async (code: string) => {
-      const response = await apiRequest('POST', '/api/validate/comprehensive', { code });
+      const response = await apiRequest('/api/validate/comprehensive', 'POST', { code });
       return response.json();
     },
     onSuccess: (data, variables) => {

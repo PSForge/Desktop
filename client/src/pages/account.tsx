@@ -63,6 +63,26 @@ export default function Account() {
     retry: false,
   });
 
+  const disconnectRepoMutation = useMutation({
+    mutationFn: async (repoId: string) => {
+      await apiRequest(`/api/git/repositories/${repoId}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/git/repositories"] });
+      toast({
+        title: "Repository disconnected",
+        description: "The repository has been disconnected successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Disconnect failed",
+        description: error.message || "Failed to disconnect repository",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteScriptMutation = useMutation({
     mutationFn: async (scriptId: string) => {
       await apiRequest("DELETE", `/api/scripts/${scriptId}`);
@@ -686,6 +706,22 @@ export default function Account() {
                     )}
                   </div>
 
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      To disconnect your GitHub account, click "Manage Connection" and revoke PSForge's access.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open('/__replit/integrations', '_blank')}
+                      className="w-full"
+                      data-testid="button-manage-github-connection"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage Connection
+                      <ExternalLink className="h-3.5 w-3.5 ml-2" />
+                    </Button>
+                  </div>
+
                   {gitReposLoading ? (
                     <div className="text-center py-4 text-muted-foreground text-sm">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary mx-auto mb-2"></div>
@@ -694,20 +730,32 @@ export default function Account() {
                   ) : gitRepositories && gitRepositories.length > 0 ? (
                     <div className="space-y-2">
                       <p className="text-sm font-medium">Connected Repositories ({gitRepositories.length})</p>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
                         {gitRepositories.map((repo: any) => (
                           <div
                             key={repo.id}
-                            className="flex items-center gap-2 p-2 rounded border text-sm"
+                            className="flex items-center gap-2 p-2 rounded border text-sm hover-elevate"
                             data-testid={`git-repo-${repo.id}`}
                           >
                             <Github className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="font-mono text-xs truncate">
-                              {repo.repoOwner}/{repo.repoName}
-                            </span>
-                            <Badge variant="secondary" className="ml-auto shrink-0 text-xs">
+                            <div className="flex-1 min-w-0">
+                              <span className="font-mono text-xs truncate block">
+                                {repo.repoOwner}/{repo.repoName}
+                              </span>
+                            </div>
+                            <Badge variant="secondary" className="shrink-0 text-xs">
                               {repo.currentBranch}
                             </Badge>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => disconnectRepoMutation.mutate(repo.id)}
+                              disabled={disconnectRepoMutation.isPending}
+                              data-testid={`button-disconnect-repo-${repo.id}`}
+                              className="shrink-0 h-7"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         ))}
                       </div>

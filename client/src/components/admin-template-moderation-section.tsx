@@ -113,21 +113,24 @@ export function AdminTemplateModerationSection() {
     
     if (score >= 80) {
       return {
-        className: "bg-green-600 dark:bg-green-700 text-white",
+        variant: "secondary" as const,
+        className: "bg-secondary text-green-600 dark:text-green-400",
         icon: Shield,
         label: "Safe",
         priority: 3
       };
     } else if (score >= 50) {
       return {
-        className: "bg-yellow-600 dark:bg-yellow-700 text-white",
+        variant: "secondary" as const,
+        className: "bg-secondary text-yellow-600 dark:text-yellow-400",
         icon: AlertTriangle,
         label: "Caution",
         priority: 2
       };
     } else {
       return {
-        className: "bg-red-600 dark:bg-red-700 text-white",
+        variant: "destructive" as const,
+        className: "",
         icon: ShieldAlert,
         label: "Dangerous",
         priority: 1
@@ -174,6 +177,7 @@ export function AdminTemplateModerationSection() {
             )}
             {securityProps && (
               <Badge 
+                variant={securityProps.variant}
                 className={securityProps.className}
                 data-testid={`security-badge-${template.id}`}
               >
@@ -249,6 +253,7 @@ export function AdminTemplateModerationSection() {
       </div>
     </div>
   );
+  };
 
   const renderEmptyState = (status: string) => (
     <div className="text-center py-12 space-y-2">

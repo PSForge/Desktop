@@ -411,15 +411,15 @@ export default function ScriptLibrary() {
   const getSecurityBadgeProps = (level: string, score: number) => {
     if (score >= 80) {
       return {
-        variant: "default" as const,
-        className: "bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-800",
+        variant: "secondary" as const,
+        className: "bg-secondary text-green-600 dark:text-green-400",
         icon: Shield,
         label: "Safe"
       };
     } else if (score >= 50) {
       return {
         variant: "secondary" as const,
-        className: "bg-yellow-600 dark:bg-yellow-700 text-white hover:bg-yellow-700 dark:hover:bg-yellow-800",
+        className: "bg-secondary text-yellow-600 dark:text-yellow-400",
         icon: AlertTriangle,
         label: "Caution"
       };
@@ -897,6 +897,7 @@ export default function ScriptLibrary() {
               {/* Security Score Badge */}
               <div className="flex items-center gap-3">
                 <Badge 
+                  variant={getSecurityBadgeProps(securityScan.securityLevel, securityScan.score).variant}
                   className={getSecurityBadgeProps(securityScan.securityLevel, securityScan.score).className}
                   data-testid="security-score"
                 >

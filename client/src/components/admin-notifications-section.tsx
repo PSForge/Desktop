@@ -46,7 +46,7 @@ export function AdminNotificationsSection() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<PlatformNotification> }) => {
-      const response = await apiRequest("PATCH", `/api/admin/notifications/${id}`, updates);
+      const response = await apiRequest(`/api/admin/notifications/${id}`, "PATCH", updates);
       return response.json();
     },
     onSuccess: () => {
@@ -68,7 +68,7 @@ export function AdminNotificationsSection() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest("DELETE", `/api/admin/notifications/${id}`);
+      const response = await apiRequest(`/api/admin/notifications/${id}`, "DELETE");
       return response.json();
     },
     onSuccess: () => {

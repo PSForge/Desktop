@@ -46,7 +46,7 @@ export function AdminEmailTemplatesSection() {
 
   const updateTemplateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<WelcomeEmailTemplate> }) => {
-      const response = await apiRequest("PATCH", `/api/admin/email-templates/${id}`, data);
+      const response = await apiRequest(`/api/admin/email-templates/${id}`, "PATCH", data);
       return response.json();
     },
     onSuccess: () => {

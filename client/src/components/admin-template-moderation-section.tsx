@@ -70,7 +70,7 @@ export function AdminTemplateModerationSection() {
 
   const moderateMutation = useMutation({
     mutationFn: async ({ templateId, status }: { templateId: string; status: "approved" | "rejected" }) => {
-      const response = await apiRequest("PUT", `/api/templates/${templateId}/status`, { status });
+      const response = await apiRequest(`/api/templates/${templateId}/status`, "PUT", { status });
       return response.json();
     },
     onSuccess: () => {

@@ -104,7 +104,7 @@ export default function AdminDashboard() {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const response = await apiRequest("PATCH", `/api/admin/users/${userId}/role`, { role });
+      const response = await apiRequest(`/api/admin/users/${userId}/role`, "PATCH", { role });
       return response.json();
     },
     onSuccess: () => {
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      await apiRequest("DELETE", `/api/admin/users/${userId}`);
+      await apiRequest(`/api/admin/users/${userId}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });

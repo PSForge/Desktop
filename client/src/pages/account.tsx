@@ -107,7 +107,7 @@ export default function Account() {
 
   const deleteScriptMutation = useMutation({
     mutationFn: async (scriptId: string) => {
-      await apiRequest("DELETE", `/api/scripts/${scriptId}`);
+      await apiRequest(`/api/scripts/${scriptId}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scripts/user/me"] });

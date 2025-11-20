@@ -81,7 +81,7 @@ export default function MarketplaceDetail() {
   // Install mutation
   const installMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/templates/${id}/install`);
+      return await apiRequest(`/api/templates/${id}/install`, "POST");
     },
     onSuccess: () => {
       // Copy template content to localStorage and navigate to script builder
@@ -109,7 +109,7 @@ export default function MarketplaceDetail() {
       if (!rating) {
         throw new Error("Please select a rating");
       }
-      return await apiRequest("POST", `/api/templates/${id}/rate`, {
+      return await apiRequest(`/api/templates/${id}/rate`, "POST", {
         rating,
         review: review.trim() || null,
       });
@@ -137,7 +137,7 @@ export default function MarketplaceDetail() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("DELETE", `/api/templates/${id}`);
+      return await apiRequest(`/api/templates/${id}`, "DELETE");
     },
     onSuccess: () => {
       toast({

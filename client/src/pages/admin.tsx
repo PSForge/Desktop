@@ -29,9 +29,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { adminCreateUserSchema, type AdminCreateUserData } from "@shared/schema";
-import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus, Trash2, FileText } from "lucide-react";
+import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus, Trash2, FileText, Search, X, ArrowUpDown } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";
 import { AdminEmailTemplatesSection } from "@/components/admin-email-templates-section";
 import { AdminTemplateModerationSection } from "@/components/admin-template-moderation-section";
@@ -76,6 +76,8 @@ export default function AdminDashboard() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "date">("date");
 
   const createUserForm = useForm<AdminCreateUserData>({
     resolver: zodResolver(adminCreateUserSchema),
@@ -228,6 +230,38 @@ export default function AdminDashboard() {
         return "secondary";
     }
   };
+
+  const filteredAndSortedUsers = useMemo(() => {
+    if (!users) return [];
+    
+    let filtered = users.filter((userData) => {
+      if (!searchQuery) return true;
+      
+      const query = searchQuery.toLowerCase();
+      return (
+        userData.name.toLowerCase().includes(query) ||
+        userData.email.toLowerCase().includes(query) ||
+        userData.role.toLowerCase().includes(query)
+      );
+    });
+    
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "email":
+          return a.email.localeCompare(b.email);
+        case "role":
+          return a.role.localeCompare(b.role);
+        case "date":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        default:
+          return 0;
+      }
+    });
+    
+    return sorted;
+  }, [users, searchQuery, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -671,10 +705,60 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Users</CardTitle>
-            <CardDescription>
-              Manage user accounts and subscriptions
-            </CardDescription>
+            <div className="flex flex-col gap-4">
+              <div>
+                <CardTitle>All Users</CardTitle>
+                <CardDescription>
+                  Manage user accounts and subscriptions
+                </CardDescription>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, email, or role..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-10"
+                    data-testid="input-search-users"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                      data-testid="button-clear-search"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-full sm:w-48" data-testid="select-sort-users">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="h-4 w-4" />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">Sort by Join Date</SelectItem>
+                    <SelectItem value="name">Sort by Name</SelectItem>
+                    <SelectItem value="email">Sort by Email</SelectItem>
+                    <SelectItem value="role">Sort by Role</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {users && (
+                <div className="text-sm text-muted-foreground">
+                  Showing {filteredAndSortedUsers.length} of {users.length} users
+                  {searchQuery && ` (filtered by "${searchQuery}")`}
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {usersLoading ? (
@@ -689,10 +773,10 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
-            ) : users && users.length > 0 ? (
+            ) : filteredAndSortedUsers.length > 0 ? (
               <ScrollArea className="h-[600px] pr-4">
                 <div className="space-y-2">
-                  {users.map((userData) => (
+                  {filteredAndSortedUsers.map((userData) => (
                   <div
                     key={userData.id}
                     className="flex flex-wrap items-center justify-between gap-2 p-4 border rounded-md hover-elevate"
@@ -782,9 +866,21 @@ export default function AdminDashboard() {
                 </div>
               </ScrollArea>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No users found
-              </p>
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground mb-2">
+                  {searchQuery ? "No users match your search" : "No users found"}
+                </p>
+                {searchQuery && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSearchQuery("")}
+                    data-testid="button-clear-search-empty"
+                  >
+                    Clear Search
+                  </Button>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

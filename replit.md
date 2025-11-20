@@ -55,3 +55,26 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **OpenAI API**: Powers the AI Assistant for natural language processing, command suggestions, custom PowerShell script generation, AI documentation generation, and script optimization analysis.
 - **Stripe API**: Handles payment processing, subscription management, and webhook events.
 - **Office 365 SMTP**: Used for sending transactional emails (password reset, support requests).
+
+## Recent Bug Fixes (v4.2.1 - November 2025)
+### Critical apiRequest Bug Pattern
+- **Issue**: Discovered widespread bug where apiRequest calls used wrong argument order throughout codebase
+- **Correct signature**: `apiRequest(url, method, data)` 
+- **Fixed files** (10 instances total):
+  - marketplace-detail.tsx: install, rate, delete mutations
+  - admin-template-moderation-section.tsx: moderate mutation
+  - admin-notifications-section.tsx: update, delete mutations
+  - admin-email-templates-section.tsx: update mutation
+  - admin.tsx: update role, delete user mutations
+  - account.tsx: delete script mutation
+
+### Security Badge Theming
+- **Issue**: Hard-coded Badge colors (e.g., `bg-green-600 dark:bg-green-700`) didn't adapt properly to theme
+- **Solution**: Use semantic Badge variants with theme-aware colors:
+  - Safe: `variant="secondary"` + `text-green-600 dark:text-green-400`
+  - Caution: `variant="secondary"` + `text-yellow-600 dark:text-yellow-400`
+  - Dangerous: `variant="destructive"`
+  - Priority badges: Similar pattern for critical/high/medium/low
+- **Fixed files** (4 instances):
+  - marketplace.tsx, script-library.tsx, admin-template-moderation-section.tsx: Security badges
+  - script-optimization-panel.tsx: Priority badges

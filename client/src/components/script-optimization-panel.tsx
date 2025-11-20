@@ -40,11 +40,17 @@ interface ScriptOptimizationPanelProps {
   isSubscriber: boolean;
 }
 
-const priorityColors = {
-  critical: 'bg-red-500 text-white',
-  high: 'bg-orange-500 text-white',
-  medium: 'bg-yellow-500 text-black',
-  low: 'bg-blue-500 text-white',
+const getPriorityBadgeProps = (priority: 'critical' | 'high' | 'medium' | 'low') => {
+  switch (priority) {
+    case 'critical':
+      return { variant: 'destructive' as const, className: '' };
+    case 'high':
+      return { variant: 'secondary' as const, className: 'text-orange-600 dark:text-orange-400' };
+    case 'medium':
+      return { variant: 'secondary' as const, className: 'text-yellow-600 dark:text-yellow-400' };
+    case 'low':
+      return { variant: 'secondary' as const, className: 'text-blue-600 dark:text-blue-400' };
+  }
 };
 
 const priorityBorderColors = {
@@ -220,7 +226,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                                     <PriorityIcon className="w-4 h-4" />
                                     <CardTitle className="text-sm">{rec.title}</CardTitle>
                                   </div>
-                                  <Badge className={priorityColors[rec.priority]}>
+                                  <Badge {...getPriorityBadgeProps(rec.priority)}>
                                     {rec.priority.toUpperCase()}
                                   </Badge>
                                   {rec.line && (
@@ -280,7 +286,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                                     <PriorityIcon className="w-4 h-4" />
                                     <CardTitle className="text-sm">{rec.title}</CardTitle>
                                   </div>
-                                  <Badge className={priorityColors[rec.priority]}>
+                                  <Badge {...getPriorityBadgeProps(rec.priority)}>
                                     {rec.priority.toUpperCase()}
                                   </Badge>
                                   {rec.line && (
@@ -340,7 +346,7 @@ export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizati
                                     <PriorityIcon className="w-4 h-4" />
                                     <CardTitle className="text-sm">{rec.title}</CardTitle>
                                   </div>
-                                  <Badge className={priorityColors[rec.priority]}>
+                                  <Badge {...getPriorityBadgeProps(rec.priority)}>
                                     {rec.priority.toUpperCase()}
                                   </Badge>
                                   {rec.line && (

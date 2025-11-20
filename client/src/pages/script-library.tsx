@@ -15,10 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
+import { scanPowerShellScript, type SecurityScanResult } from "@/lib/security-scanner";
 import { 
   Star, 
   Clock, 
@@ -35,7 +38,11 @@ import {
   FileCode,
   Sparkles,
   LayoutGrid,
-  Wand2
+  Wand2,
+  Shield,
+  AlertTriangle,
+  ShieldAlert,
+  ChevronDown
 } from "lucide-react";
 import type { Script, Tag, TemplateCategory, InsertTemplate } from "@shared/schema";
 import { insertTemplateSchema } from "@shared/schema";
@@ -53,6 +60,9 @@ export default function ScriptLibrary() {
   const [managingTagsForScript, setManagingTagsForScript] = useState<string | null>(null);
   const [scriptTags, setScriptTags] = useState<Record<string, Tag[]>>({});
   const [publishingScript, setPublishingScript] = useState<Script | null>(null);
+  const [securityScan, setSecurityScan] = useState<SecurityScanResult | null>(null);
+  const [risksAcknowledged, setRisksAcknowledged] = useState(false);
+  const [securityAnalysisExpanded, setSecurityAnalysisExpanded] = useState(true);
 
   // Fetch all user scripts
   const { data: scripts = [], isLoading: scriptsLoading } = useQuery<Script[]>({
@@ -105,7 +115,7 @@ export default function ScriptLibrary() {
     },
   });
 
-  // Populate form when publishing script is selected
+  // Populate form and run security scan when publishing script is selected
   useEffect(() => {
     if (publishingScript) {
       publishForm.reset({
@@ -120,6 +130,16 @@ export default function ScriptLibrary() {
         featured: false,
         version: "1.0.0",
       });
+      
+      // Run security scan on script content
+      const scanResult = scanPowerShellScript(publishingScript.content);
+      setSecurityScan(scanResult);
+      setRisksAcknowledged(false);
+      setSecurityAnalysisExpanded(scanResult.securityLevel === 'dangerous');
+    } else {
+      setSecurityScan(null);
+      setRisksAcknowledged(false);
+      setSecurityAnalysisExpanded(true);
     }
   }, [publishingScript, user?.id]);
 
@@ -379,7 +399,49 @@ export default function ScriptLibrary() {
   };
 
   const handlePublishTemplate = (data: InsertTemplate) => {
-    publishTemplateMutation.mutate(data);
+    const templateData = {
+      ...data,
+      securityScore: securityScan?.score,
+      securityLevel: securityScan?.securityLevel,
+      securityWarningsCount: securityScan?.warnings.length,
+    };
+    publishTemplateMutation.mutate(templateData);
+  };
+
+  const getSecurityBadgeProps = (level: string, score: number) => {
+    if (score >= 80) {
+      return {
+        variant: "default" as const,
+        className: "bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-800",
+        icon: Shield,
+        label: "Safe"
+      };
+    } else if (score >= 50) {
+      return {
+        variant: "secondary" as const,
+        className: "bg-yellow-600 dark:bg-yellow-700 text-white hover:bg-yellow-700 dark:hover:bg-yellow-800",
+        icon: AlertTriangle,
+        label: "Caution"
+      };
+    } else {
+      return {
+        variant: "destructive" as const,
+        className: "",
+        icon: ShieldAlert,
+        label: "Dangerous"
+      };
+    }
+  };
+
+  const getSeverityBadgeVariant = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return "destructive" as const;
+      case "warning":
+        return "secondary" as const;
+      default:
+        return "outline" as const;
+    }
   };
 
   if (scriptsLoading) {
@@ -828,6 +890,108 @@ export default function ScriptLibrary() {
               Share your script with the community. Your template will be reviewed by an admin before being published to the marketplace.
             </DialogDescription>
           </DialogHeader>
+
+          {/* Security Analysis Section */}
+          {securityScan && (
+            <div className="space-y-4">
+              {/* Security Score Badge */}
+              <div className="flex items-center gap-3">
+                <Badge 
+                  className={getSecurityBadgeProps(securityScan.securityLevel, securityScan.score).className}
+                  data-testid="security-score"
+                >
+                  {(() => {
+                    const SecurityIcon = getSecurityBadgeProps(securityScan.securityLevel, securityScan.score).icon;
+                    return <SecurityIcon className="w-3 h-3 mr-1" />;
+                  })()}
+                  {getSecurityBadgeProps(securityScan.securityLevel, securityScan.score).label} ({securityScan.score})
+                </Badge>
+                <span className="text-sm text-muted-foreground">{securityScan.summary}</span>
+              </div>
+
+              {/* Dangerous Script Warning Banner */}
+              {securityScan.securityLevel === 'dangerous' && (
+                <Alert variant="destructive">
+                  <ShieldAlert className="h-4 w-4" />
+                  <AlertTitle>Security Risk Detected</AlertTitle>
+                  <AlertDescription>
+                    This script contains potentially dangerous patterns that could harm systems or data. 
+                    Please review carefully before publishing.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Collapsible Security Analysis */}
+              {securityScan.warnings.length > 0 && (
+                <Collapsible 
+                  open={securityAnalysisExpanded} 
+                  onOpenChange={setSecurityAnalysisExpanded}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full justify-between"
+                      type="button"
+                    >
+                      <span className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        Security Analysis ({securityScan.warnings.length} warning{securityScan.warnings.length !== 1 ? 's' : ''})
+                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${securityAnalysisExpanded ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <Card className="mt-2">
+                      <CardContent className="pt-4">
+                        <ScrollArea className="max-h-60">
+                          <div className="space-y-3" data-testid="security-warnings-list">
+                            {securityScan.warnings.map((warning, index) => (
+                              <div key={index} className="pb-3 border-b last:border-0 last:pb-0">
+                                <div className="flex items-start gap-2 mb-1">
+                                  <Badge variant={getSeverityBadgeVariant(warning.level)} className="mt-0.5">
+                                    {warning.level}
+                                  </Badge>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{warning.message}</p>
+                                    {warning.line > 0 && (
+                                      <p className="text-xs text-muted-foreground">Line {warning.line}</p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground mt-1">{warning.recommendation}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* Risk Acknowledgment for Dangerous Scripts */}
+              {securityScan.securityLevel === 'dangerous' && (
+                <div className="flex items-start gap-3 p-3 border rounded-lg bg-muted/50">
+                  <Checkbox
+                    id="acknowledge-risks"
+                    checked={risksAcknowledged}
+                    onCheckedChange={(checked) => setRisksAcknowledged(checked === true)}
+                    data-testid="checkbox-acknowledge-risks"
+                  />
+                  <label
+                    htmlFor="acknowledge-risks"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    I understand the security risks and have reviewed the warnings above. I take full responsibility for publishing this template.
+                  </label>
+                </div>
+              )}
+
+              <Separator />
+            </div>
+          )}
+
           <Form {...publishForm}>
             <form onSubmit={publishForm.handleSubmit(handlePublishTemplate)} className="space-y-4">
               <FormField
@@ -980,7 +1144,10 @@ export default function ScriptLibrary() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={publishTemplateMutation.isPending}
+                  disabled={
+                    publishTemplateMutation.isPending ||
+                    (securityScan?.securityLevel === 'dangerous' && !risksAcknowledged)
+                  }
                   data-testid="button-submit-template"
                 >
                   {publishTemplateMutation.isPending ? "Publishing..." : "Publish Template"}

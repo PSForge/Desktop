@@ -126,6 +126,7 @@ export interface IStorage {
   getAllTemplates(filters?: {status?: string; categoryId?: string; featured?: boolean}): Promise<import("@shared/schema").Template[]>;
   getTemplate(id: string): Promise<import("@shared/schema").Template | undefined>;
   getUserTemplates(userId: string): Promise<import("@shared/schema").Template[]>;
+  getUserTemplateStats(userId: string): Promise<{totalTemplates: number; totalDownloads: number; totalInstalls: number; avgRating: number}>;
   updateTemplate(id: string, updates: Partial<import("@shared/schema").Template>): Promise<import("@shared/schema").Template | undefined>;
   deleteTemplate(id: string): Promise<boolean>;
   incrementTemplateDownloads(id: string): Promise<void>;

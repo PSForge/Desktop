@@ -22,7 +22,10 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
-  FileCode
+  FileCode,
+  Shield,
+  AlertTriangle,
+  ShieldAlert
 } from "lucide-react";
 import type { Template, TemplateCategory } from "@shared/schema";
 
@@ -184,6 +187,27 @@ export default function TemplatesMarketplace() {
         return "destructive";
       default:
         return "secondary";
+    }
+  };
+
+  const getSecurityBadgeProps = (score: number | null | undefined) => {
+    if (!score && score !== 0) return null;
+    
+    // Only show for templates with score < 80
+    if (score >= 80) return null;
+    
+    if (score >= 50) {
+      return {
+        className: "bg-yellow-600 dark:bg-yellow-700 text-white",
+        icon: AlertTriangle,
+        label: "Caution"
+      };
+    } else {
+      return {
+        className: "bg-red-600 dark:bg-red-700 text-white",
+        icon: ShieldAlert,
+        label: "Dangerous"
+      };
     }
   };
 
@@ -359,6 +383,23 @@ export default function TemplatesMarketplace() {
                             </Badge>
                           )}
                         </div>
+                        
+                        {/* Security Badge (only for score < 80) */}
+                        {(() => {
+                          const securityProps = getSecurityBadgeProps(template.securityScore);
+                          if (!securityProps) return null;
+                          
+                          const SecurityIcon = securityProps.icon;
+                          return (
+                            <Badge 
+                              className={securityProps.className}
+                              data-testid={`security-badge-${template.id}`}
+                            >
+                              <SecurityIcon className="w-3 h-3 mr-1" />
+                              {securityProps.label} ({template.securityScore})
+                            </Badge>
+                          );
+                        })()}
                         
                         {/* Author and Category */}
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

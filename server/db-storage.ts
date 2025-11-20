@@ -864,6 +864,9 @@ export class DatabaseStorage implements IStorage {
       status: template.status || "pending",
       featured: template.featured || false,
       version: template.version || "1.0.0",
+      securityScore: template.securityScore || null,
+      securityLevel: template.securityLevel || null,
+      securityWarningsCount: template.securityWarningsCount || null,
     }).returning();
     return this.convertTimestamps(result[0]);
   }
@@ -902,6 +905,25 @@ export class DatabaseStorage implements IStorage {
       .where(eq(templates.authorId, userId))
       .orderBy(desc(templates.createdAt));
     return result.map(t => this.convertTimestamps(t));
+  }
+
+  async getUserTemplateStats(userId: string): Promise<{totalTemplates: number; totalDownloads: number; totalInstalls: number; avgRating: number}> {
+    const result = await this.db.select({
+      totalTemplates: sql<number>`count(*)::int`,
+      totalDownloads: sql<number>`coalesce(sum(${templates.downloads}), 0)::int`,
+      totalInstalls: sql<number>`coalesce(sum(${templates.installs}), 0)::int`,
+      avgRating: sql<number>`coalesce(avg(${templates.averageRating}), 0)::int`,
+    })
+    .from(templates)
+    .where(eq(templates.authorId, userId));
+
+    const stats = result[0];
+    return {
+      totalTemplates: stats?.totalTemplates || 0,
+      totalDownloads: stats?.totalDownloads || 0,
+      totalInstalls: stats?.totalInstalls || 0,
+      avgRating: stats?.avgRating || 0,
+    };
   }
 
   async updateTemplate(id: string, updates: Partial<Template>): Promise<Template | undefined> {

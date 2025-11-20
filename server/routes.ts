@@ -1392,6 +1392,46 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  // Get all templates with admin filters (admin only)
+  app.get("/api/admin/templates", requireAdmin, async (req, res) => {
+    try {
+      const { status, categoryId, featured, search } = req.query;
+      
+      const filters: any = {};
+      
+      // Admins can filter by any status (or omit to see all)
+      if (status && typeof status === "string") {
+        filters.status = status;
+      }
+      
+      if (categoryId && typeof categoryId === "string") {
+        filters.categoryId = categoryId;
+      }
+      
+      if (featured === "true") {
+        filters.featured = true;
+      }
+      
+      let templates = await storage.getAllTemplates(filters);
+      
+      // Apply search filter if provided
+      if (search && typeof search === "string") {
+        const searchLower = search.toLowerCase();
+        templates = templates.filter(t => 
+          t.title.toLowerCase().includes(searchLower) ||
+          t.description.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching admin templates:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching admin templates"
+      });
+    }
+  });
+
   // Get featured templates (public)
   app.get("/api/templates/featured", async (req, res) => {
     try {
@@ -1410,7 +1450,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   });
 
   // Get user's published templates (requireAuth)
-  app.get("/api/templates/my-templates", requireAuth, async (req, res) => {
+  app.get("/api/templates/my-published", requireAuth, async (req, res) => {
     try {
       const templates = await storage.getUserTemplates(req.user!.id);
       return res.json(templates);
@@ -1418,6 +1458,28 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       console.error("Error fetching user templates:", error);
       return res.status(500).json({
         error: "Internal server error while fetching user templates"
+      });
+    }
+  });
+
+  // Get user's template statistics (requireAuth)
+  app.get("/api/templates/stats/user/:userId", requireAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Users can only view their own stats unless they're admin
+      if (req.user!.id !== userId && req.user!.role !== "admin") {
+        return res.status(403).json({
+          error: "Not authorized to view these stats"
+        });
+      }
+
+      const stats = await storage.getUserTemplateStats(userId);
+      return res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user template stats:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching user template stats"
       });
     }
   });
@@ -1544,14 +1606,8 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   });
 
   // Update template status to approved/rejected (admin only)
-  app.put("/api/templates/:id/status", requireAuth, async (req, res) => {
+  app.put("/api/templates/:id/status", requireAdmin, async (req, res) => {
     try {
-      if (req.user!.role !== "admin") {
-        return res.status(403).json({
-          error: "Admin access required"
-        });
-      }
-
       const { id } = req.params;
       const { status } = req.body;
 

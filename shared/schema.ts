@@ -190,6 +190,9 @@ export const templates = pgTable("templates", {
   status: varchar("status", { length: 50 }).notNull().default("pending"),
   featured: boolean("featured").notNull().default(false),
   version: varchar("version", { length: 50 }).notNull().default("1.0.0"),
+  securityScore: integer("security_score"),
+  securityLevel: varchar("security_level", { length: 50 }),
+  securityWarningsCount: integer("security_warnings_count"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -413,6 +416,9 @@ export const templateSchema = z.object({
   status: z.enum(templateStatuses).optional(),
   featured: z.boolean().optional(),
   version: z.string().optional(),
+  securityScore: z.number().optional(),
+  securityLevel: z.string().optional(),
+  securityWarningsCount: z.number().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });

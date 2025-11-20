@@ -11,10 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { changePasswordSchema, supportRequestSchema, type ChangePasswordData, type SupportRequestData, type Script } from "@shared/schema";
+import { changePasswordSchema, supportRequestSchema, type ChangePasswordData, type SupportRequestData, type Script, type Template } from "@shared/schema";
 import { 
   User, 
   Mail, 
@@ -37,7 +38,13 @@ import {
   Github,
   CheckCircle2,
   XCircle,
-  ExternalLink
+  ExternalLink,
+  Download,
+  Package,
+  Star,
+  AlertTriangle,
+  Edit,
+  Eye
 } from "lucide-react";
 
 export default function Account() {
@@ -61,6 +68,21 @@ export default function Account() {
     queryKey: ["/api/git/repositories"],
     enabled: !!user && !githubUserError,
     retry: false,
+  });
+
+  const { data: publishedTemplates, isLoading: templatesLoading } = useQuery<Template[]>({
+    queryKey: ["/api/templates/my-published"],
+    enabled: !!user,
+  });
+
+  const { data: templateStats, isLoading: statsLoading } = useQuery<{
+    totalTemplates: number;
+    totalDownloads: number;
+    totalInstalls: number;
+    avgRating: number;
+  }>({
+    queryKey: ["/api/templates/stats/user", user?.id],
+    enabled: !!user,
   });
 
   const disconnectRepoMutation = useMutation({
@@ -777,6 +799,200 @@ export default function Account() {
                   </Button>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card data-testid="section-template-contributions">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Template Contributions
+              </CardTitle>
+              <CardDescription>
+                Templates you've published to the marketplace
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Stats Summary Card */}
+              {statsLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="p-4 rounded-lg border">
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                  ))}
+                </div>
+              ) : templateStats ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg border" data-testid="stat-templates-published">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <FileText className="h-4 w-4" />
+                      <span>Templates Published</span>
+                    </div>
+                    <p className="text-2xl font-bold">{templateStats.totalTemplates}</p>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg border" data-testid="stat-total-downloads">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <Download className="h-4 w-4" />
+                      <span>Total Downloads</span>
+                    </div>
+                    <p className="text-2xl font-bold">{templateStats.totalDownloads}</p>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg border" data-testid="stat-total-installs">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <Package className="h-4 w-4" />
+                      <span>Total Installs</span>
+                    </div>
+                    <p className="text-2xl font-bold">{templateStats.totalInstalls}</p>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg border" data-testid="stat-average-rating">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <Star className="h-4 w-4" />
+                      <span>Average Rating</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold">{templateStats.avgRating}</p>
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <Star
+                            key={rating}
+                            className={`h-4 w-4 ${
+                              rating <= templateStats.avgRating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-muted-foreground"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <Separator />
+
+              {/* Published Templates List */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Published Templates</h3>
+                
+                {templatesLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="p-4 rounded-lg border">
+                        <Skeleton className="h-5 w-48 mb-2" />
+                        <Skeleton className="h-4 w-full mb-3" />
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-6 w-20" />
+                          <Skeleton className="h-6 w-24" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : !publishedTemplates || publishedTemplates.length === 0 ? (
+                  <div className="text-center py-8 border rounded-lg">
+                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground mb-4">No templates published yet</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => setLocation("/marketplace")}
+                      data-testid="button-browse-marketplace"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Browse Marketplace
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {publishedTemplates.map((template) => (
+                      <div
+                        key={template.id}
+                        className="p-4 rounded-lg border hover-elevate"
+                        data-testid={`template-contribution-${template.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium mb-1 truncate">{template.title}</h4>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                              {template.description}
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge
+                                variant={
+                                  template.status === "approved"
+                                    ? "default"
+                                    : template.status === "rejected"
+                                    ? "destructive"
+                                    : "secondary"
+                                }
+                              >
+                                {template.status}
+                              </Badge>
+                              
+                              {template.securityScore !== null && template.securityScore < 80 && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Security: {template.securityScore}
+                                </Badge>
+                              )}
+                              
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(template.createdAt!).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Download className="h-4 w-4" />
+                              <span>{template.downloads}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Package className="h-4 w-4" />
+                              <span>{template.installs}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              <span>{template.averageRating || 0}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {template.status === "approved" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setLocation(`/marketplace/${template.id}`)}
+                                data-testid={`button-view-marketplace-${template.id}`}
+                              >
+                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                View
+                              </Button>
+                            )}
+                            
+                            {(template.status === "pending" || template.status === "rejected") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setLocation(`/marketplace/${template.id}`)}
+                                data-testid={`button-edit-${template.id}`}
+                              >
+                                <Edit className="h-3.5 w-3.5 mr-1" />
+                                Edit
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 

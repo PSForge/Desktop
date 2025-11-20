@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { FileCheck, FileX, Eye, CheckCircle, XCircle } from "lucide-react";
+import { FileCheck, FileX, Eye, CheckCircle, XCircle, Shield, AlertTriangle, ShieldAlert } from "lucide-react";
 import type { Template } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -48,18 +48,35 @@ export function AdminTemplateModerationSection() {
   });
 
   const statusFilter = activeTab === "all" ? undefined : activeTab;
-  const { data: templates = [], isLoading: templatesLoading } = useQuery<TemplateWithAuthor[]>({
-    queryKey: ["/api/templates", { status: statusFilter }],
+  
+  const { data: templates = [], isLoading: templatesLoading} = useQuery<TemplateWithAuthor[]>({
+    queryKey: ["/api/admin/templates", statusFilter],
+    queryFn: async () => {
+      const url = statusFilter 
+        ? `/api/admin/templates?status=${statusFilter}`
+        : "/api/admin/templates";
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch templates");
+      return response.json();
+    },
   });
 
   const moderateMutation = useMutation({
     mutationFn: async ({ templateId, status }: { templateId: string; status: "approved" | "rejected" }) => {
-      const response = await apiRequest("PATCH", `/api/templates/${templateId}/status`, { status });
+      const response = await apiRequest("PUT", `/api/templates/${templateId}/status`, { status });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/templates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/templates/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/templates"] });
       toast({
         title: "Template moderated",
         description: `Template has been ${moderationAction?.action === "approve" ? "approved" : "rejected"} successfully`,
@@ -91,7 +108,54 @@ export function AdminTemplateModerationSection() {
     return text.slice(0, maxLength) + "...";
   };
 
-  const renderTemplateCard = (template: TemplateWithAuthor) => (
+  const getSecurityBadgeProps = (score: number | null | undefined) => {
+    if (!score && score !== 0) return null;
+    
+    if (score >= 80) {
+      return {
+        className: "bg-green-600 dark:bg-green-700 text-white",
+        icon: Shield,
+        label: "Safe",
+        priority: 3
+      };
+    } else if (score >= 50) {
+      return {
+        className: "bg-yellow-600 dark:bg-yellow-700 text-white",
+        icon: AlertTriangle,
+        label: "Caution",
+        priority: 2
+      };
+    } else {
+      return {
+        className: "bg-red-600 dark:bg-red-700 text-white",
+        icon: ShieldAlert,
+        label: "Dangerous",
+        priority: 1
+      };
+    }
+  };
+
+  // Sort templates by security level (dangerous first for review priority)
+  const sortedTemplates = useMemo(() => {
+    return [...templates].sort((a, b) => {
+      const aSecurity = getSecurityBadgeProps(a.securityScore);
+      const bSecurity = getSecurityBadgeProps(b.securityScore);
+      
+      // Templates without security scan come last
+      if (!aSecurity && !bSecurity) return 0;
+      if (!aSecurity) return 1;
+      if (!bSecurity) return -1;
+      
+      // Sort by priority (1=dangerous, 2=caution, 3=safe)
+      // Lower priority number (dangerous) comes first
+      return aSecurity.priority - bSecurity.priority;
+    });
+  }, [templates]);
+
+  const renderTemplateCard = (template: TemplateWithAuthor) => {
+    const securityProps = getSecurityBadgeProps(template.securityScore);
+    
+    return (
     <div
       key={template.id}
       className="flex flex-col gap-4 p-4 border rounded-lg hover-elevate"
@@ -106,6 +170,21 @@ export function AdminTemplateModerationSection() {
             {template.categoryName && (
               <Badge variant="secondary" data-testid={`badge-category-${template.id}`}>
                 {template.categoryName}
+              </Badge>
+            )}
+            {securityProps && (
+              <Badge 
+                className={securityProps.className}
+                data-testid={`security-badge-${template.id}`}
+              >
+                {(() => {
+                  const SecurityIcon = securityProps.icon;
+                  return <SecurityIcon className="w-3 h-3 mr-1" />;
+                })()}
+                {securityProps.label} ({template.securityScore})
+                {template.securityWarningsCount && template.securityWarningsCount > 0 && (
+                  <span className="ml-1">• {template.securityWarningsCount} warning{template.securityWarningsCount !== 1 ? 's' : ''}</span>
+                )}
               </Badge>
             )}
           </div>
@@ -285,9 +364,9 @@ export function AdminTemplateModerationSection() {
               <ScrollArea className="h-[600px] pr-4">
                 {templatesLoading ? (
                   renderLoadingState()
-                ) : templates.length > 0 ? (
+                ) : sortedTemplates.length > 0 ? (
                   <div className="space-y-4">
-                    {templates.map(renderTemplateCard)}
+                    {sortedTemplates.map(renderTemplateCard)}
                   </div>
                 ) : (
                   renderEmptyState("pending")
@@ -299,9 +378,9 @@ export function AdminTemplateModerationSection() {
               <ScrollArea className="h-[600px] pr-4">
                 {templatesLoading ? (
                   renderLoadingState()
-                ) : templates.length > 0 ? (
+                ) : sortedTemplates.length > 0 ? (
                   <div className="space-y-4">
-                    {templates.map(renderTemplateCard)}
+                    {sortedTemplates.map(renderTemplateCard)}
                   </div>
                 ) : (
                   renderEmptyState("approved")
@@ -313,9 +392,9 @@ export function AdminTemplateModerationSection() {
               <ScrollArea className="h-[600px] pr-4">
                 {templatesLoading ? (
                   renderLoadingState()
-                ) : templates.length > 0 ? (
+                ) : sortedTemplates.length > 0 ? (
                   <div className="space-y-4">
-                    {templates.map(renderTemplateCard)}
+                    {sortedTemplates.map(renderTemplateCard)}
                   </div>
                 ) : (
                   renderEmptyState("rejected")
@@ -327,9 +406,9 @@ export function AdminTemplateModerationSection() {
               <ScrollArea className="h-[600px] pr-4">
                 {templatesLoading ? (
                   renderLoadingState()
-                ) : templates.length > 0 ? (
+                ) : sortedTemplates.length > 0 ? (
                   <div className="space-y-4">
-                    {templates.map(renderTemplateCard)}
+                    {sortedTemplates.map(renderTemplateCard)}
                   </div>
                 ) : (
                   renderEmptyState("all")

@@ -40,6 +40,15 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - **Support Request System**: User-facing support card on the account page, integrated with Office 365 SMTP.
 - **Subscription Management**: Automatic Stripe webhook processing for Pro tier upgrades, manual sync tool, and promo code support.
 - **Git Integration**: GitHub OAuth integration, repository connection/disconnection, branch management, commit/push/pull operations, commit history tracking, and visual diff viewer. Per-user GitHub credential isolation.
+- **Templates Marketplace (Phase 3 v4.2)**: Community-driven template sharing platform enabling users to publish, discover, and install PowerShell script templates. Features include:
+    - **Template Publishing**: Users can publish scripts as templates with metadata (title, description, category, tags, version), automatic security scanning with risk acknowledgment for dangerous patterns, and admin moderation workflow (pending → approved/rejected).
+    - **Marketplace Browsing**: Public marketplace with search, category filtering, sorting (popular/newest/top-rated), featured templates, and responsive grid layout with security badges.
+    - **Template Details**: Full template view with Monaco Editor code preview, star ratings (1-5) and review system, installation/download functionality, author information, and related statistics (downloads, installs, avg rating).
+    - **Admin Moderation**: Dedicated admin dashboard with tabbed interface (Pending/Approved/Rejected/All), template approval/rejection workflow, security scan results display, and bulk moderation capabilities.
+    - **User Contributions**: Account page section displaying user's published templates, contribution statistics (total templates, downloads, installs, avg rating), and template management (edit pending/rejected templates).
+    - **Security Integration**: Automated malicious code scanning on publish using existing security-scanner.ts, color-coded security badges (Safe/Caution/Dangerous), explicit risk acknowledgment for dangerous templates, and admin visibility of security scores.
+    - **Database Schema**: 4 new tables (templates, template_categories, template_ratings, template_installs) with proper relationships and Zod validation.
+    - **API Endpoints**: 16 RESTful endpoints for templates, categories, ratings, and installs with proper authentication and admin-only routes protected by requireAdmin middleware.
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for persistent storage.

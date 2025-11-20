@@ -200,6 +200,42 @@ export default function AdminDashboard() {
     },
   });
 
+  const filteredAndSortedUsers = useMemo(() => {
+    if (!users) return [];
+    
+    let filtered = users.filter((userData) => {
+      if (!searchQuery) return true;
+      
+      const query = searchQuery.toLowerCase();
+      const name = (userData.name || "").toLowerCase();
+      const email = (userData.email || "").toLowerCase();
+      const role = (userData.role || "").toLowerCase();
+      
+      return (
+        name.includes(query) ||
+        email.includes(query) ||
+        role.includes(query)
+      );
+    });
+    
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return (a.name || "").localeCompare(b.name || "");
+        case "email":
+          return (a.email || "").localeCompare(b.email || "");
+        case "role":
+          return (a.role || "").localeCompare(b.role || "");
+        case "date":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        default:
+          return 0;
+      }
+    });
+    
+    return sorted;
+  }, [users, searchQuery, sortBy]);
+
   const onCreateUserSubmit = (data: AdminCreateUserData) => {
     createUserMutation.mutate(data);
   };
@@ -230,38 +266,6 @@ export default function AdminDashboard() {
         return "secondary";
     }
   };
-
-  const filteredAndSortedUsers = useMemo(() => {
-    if (!users) return [];
-    
-    let filtered = users.filter((userData) => {
-      if (!searchQuery) return true;
-      
-      const query = searchQuery.toLowerCase();
-      return (
-        userData.name.toLowerCase().includes(query) ||
-        userData.email.toLowerCase().includes(query) ||
-        userData.role.toLowerCase().includes(query)
-      );
-    });
-    
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "email":
-          return a.email.localeCompare(b.email);
-        case "role":
-          return a.role.localeCompare(b.role);
-        case "date":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        default:
-          return 0;
-      }
-    });
-    
-    return sorted;
-  }, [users, searchQuery, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -785,14 +789,14 @@ export default function AdminDashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium truncate" data-testid={`text-user-name-${userData.id}`}>
-                          {userData.name}
+                          {userData.name || "Unknown User"}
                         </span>
-                        <Badge variant={getRoleBadgeVariant(userData.role)} data-testid={`badge-role-${userData.id}`}>
-                          {userData.role}
+                        <Badge variant={getRoleBadgeVariant(userData.role || "free")} data-testid={`badge-role-${userData.id}`}>
+                          {userData.role || "free"}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground truncate" data-testid={`text-user-email-${userData.id}`}>
-                        {userData.email}
+                        {userData.email || "No email"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Joined {formatDate(userData.createdAt)}

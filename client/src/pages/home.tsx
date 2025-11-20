@@ -29,7 +29,10 @@ import {
   HardDrive,
   Users,
   Settings,
-  Wand2
+  Wand2,
+  Package,
+  GitBranch,
+  Star
 } from "lucide-react";
 
 export default function Home() {
@@ -39,6 +42,7 @@ export default function Home() {
     "8 core platforms (File System, Network, Services, Process Management, Event Logs, Active Directory, Registry, Security)",
     "200+ automation tasks",
     "Visual builder + direct coding modes",
+    "Templates Marketplace access (browse & install community templates)",
     "Download unlimited .ps1 scripts",
     "Automatic saving",
     "Security validation built-in",
@@ -49,6 +53,8 @@ export default function Home() {
     "AI script assistant (describe tasks in plain English)",
     "48 enterprise platforms (Exchange, Azure, AWS, VMware, SharePoint, Microsoft 365, and 42 more)",
     "1000+ automation tasks across all platforms",
+    "Publish templates to Marketplace (share your expertise)",
+    "GitHub integration (sync scripts to repositories)",
     "Priority support (email response within 24 hours)",
     "Early access to new platforms and features",
   ];
@@ -136,9 +142,9 @@ export default function Home() {
             </div>
 
             <div className="text-center space-y-6">
-              <Badge variant="secondary" className="mb-4">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Built by IT Pros, for IT Pros
+              <Badge variant="default" className="mb-4">
+                <Star className="h-3 w-3 mr-1" />
+                Version 4.0 - Now with Templates Marketplace
               </Badge>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
@@ -178,6 +184,90 @@ export default function Home() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What's New in Version 4 */}
+      <section className="border-y bg-gradient-to-br from-primary/5 via-purple-500/5 to-cyan-500/5">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <div className="text-center mb-8">
+            <Badge variant="default" className="mb-4">
+              <Star className="h-3 w-3 mr-1" />
+              What's New in Version 4.0
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
+              Community-Powered Automation
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              PSForge v4.0 introduces powerful new features that let you learn from the community and share your expertise
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <Card className="hover-elevate transition-all border-primary/30">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Package className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle>Templates Marketplace</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-3">
+                  Browse and install PowerShell script templates shared by the community. Discover proven solutions, rate templates, and publish your own scripts to help others.
+                </p>
+                <Link href="/marketplace">
+                  <Button variant="outline" size="sm" className="w-full gap-2" data-testid="button-explore-marketplace">
+                    Explore Marketplace
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
+                  <GitBranch className="h-6 w-6 text-blue-500" />
+                </div>
+                <CardTitle>GitHub Integration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-3">
+                  Connect your GitHub account to sync scripts directly to your repositories. Manage branches, commit changes, and maintain version control—all from PSForge.
+                </p>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  OAuth authentication
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Branch management
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4">
+                  <Shield className="h-6 w-6 text-purple-500" />
+                </div>
+                <CardTitle>Enhanced Security</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-3">
+                  Every template undergoes automatic security scanning. Community ratings and admin moderation ensure you're installing safe, reliable scripts.
+                </p>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Malicious code detection
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Security score ratings
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -399,18 +489,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Four Building Methods */}
+      {/* Five Building Methods */}
       <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
-            Four Independent Ways to Build PowerShell Scripts
+            Five Ways to Build PowerShell Scripts
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Choose the method that matches your workflow. Each approach generates production-ready PowerShell with complete error handling.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto">
           <Card className="hover-elevate transition-all">
             <CardHeader>
               <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
@@ -466,6 +556,23 @@ export default function Home() {
             <CardContent>
               <p className="text-muted-foreground">
                 Bulk operations made easy. Upload CSV data and generate scripts that process hundreds of items automatically with full error handling.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover-elevate transition-all border-primary/30">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                <Package className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="flex items-center gap-2">
+                Templates Marketplace
+                <Badge variant="secondary" className="text-xs">New</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Browse community-shared templates, install proven solutions with one click, and publish your own scripts to help other IT professionals.
               </p>
             </CardContent>
           </Card>

@@ -1,4 +1,4 @@
-import { Save, User, Library } from "lucide-react";
+import { Save, User, Library, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { Link } from "wouter";
@@ -42,6 +42,18 @@ export function Header({ onExport, hasCommands }: HeaderProps) {
           >
             <Library className="h-4 w-4" />
             <span className="hidden sm:inline">Library</span>
+          </Button>
+        </Link>
+        
+        <Link href="/marketplace">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            data-testid="button-marketplace"
+          >
+            <Package className="h-4 w-4" />
+            <span className="hidden sm:inline">Marketplace</span>
           </Button>
         </Link>
         

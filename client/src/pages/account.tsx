@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeModal } from "@/components/upgrade-modal";
+import { Header } from "@/components/header";
 import { changePasswordSchema, supportRequestSchema, type ChangePasswordData, type SupportRequestData, type Script, type Template } from "@shared/schema";
 import { 
   User, 
@@ -248,6 +249,7 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header onExport={() => {}} hasCommands={false} />
       <div className="container max-w-4xl mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-8">
           <div>

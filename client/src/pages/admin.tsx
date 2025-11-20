@@ -35,6 +35,7 @@ import { useEffect, useState } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";
 import { AdminEmailTemplatesSection } from "@/components/admin-email-templates-section";
 import { AdminTemplateModerationSection } from "@/components/admin-template-moderation-section";
+import { Header } from "@/components/header";
 
 interface AnalyticsOverview {
   totalUsers: number;
@@ -230,6 +231,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header onExport={() => {}} hasCommands={false} />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">

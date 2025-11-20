@@ -34,6 +34,7 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";
 import { AdminEmailTemplatesSection } from "@/components/admin-email-templates-section";
+import { AdminTemplateModerationSection } from "@/components/admin-template-moderation-section";
 
 interface AnalyticsOverview {
   totalUsers: number;
@@ -789,6 +790,8 @@ export default function AdminDashboard() {
         <AdminNotificationsSection />
         
         <AdminEmailTemplatesSection />
+        
+        <AdminTemplateModerationSection />
       </div>
 
       <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>

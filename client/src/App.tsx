@@ -8,6 +8,8 @@ import { AuthProvider } from "@/lib/auth-context";
 import Home from "@/pages/home";
 import ScriptBuilder from "@/pages/script-builder";
 import ScriptLibrary from "@/pages/script-library";
+import TemplatesMarketplace from "@/pages/marketplace";
+import MarketplaceDetail from "@/pages/marketplace-detail";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import ForgotPassword from "@/pages/forgot-password";
@@ -32,6 +34,8 @@ function Router() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/builder" component={ScriptBuilder} />
       <Route path="/library" component={ScriptLibrary} />
+      <Route path="/marketplace/:id" component={MarketplaceDetail} />
+      <Route path="/marketplace" component={TemplatesMarketplace} />
       <Route path="/account" component={Account} />
       <Route path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />

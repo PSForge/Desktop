@@ -25,6 +25,10 @@ import {
   updateScriptSchema,
   trackScriptGenerationSchema,
   insertTagSchema,
+  insertTemplateCategorySchema,
+  insertTemplateSchema,
+  insertTemplateRatingSchema,
+  insertTemplateInstallSchema,
   type ValidationResult,
   type SubscriptionStatus,
   type User
@@ -1284,6 +1288,460 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     } catch (error: any) {
       console.error("Error pulling from GitHub:", error);
       return res.status(500).json({ error: error.message || "Failed to pull changes" });
+    }
+  });
+
+  // ==================== Template Categories Routes ====================
+  
+  // Get all template categories (public)
+  app.get("/api/template-categories", async (req, res) => {
+    try {
+      const categories = await storage.getAllTemplateCategories();
+      return res.json(categories);
+    } catch (error) {
+      console.error("Error fetching template categories:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching template categories"
+      });
+    }
+  });
+
+  // Create template category (admin only)
+  app.post("/api/template-categories", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({
+          error: "Admin access required"
+        });
+      }
+
+      const parsed = insertTemplateCategorySchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid category data",
+          details: parsed.error.errors
+        });
+      }
+
+      const category = await storage.createTemplateCategory(parsed.data);
+      return res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating template category:", error);
+      return res.status(500).json({
+        error: "Internal server error while creating template category"
+      });
+    }
+  });
+
+  // Get template category by ID (public)
+  app.get("/api/template-categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const category = await storage.getTemplateCategory(id);
+      
+      if (!category) {
+        return res.status(404).json({
+          error: "Template category not found"
+        });
+      }
+
+      return res.json(category);
+    } catch (error) {
+      console.error("Error fetching template category:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching template category"
+      });
+    }
+  });
+
+  // ==================== Templates Routes ====================
+  
+  // Get all approved templates with filters (public)
+  app.get("/api/templates", async (req, res) => {
+    try {
+      const { categoryId, featured, search } = req.query;
+      
+      const filters: any = { status: "approved" };
+      
+      if (categoryId && typeof categoryId === "string") {
+        filters.categoryId = categoryId;
+      }
+      
+      if (featured === "true") {
+        filters.featured = true;
+      }
+      
+      let templates = await storage.getAllTemplates(filters);
+      
+      // Apply search filter if provided
+      if (search && typeof search === "string") {
+        const searchLower = search.toLowerCase();
+        templates = templates.filter(t => 
+          t.title.toLowerCase().includes(searchLower) ||
+          t.description.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching templates"
+      });
+    }
+  });
+
+  // Get featured templates (public)
+  app.get("/api/templates/featured", async (req, res) => {
+    try {
+      const templates = await storage.getAllTemplates({
+        status: "approved",
+        featured: true
+      });
+      
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching featured templates:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching featured templates"
+      });
+    }
+  });
+
+  // Get user's published templates (requireAuth)
+  app.get("/api/templates/my-templates", requireAuth, async (req, res) => {
+    try {
+      const templates = await storage.getUserTemplates(req.user!.id);
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching user templates:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching user templates"
+      });
+    }
+  });
+
+  // Get template by ID (public)
+  app.get("/api/templates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.getTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          error: "Template not found"
+        });
+      }
+
+      return res.json(template);
+    } catch (error) {
+      console.error("Error fetching template:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching template"
+      });
+    }
+  });
+
+  // Create/publish template (requireAuth)
+  app.post("/api/templates", requireAuth, async (req, res) => {
+    try {
+      const parsed = insertTemplateSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid template data",
+          details: parsed.error.errors
+        });
+      }
+
+      const template = await storage.createTemplate({
+        ...parsed.data,
+        authorId: req.user!.id
+      });
+      
+      return res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating template:", error);
+      return res.status(500).json({
+        error: "Internal server error while creating template"
+      });
+    }
+  });
+
+  // Update template (requireAuth, author or admin only)
+  app.put("/api/templates/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.getTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          error: "Template not found"
+        });
+      }
+
+      // Check if user is author or admin
+      if (template.authorId !== req.user!.id && req.user!.role !== "admin") {
+        return res.status(403).json({
+          error: "Not authorized to update this template"
+        });
+      }
+
+      const parsed = insertTemplateSchema.partial().safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid template data",
+          details: parsed.error.errors
+        });
+      }
+
+      const updated = await storage.updateTemplate(id, parsed.data);
+      
+      if (!updated) {
+        return res.status(404).json({
+          error: "Template not found"
+        });
+      }
+
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating template:", error);
+      return res.status(500).json({
+        error: "Internal server error while updating template"
+      });
+    }
+  });
+
+  // Delete template (requireAuth, author or admin only)
+  app.delete("/api/templates/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.getTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          error: "Template not found"
+        });
+      }
+
+      // Check if user is author or admin
+      if (template.authorId !== req.user!.id && req.user!.role !== "admin") {
+        return res.status(403).json({
+          error: "Not authorized to delete this template"
+        });
+      }
+
+      await storage.deleteTemplate(id);
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      return res.status(500).json({
+        error: "Internal server error while deleting template"
+      });
+    }
+  });
+
+  // Update template status to approved/rejected (admin only)
+  app.put("/api/templates/:id/status", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({
+          error: "Admin access required"
+        });
+      }
+
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status || !["approved", "rejected", "pending"].includes(status)) {
+        return res.status(400).json({
+          error: "Invalid status. Must be 'approved', 'rejected', or 'pending'"
+        });
+      }
+
+      const template = await storage.getTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          error: "Template not found"
+        });
+      }
+
+      const updated = await storage.updateTemplate(id, { status });
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating template status:", error);
+      return res.status(500).json({
+        error: "Internal server error while updating template status"
+      });
+    }
+  });
+
+  // ==================== Template Ratings Routes ====================
+  
+  // Create or update rating (requireAuth)
+  app.post("/api/templates/:id/rate", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rating, review } = req.body;
+
+      // Validate rating is 1-5
+      if (!rating || typeof rating !== "number" || rating < 1 || rating > 5) {
+        return res.status(400).json({
+          error: "Rating must be a number between 1 and 5"
+        });
+      }
+
+      const template = await storage.getTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          error: "Template not found"
+        });
+      }
+
+      // Check if user already rated this template
+      const existingRating = await storage.getUserTemplateRating(id, req.user!.id);
+
+      let result;
+      if (existingRating) {
+        // Update existing rating
+        result = await storage.updateTemplateRating(existingRating.id, {
+          rating,
+          review
+        });
+      } else {
+        // Create new rating
+        const parsed = insertTemplateRatingSchema.safeParse({
+          templateId: id,
+          userId: req.user!.id,
+          rating,
+          review
+        });
+        
+        if (!parsed.success) {
+          return res.status(400).json({
+            error: "Invalid rating data",
+            details: parsed.error.errors
+          });
+        }
+
+        result = await storage.createTemplateRating(parsed.data);
+      }
+
+      // Update template average rating
+      await storage.updateTemplateAverageRating(id);
+
+      return res.status(existingRating ? 200 : 201).json(result);
+    } catch (error) {
+      console.error("Error creating/updating template rating:", error);
+      return res.status(500).json({
+        error: "Internal server error while rating template"
+      });
+    }
+  });
+
+  // Get all ratings for template (public)
+  app.get("/api/templates/:id/ratings", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const ratings = await storage.getTemplateRatings(id);
+      
+      return res.json(ratings);
+    } catch (error) {
+      console.error("Error fetching template ratings:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching template ratings"
+      });
+    }
+  });
+
+  // Get user's rating for template (requireAuth)
+  app.get("/api/templates/:id/my-rating", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const rating = await storage.getUserTemplateRating(id, req.user!.id);
+      
+      if (!rating) {
+        return res.status(404).json({
+          error: "No rating found"
+        });
+      }
+
+      return res.json(rating);
+    } catch (error) {
+      console.error("Error fetching user template rating:", error);
+      return res.status(500).json({
+        error: "Internal server error while fetching user rating"
+      });
+    }
+  });
+
+  // ==================== Template Installs Routes ====================
+  
+  // Track installation and increment counter (requireAuth)
+  app.post("/api/templates/:id/install", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const template = await storage.getTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          error: "Template not found"
+        });
+      }
+
+      // Check if user already installed this template
+      const alreadyInstalled = await storage.hasUserInstalledTemplate(id, req.user!.id);
+
+      if (!alreadyInstalled) {
+        // Create install record
+        const parsed = insertTemplateInstallSchema.safeParse({
+          templateId: id,
+          userId: req.user!.id
+        });
+        
+        if (!parsed.success) {
+          return res.status(400).json({
+            error: "Invalid install data",
+            details: parsed.error.errors
+          });
+        }
+
+        await storage.createTemplateInstall(parsed.data);
+        
+        // Increment installs counter
+        await storage.incrementTemplateInstalls(id);
+      }
+
+      return res.status(201).json({
+        message: "Template installed successfully",
+        alreadyInstalled
+      });
+    } catch (error) {
+      console.error("Error installing template:", error);
+      return res.status(500).json({
+        error: "Internal server error while installing template"
+      });
+    }
+  });
+
+  // Check if user installed template (requireAuth)
+  app.get("/api/templates/:id/installed", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const installed = await storage.hasUserInstalledTemplate(id, req.user!.id);
+      
+      return res.json({ installed });
+    } catch (error) {
+      console.error("Error checking template installation:", error);
+      return res.status(500).json({
+        error: "Internal server error while checking template installation"
+      });
     }
   });
 

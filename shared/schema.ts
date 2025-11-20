@@ -166,11 +166,61 @@ export const webhookEvents = pgTable("webhook_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const templateCategories = pgTable("template_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const templates = pgTable("templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sourceScriptId: varchar("source_script_id").references(() => scripts.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  content: text("content").notNull(),
+  categoryId: varchar("category_id").references(() => templateCategories.id, { onDelete: "set null" }),
+  tags: json("tags").$type<string[]>().notNull().default(sql`'[]'`),
+  downloads: integer("downloads").notNull().default(0),
+  installs: integer("installs").notNull().default(0),
+  averageRating: integer("average_rating").notNull().default(0),
+  totalRatings: integer("total_ratings").notNull().default(0),
+  status: varchar("status", { length: 50 }).notNull().default("pending"),
+  featured: boolean("featured").notNull().default(false),
+  version: varchar("version", { length: 50 }).notNull().default("1.0.0"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const templateRatings = pgTable("template_ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => templates.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(),
+  review: text("review"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserTemplate: unique().on(table.userId, table.templateId),
+}));
+
+export const templateInstalls = pgTable("template_installs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => templates.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  installedAt: timestamp("installed_at").notNull().defaultNow(),
+});
+
 export const userRoles = ["free", "subscriber", "admin"] as const;
 export type UserRole = typeof userRoles[number];
 
 export const subscriptionStatuses = ["active", "trialing", "past_due", "canceled", "unpaid", "incomplete"] as const;
 export type SubscriptionStatus = typeof subscriptionStatuses[number];
+
+export const templateStatuses = ["pending", "approved", "rejected"] as const;
+export type TemplateStatus = typeof templateStatuses[number];
 
 export const parameterTypes = ["string", "int", "boolean", "switch", "array", "path", "select"] as const;
 export type ParameterType = typeof parameterTypes[number];
@@ -339,12 +389,61 @@ export const gitCommitSchema = z.object({
   createdAt: z.string().optional(),
 });
 
+export const templateCategorySchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+
+export const templateSchema = z.object({
+  id: z.string().optional(),
+  authorId: z.string(),
+  sourceScriptId: z.string().optional(),
+  title: z.string(),
+  description: z.string(),
+  content: z.string(),
+  categoryId: z.string().optional(),
+  tags: z.array(z.string()),
+  downloads: z.number().optional(),
+  installs: z.number().optional(),
+  averageRating: z.number().optional(),
+  totalRatings: z.number().optional(),
+  status: z.enum(templateStatuses).optional(),
+  featured: z.boolean().optional(),
+  version: z.string().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const templateRatingSchema = z.object({
+  id: z.string().optional(),
+  templateId: z.string(),
+  userId: z.string(),
+  rating: z.number().min(1).max(5),
+  review: z.string().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const templateInstallSchema = z.object({
+  id: z.string().optional(),
+  templateId: z.string(),
+  userId: z.string(),
+  installedAt: z.string().optional(),
+});
+
 export const insertScriptCommandSchema = scriptCommandSchema.omit({ id: true });
 export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true, lastAccessed: true });
 export const insertTagSchema = tagSchema.omit({ id: true, createdAt: true });
 export const insertScriptTagSchema = scriptTagSchema.omit({ id: true, createdAt: true });
 export const insertGitRepositorySchema = gitRepositorySchema.omit({ id: true, createdAt: true, lastSyncedAt: true });
 export const insertGitCommitSchema = gitCommitSchema.omit({ id: true, createdAt: true });
+export const insertTemplateCategorySchema = templateCategorySchema.omit({ id: true, createdAt: true });
+export const insertTemplateSchema = templateSchema.omit({ id: true, createdAt: true, updatedAt: true, downloads: true, installs: true, averageRating: true, totalRatings: true });
+export const insertTemplateRatingSchema = templateRatingSchema.omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTemplateInstallSchema = templateInstallSchema.omit({ id: true, installedAt: true });
 
 export const saveScriptSchema = z.object({
   name: z.string().min(1, "Script name is required"),
@@ -615,6 +714,14 @@ export type GitRepository = z.infer<typeof gitRepositorySchema>;
 export type GitCommit = z.infer<typeof gitCommitSchema>;
 export type InsertGitRepository = z.infer<typeof insertGitRepositorySchema>;
 export type InsertGitCommit = z.infer<typeof insertGitCommitSchema>;
+export type TemplateCategory = z.infer<typeof templateCategorySchema>;
+export type Template = z.infer<typeof templateSchema>;
+export type TemplateRating = z.infer<typeof templateRatingSchema>;
+export type TemplateInstall = z.infer<typeof templateInstallSchema>;
+export type InsertTemplateCategory = z.infer<typeof insertTemplateCategorySchema>;
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type InsertTemplateRating = z.infer<typeof insertTemplateRatingSchema>;
+export type InsertTemplateInstall = z.infer<typeof insertTemplateInstallSchema>;
 
 // Basic categories accessible to free users
 export const freeTierCategories = [

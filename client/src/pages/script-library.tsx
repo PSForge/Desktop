@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +12,12 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
 import { 
   Star, 
@@ -31,10 +37,12 @@ import {
   LayoutGrid,
   Wand2
 } from "lucide-react";
-import type { Script, Tag } from "@shared/schema";
+import type { Script, Tag, TemplateCategory, InsertTemplate } from "@shared/schema";
+import { insertTemplateSchema } from "@shared/schema";
 
 export default function ScriptLibrary() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -44,6 +52,7 @@ export default function ScriptLibrary() {
   const [activeTab, setActiveTab] = useState("all");
   const [managingTagsForScript, setManagingTagsForScript] = useState<string | null>(null);
   const [scriptTags, setScriptTags] = useState<Record<string, Tag[]>>({});
+  const [publishingScript, setPublishingScript] = useState<Script | null>(null);
 
   // Fetch all user scripts
   const { data: scripts = [], isLoading: scriptsLoading } = useQuery<Script[]>({
@@ -65,11 +74,54 @@ export default function ScriptLibrary() {
     queryKey: ['/api/tags'],
   });
 
+  // Fetch template categories
+  const { data: templateCategories = [] } = useQuery<TemplateCategory[]>({
+    queryKey: ['/api/template-categories'],
+  });
+
   // Fetch script tags when managing tags for a script
   const { data: currentScriptTags = [] } = useQuery<Tag[]>({
     queryKey: ['/api/scripts', managingTagsForScript, 'tags'],
     enabled: !!managingTagsForScript,
   });
+
+  // Form for publishing template
+  const publishForm = useForm<InsertTemplate>({
+    resolver: zodResolver(insertTemplateSchema.extend({
+      description: insertTemplateSchema.shape.description.min(50, "Description must be at least 50 characters"),
+      tags: insertTemplateSchema.shape.tags.max(5, "Maximum 5 tags allowed"),
+    })),
+    defaultValues: {
+      authorId: user?.id || "",
+      sourceScriptId: "",
+      title: "",
+      description: "",
+      content: "",
+      categoryId: "",
+      tags: [],
+      status: "pending",
+      featured: false,
+      version: "1.0.0",
+    },
+  });
+
+  // Populate form when publishing script is selected
+  useEffect(() => {
+    if (publishingScript) {
+      publishForm.reset({
+        authorId: user?.id || "",
+        sourceScriptId: publishingScript.id || "",
+        title: publishingScript.name,
+        description: publishingScript.description || "",
+        content: publishingScript.content,
+        categoryId: "",
+        tags: [],
+        status: "pending",
+        featured: false,
+        version: "1.0.0",
+      });
+    }
+  }, [publishingScript, user?.id]);
 
   // Fetch tags for all scripts when they load
   useEffect(() => {
@@ -234,6 +286,29 @@ export default function ScriptLibrary() {
     },
   });
 
+  // Publish template mutation
+  const publishTemplateMutation = useMutation({
+    mutationFn: async (data: InsertTemplate) => {
+      return await apiRequest('/api/templates', 'POST', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+      toast({
+        title: "Template submitted for approval!",
+        description: "Your template has been submitted and will be reviewed by an admin before being published to the marketplace.",
+      });
+      setPublishingScript(null);
+      publishForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to publish template",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Filter scripts based on search and filters
   const filteredScripts = scripts.filter(script => {
     const matchesSearch = !searchQuery || 
@@ -301,6 +376,10 @@ export default function ScriptLibrary() {
         variant: "destructive",
       });
     }
+  };
+
+  const handlePublishTemplate = (data: InsertTemplate) => {
+    publishTemplateMutation.mutate(data);
   };
 
   if (scriptsLoading) {
@@ -603,7 +682,7 @@ export default function ScriptLibrary() {
                   </CardContent>
 
                   <CardFooter className="flex justify-between gap-2 flex-wrap">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         size="sm"
                         variant="outline"
@@ -630,6 +709,15 @@ export default function ScriptLibrary() {
                       >
                         <TagIcon className="w-3 h-3 mr-1" />
                         Tags
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPublishingScript(script)}
+                        data-testid={`button-publish-template-${script.id}`}
+                      >
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Publish
                       </Button>
                     </div>
                     <Button
@@ -728,6 +816,178 @@ export default function ScriptLibrary() {
               Done
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Publish Template Dialog */}
+      <Dialog open={!!publishingScript} onOpenChange={(open) => !open && setPublishingScript(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Publish as Template</DialogTitle>
+            <DialogDescription>
+              Share your script with the community. Your template will be reviewed by an admin before being published to the marketplace.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...publishForm}>
+            <form onSubmit={publishForm.handleSubmit(handlePublishTemplate)} className="space-y-4">
+              <FormField
+                control={publishForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter template title"
+                        data-testid="input-template-title"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={publishForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        placeholder="Describe what this template does (minimum 50 characters)"
+                        rows={4}
+                        data-testid="input-template-description"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Provide a detailed description to help others understand this template
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={publishForm.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-template-category">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {templateCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.id!}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={publishForm.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter tags separated by commas (max 5)"
+                        value={field.value.join(', ')}
+                        onChange={(e) => {
+                          const tags = e.target.value
+                            .split(',')
+                            .map(tag => tag.trim())
+                            .filter(tag => tag.length > 0)
+                            .slice(0, 5);
+                          field.onChange(tags);
+                        }}
+                        data-testid="input-template-tags"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Add up to 5 tags to help users find your template
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={publishForm.control}
+                name="version"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Version</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="1.0.0"
+                        data-testid="input-template-version"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {user?.role === "admin" && (
+                <FormField
+                  control={publishForm.control}
+                  name="featured"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-template-featured"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Featured Template
+                        </FormLabel>
+                        <FormDescription>
+                          Mark this template as featured (admin only)
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPublishingScript(null)}
+                  disabled={publishTemplateMutation.isPending}
+                  data-testid="button-cancel-publish"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={publishTemplateMutation.isPending}
+                  data-testid="button-submit-template"
+                >
+                  {publishTemplateMutation.isPending ? "Publishing..." : "Publish Template"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
         </div>

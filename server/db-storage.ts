@@ -18,6 +18,10 @@ import {
   webhookEvents,
   gitRepositories,
   gitCommits,
+  templateCategories,
+  templates,
+  templateRatings,
+  templateInstalls,
   type User,
   type Session,
   type Script,
@@ -41,6 +45,14 @@ import {
   type GitCommit,
   type InsertGitRepository,
   type InsertGitCommit,
+  type TemplateCategory,
+  type Template,
+  type TemplateRating,
+  type TemplateInstall,
+  type InsertTemplateCategory,
+  type InsertTemplate,
+  type InsertTemplateRating,
+  type InsertTemplateInstall,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -814,5 +826,236 @@ export class DatabaseStorage implements IStorage {
       .where(eq(gitCommits.scriptId, scriptId))
       .orderBy(desc(gitCommits.createdAt));
     return result.map(c => this.convertTimestamps(c));
+  }
+
+  // Template Categories
+  async createTemplateCategory(category: InsertTemplateCategory): Promise<TemplateCategory> {
+    const result = await this.db.insert(templateCategories).values({
+      name: category.name,
+      description: category.description || null,
+      icon: category.icon || null,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getAllTemplateCategories(): Promise<TemplateCategory[]> {
+    const result = await this.db.select().from(templateCategories)
+      .orderBy(templateCategories.name);
+    return result.map(c => this.convertTimestamps(c));
+  }
+
+  async getTemplateCategory(id: string): Promise<TemplateCategory | undefined> {
+    const result = await this.db.select().from(templateCategories)
+      .where(eq(templateCategories.id, id))
+      .limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  // Templates
+  async createTemplate(template: InsertTemplate): Promise<Template> {
+    const result = await this.db.insert(templates).values({
+      authorId: template.authorId,
+      sourceScriptId: template.sourceScriptId || null,
+      title: template.title,
+      description: template.description,
+      content: template.content,
+      categoryId: template.categoryId || null,
+      tags: template.tags || [],
+      status: template.status || "pending",
+      featured: template.featured || false,
+      version: template.version || "1.0.0",
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getAllTemplates(filters?: {status?: string; categoryId?: string; featured?: boolean}): Promise<Template[]> {
+    let query = this.db.select().from(templates);
+    
+    const conditions = [];
+    if (filters?.status) {
+      conditions.push(eq(templates.status, filters.status));
+    }
+    if (filters?.categoryId) {
+      conditions.push(eq(templates.categoryId, filters.categoryId));
+    }
+    if (filters?.featured !== undefined) {
+      conditions.push(eq(templates.featured, filters.featured));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    const result = await query.orderBy(desc(templates.createdAt));
+    return result.map(t => this.convertTimestamps(t));
+  }
+
+  async getTemplate(id: string): Promise<Template | undefined> {
+    const result = await this.db.select().from(templates)
+      .where(eq(templates.id, id))
+      .limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async getUserTemplates(userId: string): Promise<Template[]> {
+    const result = await this.db.select().from(templates)
+      .where(eq(templates.authorId, userId))
+      .orderBy(desc(templates.createdAt));
+    return result.map(t => this.convertTimestamps(t));
+  }
+
+  async updateTemplate(id: string, updates: Partial<Template>): Promise<Template | undefined> {
+    const updateData: any = { ...updates };
+    
+    // Always update the updatedAt timestamp
+    updateData.updatedAt = new Date();
+    
+    // Remove fields that shouldn't be updated
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.authorId;
+    
+    const result = await this.db.update(templates)
+      .set(updateData)
+      .where(eq(templates.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async deleteTemplate(id: string): Promise<boolean> {
+    const result = await this.db.delete(templates).where(eq(templates.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async incrementTemplateDownloads(id: string): Promise<void> {
+    await this.db.update(templates)
+      .set({ downloads: sql`${templates.downloads} + 1` })
+      .where(eq(templates.id, id));
+  }
+
+  async incrementTemplateInstalls(id: string): Promise<void> {
+    await this.db.update(templates)
+      .set({ installs: sql`${templates.installs} + 1` })
+      .where(eq(templates.id, id));
+  }
+
+  // Template Ratings
+  async createTemplateRating(rating: InsertTemplateRating): Promise<TemplateRating> {
+    try {
+      const result = await this.db.insert(templateRatings).values({
+        templateId: rating.templateId,
+        userId: rating.userId,
+        rating: rating.rating,
+        review: rating.review || null,
+      }).returning();
+      return this.convertTimestamps(result[0]);
+    } catch (error: any) {
+      // Handle duplicate key violation (unique constraint on userId + templateId)
+      if (error.code === '23505') {
+        // Find and return existing rating
+        const existing = await this.db.select().from(templateRatings)
+          .where(and(
+            eq(templateRatings.templateId, rating.templateId),
+            eq(templateRatings.userId, rating.userId)
+          ))
+          .limit(1);
+        if (existing[0]) {
+          return this.convertTimestamps(existing[0]);
+        }
+      }
+      throw error;
+    }
+  }
+
+  async getTemplateRatings(templateId: string): Promise<TemplateRating[]> {
+    const result = await this.db.select().from(templateRatings)
+      .where(eq(templateRatings.templateId, templateId))
+      .orderBy(desc(templateRatings.createdAt));
+    return result.map(r => this.convertTimestamps(r));
+  }
+
+  async getUserTemplateRating(templateId: string, userId: string): Promise<TemplateRating | undefined> {
+    const result = await this.db.select().from(templateRatings)
+      .where(and(
+        eq(templateRatings.templateId, templateId),
+        eq(templateRatings.userId, userId)
+      ))
+      .limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async updateTemplateRating(id: string, updates: Partial<TemplateRating>): Promise<TemplateRating | undefined> {
+    const updateData: any = { ...updates };
+    
+    // Always update the updatedAt timestamp
+    updateData.updatedAt = new Date();
+    
+    // Remove fields that shouldn't be updated
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.templateId;
+    delete updateData.userId;
+    
+    const result = await this.db.update(templateRatings)
+      .set(updateData)
+      .where(eq(templateRatings.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async updateTemplateAverageRating(templateId: string): Promise<void> {
+    // Get all ratings for this template
+    const ratings = await this.db.select({ rating: templateRatings.rating })
+      .from(templateRatings)
+      .where(eq(templateRatings.templateId, templateId));
+    
+    if (ratings.length === 0) {
+      // No ratings, set to 0
+      await this.db.update(templates)
+        .set({
+          averageRating: 0,
+          totalRatings: 0,
+        })
+        .where(eq(templates.id, templateId));
+      return;
+    }
+    
+    // Calculate average
+    const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
+    const average = Math.round(sum / ratings.length);
+    
+    await this.db.update(templates)
+      .set({
+        averageRating: average,
+        totalRatings: ratings.length,
+      })
+      .where(eq(templates.id, templateId));
+  }
+
+  // Template Installs
+  async createTemplateInstall(install: InsertTemplateInstall): Promise<TemplateInstall> {
+    const result = await this.db.insert(templateInstalls).values({
+      templateId: install.templateId,
+      userId: install.userId,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getTemplateInstalls(templateId: string): Promise<TemplateInstall[]> {
+    const result = await this.db.select().from(templateInstalls)
+      .where(eq(templateInstalls.templateId, templateId))
+      .orderBy(desc(templateInstalls.installedAt));
+    return result.map(i => this.convertTimestamps(i));
+  }
+
+  async hasUserInstalledTemplate(templateId: string, userId: string): Promise<boolean> {
+    const result = await this.db.select({ id: templateInstalls.id })
+      .from(templateInstalls)
+      .where(and(
+        eq(templateInstalls.templateId, templateId),
+        eq(templateInstalls.userId, userId)
+      ))
+      .limit(1);
+    return result.length > 0;
   }
 }

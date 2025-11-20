@@ -115,6 +115,33 @@ export interface IStorage {
   createGitCommit(commit: import("@shared/schema").InsertGitCommit): Promise<import("@shared/schema").GitCommit>;
   getRepositoryCommits(repositoryId: string, limit?: number): Promise<import("@shared/schema").GitCommit[]>;
   getScriptCommits(scriptId: string): Promise<import("@shared/schema").GitCommit[]>;
+  
+  // Template Categories
+  createTemplateCategory(category: import("@shared/schema").InsertTemplateCategory): Promise<import("@shared/schema").TemplateCategory>;
+  getAllTemplateCategories(): Promise<import("@shared/schema").TemplateCategory[]>;
+  getTemplateCategory(id: string): Promise<import("@shared/schema").TemplateCategory | undefined>;
+  
+  // Templates
+  createTemplate(template: import("@shared/schema").InsertTemplate): Promise<import("@shared/schema").Template>;
+  getAllTemplates(filters?: {status?: string; categoryId?: string; featured?: boolean}): Promise<import("@shared/schema").Template[]>;
+  getTemplate(id: string): Promise<import("@shared/schema").Template | undefined>;
+  getUserTemplates(userId: string): Promise<import("@shared/schema").Template[]>;
+  updateTemplate(id: string, updates: Partial<import("@shared/schema").Template>): Promise<import("@shared/schema").Template | undefined>;
+  deleteTemplate(id: string): Promise<boolean>;
+  incrementTemplateDownloads(id: string): Promise<void>;
+  incrementTemplateInstalls(id: string): Promise<void>;
+  
+  // Template Ratings
+  createTemplateRating(rating: import("@shared/schema").InsertTemplateRating): Promise<import("@shared/schema").TemplateRating>;
+  getTemplateRatings(templateId: string): Promise<import("@shared/schema").TemplateRating[]>;
+  getUserTemplateRating(templateId: string, userId: string): Promise<import("@shared/schema").TemplateRating | undefined>;
+  updateTemplateRating(id: string, updates: Partial<import("@shared/schema").TemplateRating>): Promise<import("@shared/schema").TemplateRating | undefined>;
+  updateTemplateAverageRating(templateId: string): Promise<void>;
+  
+  // Template Installs
+  createTemplateInstall(install: import("@shared/schema").InsertTemplateInstall): Promise<import("@shared/schema").TemplateInstall>;
+  getTemplateInstalls(templateId: string): Promise<import("@shared/schema").TemplateInstall[]>;
+  hasUserInstalledTemplate(templateId: string, userId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {

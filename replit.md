@@ -170,6 +170,14 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
 - Disconnected state gracefully handled with clear user guidance
 - No LSP errors, all TypeScript types properly defined
 
+**User Experience Enhancements:**
+- **Comprehensive Help Dialog:** Step-by-step guide accessible via help icon (?) button in Git Panel header
+- **Contextual Instructions:** Blue info boxes with clear onboarding steps when GitHub is not connected
+- **Enhanced Dialogs:** Repository connection dialog includes examples and field descriptions
+- **Quick Start Guides:** Visual guides when no repositories are connected
+- **Best Practices:** Included in help dialog with commit message conventions and workflow tips
+- **6-Step Workflow Guide:** Covers account setup, repository connection, branch management, commit/push, pull, and history viewing
+
 **Target Complexity**: High | **Timeline**: 3-4 days
 **Enterprise Value**: Provides enterprise credibility and workflow integration
 

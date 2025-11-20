@@ -24,7 +24,9 @@ import {
   Check,
   X,
   Link as LinkIcon,
-  GitFork
+  GitFork,
+  HelpCircle,
+  Info
 } from "lucide-react";
 
 interface GitRepository {
@@ -84,6 +86,7 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
   const [fromBranch, setFromBranch] = useState("");
   const [repoOwner, setRepoOwner] = useState("");
   const [repoName, setRepoName] = useState("");
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
 
   // Fetch connected repositories
   const { data: repositories, isLoading: reposLoading } = useQuery<GitRepository[]>({
@@ -283,17 +286,44 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GitBranch className="h-5 w-5" />
-            Git Integration
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <GitBranch className="h-5 w-5" />
+              Git Integration
+            </span>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setShowHelpDialog(true)}
+              data-testid="button-git-help"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
           </CardTitle>
           <CardDescription>
             {githubUserLoading 
               ? "Checking GitHub connection..." 
-              : "GitHub is not connected. Please connect your GitHub account in Account Settings to use Git features."}
+              : "Connect your GitHub account to version control your PowerShell scripts."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {!githubUserLoading && (
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4">
+              <div className="flex gap-3">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2 text-sm">
+                  <p className="font-medium text-blue-900 dark:text-blue-100">How to Get Started:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-200">
+                    <li>Go to <strong>Account Settings</strong> (click your profile icon)</li>
+                    <li>Navigate to the <strong>Git Integration</strong> section</li>
+                    <li>Click <strong>Connect to GitHub</strong></li>
+                    <li>Authorize PSForge to access your GitHub repositories</li>
+                    <li>Return here to start syncing your scripts</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
           <Button variant="outline" disabled data-testid="button-github-not-connected">
             <X className="h-4 w-4 mr-2" />
             {githubUserLoading ? "Connecting..." : "GitHub Not Connected"}
@@ -314,11 +344,24 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
               <GitBranch className="h-5 w-5" />
               Git Integration
             </span>
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Connected as {githubUser.login}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Connected as {githubUser.login}
+              </Badge>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowHelpDialog(true)}
+                data-testid="button-git-help-connected"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            </div>
           </CardTitle>
+          <CardDescription>
+            Version control your PowerShell scripts with GitHub. Click the help icon for a complete guide.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Repository Selector */}
@@ -347,29 +390,44 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
                   <DialogHeader>
                     <DialogTitle>Connect Repository</DialogTitle>
                     <DialogDescription>
-                      Connect a GitHub repository to sync your PowerShell scripts
+                      Link a GitHub repository to version control your PowerShell scripts. Make sure you have access to the repository.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
+                    <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3">
+                      <div className="flex gap-2 text-xs text-blue-800 dark:text-blue-200">
+                        <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium mb-1">Example:</p>
+                          <p>For <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">https://github.com/john/powershell-scripts</code></p>
+                          <p className="mt-1">
+                            Owner: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">john</code> | 
+                            Name: <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">powershell-scripts</code>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="repo-owner">Repository Owner</Label>
                       <Input
                         id="repo-owner"
-                        placeholder="username or organization"
+                        placeholder="e.g., john or myorg"
                         value={repoOwner}
                         onChange={(e) => setRepoOwner(e.target.value)}
                         data-testid="input-repo-owner"
                       />
+                      <p className="text-xs text-muted-foreground">Your GitHub username or organization name</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="repo-name">Repository Name</Label>
                       <Input
                         id="repo-name"
-                        placeholder="repository-name"
+                        placeholder="e.g., powershell-scripts"
                         value={repoName}
                         onChange={(e) => setRepoName(e.target.value)}
                         data-testid="input-repo-name"
                       />
+                      <p className="text-xs text-muted-foreground">The exact name of your GitHub repository</p>
                     </div>
                   </div>
                   <DialogFooter>
@@ -581,14 +639,201 @@ export function GitPanel({ scriptId, scriptName, scriptContent }: GitPanelProps)
           )}
 
           {!selectedRepo && repositories && repositories.length === 0 && (
-            <div className="text-center py-6 text-muted-foreground">
-              <GitBranch className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No repositories connected</p>
-              <p className="text-xs">Connect a repository to start using Git integration</p>
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-6">
+              <div className="text-center space-y-4">
+                <GitBranch className="h-12 w-12 mx-auto text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                    No Repositories Connected
+                  </p>
+                  <p className="text-xs text-blue-800 dark:text-blue-200 mb-4">
+                    Connect your first GitHub repository to start version controlling your PowerShell scripts
+                  </p>
+                </div>
+                <div className="text-left text-xs text-blue-800 dark:text-blue-200 space-y-2">
+                  <p className="font-medium">Quick Start:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-2">
+                    <li>Click the <strong>link icon</strong> button above to connect a repository</li>
+                    <li>Enter your GitHub username and repository name</li>
+                    <li>PSForge will verify you have access to the repository</li>
+                    <li>Start committing, pushing, and managing your scripts!</li>
+                  </ol>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              Git Integration Guide
+            </DialogTitle>
+            <DialogDescription>
+              Learn how to use Git integration to version control your PowerShell scripts
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Step 1 */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Badge variant="outline">Step 1</Badge>
+                Connect Your GitHub Account
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Before using Git features, you need to connect your GitHub account to PSForge:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                <li>Click your profile icon in the top right</li>
+                <li>Select <strong>Account Settings</strong></li>
+                <li>Navigate to the <strong>Git Integration</strong> section</li>
+                <li>Click <strong>Connect to GitHub</strong></li>
+                <li>Authorize PSForge to access your repositories</li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            {/* Step 2 */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Badge variant="outline">Step 2</Badge>
+                Connect a Repository
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Link a GitHub repository to sync your PowerShell scripts:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                <li>In the Script Builder, click the <strong>Git</strong> tab</li>
+                <li>Click the <strong>link icon</strong> button to connect a repository</li>
+                <li>Enter the repository owner (your GitHub username or organization)</li>
+                <li>Enter the repository name</li>
+                <li>Click <strong>Connect</strong> - PSForge will verify you have access</li>
+              </ul>
+              <div className="text-xs bg-muted p-3 rounded-md mt-2">
+                <strong>Example:</strong> For <code>https://github.com/john/powershell-scripts</code>
+                <br />
+                Owner: <code>john</code> | Repository: <code>powershell-scripts</code>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Step 3 */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Badge variant="outline">Step 3</Badge>
+                Manage Branches
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Create and switch between branches for your workflow:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                <li>Select a repository from the dropdown</li>
+                <li>Use the branch selector to switch branches</li>
+                <li>Click <strong>Create Branch</strong> to create a new branch</li>
+                <li>Optionally specify a source branch to branch from</li>
+                <li>Delete branches using the delete button (default branch is protected)</li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            {/* Step 4 */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Badge variant="outline">Step 4</Badge>
+                Commit & Push Scripts
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Save your PowerShell scripts to GitHub:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                <li>Ensure you have a script open in the editor</li>
+                <li>Select the repository and branch you want to commit to</li>
+                <li>Click <strong>Commit & Push</strong></li>
+                <li>Enter the file path (e.g., <code>scripts/automation.ps1</code>)</li>
+                <li>Write a descriptive commit message</li>
+                <li>Click <strong>Commit & Push</strong> to save to GitHub</li>
+              </ul>
+              <div className="text-xs bg-muted p-3 rounded-md mt-2">
+                <strong>💡 Tip:</strong> Use conventional commit messages like:
+                <br />
+                <code>feat: Add user management script</code>
+                <br />
+                <code>fix: Resolve authentication error in AD script</code>
+                <br />
+                <code>docs: Update script documentation</code>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Step 5 */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Badge variant="outline">Step 5</Badge>
+                Pull from GitHub
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Sync scripts from your GitHub repository to PSForge:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                <li>Select a repository and branch</li>
+                <li>Click <strong>Pull from GitHub</strong></li>
+                <li>Enter the file path of the script you want to pull</li>
+                <li>The script content will be loaded into your editor</li>
+                <li>You can now edit and work with the pulled script</li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            {/* Step 6 */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Badge variant="outline">Step 6</Badge>
+                View History & Compare
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Track your changes and view commit history:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                <li>Recent commits are shown at the bottom of the Git panel</li>
+                <li>View commit messages, branches, authors, and dates</li>
+                <li>Use the Diff Viewer to compare script versions (feature coming soon)</li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            {/* Best Practices */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Best Practices
+              </h3>
+              <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                <li>Create separate branches for new features or experiments</li>
+                <li>Write clear, descriptive commit messages</li>
+                <li>Commit frequently to track incremental changes</li>
+                <li>Use meaningful file paths that organize your scripts logically</li>
+                <li>Pull latest changes before making new commits</li>
+                <li>Keep your default branch (main/master) stable</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowHelpDialog(false)} data-testid="button-close-help">
+              Got it!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

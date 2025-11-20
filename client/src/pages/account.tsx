@@ -32,7 +32,12 @@ import {
   FolderOpen,
   Code2,
   MessageSquare,
-  Send
+  Send,
+  GitBranch,
+  Github,
+  CheckCircle2,
+  XCircle,
+  ExternalLink
 } from "lucide-react";
 
 export default function Account() {
@@ -44,6 +49,18 @@ export default function Account() {
   const { data: scripts, isLoading: scriptsLoading } = useQuery<Script[]>({
     queryKey: ["/api/scripts/user/me"],
     enabled: !!user,
+  });
+
+  const { data: githubUser, isLoading: githubUserLoading, error: githubUserError } = useQuery<any>({
+    queryKey: ["/api/git/user"],
+    enabled: !!user,
+    retry: false,
+  });
+
+  const { data: gitRepositories, isLoading: gitReposLoading } = useQuery<any[]>({
+    queryKey: ["/api/git/repositories"],
+    enabled: !!user && !githubUserError,
+    retry: false,
   });
 
   const deleteScriptMutation = useMutation({
@@ -596,6 +613,120 @@ export default function Account() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GitBranch className="h-5 w-5" />
+                Git Integration
+              </CardTitle>
+              <CardDescription>
+                Connect your GitHub account to enable version control features
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {githubUserLoading ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                  Checking GitHub connection...
+                </div>
+              ) : githubUserError || !githubUser ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                    <XCircle className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">GitHub Not Connected</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Connect your GitHub account to enable commit, push, pull, and branch management features
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open('/__replit/integrations', '_blank')}
+                    className="w-full"
+                    data-testid="button-connect-github"
+                  >
+                    <Github className="h-4 w-4 mr-2" />
+                    Connect GitHub Account
+                    <ExternalLink className="h-3.5 w-3.5 ml-2" />
+                  </Button>
+                  
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium">How to connect:</p>
+                    <ol className="list-decimal list-inside space-y-1 ml-2">
+                      <li>Click the button above to open the Integrations page</li>
+                      <li>Find "GitHub" in the list of integrations</li>
+                      <li>Click "Connect" and authorize PSForge</li>
+                      <li>Return here to see your connection status</li>
+                    </ol>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-primary/5">
+                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">GitHub Connected</p>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                        Logged in as <strong>{githubUser.login}</strong>
+                      </p>
+                    </div>
+                    {githubUser.avatar_url && (
+                      <img
+                        src={githubUser.avatar_url}
+                        alt={githubUser.login}
+                        className="h-10 w-10 rounded-full"
+                      />
+                    )}
+                  </div>
+
+                  {gitReposLoading ? (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary mx-auto mb-2"></div>
+                      Loading repositories...
+                    </div>
+                  ) : gitRepositories && gitRepositories.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Connected Repositories ({gitRepositories.length})</p>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {gitRepositories.map((repo: any) => (
+                          <div
+                            key={repo.id}
+                            className="flex items-center gap-2 p-2 rounded border text-sm"
+                            data-testid={`git-repo-${repo.id}`}
+                          >
+                            <Github className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="font-mono text-xs truncate">
+                              {repo.repoOwner}/{repo.repoName}
+                            </span>
+                            <Badge variant="secondary" className="ml-auto shrink-0 text-xs">
+                              {repo.currentBranch}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground text-center py-4">
+                      No repositories connected yet. Go to the Script Builder to connect a repository.
+                    </div>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation("/builder?tab=git")}
+                    className="w-full"
+                    data-testid="button-manage-git"
+                  >
+                    <GitBranch className="h-4 w-4 mr-2" />
+                    Manage Git Integration
+                  </Button>
                 </div>
               )}
             </CardContent>

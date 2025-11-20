@@ -215,7 +215,7 @@ export default function TemplatesMarketplace() {
 
   return (
     <>
-      <Header onExport={() => {}} hasCommands={false} />
+      <Header />
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">

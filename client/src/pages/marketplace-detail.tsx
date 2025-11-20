@@ -250,7 +250,7 @@ export default function MarketplaceDetail() {
   if (templateLoading) {
     return (
       <>
-        <Header onExport={() => {}} hasCommands={false} />
+        <Header />
         <div className="container mx-auto px-4 py-8">
           <Skeleton className="h-10 w-32 mb-6" />
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
@@ -273,7 +273,7 @@ export default function MarketplaceDetail() {
   if (!template) {
     return (
       <>
-        <Header onExport={() => {}} hasCommands={false} />
+        <Header />
         <div className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">

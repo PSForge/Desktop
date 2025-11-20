@@ -447,7 +447,7 @@ export default function ScriptLibrary() {
   if (scriptsLoading) {
     return (
       <>
-        <Header onExport={() => {}} hasCommands={false} />
+        <Header />
         <div className="container mx-auto p-6">
           <div className="text-center text-muted-foreground">Loading your script library...</div>
         </div>

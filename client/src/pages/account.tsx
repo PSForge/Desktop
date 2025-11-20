@@ -249,7 +249,7 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onExport={() => {}} hasCommands={false} />
+      <Header />
       <div className="container max-w-4xl mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -934,7 +934,7 @@ export default function Account() {
                                 {template.status}
                               </Badge>
                               
-                              {template.securityScore !== null && template.securityScore < 80 && (
+                              {template.securityScore !== null && template.securityScore !== undefined && template.securityScore < 80 && (
                                 <Badge variant="destructive" className="gap-1">
                                   <AlertTriangle className="h-3 w-3" />
                                   Security: {template.securityScore}

@@ -35,6 +35,7 @@ import { useEffect, useState, useMemo } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";
 import { AdminEmailTemplatesSection } from "@/components/admin-email-templates-section";
 import { AdminTemplateModerationSection } from "@/components/admin-template-moderation-section";
+import { AdminProConversionSection } from "@/components/admin-pro-conversion-section";
 import { Header } from "@/components/header";
 
 interface AnalyticsOverview {
@@ -888,6 +889,8 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+
+        <AdminProConversionSection />
 
         <AdminNotificationsSection />
         

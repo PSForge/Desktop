@@ -614,7 +614,6 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
           </div>
         </div>
       </div>
-
       {/* Step Content */}
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-5xl mx-auto space-y-6">
@@ -631,9 +630,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                 <CardContent>
                   <Alert className="mb-4">
                     <Info className="h-4 w-4" />
-                    <AlertDescription>
-                      Select the platforms where you want to perform bulk operations. You can combine tasks from multiple platforms in a single script.
-                    </AlertDescription>
+                    <AlertDescription>Select the platforms where you want to perform operations. You can combine tasks from multiple platforms in a single script.</AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1054,7 +1051,6 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
           )}
         </div>
       </div>
-
       {/* Navigation Footer */}
       <div className="border-t px-6 py-4 bg-muted/30">
         <div className="flex items-center justify-between max-w-5xl mx-auto">

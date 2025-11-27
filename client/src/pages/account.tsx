@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { TimeValueWidget } from "@/components/time-value-widget";
 import { Header } from "@/components/header";
 import { changePasswordSchema, supportRequestSchema, type ChangePasswordData, type SupportRequestData, type Script, type Template } from "@shared/schema";
 import { 
@@ -323,9 +322,6 @@ export default function Account() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Time Value Widget - shows time/money saved for all users */}
-          <TimeValueWidget />
 
           <Card>
             <CardHeader>

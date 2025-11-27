@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SecurityDashboard } from "@/components/security-dashboard";
 import { useAuth } from "@/lib/auth-context";
-import { useMilestones } from "@/hooks/use-milestones";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -34,7 +33,6 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
   const [description, setDescription] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
-  const { trackScriptSaved } = useMilestones();
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -49,9 +47,6 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
       return response.json();
     },
     onSuccess: () => {
-      // Track script save for milestone system
-      trackScriptSaved();
-      
       toast({
         title: "Script saved",
         description: "Your script has been saved to your profile",

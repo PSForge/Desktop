@@ -159,6 +159,9 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   
   // Parameter mappings: { taskId: { parameterId: csvColumn } }
   const [parameterMappings, setParameterMappings] = useState<Record<string, Record<string, string>>>({});
+  
+  // Task parameters for non-bulk tasks: { taskId: { parameterId: value } }
+  const [taskParameters, setTaskParameters] = useState<Record<string, Record<string, any>>>({});
 
   const totalSteps = 5;
 
@@ -222,11 +225,38 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   };
 
   const handleTaskToggle = (task: any) => {
-    setSelectedTasks(prev =>
-      prev.find(t => t.id === task.id)
-        ? prev.filter(t => t.id !== task.id)
-        : [...prev, task]
-    );
+    setSelectedTasks(prev => {
+      const isSelected = prev.find(t => t.id === task.id);
+      if (isSelected) {
+        // Remove task and its parameters
+        setTaskParameters(p => {
+          const updated = { ...p };
+          delete updated[task.id];
+          return updated;
+        });
+        return prev.filter(t => t.id !== task.id);
+      } else {
+        // Add task and initialize its parameters with default values
+        const taskParams = task.parameters || [];
+        const initialParams: Record<string, any> = {};
+        taskParams.forEach((param: any) => {
+          initialParams[param.id] = param.defaultValue ?? (param.type === 'boolean' ? false : '');
+        });
+        setTaskParameters(p => ({ ...p, [task.id]: initialParams }));
+        return [...prev, task];
+      }
+    });
+  };
+
+  // Handle parameter value changes
+  const handleTaskParameterChange = (taskId: string, paramId: string, value: any) => {
+    setTaskParameters(prev => ({
+      ...prev,
+      [taskId]: {
+        ...prev[taskId],
+        [paramId]: value
+      }
+    }));
   };
 
   const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,13 +353,8 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
       lines.push(`# ${task.description || 'No description'}`);
       lines.push('');
       
-      const taskParams = task.parameters || [];
-      
-      // Build parameter object with defaults for script generation
-      const paramObj: Record<string, any> = {};
-      taskParams.forEach(param => {
-        paramObj[param.id] = param.defaultValue || (param.type === 'number' ? 0 : param.type === 'boolean' ? false : '');
-      });
+      // Use collected parameter values from taskParameters state
+      const paramObj = taskParameters[task.id] || {};
       
       // Generate the task script
       let taskScript = '';
@@ -596,17 +621,42 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
         });
         return;
       }
-      
-      // If no bulk tasks selected, skip steps 3 and 4, generate script directly
+      // Always proceed to step 3 (Configure Parameters or CSV Upload)
+    }
+
+    // Step 3 validation - Configure Parameters (non-bulk) OR CSV Upload (bulk)
+    if (currentStep === 3) {
       if (!hasBulkTasks) {
+        // Non-bulk: Validate required parameters are filled
+        const missingRequired: string[] = [];
+        selectedTasks.forEach(task => {
+          const taskParams = task.parameters || [];
+          const taskValues = taskParameters[task.id] || {};
+          taskParams.forEach((param: any) => {
+            if (param.required) {
+              const value = taskValues[param.id];
+              if (value === undefined || value === null || value === '') {
+                missingRequired.push(`${task.name}: ${param.label || param.id}`);
+              }
+            }
+          });
+        });
+
+        if (missingRequired.length > 0) {
+          toast({
+            title: 'Required Parameters Missing',
+            description: `Please fill in: ${missingRequired.slice(0, 3).join(', ')}${missingRequired.length > 3 ? '...' : ''}`,
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        // Non-bulk tasks: Generate script and skip to step 5
         handleGenerateSimpleScript();
         return;
       }
-    }
-
-    // Step 3 validation - CSV Upload or File Path (only for bulk tasks)
-    if (currentStep === 3) {
-      // User must provide either CSV data OR a file path
+      
+      // Bulk tasks: Validate CSV data
       if (csvData.rows.length === 0 && !csvFilePath.trim()) {
         toast({
           title: 'No CSV Data or File Path',
@@ -671,9 +721,9 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      // If on step 5 (preview) and no bulk tasks, go back to step 2 (task selection)
+      // If on step 5 (preview) and no bulk tasks, go back to step 3 (configure parameters)
       if (currentStep === 5 && !hasBulkTasks) {
-        setCurrentStep(2);
+        setCurrentStep(3);
         return;
       }
       setCurrentStep(currentStep - 1);
@@ -690,6 +740,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     setGeneratedScript('');
     setParameterMappings({});
     setCsvValidationErrors([]);
+    setTaskParameters({});
   };
 
   return (
@@ -860,11 +911,11 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                           <div>{selectedTasks.length} task{selectedTasks.length !== 1 ? 's' : ''} selected</div>
                           {hasBulkTasks ? (
                             <div className="text-xs text-muted-foreground">
-                              Bulk operation detected - CSV data will be required in the next step
+                              Bulk operation detected - CSV data will be required after parameter configuration
                             </div>
                           ) : (
                             <div className="text-xs text-green-600 dark:text-green-400">
-                              No bulk operations - CSV data is not required. Click "Generate Script" to continue.
+                              Next step: Configure parameters for your selected tasks
                             </div>
                           )}
                         </div>
@@ -876,8 +927,124 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             </div>
           )}
 
-          {/* Step 3: Bulk Data Input */}
-          {currentStep === 3 && (
+          {/* Step 3: Configure Parameters (non-bulk) or Bulk Data Input (bulk) */}
+          {currentStep === 3 && !hasBulkTasks && (
+            <div className="space-y-6">
+              <Card data-testid="wizard-step-configure-params">
+                <CardHeader>
+                  <CardTitle>Configure Parameters</CardTitle>
+                  <CardDescription>
+                    Enter the values for each task's parameters
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Alert className="mb-4">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Fill in the required parameters for each task. Fields marked with * are required.
+                    </AlertDescription>
+                  </Alert>
+
+                  <ScrollArea className="h-[500px] pr-4">
+                    <div className="space-y-6">
+                      {selectedTasks.map((task, taskIndex) => {
+                        const taskParams = task.parameters || [];
+                        const taskValues = taskParameters[task.id] || {};
+
+                        return (
+                          <div key={task.id} className="border rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-4">
+                              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                                {taskIndex + 1}
+                              </div>
+                              <div>
+                                <h4 className="font-medium">{task.name}</h4>
+                                <p className="text-xs text-muted-foreground">{task.platformName}</p>
+                              </div>
+                            </div>
+
+                            {taskParams.length === 0 ? (
+                              <p className="text-sm text-muted-foreground italic">This task has no configurable parameters.</p>
+                            ) : (
+                              <div className="space-y-4">
+                                {taskParams.map((param: any) => {
+                                  const value = taskValues[param.id] ?? '';
+                                  
+                                  return (
+                                    <div key={param.id} className="space-y-2">
+                                      <Label htmlFor={`${task.id}-${param.id}`}>
+                                        {param.label}
+                                        {param.required && <span className="text-destructive ml-1">*</span>}
+                                      </Label>
+                                      
+                                      {param.type === 'boolean' ? (
+                                        <div className="flex items-center space-x-2">
+                                          <input
+                                            type="checkbox"
+                                            id={`${task.id}-${param.id}`}
+                                            checked={!!value}
+                                            onChange={(e) => handleTaskParameterChange(task.id, param.id, e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300"
+                                            data-testid={`input-${task.id}-${param.id}`}
+                                          />
+                                          <span className="text-sm text-muted-foreground">{param.description || 'Enable/disable this option'}</span>
+                                        </div>
+                                      ) : param.type === 'select' ? (
+                                        <select
+                                          id={`${task.id}-${param.id}`}
+                                          value={value}
+                                          onChange={(e) => handleTaskParameterChange(task.id, param.id, e.target.value)}
+                                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                          data-testid={`input-${task.id}-${param.id}`}
+                                        >
+                                          <option value="">Select {param.label}...</option>
+                                          {param.options?.map((opt: any) => {
+                                            const optValue = typeof opt === 'string' ? opt : opt.value;
+                                            const optLabel = typeof opt === 'string' ? opt : opt.label;
+                                            return <option key={optValue} value={optValue}>{optLabel}</option>;
+                                          })}
+                                        </select>
+                                      ) : param.type === 'textarea' ? (
+                                        <Textarea
+                                          id={`${task.id}-${param.id}`}
+                                          value={value}
+                                          onChange={(e) => handleTaskParameterChange(task.id, param.id, e.target.value)}
+                                          placeholder={param.placeholder || ''}
+                                          rows={3}
+                                          data-testid={`input-${task.id}-${param.id}`}
+                                        />
+                                      ) : (
+                                        <input
+                                          type={param.type === 'number' ? 'number' : 'text'}
+                                          id={`${task.id}-${param.id}`}
+                                          value={value}
+                                          onChange={(e) => handleTaskParameterChange(task.id, param.id, param.type === 'number' ? parseInt(e.target.value) || '' : e.target.value)}
+                                          placeholder={param.placeholder || ''}
+                                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                          data-testid={`input-${task.id}-${param.id}`}
+                                        />
+                                      )}
+                                      
+                                      {param.description && param.type !== 'boolean' && (
+                                        <p className="text-xs text-muted-foreground">{param.description}</p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Step 3: Bulk Data Input (for bulk tasks) */}
+          {currentStep === 3 && hasBulkTasks && (
             <div className="space-y-6">
               <Card data-testid="wizard-step-bulk-data">
                 <CardHeader>
@@ -1205,7 +1372,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             </Button>
             {currentStep < totalSteps ? (
               <Button onClick={handleNext} data-testid="button-wizard-next">
-                {currentStep === 4 || (currentStep === 2 && !hasBulkTasks) ? 'Generate Script' : 'Next'}
+                {currentStep === 4 || (currentStep === 3 && !hasBulkTasks) ? 'Generate Script' : 'Next'}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (

@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { TaskDetailForm } from "@/components/task-detail-form";
 import { ExportDialog } from "@/components/export-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
+import { ConversionNudge } from "@/components/conversion-nudges";
 import { useAuth } from "@/lib/auth-context";
+import { useMilestones } from "@/hooks/use-milestones";
 import { apiRequest } from "@/lib/queryClient";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
 import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
@@ -497,7 +499,8 @@ interface GUIBuilderTabProps {
 }
 
 export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript }: GUIBuilderTabProps) {
-  const { featureAccess } = useAuth();
+  const { featureAccess, user } = useAuth();
+  const { trackScriptGenerated } = useMilestones();
   const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | SQLServerTask | null>(null);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -533,6 +536,9 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
       // Silently fail tracking - don't disrupt user experience
       console.debug("Script generation tracking skipped:", error.message);
     });
+    
+    // Track for conversion optimization (user stats)
+    trackScriptGenerated('gui');
     
     setScriptDialogOpen(true);
   };
@@ -762,6 +768,13 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
           </div>
         )}
       </div>
+
+      {/* Conversion nudge for free users */}
+      {user && user.role === 'free' && (
+        <div className="mt-6">
+          <ConversionNudge context="gui-builder" />
+        </div>
+      )}
 
       <UpgradeModal 
         open={showUpgradeModal}

@@ -50,6 +50,16 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **Database Schema**: 4 new tables (templates, template_categories, template_ratings, template_installs) with proper relationships and Zod validation.
     - **API Endpoints**: 16 RESTful endpoints for templates, categories, ratings, and installs with proper authentication and admin-only routes protected by requireAdmin middleware.
 
+## Pro Conversion System (v4.3 - November 2025)
+Comprehensive Free-to-Pro conversion strategy with psychological triggers and value demonstrations:
+- **Power User Nudge System**: Smart detection of heavy usage patterns with contextual Pro upgrade suggestions
+- **Success Milestone Approach**: Celebrates user achievements (1st script, 5 scripts, 10 scripts, 25 scripts, 50 scripts, 100 scripts) with Pro value messaging
+- **Community Status Lever**: Badge system (Newcomer, Builder, Craftsman, Expert, Master) showing progression and Pro-exclusive badges
+- **Time-Value Calculator**: Tracks time saved per script (30-120 min based on complexity) with ROI visualization
+- **Database Schema**: Extended users table with tracking fields (totalScriptsCreated, totalTimeSavedMinutes, firstScriptDate, communityBadge), new tables (user_milestones, nudge_dismissals)
+- **Components**: ValueWidget, ProNudgeModal, InScriptTimeTracker, InlineSuggestionCard, CommunityBadgeDisplay, ProgressDashboard
+- **Promo Code**: "FREE30" auto-populated at checkout for conversion campaigns
+
 ## External Dependencies
 - **PostgreSQL**: Primary database for persistent storage.
 - **OpenAI API**: Powers the AI Assistant for natural language processing, command suggestions, custom PowerShell script generation, AI documentation generation, and script optimization analysis.

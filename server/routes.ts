@@ -2432,6 +2432,17 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  // Pro Conversion Analytics
+  app.get("/api/admin/pro-conversion-analytics", requireAdmin, async (req, res) => {
+    try {
+      const analytics = await storage.getProConversionAnalytics();
+      return res.json(analytics);
+    } catch (error) {
+      console.error("Pro conversion analytics error:", error);
+      return res.status(500).json({ error: "Failed to fetch pro conversion analytics" });
+    }
+  });
+
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();

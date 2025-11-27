@@ -159,6 +159,19 @@ export interface IStorage {
   dismissNudge(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<void>;
   isNudgeDismissed(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<boolean>;
   getUserDismissedNudges(userId: string): Promise<string[]>;
+
+  // Pro Conversion Analytics
+  getProConversionAnalytics(): Promise<{
+    badgeDistribution: Array<{ badge: string; count: number }>;
+    milestoneStats: Array<{ milestone: string; usersAchieved: number; usersConverted: number }>;
+    conversionFunnel: {
+      totalFreeUsers: number;
+      usersWithMilestones: number;
+      usersConverted: number;
+      conversionRate: number;
+    };
+    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null }>;
+  }>;
 }
 
 export class MemStorage implements IStorage {
@@ -524,6 +537,19 @@ export class MemStorage implements IStorage {
   async dismissNudge(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<void> {}
   async isNudgeDismissed(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<boolean> { return false; }
   async getUserDismissedNudges(userId: string): Promise<string[]> { return []; }
+  async getProConversionAnalytics(): Promise<{
+    badgeDistribution: Array<{ badge: string; count: number }>;
+    milestoneStats: Array<{ milestone: string; usersAchieved: number; usersConverted: number }>;
+    conversionFunnel: { totalFreeUsers: number; usersWithMilestones: number; usersConverted: number; conversionRate: number };
+    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null }>;
+  }> {
+    return {
+      badgeDistribution: [],
+      milestoneStats: [],
+      conversionFunnel: { totalFreeUsers: 0, usersWithMilestones: 0, usersConverted: 0, conversionRate: 0 },
+      topScriptCreators: [],
+    };
+  }
 }
 
 // Import DatabaseStorage

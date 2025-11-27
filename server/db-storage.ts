@@ -1373,4 +1373,119 @@ export class DatabaseStorage implements IStorage {
       .where(eq(nudgeDismissals.userId, userId));
     return result.map(r => r.nudgeType);
   }
+
+  // Pro Conversion Analytics
+  async getProConversionAnalytics(): Promise<{
+    badgeDistribution: Array<{ badge: string; count: number }>;
+    milestoneStats: Array<{ milestone: string; usersAchieved: number; usersConverted: number }>;
+    conversionFunnel: {
+      totalFreeUsers: number;
+      usersWithMilestones: number;
+      usersConverted: number;
+      conversionRate: number;
+    };
+    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null }>;
+  }> {
+    // Badge Distribution - count users by community badge
+    const badgeDistributionResult = await this.db.select({
+      badge: users.communityBadge,
+      count: sql<number>`count(*)::int`,
+    })
+      .from(users)
+      .groupBy(users.communityBadge);
+    
+    const badgeDistribution = badgeDistributionResult.map(r => ({
+      badge: r.badge || 'none',
+      count: r.count,
+    }));
+
+    // Milestone Stats - count users who achieved each milestone and how many converted
+    const milestoneStatsResult = await this.db.select({
+      milestoneType: userMilestones.milestoneType,
+      usersAchieved: sql<number>`count(DISTINCT ${userMilestones.userId})::int`,
+    })
+      .from(userMilestones)
+      .groupBy(userMilestones.milestoneType);
+
+    // For each milestone, count how many of those users are now subscribers
+    const milestoneStats: Array<{ milestone: string; usersAchieved: number; usersConverted: number }> = [];
+    
+    for (const stat of milestoneStatsResult) {
+      // Get users who achieved this milestone and are now subscribers
+      const convertedResult = await this.db.select({
+        count: sql<number>`count(DISTINCT ${users.id})::int`,
+      })
+        .from(users)
+        .innerJoin(userMilestones, eq(users.id, userMilestones.userId))
+        .where(and(
+          eq(userMilestones.milestoneType, stat.milestoneType),
+          eq(users.role, 'subscriber')
+        ));
+      
+      milestoneStats.push({
+        milestone: stat.milestoneType,
+        usersAchieved: stat.usersAchieved,
+        usersConverted: convertedResult[0]?.count || 0,
+      });
+    }
+
+    // Conversion Funnel
+    const totalFreeResult = await this.db.select({ count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(eq(users.role, 'free'));
+    const totalFreeUsers = totalFreeResult[0]?.count || 0;
+
+    const usersWithMilestonesResult = await this.db.select({
+      count: sql<number>`count(DISTINCT ${userMilestones.userId})::int`,
+    })
+      .from(userMilestones)
+      .innerJoin(users, eq(users.id, userMilestones.userId))
+      .where(eq(users.role, 'free'));
+    const usersWithMilestones = usersWithMilestonesResult[0]?.count || 0;
+
+    // Count subscribers who had milestones before converting (proxy for conversion system attribution)
+    const convertedWithMilestonesResult = await this.db.select({
+      count: sql<number>`count(DISTINCT ${users.id})::int`,
+    })
+      .from(users)
+      .innerJoin(userMilestones, eq(users.id, userMilestones.userId))
+      .where(eq(users.role, 'subscriber'));
+    const usersConverted = convertedWithMilestonesResult[0]?.count || 0;
+
+    const conversionRate = usersWithMilestones > 0 
+      ? Math.round((usersConverted / usersWithMilestones) * 100) 
+      : 0;
+
+    // Top Script Creators - users with most scripts
+    const topCreatorsResult = await this.db.select({
+      userId: users.id,
+      email: users.email,
+      scriptsCreated: users.totalScriptsCreated,
+      timeSaved: users.totalTimeSavedMinutes,
+      badge: users.communityBadge,
+    })
+      .from(users)
+      .orderBy(desc(users.totalScriptsCreated))
+      .limit(10);
+
+    const topScriptCreators = topCreatorsResult.map(r => ({
+      userId: r.userId,
+      email: r.email,
+      scriptsCreated: r.scriptsCreated,
+      timeSaved: r.timeSaved,
+      badge: r.badge,
+    }));
+
+    return {
+      badgeDistribution,
+      milestoneStats,
+      conversionFunnel: {
+        totalFreeUsers,
+        usersWithMilestones,
+        usersConverted,
+        conversionRate,
+      },
+      topScriptCreators,
+    };
+  }
 }

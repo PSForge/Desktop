@@ -738,6 +738,81 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  // User Stats & Pro Conversion Tracking
+  app.get("/api/user/stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getUserStats(req.user!.id);
+      return res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/user/track-script", requireAuth, async (req, res) => {
+    try {
+      const { timeSavedMinutes } = req.body;
+      await storage.incrementUserScriptCount(req.user!.id, timeSavedMinutes || 60);
+      await storage.updateUserActivity(req.user!.id);
+      const stats = await storage.getUserStats(req.user!.id);
+      return res.json(stats);
+    } catch (error) {
+      console.error("Error tracking script:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/user/milestones", requireAuth, async (req, res) => {
+    try {
+      const milestones = await storage.getUserMilestones(req.user!.id);
+      return res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching milestones:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/user/milestones/unshown", requireAuth, async (req, res) => {
+    try {
+      const milestones = await storage.getUnshownMilestones(req.user!.id);
+      return res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching unshown milestones:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/user/milestones/:id/dismiss", requireAuth, async (req, res) => {
+    try {
+      await storage.dismissMilestone(req.params.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error dismissing milestone:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/user/nudges/:nudgeType/dismiss", requireAuth, async (req, res) => {
+    try {
+      const { nudgeType } = req.params;
+      await storage.dismissNudge(req.user!.id, nudgeType as any);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error dismissing nudge:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/user/nudges/dismissed", requireAuth, async (req, res) => {
+    try {
+      const dismissed = await storage.getUserDismissedNudges(req.user!.id);
+      return res.json(dismissed);
+    } catch (error) {
+      console.error("Error fetching dismissed nudges:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Script Library - Favorites
   app.patch("/api/scripts/:id/favorite", requireAuth, async (req, res) => {
     try {

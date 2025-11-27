@@ -22,6 +22,8 @@ import {
   templates,
   templateRatings,
   templateInstalls,
+  userMilestones,
+  nudgeDismissals,
   type User,
   type Session,
   type Script,
@@ -53,6 +55,11 @@ import {
   type InsertTemplate,
   type InsertTemplateRating,
   type InsertTemplateInstall,
+  type UserMilestone,
+  type InsertUserMilestone,
+  type UserStats,
+  type NudgeType,
+  type CommunityBadge,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -1079,5 +1086,291 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return result.length > 0;
+  }
+
+  // User Stats & Pro Conversion Tracking
+  private readonly HOURLY_RATE = 40; // Average IT hourly rate for ROI calculations
+  private readonly TIME_SAVED_PER_SCRIPT_FREE = 60; // Minutes saved per script (free user)
+  private readonly TIME_SAVED_PER_SCRIPT_PRO = 180; // Minutes saved per script (Pro user with AI)
+
+  async getUserStats(userId: string): Promise<UserStats> {
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const milestones = await this.getUserMilestones(userId);
+    
+    const totalScriptsCreated = (user as any).totalScriptsCreated || 0;
+    const totalTimeSavedMinutes = (user as any).totalTimeSavedMinutes || 0;
+    const totalTimeSavedHours = Math.round(totalTimeSavedMinutes / 60 * 10) / 10;
+    const totalValueCreated = Math.round((totalTimeSavedMinutes / 60) * this.HOURLY_RATE);
+    
+    const potentialTimeSavedWithPro = totalScriptsCreated * this.TIME_SAVED_PER_SCRIPT_PRO;
+    const potentialValueWithPro = Math.round((potentialTimeSavedWithPro / 60) * this.HOURLY_RATE);
+    const roiMultiplier = potentialValueWithPro > 0 ? Math.round(potentialValueWithPro / 5) : 0;
+
+    let currentTier: "new_user" | "regular_user" | "power_user" = "new_user";
+    if (totalScriptsCreated >= 21) {
+      currentTier = "power_user";
+    } else if (totalScriptsCreated >= 6) {
+      currentTier = "regular_user";
+    }
+
+    return {
+      totalScriptsCreated,
+      totalTimeSavedMinutes,
+      totalTimeSavedHours,
+      totalValueCreated,
+      potentialValueWithPro,
+      roiMultiplier,
+      daysActive: (user as any).daysActive || 0,
+      communityBadge: ((user as any).communityBadge as CommunityBadge) || null,
+      firstScriptDate: (user as any).firstScriptDate?.toISOString() || null,
+      milestones: milestones.map(m => ({
+        id: m.id,
+        userId: m.userId,
+        milestoneType: m.milestoneType as any,
+        milestoneValue: m.milestoneValue,
+        achievedAt: m.achievedAt,
+        notificationSent: m.notificationSent,
+        dismissed: m.dismissed,
+      })),
+      currentTier,
+    };
+  }
+
+  async incrementUserScriptCount(userId: string, timeSavedMinutes: number = 60): Promise<void> {
+    const user = await this.getUserById(userId);
+    if (!user) return;
+
+    const currentScripts = (user as any).totalScriptsCreated || 0;
+    const currentTimeSaved = (user as any).totalTimeSavedMinutes || 0;
+    const newScriptCount = currentScripts + 1;
+    const newTimeSaved = currentTimeSaved + timeSavedMinutes;
+
+    await this.db.update(users)
+      .set({
+        totalScriptsCreated: newScriptCount,
+        totalTimeSavedMinutes: newTimeSaved,
+        firstScriptDate: (user as any).firstScriptDate || new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    // Check for milestones
+    const milestoneThresholds = [5, 10, 25, 50];
+    for (const threshold of milestoneThresholds) {
+      if (newScriptCount === threshold) {
+        const existingMilestone = await this.db.select()
+          .from(userMilestones)
+          .where(and(
+            eq(userMilestones.userId, userId),
+            eq(userMilestones.milestoneType, `scripts_created_${threshold}`)
+          ))
+          .limit(1);
+        
+        if (existingMilestone.length === 0) {
+          await this.createUserMilestone({
+            userId,
+            milestoneType: `scripts_created_${threshold}` as any,
+            milestoneValue: threshold,
+          });
+        }
+      }
+    }
+
+    // Check for time-saved milestones (5, 10, 20 hours)
+    const timeMilestones = [
+      { hours: 5, type: "time_saved_5_hours" },
+      { hours: 10, type: "time_saved_10_hours" },
+      { hours: 20, type: "time_saved_20_hours" },
+    ];
+    
+    for (const milestone of timeMilestones) {
+      const thresholdMinutes = milestone.hours * 60;
+      if (currentTimeSaved < thresholdMinutes && newTimeSaved >= thresholdMinutes) {
+        const existingMilestone = await this.db.select()
+          .from(userMilestones)
+          .where(and(
+            eq(userMilestones.userId, userId),
+            eq(userMilestones.milestoneType, milestone.type)
+          ))
+          .limit(1);
+        
+        if (existingMilestone.length === 0) {
+          await this.createUserMilestone({
+            userId,
+            milestoneType: milestone.type as any,
+            milestoneValue: milestone.hours,
+          });
+        }
+      }
+    }
+
+    // Update community badge based on script count
+    let newBadge: string | null = null;
+    if (newScriptCount >= 20) {
+      newBadge = "top_contributor";
+    } else if (newScriptCount >= 5) {
+      newBadge = "active_contributor";
+    } else if (newScriptCount >= 1) {
+      newBadge = "new_member";
+    }
+
+    if (newBadge && newBadge !== (user as any).communityBadge) {
+      await this.db.update(users)
+        .set({ communityBadge: newBadge })
+        .where(eq(users.id, userId));
+    }
+  }
+
+  async updateUserActivity(userId: string): Promise<void> {
+    const user = await this.getUserById(userId);
+    if (!user) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastActive = (user as any).lastActiveDate;
+    
+    if (!lastActive || new Date(lastActive).getTime() < today.getTime()) {
+      const currentDaysActive = (user as any).daysActive || 0;
+      await this.db.update(users)
+        .set({
+          daysActive: currentDaysActive + 1,
+          lastActiveDate: new Date(),
+        })
+        .where(eq(users.id, userId));
+
+      // Check for active day milestones
+      const newDaysActive = currentDaysActive + 1;
+      if (newDaysActive === 7) {
+        const existing = await this.db.select()
+          .from(userMilestones)
+          .where(and(
+            eq(userMilestones.userId, userId),
+            eq(userMilestones.milestoneType, "active_7_days")
+          ))
+          .limit(1);
+        
+        if (existing.length === 0) {
+          await this.createUserMilestone({
+            userId,
+            milestoneType: "active_7_days",
+            milestoneValue: 7,
+          });
+        }
+      } else if (newDaysActive === 30) {
+        const existing = await this.db.select()
+          .from(userMilestones)
+          .where(and(
+            eq(userMilestones.userId, userId),
+            eq(userMilestones.milestoneType, "active_30_days")
+          ))
+          .limit(1);
+        
+        if (existing.length === 0) {
+          await this.createUserMilestone({
+            userId,
+            milestoneType: "active_30_days",
+            milestoneValue: 30,
+          });
+        }
+      }
+    }
+  }
+
+  // Milestones
+  async getUserMilestones(userId: string): Promise<UserMilestone[]> {
+    const result = await this.db.select()
+      .from(userMilestones)
+      .where(eq(userMilestones.userId, userId))
+      .orderBy(desc(userMilestones.achievedAt));
+    
+    return result.map(m => ({
+      id: m.id,
+      userId: m.userId,
+      milestoneType: m.milestoneType as any,
+      milestoneValue: m.milestoneValue,
+      achievedAt: m.achievedAt?.toISOString(),
+      notificationSent: m.notificationSent,
+      dismissed: m.dismissed,
+    }));
+  }
+
+  async createUserMilestone(milestone: InsertUserMilestone): Promise<UserMilestone> {
+    const [result] = await this.db.insert(userMilestones)
+      .values({
+        userId: milestone.userId,
+        milestoneType: milestone.milestoneType,
+        milestoneValue: milestone.milestoneValue,
+        notificationSent: false,
+        dismissed: false,
+      })
+      .returning();
+    
+    return {
+      id: result.id,
+      userId: result.userId,
+      milestoneType: result.milestoneType as any,
+      milestoneValue: result.milestoneValue,
+      achievedAt: result.achievedAt?.toISOString(),
+      notificationSent: result.notificationSent,
+      dismissed: result.dismissed,
+    };
+  }
+
+  async dismissMilestone(milestoneId: string): Promise<void> {
+    await this.db.update(userMilestones)
+      .set({ dismissed: true, notificationSent: true })
+      .where(eq(userMilestones.id, milestoneId));
+  }
+
+  async getUnshownMilestones(userId: string): Promise<UserMilestone[]> {
+    const result = await this.db.select()
+      .from(userMilestones)
+      .where(and(
+        eq(userMilestones.userId, userId),
+        eq(userMilestones.notificationSent, false),
+        eq(userMilestones.dismissed, false)
+      ))
+      .orderBy(desc(userMilestones.achievedAt));
+    
+    return result.map(m => ({
+      id: m.id,
+      userId: m.userId,
+      milestoneType: m.milestoneType as any,
+      milestoneValue: m.milestoneValue,
+      achievedAt: m.achievedAt?.toISOString(),
+      notificationSent: m.notificationSent,
+      dismissed: m.dismissed,
+    }));
+  }
+
+  // Nudge Dismissals
+  async dismissNudge(userId: string, nudgeType: NudgeType): Promise<void> {
+    await this.db.insert(nudgeDismissals)
+      .values({
+        userId,
+        nudgeType,
+      })
+      .onConflictDoNothing();
+  }
+
+  async isNudgeDismissed(userId: string, nudgeType: NudgeType): Promise<boolean> {
+    const result = await this.db.select({ id: nudgeDismissals.id })
+      .from(nudgeDismissals)
+      .where(and(
+        eq(nudgeDismissals.userId, userId),
+        eq(nudgeDismissals.nudgeType, nudgeType)
+      ))
+      .limit(1);
+    return result.length > 0;
+  }
+
+  async getUserDismissedNudges(userId: string): Promise<string[]> {
+    const result = await this.db.select({ nudgeType: nudgeDismissals.nudgeType })
+      .from(nudgeDismissals)
+      .where(eq(nudgeDismissals.userId, userId));
+    return result.map(r => r.nudgeType);
   }
 }

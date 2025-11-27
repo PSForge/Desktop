@@ -143,6 +143,22 @@ export interface IStorage {
   createTemplateInstall(install: import("@shared/schema").InsertTemplateInstall): Promise<import("@shared/schema").TemplateInstall>;
   getTemplateInstalls(templateId: string): Promise<import("@shared/schema").TemplateInstall[]>;
   hasUserInstalledTemplate(templateId: string, userId: string): Promise<boolean>;
+  
+  // User Stats & Pro Conversion Tracking
+  getUserStats(userId: string): Promise<import("@shared/schema").UserStats>;
+  incrementUserScriptCount(userId: string, timeSavedMinutes?: number): Promise<void>;
+  updateUserActivity(userId: string): Promise<void>;
+  
+  // Milestones
+  getUserMilestones(userId: string): Promise<import("@shared/schema").UserMilestone[]>;
+  createUserMilestone(milestone: import("@shared/schema").InsertUserMilestone): Promise<import("@shared/schema").UserMilestone>;
+  dismissMilestone(milestoneId: string): Promise<void>;
+  getUnshownMilestones(userId: string): Promise<import("@shared/schema").UserMilestone[]>;
+  
+  // Nudge Dismissals
+  dismissNudge(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<void>;
+  isNudgeDismissed(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<boolean>;
+  getUserDismissedNudges(userId: string): Promise<string[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -479,6 +495,35 @@ export class MemStorage implements IStorage {
   async deleteNotification(id: string): Promise<boolean> {
     return this.notifications.delete(id);
   }
+
+  // Stub implementations for user stats (MemStorage not actively used)
+  async getUserStats(userId: string): Promise<import("@shared/schema").UserStats> {
+    return {
+      totalScriptsCreated: 0,
+      totalTimeSavedMinutes: 0,
+      totalTimeSavedHours: 0,
+      totalValueCreated: 0,
+      potentialValueWithPro: 0,
+      roiMultiplier: 0,
+      daysActive: 0,
+      communityBadge: null,
+      firstScriptDate: null,
+      milestones: [],
+      currentTier: "new_user",
+    };
+  }
+
+  async incrementUserScriptCount(userId: string, timeSavedMinutes?: number): Promise<void> {}
+  async updateUserActivity(userId: string): Promise<void> {}
+  async getUserMilestones(userId: string): Promise<import("@shared/schema").UserMilestone[]> { return []; }
+  async createUserMilestone(milestone: import("@shared/schema").InsertUserMilestone): Promise<import("@shared/schema").UserMilestone> {
+    return { id: "", userId: milestone.userId, milestoneType: milestone.milestoneType, milestoneValue: milestone.milestoneValue };
+  }
+  async dismissMilestone(milestoneId: string): Promise<void> {}
+  async getUnshownMilestones(userId: string): Promise<import("@shared/schema").UserMilestone[]> { return []; }
+  async dismissNudge(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<void> {}
+  async isNudgeDismissed(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<boolean> { return false; }
+  async getUserDismissedNudges(userId: string): Promise<string[]> { return []; }
 }
 
 // Import DatabaseStorage

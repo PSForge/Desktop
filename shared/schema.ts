@@ -585,6 +585,11 @@ export type InsertValidationRequest = z.infer<typeof insertValidationRequestSche
 export type SaveScript = z.infer<typeof saveScriptSchema>;
 export type UpdateScript = z.infer<typeof updateScriptSchema>;
 export type TrackScriptGeneration = z.infer<typeof trackScriptGenerationSchema>;
+export type UserMilestone = z.infer<typeof userMilestoneSchema>;
+export type InsertUserMilestone = z.infer<typeof insertUserMilestoneSchema>;
+export type NudgeDismissal = z.infer<typeof nudgeDismissalSchema>;
+export type InsertNudgeDismissal = z.infer<typeof insertNudgeDismissalSchema>;
+export type UserStats = z.infer<typeof userStatsSchema>;
 
 // User & Authentication Schemas
 export const userSchema = z.object({

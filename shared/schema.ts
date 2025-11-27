@@ -12,6 +12,15 @@ export const users = pgTable("users", {
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
   referralSource: varchar("referral_source", { length: 255 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // Pro Conversion Tracking Fields
+  totalScriptsCreated: integer("total_scripts_created").notNull().default(0),
+  totalTimeSavedMinutes: integer("total_time_saved_minutes").notNull().default(0),
+  firstScriptDate: timestamp("first_script_date"),
+  daysActive: integer("days_active").notNull().default(0),
+  lastActiveDate: timestamp("last_active_date"),
+  communityBadge: varchar("community_badge", { length: 100 }),
+  proSinceDate: timestamp("pro_since_date"),
+  featuredContributor: boolean("featured_contributor").notNull().default(false),
 });
 
 export const sessions = pgTable("sessions", {
@@ -42,6 +51,11 @@ export const scripts = pgTable("scripts", {
   lastAccessed: timestamp("last_accessed"),
   documentation: text("documentation"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // Time Tracking Fields for Value Calculator
+  creationStartTime: timestamp("creation_start_time"),
+  creationEndTime: timestamp("creation_end_time"),
+  actualTimeSpentMinutes: integer("actual_time_spent_minutes"),
+  estimatedManualTimeMinutes: integer("estimated_manual_time_minutes").default(60),
 });
 
 export const tags = pgTable("tags", {
@@ -216,6 +230,27 @@ export const templateInstalls = pgTable("template_installs", {
   installedAt: timestamp("installed_at").notNull().defaultNow(),
 });
 
+// User Milestones for Achievement Tracking
+export const userMilestones = pgTable("user_milestones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  milestoneType: varchar("milestone_type", { length: 100 }).notNull(),
+  milestoneValue: integer("milestone_value").notNull(),
+  achievedAt: timestamp("achieved_at").notNull().defaultNow(),
+  notificationSent: boolean("notification_sent").notNull().default(false),
+  dismissed: boolean("dismissed").notNull().default(false),
+});
+
+// Nudge Dismissals for Power User Nudge System
+export const nudgeDismissals = pgTable("nudge_dismissals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  nudgeType: varchar("nudge_type", { length: 100 }).notNull(),
+  dismissedAt: timestamp("dismissed_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserNudge: unique().on(table.userId, table.nudgeType),
+}));
+
 export const userRoles = ["free", "subscriber", "admin"] as const;
 export type UserRole = typeof userRoles[number];
 
@@ -224,6 +259,24 @@ export type SubscriptionStatus = typeof subscriptionStatuses[number];
 
 export const templateStatuses = ["pending", "approved", "rejected"] as const;
 export type TemplateStatus = typeof templateStatuses[number];
+
+export const milestoneTypes = [
+  "scripts_created_5", "scripts_created_10", "scripts_created_25", "scripts_created_50",
+  "time_saved_5_hours", "time_saved_10_hours", "time_saved_20_hours",
+  "first_marketplace_template", "active_7_days", "active_30_days"
+] as const;
+export type MilestoneType = typeof milestoneTypes[number];
+
+export const communityBadges = [
+  "new_member", "active_contributor", "top_contributor", 
+  "verified_pro", "pro_contributor", "featured_expert", "pro_founder"
+] as const;
+export type CommunityBadge = typeof communityBadges[number];
+
+export const nudgeTypes = [
+  "post_script_modal", "inline_suggestion", "pro_tooltip", "milestone_banner", "value_widget"
+] as const;
+export type NudgeType = typeof nudgeTypes[number];
 
 export const parameterTypes = ["string", "int", "boolean", "switch", "array", "path", "select"] as const;
 export type ParameterType = typeof parameterTypes[number];
@@ -440,6 +493,37 @@ export const templateInstallSchema = z.object({
   installedAt: z.string().optional(),
 });
 
+export const userMilestoneSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  milestoneType: z.enum(milestoneTypes),
+  milestoneValue: z.number(),
+  achievedAt: z.string().optional(),
+  notificationSent: z.boolean().optional(),
+  dismissed: z.boolean().optional(),
+});
+
+export const nudgeDismissalSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  nudgeType: z.enum(nudgeTypes),
+  dismissedAt: z.string().optional(),
+});
+
+export const userStatsSchema = z.object({
+  totalScriptsCreated: z.number(),
+  totalTimeSavedMinutes: z.number(),
+  totalTimeSavedHours: z.number(),
+  totalValueCreated: z.number(),
+  potentialValueWithPro: z.number(),
+  roiMultiplier: z.number(),
+  daysActive: z.number(),
+  communityBadge: z.enum(communityBadges).nullable(),
+  firstScriptDate: z.string().nullable(),
+  milestones: z.array(userMilestoneSchema),
+  currentTier: z.enum(["new_user", "regular_user", "power_user"]),
+});
+
 export const insertScriptCommandSchema = scriptCommandSchema.omit({ id: true });
 export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true, lastAccessed: true });
 export const insertTagSchema = tagSchema.omit({ id: true, createdAt: true });
@@ -450,6 +534,8 @@ export const insertTemplateCategorySchema = templateCategorySchema.omit({ id: tr
 export const insertTemplateSchema = templateSchema.omit({ id: true, createdAt: true, updatedAt: true, downloads: true, installs: true, averageRating: true, totalRatings: true });
 export const insertTemplateRatingSchema = templateRatingSchema.omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTemplateInstallSchema = templateInstallSchema.omit({ id: true, installedAt: true });
+export const insertUserMilestoneSchema = userMilestoneSchema.omit({ id: true, achievedAt: true });
+export const insertNudgeDismissalSchema = nudgeDismissalSchema.omit({ id: true, dismissedAt: true });
 
 export const saveScriptSchema = z.object({
   name: z.string().min(1, "Script name is required"),

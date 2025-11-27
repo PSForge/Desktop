@@ -17,6 +17,8 @@ import {
   type WelcomeEmailTemplate,
   type InsertWelcomeEmailTemplate,
   type UpdateWelcomeEmailTemplate,
+  type UserStats,
+  type GenerationSources,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -143,6 +145,19 @@ export interface IStorage {
   createTemplateInstall(install: import("@shared/schema").InsertTemplateInstall): Promise<import("@shared/schema").TemplateInstall>;
   getTemplateInstalls(templateId: string): Promise<import("@shared/schema").TemplateInstall[]>;
   hasUserInstalledTemplate(templateId: string, userId: string): Promise<boolean>;
+  
+  // User Stats (conversion tracking)
+  getUserStats(userId: string): Promise<UserStats | undefined>;
+  getOrCreateUserStats(userId: string): Promise<UserStats>;
+  incrementScriptsGenerated(userId: string, source: keyof GenerationSources): Promise<UserStats>;
+  incrementScriptsSaved(userId: string): Promise<UserStats>;
+  addMilestone(userId: string, milestone: number): Promise<UserStats>;
+  dismissNudge(userId: string, nudgeId: string): Promise<UserStats>;
+  updateLastNudgeShown(userId: string): Promise<UserStats>;
+  
+  // Admin Analytics for User Stats
+  getMilestoneDistribution(): Promise<{milestone: number; count: number; percentage: number}[]>;
+  getGenerationSourcesBreakdown(): Promise<{source: string; count: number; percentage: number}[]>;
 }
 
 export class MemStorage implements IStorage {

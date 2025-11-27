@@ -216,6 +216,25 @@ export const templateInstalls = pgTable("template_installs", {
   installedAt: timestamp("installed_at").notNull().defaultNow(),
 });
 
+// User Stats for conversion tracking
+export const userStats = pgTable("user_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  scriptsGenerated: integer("scripts_generated").notNull().default(0),
+  scriptsSaved: integer("scripts_saved").notNull().default(0),
+  generationSources: json("generation_sources").$type<{
+    gui: number;
+    ai: number;
+    wizard: number;
+    direct: number;
+  }>().notNull().default(sql`'{"gui": 0, "ai": 0, "wizard": 0, "direct": 0}'`),
+  milestonesAchieved: json("milestones_achieved").$type<number[]>().notNull().default(sql`'[]'`),
+  lastNudgeShown: timestamp("last_nudge_shown"),
+  nudgesDismissed: json("nudges_dismissed").$type<string[]>().notNull().default(sql`'[]'`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const userRoles = ["free", "subscriber", "admin"] as const;
 export type UserRole = typeof userRoles[number];
 
@@ -439,6 +458,28 @@ export const templateInstallSchema = z.object({
   userId: z.string(),
   installedAt: z.string().optional(),
 });
+
+export const generationSourcesSchema = z.object({
+  gui: z.number(),
+  ai: z.number(),
+  wizard: z.number(),
+  direct: z.number(),
+});
+
+export const userStatsSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  scriptsGenerated: z.number(),
+  scriptsSaved: z.number(),
+  generationSources: generationSourcesSchema,
+  milestonesAchieved: z.array(z.number()),
+  lastNudgeShown: z.string().nullable().optional(),
+  nudgesDismissed: z.array(z.string()),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const insertUserStatsSchema = userStatsSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertScriptCommandSchema = scriptCommandSchema.omit({ id: true });
 export const insertScriptSchema = scriptSchema.omit({ id: true, createdAt: true, lastAccessed: true });
@@ -728,6 +769,13 @@ export type InsertTemplateCategory = z.infer<typeof insertTemplateCategorySchema
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type InsertTemplateRating = z.infer<typeof insertTemplateRatingSchema>;
 export type InsertTemplateInstall = z.infer<typeof insertTemplateInstallSchema>;
+export type GenerationSources = z.infer<typeof generationSourcesSchema>;
+export type UserStats = z.infer<typeof userStatsSchema>;
+export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
+
+// Milestone definitions
+export const milestoneThresholds = [5, 10, 25, 50, 100] as const;
+export type MilestoneThreshold = typeof milestoneThresholds[number];
 
 // Basic categories accessible to free users
 export const freeTierCategories = [

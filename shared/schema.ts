@@ -274,7 +274,8 @@ export const communityBadges = [
 export type CommunityBadge = typeof communityBadges[number];
 
 export const nudgeTypes = [
-  "post_script_modal", "inline_suggestion", "pro_tooltip", "milestone_banner", "value_widget"
+  "post_script_modal", "inline_suggestion", "pro_tooltip", "milestone_banner", "value_widget",
+  "ai_feature_teaser", "power_user_prompt", "community_teaser", "roi_calculator"
 ] as const;
 export type NudgeType = typeof nudgeTypes[number];
 

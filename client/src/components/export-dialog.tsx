@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SecurityDashboard } from "@/components/security-dashboard";
 import { useAuth } from "@/lib/auth-context";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface ExportDialogProps {
   open: boolean;
@@ -34,6 +34,17 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const trackScriptMutation = useMutation({
+    mutationFn: async () => {
+      const timeSavedMinutes = Math.max(30, Math.min(120, Math.round(code.length / 100) * 10));
+      await apiRequest("/api/user/track-script", "POST", { timeSavedMinutes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/milestones/unshown"] });
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const scriptName = filename.replace(/\.ps1$/, '');
@@ -47,6 +58,7 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
       return response.json();
     },
     onSuccess: () => {
+      trackScriptMutation.mutate();
       toast({
         title: "Script saved",
         description: "Your script has been saved to your profile",

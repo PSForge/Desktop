@@ -47,6 +47,7 @@ import {
   Edit,
   Eye
 } from "lucide-react";
+import { ProgressDashboard } from "@/components/pro-conversion/progress-dashboard";
 
 export default function Account() {
   const { user, subscription, logout, isLoading } = useAuth();
@@ -322,6 +323,9 @@ export default function Account() {
               </div>
             </CardContent>
           </Card>
+
+          {/* User Progress & Achievements Dashboard */}
+          <ProgressDashboard variant="full" />
 
           <Card>
             <CardHeader>

@@ -17,6 +17,7 @@ import ResetPassword from "@/pages/reset-password";
 import Account from "@/pages/account";
 import AdminDashboard from "@/pages/admin";
 import NotFound from "@/pages/not-found";
+import { ProNudgeModal } from "@/components/pro-conversion/pro-nudge-modal";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -60,6 +61,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <ProNudgeModal />
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>

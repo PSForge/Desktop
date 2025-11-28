@@ -2443,6 +2443,35 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  app.post("/api/admin/users/:id/stats-adjust", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { scriptsCreated, timeSavedMinutes, firstScriptDate } = req.body;
+
+      if (typeof scriptsCreated !== 'number' || typeof timeSavedMinutes !== 'number') {
+        return res.status(400).json({ error: "scriptsCreated and timeSavedMinutes must be numbers" });
+      }
+
+      if (scriptsCreated < 0 || timeSavedMinutes < 0) {
+        return res.status(400).json({ error: "Values cannot be negative" });
+      }
+
+      const user = await storage.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const parsedDate = firstScriptDate ? new Date(firstScriptDate) : undefined;
+      await storage.adjustUserStats(id, scriptsCreated, timeSavedMinutes, parsedDate);
+      
+      const updatedStats = await storage.getUserStats(id);
+      return res.json({ success: true, stats: updatedStats });
+    } catch (error) {
+      console.error("Admin stats adjust error:", error);
+      return res.status(500).json({ error: "Failed to adjust user stats" });
+    }
+  });
+
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();

@@ -148,6 +148,7 @@ export interface IStorage {
   getUserStats(userId: string): Promise<import("@shared/schema").UserStats>;
   incrementUserScriptCount(userId: string, timeSavedMinutes?: number): Promise<void>;
   updateUserActivity(userId: string): Promise<void>;
+  adjustUserStats(userId: string, scriptsCreated: number, timeSavedMinutes: number, firstScriptDate?: Date): Promise<void>;
   
   // Milestones
   getUserMilestones(userId: string): Promise<import("@shared/schema").UserMilestone[]>;

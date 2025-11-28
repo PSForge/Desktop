@@ -86,6 +86,10 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      if (user) {
+        trackScriptMutation.mutate();
+      }
+
       toast({
         title: "Script exported",
         description: `Successfully exported ${a.download}`,

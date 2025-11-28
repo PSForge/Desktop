@@ -1224,6 +1224,77 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async adjustUserStats(userId: string, scriptsCreated: number, timeSavedMinutes: number, firstScriptDate?: Date): Promise<void> {
+    const user = await this.getUserById(userId);
+    if (!user) return;
+
+    let badge: string | null = null;
+    if (scriptsCreated >= 20) {
+      badge = "top_contributor";
+    } else if (scriptsCreated >= 5) {
+      badge = "active_contributor";
+    } else if (scriptsCreated >= 1) {
+      badge = "new_member";
+    }
+
+    await this.db.update(users)
+      .set({
+        totalScriptsCreated: scriptsCreated,
+        totalTimeSavedMinutes: timeSavedMinutes,
+        firstScriptDate: firstScriptDate || (user as any).firstScriptDate || new Date(),
+        communityBadge: badge,
+      })
+      .where(eq(users.id, userId));
+
+    const milestoneThresholds = [5, 10, 25, 50];
+    for (const threshold of milestoneThresholds) {
+      if (scriptsCreated >= threshold) {
+        const existingMilestone = await this.db.select()
+          .from(userMilestones)
+          .where(and(
+            eq(userMilestones.userId, userId),
+            eq(userMilestones.milestoneType, `scripts_created_${threshold}`)
+          ))
+          .limit(1);
+        
+        if (existingMilestone.length === 0) {
+          await this.createUserMilestone({
+            userId,
+            milestoneType: `scripts_created_${threshold}` as any,
+            milestoneValue: threshold,
+          });
+        }
+      }
+    }
+
+    const timeMilestones = [
+      { hours: 5, type: "time_saved_5_hours" },
+      { hours: 10, type: "time_saved_10_hours" },
+      { hours: 20, type: "time_saved_20_hours" },
+    ];
+    
+    for (const milestone of timeMilestones) {
+      const thresholdMinutes = milestone.hours * 60;
+      if (timeSavedMinutes >= thresholdMinutes) {
+        const existingMilestone = await this.db.select()
+          .from(userMilestones)
+          .where(and(
+            eq(userMilestones.userId, userId),
+            eq(userMilestones.milestoneType, milestone.type)
+          ))
+          .limit(1);
+        
+        if (existingMilestone.length === 0) {
+          await this.createUserMilestone({
+            userId,
+            milestoneType: milestone.type as any,
+            milestoneValue: milestone.hours,
+          });
+        }
+      }
+    }
+  }
+
   async updateUserActivity(userId: string): Promise<void> {
     const user = await this.getUserById(userId);
     if (!user) return;

@@ -171,7 +171,7 @@ export interface IStorage {
       usersConverted: number;
       conversionRate: number;
     };
-    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null }>;
+    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null; firstScriptDate: string | null }>;
   }>;
 }
 

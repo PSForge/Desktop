@@ -1455,7 +1455,7 @@ export class DatabaseStorage implements IStorage {
       usersConverted: number;
       conversionRate: number;
     };
-    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null }>;
+    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null; firstScriptDate: string | null }>;
   }> {
     // Badge Distribution - count users by community badge
     const badgeDistributionResult = await this.db.select({
@@ -1534,6 +1534,7 @@ export class DatabaseStorage implements IStorage {
       scriptsCreated: users.totalScriptsCreated,
       timeSaved: users.totalTimeSavedMinutes,
       badge: users.communityBadge,
+      firstScriptDate: users.firstScriptDate,
     })
       .from(users)
       .orderBy(desc(users.totalScriptsCreated))
@@ -1545,6 +1546,7 @@ export class DatabaseStorage implements IStorage {
       scriptsCreated: r.scriptsCreated,
       timeSaved: r.timeSaved,
       badge: r.badge,
+      firstScriptDate: r.firstScriptDate ? r.firstScriptDate.toISOString().split('T')[0] : null,
     }));
 
     return {

@@ -36,7 +36,8 @@ interface ProConversionAnalytics {
     email: string; 
     scriptsCreated: number; 
     timeSaved: number; 
-    badge: string | null 
+    badge: string | null;
+    firstScriptDate: string | null;
   }>;
 }
 
@@ -68,6 +69,7 @@ export function AdminProConversionSection() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [scriptsCreated, setScriptsCreated] = useState<string>("");
   const [timeSavedMinutes, setTimeSavedMinutes] = useState<string>("");
+  const [firstScriptDate, setFirstScriptDate] = useState<string>("");
   const { toast } = useToast();
 
   const { data: analytics, isLoading } = useQuery<ProConversionAnalytics>({
@@ -75,10 +77,11 @@ export function AdminProConversionSection() {
   });
 
   const adjustStatsMutation = useMutation({
-    mutationFn: async (data: { userId: string; scriptsCreated: number; timeSavedMinutes: number }) => {
+    mutationFn: async (data: { userId: string; scriptsCreated: number; timeSavedMinutes: number; firstScriptDate?: string }) => {
       const response = await apiRequest(`/api/admin/users/${data.userId}/stats-adjust`, "POST", {
         scriptsCreated: data.scriptsCreated,
         timeSavedMinutes: data.timeSavedMinutes,
+        firstScriptDate: data.firstScriptDate || undefined,
       });
       return response.json();
     },
@@ -91,6 +94,7 @@ export function AdminProConversionSection() {
       setSelectedUser(null);
       setScriptsCreated("");
       setTimeSavedMinutes("");
+      setFirstScriptDate("");
     },
     onError: (error: any) => {
       toast({
@@ -303,6 +307,7 @@ export function AdminProConversionSection() {
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Badge</th>
                     <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Scripts</th>
                     <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Time Saved</th>
+                    <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">First Script</th>
                     <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -373,6 +378,21 @@ export function AdminProConversionSection() {
                         </td>
                         <td className="py-3 px-2 text-right">
                           {isEditing ? (
+                            <Input
+                              type="date"
+                              value={firstScriptDate}
+                              onChange={(e) => setFirstScriptDate(e.target.value)}
+                              className="w-32 h-8"
+                              data-testid={`input-date-${index}`}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground text-sm">
+                              {creator.firstScriptDate || '-'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          {isEditing ? (
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 size="sm"
@@ -381,6 +401,7 @@ export function AdminProConversionSection() {
                                   setSelectedUser(null);
                                   setScriptsCreated("");
                                   setTimeSavedMinutes("");
+                                  setFirstScriptDate("");
                                 }}
                                 data-testid={`button-cancel-${index}`}
                               >
@@ -393,6 +414,7 @@ export function AdminProConversionSection() {
                                     userId: creator.userId,
                                     scriptsCreated: parseInt(scriptsCreated) || 0,
                                     timeSavedMinutes: parseInt(timeSavedMinutes) || 0,
+                                    firstScriptDate: firstScriptDate || undefined,
                                   });
                                 }}
                                 disabled={adjustStatsMutation.isPending}
@@ -410,6 +432,7 @@ export function AdminProConversionSection() {
                                 setSelectedUser(creator.userId);
                                 setScriptsCreated(String(creator.scriptsCreated));
                                 setTimeSavedMinutes(String(creator.timeSaved));
+                                setFirstScriptDate(creator.firstScriptDate || "");
                               }}
                               data-testid={`button-edit-${index}`}
                             >
@@ -456,6 +479,7 @@ function BackdateUserStatsForm({ onSuccess }: { onSuccess: () => void }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [scriptsCount, setScriptsCount] = useState("");
   const [timeMinutes, setTimeMinutes] = useState("");
+  const [firstDate, setFirstDate] = useState("");
   const { toast } = useToast();
 
   const { data: users } = useQuery<Array<{ id: string; email: string; name: string }>>({
@@ -465,10 +489,11 @@ function BackdateUserStatsForm({ onSuccess }: { onSuccess: () => void }) {
   const matchingUser = users?.find(u => u.email.toLowerCase() === email.toLowerCase());
 
   const adjustMutation = useMutation({
-    mutationFn: async (data: { userId: string; scriptsCreated: number; timeSavedMinutes: number }) => {
+    mutationFn: async (data: { userId: string; scriptsCreated: number; timeSavedMinutes: number; firstScriptDate?: string }) => {
       const response = await apiRequest(`/api/admin/users/${data.userId}/stats-adjust`, "POST", {
         scriptsCreated: data.scriptsCreated,
         timeSavedMinutes: data.timeSavedMinutes,
+        firstScriptDate: data.firstScriptDate || undefined,
       });
       return response.json();
     },
@@ -481,6 +506,7 @@ function BackdateUserStatsForm({ onSuccess }: { onSuccess: () => void }) {
       setUserId(null);
       setScriptsCount("");
       setTimeMinutes("");
+      setFirstDate("");
       onSuccess();
     },
     onError: (error: any) => {
@@ -518,6 +544,7 @@ function BackdateUserStatsForm({ onSuccess }: { onSuccess: () => void }) {
       userId: matchingUser.id,
       scriptsCreated: scripts,
       timeSavedMinutes: minutes,
+      firstScriptDate: firstDate || undefined,
     });
   };
 
@@ -540,7 +567,7 @@ function BackdateUserStatsForm({ onSuccess }: { onSuccess: () => void }) {
             </p>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="scripts-count">Scripts Created</Label>
             <Input
@@ -563,6 +590,16 @@ function BackdateUserStatsForm({ onSuccess }: { onSuccess: () => void }) {
               value={timeMinutes}
               onChange={(e) => setTimeMinutes(e.target.value)}
               data-testid="input-backdate-time"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="first-date">First Script Date</Label>
+            <Input
+              id="first-date"
+              type="date"
+              value={firstDate}
+              onChange={(e) => setFirstDate(e.target.value)}
+              data-testid="input-backdate-date"
             />
           </div>
         </div>

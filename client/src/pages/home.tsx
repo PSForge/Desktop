@@ -371,7 +371,7 @@ export default function Home() {
       </section>
 
       {/* Platform Coverage Section */}
-      <section className="bg-muted/30 py-12 sm:py-16 lg:py-24">
+      <section id="platforms" className="bg-muted/30 py-12 sm:py-16 lg:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
@@ -924,7 +924,7 @@ export default function Home() {
               <ul className="space-y-3">
                 <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
                 <li><a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
-                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Supported Platforms</Link></li>
+                <li><a href="#platforms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Supported Platforms</a></li>
               </ul>
             </div>
             

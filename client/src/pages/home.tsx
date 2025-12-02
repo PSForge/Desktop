@@ -932,15 +932,14 @@ export default function Home() {
               <h3 className="font-semibold text-foreground mb-4">Resources</h3>
               <ul className="space-y-3">
                 <li><Link href="/case-studies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Case Studies</Link></li>
-                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Documentation</Link></li>
-                <li><Link href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Templates Marketplace</Link></li>
+                <li><Link href="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Security</Link></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-semibold text-foreground mb-4">Company</h3>
               <ul className="space-y-3">
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About PSForge</a></li>
+                <li><Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About PSForge</Link></li>
                 <li><Link href="/account" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact Support</Link></li>
               </ul>
             </div>
@@ -948,9 +947,8 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-foreground mb-4">Legal</h3>
               <ul className="space-y-3">
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Security</a></li>
+                <li><Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
           </div>

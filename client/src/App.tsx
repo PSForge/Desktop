@@ -20,6 +20,10 @@ import CaseStudies from "@/pages/case-studies";
 import CaseStudyTechCorp from "@/pages/case-study-techcorp";
 import CaseStudyMidwest from "@/pages/case-study-midwest";
 import CaseStudyCloudFirst from "@/pages/case-study-cloudfront";
+import About from "@/pages/about";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
+import Security from "@/pages/security";
 import NotFound from "@/pages/not-found";
 import { ProNudgeModal } from "@/components/pro-conversion/pro-nudge-modal";
 import { useEffect } from "react";
@@ -47,6 +51,10 @@ function Router() {
       <Route path="/case-studies/midwest-healthcare-compliance" component={CaseStudyMidwest} />
       <Route path="/case-studies/cloudfront-storage-management" component={CaseStudyCloudFirst} />
       <Route path="/case-studies" component={CaseStudies} />
+      <Route path="/about" component={About} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/security" component={Security} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -13,6 +13,7 @@ import {
   Heart,
   Sparkles
 } from "lucide-react";
+import logoFullTransparent from "@assets/Full Logo Transparent_1761567685412.png";
 
 export default function About() {
   return (
@@ -27,7 +28,12 @@ export default function About() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/">
-              <span className="text-xl font-bold text-primary cursor-pointer" data-testid="link-home">PSForge</span>
+              <img 
+                src={logoFullTransparent} 
+                alt="PSForge Logo" 
+                className="h-8 cursor-pointer"
+                data-testid="img-logo"
+              />
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login">

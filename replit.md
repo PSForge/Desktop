@@ -50,6 +50,15 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **Database Schema**: 4 new tables (templates, template_categories, template_ratings, template_installs) with proper relationships and Zod validation.
     - **API Endpoints**: 16 RESTful endpoints for templates, categories, ratings, and installs with proper authentication and admin-only routes protected by requireAdmin middleware.
 
+## Case Studies (v4.3 - December 2025)
+SEO-optimized public case studies for lead generation and conversion:
+- **Landing Page** (`/case-studies`): Overview page with all 3 case studies, SEO meta tags, public access without login
+- **TechCorp Solutions** (`/case-studies/techcorp-onboarding-automation`): 85% faster employee onboarding, Active Directory + Exchange Online automation, keywords: employee onboarding automation, bulk user provisioning, CSV import
+- **MidWest Healthcare** (`/case-studies/midwest-healthcare-compliance`): 100% HIPAA audit pass rate, security auditing, keywords: HIPAA compliance, AD security audit, Kerberoasting prevention
+- **CloudFirst Consulting** (`/case-studies/cloudfront-storage-management`): Zero weekend emergencies, MSP automation across 50+ clients, keywords: MSP automation, disk space monitoring, VMware capacity planning
+- **Conversion Features**: Each page includes prominent FREE30 promo code CTA linking to `/signup?promo=FREE30`, testimonials, ROI calculations
+- **Homepage Integration**: Case studies teaser section on homepage with three preview cards, footer link under Resources
+
 ## Pro Conversion System (v4.3 - November 2025)
 Comprehensive Free-to-Pro conversion strategy with psychological triggers and value demonstrations:
 - **Power User Nudge System**: Smart detection of heavy usage patterns with contextual Pro upgrade suggestions

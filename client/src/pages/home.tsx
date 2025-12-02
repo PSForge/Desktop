@@ -640,60 +640,148 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Security Features */}
+      {/* Case Studies Teaser */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
+            <Badge variant="default" className="mb-4" data-testid="badge-case-studies-home">
+              <Star className="h-3 w-3 mr-1" />
+              Real-World Results
+            </Badge>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
-              Enterprise-Grade Security Built Into Every Script
+              See How IT Teams Transform Their Operations
             </h2>
-            <p className="text-lg text-muted-foreground">
-              Your automation scripts handle sensitive systems and data. PSForge ensures they're secure by default.
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              From 85% faster onboarding to 100% compliance—real IT professionals share their automation success stories.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6">
-            <Card className="hover-elevate transition-all">
-              <CardHeader className="text-center">
-                <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center mb-3 mx-auto">
-                  <Shield className="h-5 w-5 text-red-500" />
+          <div className="grid sm:grid-cols-3 gap-6 mb-8">
+            <Card className="hover-elevate transition-all" data-testid="card-case-study-teaser-1">
+              <CardHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="secondary" className="text-xs">Managed IT Services</Badge>
+                  <span className="text-2xl font-bold text-primary">85%</span>
                 </div>
-                <CardTitle className="text-lg">Injection Prevention</CardTitle>
+                <CardTitle className="text-lg">Onboarding Time Cut by 85%</CardTitle>
               </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Built-in validation checks every parameter before execution. Your scripts are protected against command injection attacks automatically.
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  TechCorp Solutions reduced new hire setup from 6 hours to 45 minutes with automated AD and Exchange provisioning.
                 </p>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="text-xs">Active Directory</Badge>
+                  <Badge variant="outline" className="text-xs">Exchange</Badge>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate transition-all">
-              <CardHeader className="text-center">
-                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 mx-auto">
-                  <Zap className="h-5 w-5 text-blue-500" />
+            <Card className="hover-elevate transition-all" data-testid="card-case-study-teaser-2">
+              <CardHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="secondary" className="text-xs">Healthcare IT</Badge>
+                  <span className="text-2xl font-bold text-green-500">100%</span>
                 </div>
-                <CardTitle className="text-lg">Auto-Save Protection</CardTitle>
+                <CardTitle className="text-lg">100% HIPAA Audit Pass Rate</CardTitle>
               </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Never lose your work. PSForge automatically saves your progress as you build, so connection issues or browser crashes won't cost you hours of work.
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  MidWest Healthcare went from failing audits to perfect compliance with automated security scripts.
                 </p>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="text-xs">Compliance</Badge>
+                  <Badge variant="outline" className="text-xs">Security</Badge>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate transition-all">
-              <CardHeader className="text-center">
-                <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3 mx-auto">
-                  <HardDrive className="h-5 w-5 text-green-500" />
+            <Card className="hover-elevate transition-all" data-testid="card-case-study-teaser-3">
+              <CardHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="secondary" className="text-xs">MSP</Badge>
+                  <span className="text-2xl font-bold text-purple-500">0</span>
                 </div>
-                <CardTitle className="text-lg">Instant .ps1 Downloads</CardTitle>
+                <CardTitle className="text-lg">Zero Weekend Emergencies</CardTitle>
               </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Download scripts as standard PowerShell files instantly. Run them anywhere, modify them anytime, no vendor lock-in.
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  CloudFirst MSP eliminated storage-related weekend calls across 50+ client environments.
                 </p>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="text-xs">Disk Management</Badge>
+                  <Badge variant="outline" className="text-xs">VMware</Badge>
+                </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="text-center">
+            <Link href="/case-studies">
+              <Button size="lg" variant="outline" className="gap-2" data-testid="button-view-case-studies">
+                Read Full Case Studies
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Security Features */}
+      <section className="bg-muted/30 py-12 sm:py-16 lg:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+                Enterprise-Grade Security Built Into Every Script
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Your automation scripts handle sensitive systems and data. PSForge ensures they're secure by default.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-6">
+              <Card className="hover-elevate transition-all">
+                <CardHeader className="text-center">
+                  <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center mb-3 mx-auto">
+                    <Shield className="h-5 w-5 text-red-500" />
+                  </div>
+                  <CardTitle className="text-lg">Injection Prevention</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Built-in validation checks every parameter before execution. Your scripts are protected against command injection attacks automatically.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate transition-all">
+                <CardHeader className="text-center">
+                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 mx-auto">
+                    <Zap className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <CardTitle className="text-lg">Auto-Save Protection</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Never lose your work. PSForge automatically saves your progress as you build, so connection issues or browser crashes won't cost you hours of work.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate transition-all">
+                <CardHeader className="text-center">
+                  <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3 mx-auto">
+                    <HardDrive className="h-5 w-5 text-green-500" />
+                  </div>
+                  <CardTitle className="text-lg">Instant .ps1 Downloads</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Download scripts as standard PowerShell files instantly. Run them anywhere, modify them anytime, no vendor lock-in.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
@@ -843,9 +931,9 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-foreground mb-4">Resources</h3>
               <ul className="space-y-3">
+                <li><Link href="/case-studies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Case Studies</Link></li>
                 <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Documentation</Link></li>
-                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Script Examples</Link></li>
-                <li><Link href="/builder" className="text-sm text-muted-foreground hover:text-foreground transition-colors">PowerShell Best Practices</Link></li>
+                <li><Link href="/marketplace" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Templates Marketplace</Link></li>
               </ul>
             </div>
             

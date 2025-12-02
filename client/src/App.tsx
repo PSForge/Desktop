@@ -16,6 +16,10 @@ import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
 import Account from "@/pages/account";
 import AdminDashboard from "@/pages/admin";
+import CaseStudies from "@/pages/case-studies";
+import CaseStudyTechCorp from "@/pages/case-study-techcorp";
+import CaseStudyMidwest from "@/pages/case-study-midwest";
+import CaseStudyCloudFirst from "@/pages/case-study-cloudfront";
 import NotFound from "@/pages/not-found";
 import { ProNudgeModal } from "@/components/pro-conversion/pro-nudge-modal";
 import { useEffect } from "react";
@@ -39,6 +43,10 @@ function Router() {
       <Route path="/marketplace" component={TemplatesMarketplace} />
       <Route path="/account" component={Account} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/case-studies/techcorp-onboarding-automation" component={CaseStudyTechCorp} />
+      <Route path="/case-studies/midwest-healthcare-compliance" component={CaseStudyMidwest} />
+      <Route path="/case-studies/cloudfront-storage-management" component={CaseStudyCloudFirst} />
+      <Route path="/case-studies" component={CaseStudies} />
       <Route component={NotFound} />
     </Switch>
   );

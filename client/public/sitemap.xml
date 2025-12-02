@@ -7,7 +7,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://psforge.app/</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-12-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -15,15 +15,79 @@
   <!-- Script Builder -->
   <url>
     <loc>https://psforge.app/builder</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-12-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+  </url>
+
+  <!-- Case Studies Landing Page -->
+  <url>
+    <loc>https://psforge.app/case-studies</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- TechCorp Case Study -->
+  <url>
+    <loc>https://psforge.app/case-studies/techcorp-onboarding-automation</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- MidWest Healthcare Case Study -->
+  <url>
+    <loc>https://psforge.app/case-studies/midwest-healthcare-compliance</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- CloudFirst Consulting Case Study -->
+  <url>
+    <loc>https://psforge.app/case-studies/cloudfront-storage-management</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- About Page -->
+  <url>
+    <loc>https://psforge.app/about</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Security Page -->
+  <url>
+    <loc>https://psforge.app/security</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://psforge.app/privacy</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- Terms of Service -->
+  <url>
+    <loc>https://psforge.app/terms</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
   </url>
 
   <!-- Login Page -->
   <url>
     <loc>https://psforge.app/login</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-12-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -31,10 +95,9 @@
   <!-- Signup Page -->
   <url>
     <loc>https://psforge.app/signup</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-12-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
 
 </urlset>

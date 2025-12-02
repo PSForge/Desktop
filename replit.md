@@ -59,6 +59,14 @@ SEO-optimized public case studies for lead generation and conversion:
 - **Conversion Features**: Each page includes prominent FREE30 promo code CTA linking to `/signup?promo=FREE30`, testimonials, ROI calculations
 - **Homepage Integration**: Case studies teaser section on homepage with three preview cards, footer link under Resources
 
+## Public Pages (v4.3 - December 2025)
+Public-facing informational pages accessible without login:
+- **About PSForge** (`/about`): Company mission, differentiating features (real scripts not templates, security first, built by practitioners, instant productivity), company values, and product statistics
+- **Privacy Policy** (`/privacy`): Comprehensive privacy policy covering data collection, usage, sharing, security, retention, and user rights
+- **Terms of Service** (`/terms`): Full terms including account registration, subscription/payments, acceptable use, IP rights, script responsibility, disclaimers, and liability limitations
+- **Security** (`/security`): Detailed security features page highlighting malicious code scanner (15+ patterns), injection prevention, comprehensive validation, script integrity (SHA-256), platform security (authentication, data protection, access control), and security score dashboard
+- **Footer Navigation**: Homepage footer reorganized with working links to all public pages (Case Studies, Security, About, Contact Support, Privacy, Terms)
+
 ## Pro Conversion System (v4.3 - November 2025)
 Comprehensive Free-to-Pro conversion strategy with psychological triggers and value demonstrations:
 - **Power User Nudge System**: Smart detection of heavy usage patterns with contextual Pro upgrade suggestions

@@ -59,20 +59,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   <url>
     <loc>${baseUrl}/</loc>
     <lastmod>${lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/case-studies</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/case-studies/techcorp-onboarding-automation</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/case-studies/midwest-healthcare-compliance</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/case-studies/cloudfront-storage-management</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/about</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/security</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/privacy</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/terms</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
   </url>
   <url>
     <loc>${baseUrl}/login</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>${baseUrl}/signup</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.6</priority>
   </url>
 </urlset>`;
 
@@ -92,6 +140,11 @@ User-agent: *
 Allow: /
 Allow: /login
 Allow: /signup
+Allow: /case-studies
+Allow: /about
+Allow: /security
+Allow: /privacy
+Allow: /terms
 Disallow: /builder
 Disallow: /account
 Disallow: /admin

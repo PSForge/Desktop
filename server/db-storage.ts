@@ -22,6 +22,8 @@ import {
   templates,
   templateRatings,
   templateInstalls,
+  templatePurchases,
+  sellerPayouts,
   userMilestones,
   nudgeDismissals,
   type User,
@@ -51,6 +53,10 @@ import {
   type Template,
   type TemplateRating,
   type TemplateInstall,
+  type TemplatePurchase,
+  type InsertTemplatePurchase,
+  type SellerPayout,
+  type InsertSellerPayout,
   type InsertTemplateCategory,
   type InsertTemplate,
   type InsertTemplateRating,
@@ -1560,5 +1566,96 @@ export class DatabaseStorage implements IStorage {
       },
       topScriptCreators,
     };
+  }
+
+  // Template Purchases for Paid Templates
+  async createTemplatePurchase(purchase: InsertTemplatePurchase): Promise<TemplatePurchase> {
+    const result = await this.db.insert(templatePurchases).values({
+      templateId: purchase.templateId,
+      buyerId: purchase.buyerId,
+      sellerId: purchase.sellerId,
+      priceCents: purchase.priceCents,
+      platformFeeCents: purchase.platformFeeCents,
+      sellerEarningsCents: purchase.sellerEarningsCents,
+      stripePaymentIntentId: purchase.stripePaymentIntentId || null,
+      stripeCheckoutSessionId: purchase.stripeCheckoutSessionId || null,
+      status: purchase.status || 'pending',
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getTemplatePurchase(buyerId: string, templateId: string): Promise<TemplatePurchase | undefined> {
+    const result = await this.db.select().from(templatePurchases)
+      .where(and(
+        eq(templatePurchases.buyerId, buyerId),
+        eq(templatePurchases.templateId, templateId)
+      ))
+      .limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async getTemplatePurchaseByCheckoutSession(sessionId: string): Promise<TemplatePurchase | undefined> {
+    const result = await this.db.select().from(templatePurchases)
+      .where(eq(templatePurchases.stripeCheckoutSessionId, sessionId))
+      .limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async getTemplatePurchasesByBuyer(buyerId: string): Promise<TemplatePurchase[]> {
+    const result = await this.db.select().from(templatePurchases)
+      .where(eq(templatePurchases.buyerId, buyerId))
+      .orderBy(desc(templatePurchases.purchasedAt));
+    return result.map(p => this.convertTimestamps(p));
+  }
+
+  async getTemplatePurchasesBySeller(sellerId: string): Promise<TemplatePurchase[]> {
+    const result = await this.db.select().from(templatePurchases)
+      .where(eq(templatePurchases.sellerId, sellerId))
+      .orderBy(desc(templatePurchases.purchasedAt));
+    return result.map(p => this.convertTimestamps(p));
+  }
+
+  async updateTemplatePurchase(id: string, updates: Partial<TemplatePurchase>): Promise<TemplatePurchase | undefined> {
+    const updateData: any = { ...updates };
+    delete updateData.id;
+    delete updateData.purchasedAt;
+    
+    const result = await this.db.update(templatePurchases)
+      .set(updateData)
+      .where(eq(templatePurchases.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  // Seller Payouts
+  async createSellerPayout(payout: InsertSellerPayout): Promise<SellerPayout> {
+    const result = await this.db.insert(sellerPayouts).values({
+      sellerId: payout.sellerId,
+      amountCents: payout.amountCents,
+      stripeTransferId: payout.stripeTransferId || null,
+      stripePayoutId: payout.stripePayoutId || null,
+      status: payout.status || 'pending',
+      failureReason: payout.failureReason || null,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getSellerPayouts(sellerId: string): Promise<SellerPayout[]> {
+    const result = await this.db.select().from(sellerPayouts)
+      .where(eq(sellerPayouts.sellerId, sellerId))
+      .orderBy(desc(sellerPayouts.requestedAt));
+    return result.map(p => this.convertTimestamps(p));
+  }
+
+  async updateSellerPayout(id: string, updates: Partial<SellerPayout>): Promise<SellerPayout | undefined> {
+    const updateData: any = { ...updates };
+    delete updateData.id;
+    delete updateData.requestedAt;
+    
+    const result = await this.db.update(sellerPayouts)
+      .set(updateData)
+      .where(eq(sellerPayouts.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
   }
 }

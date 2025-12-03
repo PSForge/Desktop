@@ -45,7 +45,12 @@ import {
   Star,
   AlertTriangle,
   Edit,
-  Eye
+  Eye,
+  DollarSign,
+  Store,
+  Clock,
+  ArrowRight,
+  Wallet
 } from "lucide-react";
 import { ProgressDashboard } from "@/components/pro-conversion/progress-dashboard";
 
@@ -85,6 +90,49 @@ export default function Account() {
   }>({
     queryKey: ["/api/templates/stats/user", user?.id],
     enabled: !!user,
+  });
+
+  // Seller status query
+  const { data: sellerStatus, isLoading: sellerStatusLoading, refetch: refetchSellerStatus } = useQuery<{
+    isConnected: boolean;
+    isOnboardingComplete: boolean;
+    sellerStatus: string | null;
+  }>({
+    queryKey: ["/api/seller/onboarding-status"],
+    enabled: !!user && (user.role === "subscriber" || user.role === "admin"),
+  });
+
+  // Seller earnings query
+  const { data: sellerEarnings, isLoading: earningsLoading } = useQuery<{
+    totalEarnings: number;
+    pendingBalance: number;
+    paidOut: number;
+    totalSales: number;
+    sales: any[];
+    payouts: any[];
+  }>({
+    queryKey: ["/api/seller/earnings"],
+    enabled: !!sellerStatus?.isOnboardingComplete,
+  });
+
+  // Create Stripe Connect account mutation
+  const createSellerAccountMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("/api/seller/connect", "POST");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start seller onboarding",
+        variant: "destructive",
+      });
+    },
   });
 
   const disconnectRepoMutation = useMutation({
@@ -999,6 +1047,211 @@ export default function Account() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Seller Account Section */}
+          <Card data-testid="section-seller-account">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Store className="h-5 w-5" />
+                Sell Templates
+              </CardTitle>
+              <CardDescription>
+                Sell your PowerShell templates and earn 70% of each sale
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Free users - prompt to upgrade */}
+              {user?.role === "free" && (
+                <div className="text-center py-4 space-y-4">
+                  <div className="p-4 rounded-lg bg-muted/50">
+                    <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
+                    <h4 className="font-medium mb-1">Pro Subscription Required</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upgrade to Pro to sell templates on the marketplace and earn money from your PowerShell expertise.
+                    </p>
+                    <Button onClick={() => setShowUpgradeModal(true)} data-testid="button-upgrade-to-sell">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Upgrade to Pro - $5/month
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pro users - show seller status */}
+              {(user?.role === "subscriber" || user?.role === "admin") && (
+                <>
+                  {sellerStatusLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : !sellerStatus?.isConnected ? (
+                    /* Not connected - show onboarding CTA */
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-lg border border-primary/20 bg-primary/5">
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 rounded-full bg-primary/10">
+                            <DollarSign className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium mb-1">Start Selling Templates</h4>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              Connect your bank account via Stripe to receive payouts. You'll earn 70% of every sale (PSForge keeps 30% platform fee).
+                            </p>
+                            <ul className="text-sm space-y-1 mb-4">
+                              <li className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                Secure payments via Stripe
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                Price your templates $1-$50
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                Automatic tax handling
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                        <Button 
+                          className="w-full" 
+                          onClick={() => createSellerAccountMutation.mutate()}
+                          disabled={createSellerAccountMutation.isPending}
+                          data-testid="button-become-seller"
+                        >
+                          {createSellerAccountMutation.isPending ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                              Starting Onboarding...
+                            </>
+                          ) : (
+                            <>
+                              <Store className="h-4 w-4 mr-2" />
+                              Become a Seller
+                              <ArrowRight className="h-4 w-4 ml-2" />
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : !sellerStatus.isOnboardingComplete ? (
+                    /* Connected but onboarding incomplete */
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 rounded-full bg-yellow-500/20">
+                            <Clock className="h-6 w-6 text-yellow-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium mb-1">Complete Your Seller Setup</h4>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              {sellerStatus.sellerStatus === "pending_verification" 
+                                ? "Your account is being verified by Stripe. This usually takes 1-2 business days."
+                                : "You haven't completed your Stripe Connect onboarding. Finish the setup to start selling."}
+                            </p>
+                            <Badge variant="secondary" className="gap-1">
+                              <Clock className="h-3 w-3" />
+                              {sellerStatus.sellerStatus === "pending_verification" ? "Under Review" : "Incomplete"}
+                            </Badge>
+                          </div>
+                        </div>
+                        {sellerStatus.sellerStatus !== "pending_verification" && (
+                          <Button 
+                            variant="outline" 
+                            className="w-full mt-4"
+                            onClick={() => createSellerAccountMutation.mutate()}
+                            disabled={createSellerAccountMutation.isPending}
+                            data-testid="button-continue-onboarding"
+                          >
+                            Continue Setup
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Active seller - show earnings dashboard */
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="default" className="gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Active Seller
+                        </Badge>
+                      </div>
+
+                      {earningsLoading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="p-4 rounded-lg border">
+                              <Skeleton className="h-4 w-24 mb-2" />
+                              <Skeleton className="h-8 w-20" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : sellerEarnings ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="p-4 rounded-lg border" data-testid="stat-total-earnings">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                              <DollarSign className="h-4 w-4" />
+                              <span>Total Earnings</span>
+                            </div>
+                            <p className="text-2xl font-bold text-green-600">
+                              ${(sellerEarnings.totalEarnings / 100).toFixed(2)}
+                            </p>
+                          </div>
+                          
+                          <div className="p-4 rounded-lg border" data-testid="stat-pending-balance">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                              <Wallet className="h-4 w-4" />
+                              <span>Pending Balance</span>
+                            </div>
+                            <p className="text-2xl font-bold">
+                              ${(sellerEarnings.pendingBalance / 100).toFixed(2)}
+                            </p>
+                          </div>
+                          
+                          <div className="p-4 rounded-lg border" data-testid="stat-paid-out">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                              <CreditCard className="h-4 w-4" />
+                              <span>Paid Out</span>
+                            </div>
+                            <p className="text-2xl font-bold">
+                              ${(sellerEarnings.paidOut / 100).toFixed(2)}
+                            </p>
+                          </div>
+                          
+                          <div className="p-4 rounded-lg border" data-testid="stat-total-sales">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                              <Package className="h-4 w-4" />
+                              <span>Total Sales</span>
+                            </div>
+                            <p className="text-2xl font-bold">{sellerEarnings.totalSales}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-muted-foreground">No sales yet. Publish a paid template to start earning!</p>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setLocation("/seller-dashboard")}
+                        data-testid="button-seller-dashboard"
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        View Full Seller Dashboard
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 

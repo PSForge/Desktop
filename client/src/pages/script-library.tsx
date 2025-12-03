@@ -42,8 +42,12 @@ import {
   Shield,
   AlertTriangle,
   ShieldAlert,
-  ChevronDown
+  ChevronDown,
+  DollarSign,
+  Store,
+  Info
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { Script, Tag, TemplateCategory, InsertTemplate } from "@shared/schema";
 import { insertTemplateSchema } from "@shared/schema";
 
@@ -63,6 +67,8 @@ export default function ScriptLibrary() {
   const [securityScan, setSecurityScan] = useState<SecurityScanResult | null>(null);
   const [risksAcknowledged, setRisksAcknowledged] = useState(false);
   const [securityAnalysisExpanded, setSecurityAnalysisExpanded] = useState(true);
+  const [isPaidTemplate, setIsPaidTemplate] = useState(false);
+  const [templatePrice, setTemplatePrice] = useState<number>(500); // Default $5.00 in cents
 
   // Fetch all user scripts
   const { data: scripts = [], isLoading: scriptsLoading } = useQuery<Script[]>({
@@ -88,6 +94,24 @@ export default function ScriptLibrary() {
   const { data: templateCategories = [] } = useQuery<TemplateCategory[]>({
     queryKey: ['/api/template-categories'],
   });
+
+  // Seller status query for paid templates
+  const { data: sellerStatus } = useQuery<{
+    isConnected: boolean;
+    isOnboardingComplete: boolean;
+    sellerStatus: string | null;
+  }>({
+    queryKey: ["/api/seller/onboarding-status"],
+    enabled: !!user && (user.role === "subscriber" || user.role === "admin"),
+  });
+
+  // Calculate earnings preview
+  const PLATFORM_FEE_PERCENTAGE = 30;
+  const calculateEarnings = (priceCents: number) => {
+    const platformFee = Math.round(priceCents * (PLATFORM_FEE_PERCENTAGE / 100));
+    const sellerEarnings = priceCents - platformFee;
+    return { platformFee, sellerEarnings };
+  };
 
   // Fetch script tags when managing tags for a script
   const { data: currentScriptTags = [] } = useQuery<Tag[]>({
@@ -136,10 +160,16 @@ export default function ScriptLibrary() {
       setSecurityScan(scanResult);
       setRisksAcknowledged(false);
       setSecurityAnalysisExpanded(scanResult.securityLevel === 'dangerous');
+      
+      // Reset pricing state
+      setIsPaidTemplate(false);
+      setTemplatePrice(500);
     } else {
       setSecurityScan(null);
       setRisksAcknowledged(false);
       setSecurityAnalysisExpanded(true);
+      setIsPaidTemplate(false);
+      setTemplatePrice(500);
     }
   }, [publishingScript, user?.id]);
 
@@ -404,6 +434,9 @@ export default function ScriptLibrary() {
       securityScore: securityScan?.score,
       securityLevel: securityScan?.securityLevel,
       securityWarningsCount: securityScan?.warnings.length,
+      // Add pricing data if seller is onboarded and template is paid
+      isPaid: isPaidTemplate && sellerStatus?.isOnboardingComplete,
+      priceCents: isPaidTemplate && sellerStatus?.isOnboardingComplete ? templatePrice : undefined,
     };
     publishTemplateMutation.mutate(templateData);
   };
@@ -1106,6 +1139,103 @@ export default function ScriptLibrary() {
                   </FormItem>
                 )}
               />
+
+              {/* Pricing Section - Only for Pro users with seller account */}
+              <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Sell this Template
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Set a price and earn money when others purchase
+                    </p>
+                  </div>
+                  <Switch
+                    checked={isPaidTemplate}
+                    onCheckedChange={setIsPaidTemplate}
+                    disabled={!sellerStatus?.isOnboardingComplete}
+                    data-testid="switch-paid-template"
+                  />
+                </div>
+
+                {/* Show different states based on seller status */}
+                {!sellerStatus?.isOnboardingComplete && user?.role !== "free" && (
+                  <Alert>
+                    <Store className="h-4 w-4" />
+                    <AlertTitle>Become a Seller First</AlertTitle>
+                    <AlertDescription>
+                      To sell templates, complete your seller onboarding from your Account page. 
+                      You'll earn 70% of each sale!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {user?.role === "free" && (
+                  <Alert>
+                    <Sparkles className="h-4 w-4" />
+                    <AlertTitle>Pro Subscription Required</AlertTitle>
+                    <AlertDescription>
+                      Upgrade to Pro to unlock the ability to sell templates on the marketplace.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {isPaidTemplate && sellerStatus?.isOnboardingComplete && (
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+                    <div className="space-y-2">
+                      <Label>Price (USD)</Label>
+                      <div className="flex items-center gap-3">
+                        <span className="text-muted-foreground">$</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="50"
+                          step="0.01"
+                          value={(templatePrice / 100).toFixed(2)}
+                          onChange={(e) => {
+                            const dollars = parseFloat(e.target.value) || 0;
+                            const cents = Math.round(Math.min(Math.max(dollars, 1), 50) * 100);
+                            setTemplatePrice(cents);
+                          }}
+                          className="w-24"
+                          data-testid="input-template-price"
+                        />
+                        <span className="text-sm text-muted-foreground">($1 - $50 range)</span>
+                      </div>
+                    </div>
+
+                    {/* Earnings Preview */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1">
+                        <Info className="h-3 w-3" />
+                        Earnings Preview
+                      </Label>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="p-2 rounded border text-center">
+                          <p className="text-muted-foreground text-xs">Sale Price</p>
+                          <p className="font-medium">${(templatePrice / 100).toFixed(2)}</p>
+                        </div>
+                        <div className="p-2 rounded border text-center">
+                          <p className="text-muted-foreground text-xs">Platform Fee (30%)</p>
+                          <p className="font-medium text-orange-600">
+                            -${(calculateEarnings(templatePrice).platformFee / 100).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="p-2 rounded border text-center bg-green-500/10">
+                          <p className="text-muted-foreground text-xs">You Earn (70%)</p>
+                          <p className="font-bold text-green-600">
+                            ${(calculateEarnings(templatePrice).sellerEarnings / 100).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <Separator />
 
               {user?.role === "admin" && (
                 <FormField

@@ -1311,7 +1311,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       const commit = await storage.createGitCommit({
         repositoryId: id,
         scriptId,
-        commitSha: result.commit.sha,
+        commitSha: result.commit.sha || '',
         message,
         branch: repository.currentBranch || repository.defaultBranch,
         author: req.user!.email,
@@ -1791,7 +1791,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       const existingRating = await storage.getUserTemplateRating(id, req.user!.id);
 
       let result;
-      if (existingRating) {
+      if (existingRating && existingRating.id) {
         // Update existing rating
         result = await storage.updateTemplateRating(existingRating.id, {
           rating,
@@ -2135,92 +2135,6 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       }
       
       switch (event.type) {
-        case 'checkout.session.completed': {
-          const session = event.data.object as Stripe.Checkout.Session;
-          const userId = session.metadata?.userId;
-          const customerId = session.customer as string;
-          const subscriptionId = session.subscription as string;
-
-          console.log(`📋 Processing checkout for user ${userId}, subscription ${subscriptionId}`);
-
-          if (!userId || !subscriptionId) {
-            console.warn(`⚠️ Checkout session missing userId or subscriptionId - ignoring`);
-            break;
-          }
-
-          try {
-            // Step 1: VERIFY subscription exists and is valid in Stripe
-            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-            console.log(`🔍 Retrieved subscription ${subscriptionId}, status: ${subscription.status}`);
-
-            // Step 2: Validate subscription is in good standing
-            if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-              console.error(`❌ Subscription ${subscriptionId} has invalid status: ${subscription.status}`);
-              break;
-            }
-
-            // Step 3: IMMEDIATELY upgrade user to Pro (subscription is verified active/trialing)
-            await storage.updateUser(userId, {
-              role: "subscriber",
-              stripeCustomerId: customerId,
-            });
-            console.log(`✅ User ${userId} upgraded to Pro tier`);
-
-            // Step 4: Get period dates with safe defaults
-            const periodStart = (subscription as any).current_period_start || Math.floor(Date.now() / 1000);
-            const periodEnd = (subscription as any).current_period_end || Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
-            
-            console.log(`📅 Period: ${new Date(periodStart * 1000).toISOString()} to ${new Date(periodEnd * 1000).toISOString()}`);
-
-            // Step 5: Create subscription record in database
-            const userSub = await storage.createUserSubscription({
-              userId,
-              planId: "pro",
-              stripeSubscriptionId: subscriptionId,
-              status: "active",
-              currentPeriodStart: new Date(periodStart * 1000).toISOString(),
-              currentPeriodEnd: new Date(periodEnd * 1000).toISOString(),
-              cancelAt: null,
-              canceledAt: null,
-              trialEnd: null,
-            });
-            console.log(`✅ Subscription record created: ${userSub.id}`);
-
-            // Step 6: Log the event
-            await storage.createSubscriptionEvent({
-              userSubscriptionId: userSub.id,
-              type: "subscription.created",
-              payload: event.data.object as any,
-              occurredAt: new Date().toISOString(),
-            });
-
-            // Step 7: Send subscription welcome email asynchronously
-            (async () => {
-              try {
-                const user = await storage.getUserById(userId);
-                if (user) {
-                  const template = await storage.getWelcomeEmailTemplate("subscription");
-                  if (template && template.enabled) {
-                    await sendWelcomeEmail(user.email, user.name, template.htmlContent, template.subject);
-                    console.log(`✓ Subscription welcome email sent to ${user.email}`);
-                  }
-                }
-              } catch (emailError) {
-                console.error("Failed to send subscription welcome email:", emailError);
-              }
-            })();
-
-          } catch (error: any) {
-            console.error(`❌ Failed to create subscription record ${subscriptionId}:`, error.message);
-            console.error(`⚠️ CRITICAL: User ${userId} upgraded to Pro but subscription record failed. Manual sync may be needed.`);
-            
-            // Alert: User has Pro access but no subscription record
-            // This ensures instant access (fixing the main bug) but creates data inconsistency
-            // The subscription.updated webhook or manual sync button will reconcile this
-          }
-          break;
-        }
-
         case 'customer.subscription.updated': {
           const subscription = event.data.object as Stripe.Subscription;
           let userSub = await storage.getUserSubscriptionByStripeId(subscription.id);
@@ -2360,6 +2274,164 @@ Sitemap: ${baseUrl}/sitemap.xml`;
           break;
         }
 
+        // Template marketplace purchase completion (Connect payments)
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          
+          // Check if this is a template purchase (has templateId in metadata)
+          if (session.metadata?.templateId) {
+            const { templateId, buyerId, sellerId, priceCents, platformFeeCents, sellerEarningsCents } = session.metadata;
+            
+            console.log(`📋 Processing template purchase for template ${templateId}, buyer ${buyerId}`);
+            
+            try {
+              // Find and update the pending purchase
+              const purchase = await storage.getTemplatePurchaseByCheckoutSession(session.id);
+              
+              if (purchase) {
+                await storage.updateTemplatePurchase(purchase.id, {
+                  status: 'completed',
+                  stripePaymentIntentId: session.payment_intent as string,
+                });
+                
+                // Update seller's pending balance
+                const seller = await storage.getUserById(sellerId);
+                if (seller) {
+                  const currentPending = seller.pendingPayoutCents || 0;
+                  await storage.updateUser(sellerId, {
+                    pendingPayoutCents: currentPending + parseInt(sellerEarningsCents, 10),
+                  });
+                }
+                
+                // Increment template sales count
+                await storage.incrementTemplateInstalls(templateId);
+                
+                console.log(`✅ Template purchase completed: ${templateId} by ${buyerId}`);
+              } else {
+                console.warn(`⚠️ Template purchase not found for session ${session.id}`);
+              }
+            } catch (error) {
+              console.error(`❌ Failed to process template purchase:`, error);
+            }
+            break;
+          }
+          
+          // Otherwise, handle as subscription checkout (existing logic)
+          const userId = session.metadata?.userId;
+          const customerId = session.customer as string;
+          const subscriptionId = session.subscription as string;
+
+          console.log(`📋 Processing checkout for user ${userId}, subscription ${subscriptionId}`);
+
+          if (!userId || !subscriptionId) {
+            console.warn(`⚠️ Checkout session missing userId or subscriptionId - ignoring`);
+            break;
+          }
+
+          try {
+            // Step 1: VERIFY subscription exists and is valid in Stripe
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            console.log(`🔍 Retrieved subscription ${subscriptionId}, status: ${subscription.status}`);
+
+            // Step 2: Validate subscription is in good standing
+            if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+              console.error(`❌ Subscription ${subscriptionId} has invalid status: ${subscription.status}`);
+              break;
+            }
+
+            // Step 3: IMMEDIATELY upgrade user to Pro (subscription is verified active/trialing)
+            await storage.updateUser(userId, {
+              role: "subscriber",
+              stripeCustomerId: customerId,
+            });
+            console.log(`✅ User ${userId} upgraded to Pro tier`);
+
+            // Step 4: Get period dates with safe defaults
+            const periodStart = (subscription as any).current_period_start || Math.floor(Date.now() / 1000);
+            const periodEnd = (subscription as any).current_period_end || Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+            
+            console.log(`📅 Period: ${new Date(periodStart * 1000).toISOString()} to ${new Date(periodEnd * 1000).toISOString()}`);
+
+            // Step 5: Create subscription record in database
+            const userSub = await storage.createUserSubscription({
+              userId,
+              planId: "pro",
+              stripeSubscriptionId: subscriptionId,
+              status: "active",
+              currentPeriodStart: new Date(periodStart * 1000).toISOString(),
+              currentPeriodEnd: new Date(periodEnd * 1000).toISOString(),
+              cancelAt: null,
+              canceledAt: null,
+              trialEnd: null,
+            });
+            console.log(`✅ Subscription record created: ${userSub.id}`);
+
+            // Step 6: Log the event
+            await storage.createSubscriptionEvent({
+              userSubscriptionId: userSub.id,
+              type: "subscription.created",
+              payload: event.data.object as any,
+              occurredAt: new Date().toISOString(),
+            });
+
+            // Step 7: Send subscription welcome email asynchronously
+            (async () => {
+              try {
+                const user = await storage.getUserById(userId);
+                if (user) {
+                  const template = await storage.getWelcomeEmailTemplate("subscription");
+                  if (template && template.enabled) {
+                    await sendWelcomeEmail(user.email, user.name, template.htmlContent, template.subject);
+                    console.log(`✓ Subscription welcome email sent to ${user.email}`);
+                  }
+                }
+              } catch (emailError) {
+                console.error("Failed to send subscription welcome email:", emailError);
+              }
+            })();
+
+          } catch (error: any) {
+            console.error(`❌ Failed to create subscription record ${subscriptionId}:`, error.message);
+            console.error(`⚠️ CRITICAL: User ${userId} upgraded to Pro but subscription record failed. Manual sync may be needed.`);
+          }
+          break;
+        }
+
+        // Stripe Connect account updates (seller onboarding)
+        case 'account.updated': {
+          const account = event.data.object as Stripe.Account;
+          const accountId = account.id;
+          
+          console.log(`🔄 Connect account updated: ${accountId}`);
+          
+          try {
+            // Find user with this Connect account
+            const allUsers = await storage.getAllUsers();
+            const seller = allUsers.find((u: User) => u.stripeConnectAccountId === accountId);
+            
+            if (seller) {
+              // Check if onboarding is complete
+              const chargesEnabled = account.charges_enabled;
+              const payoutsEnabled = account.payouts_enabled;
+              const detailsSubmitted = account.details_submitted;
+              
+              const isComplete = chargesEnabled && payoutsEnabled && detailsSubmitted;
+              
+              await storage.updateUser(seller.id, {
+                stripeConnectOnboardingComplete: isComplete,
+                sellerStatus: isComplete ? 'active' : (detailsSubmitted ? 'pending_verification' : 'pending'),
+              });
+              
+              console.log(`✅ Connect account ${accountId} updated: complete=${isComplete}, status=${isComplete ? 'active' : 'pending'}`);
+            } else {
+              console.log(`⚠️ No user found with Connect account ${accountId}`);
+            }
+          } catch (error) {
+            console.error(`❌ Failed to update Connect account status:`, error);
+          }
+          break;
+        }
+
         default:
           console.log(`Unhandled event type: ${event.type}`);
       }
@@ -2452,6 +2524,330 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     } catch (error) {
       console.error("Webhook diagnostics error:", error);
       return res.status(500).json({ error: "Failed to fetch webhook events" });
+    }
+  });
+
+  // ========================================
+  // STRIPE CONNECT SELLER MARKETPLACE ROUTES
+  // ========================================
+
+  // Platform commission: 30% to PSForge, 70% to seller
+  const PLATFORM_FEE_PERCENTAGE = 30;
+
+  // Get seller status and earnings
+  app.get("/api/seller/status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user is a Pro subscriber (required to sell)
+      const subscription = await storage.getUserSubscription(req.user!.id);
+      const isProSubscriber = subscription && (subscription.status === "active" || subscription.status === "trialing");
+
+      return res.json({
+        canSell: isProSubscriber,
+        sellerStatus: user.sellerStatus || "not_seller",
+        stripeConnectOnboardingComplete: user.stripeConnectOnboardingComplete || false,
+        totalEarningsCents: user.totalEarningsCents || 0,
+        pendingPayoutCents: user.pendingPayoutCents || 0,
+        sellerEnabledAt: user.sellerEnabledAt,
+      });
+    } catch (error) {
+      console.error("Get seller status error:", error);
+      return res.status(500).json({ error: "Failed to get seller status" });
+    }
+  });
+
+  // Start Stripe Connect onboarding - creates a Connect account and returns onboarding link
+  app.post("/api/seller/onboard", requireSubscriber, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      let accountId = user.stripeConnectAccountId;
+
+      // Create a new Connect account if user doesn't have one
+      if (!accountId) {
+        const account = await stripe.accounts.create({
+          type: "express",
+          country: "US",
+          email: user.email,
+          capabilities: {
+            transfers: { requested: true },
+          },
+          metadata: {
+            userId: user.id,
+          },
+        });
+        accountId = account.id;
+
+        // Save the account ID to user
+        await storage.updateUser(user.id, {
+          stripeConnectAccountId: accountId,
+          sellerStatus: "pending_onboarding",
+        });
+      }
+
+      // Create an account link for onboarding
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: `${baseUrl}/account?tab=seller&refresh=true`,
+        return_url: `${baseUrl}/account?tab=seller&onboarding=complete`,
+        type: "account_onboarding",
+      });
+
+      return res.json({ 
+        url: accountLink.url,
+        accountId,
+      });
+    } catch (error) {
+      console.error("Stripe Connect onboarding error:", error);
+      return res.status(500).json({ error: "Failed to start seller onboarding" });
+    }
+  });
+
+  // Check if Stripe Connect onboarding is complete
+  app.get("/api/seller/onboarding-status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.user!.id);
+      if (!user || !user.stripeConnectAccountId) {
+        return res.json({ 
+          hasAccount: false,
+          onboardingComplete: false,
+          chargesEnabled: false,
+          payoutsEnabled: false,
+        });
+      }
+
+      const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+      
+      const onboardingComplete = account.details_submitted && 
+        account.charges_enabled && 
+        account.payouts_enabled;
+
+      // Update user status if onboarding is newly complete
+      if (onboardingComplete && !user.stripeConnectOnboardingComplete) {
+        await storage.updateUser(user.id, {
+          stripeConnectOnboardingComplete: true,
+          sellerStatus: "active",
+          sellerEnabledAt: new Date().toISOString(),
+        });
+      }
+
+      return res.json({
+        hasAccount: true,
+        onboardingComplete,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+        detailsSubmitted: account.details_submitted,
+      });
+    } catch (error) {
+      console.error("Stripe Connect status check error:", error);
+      return res.status(500).json({ error: "Failed to check onboarding status" });
+    }
+  });
+
+  // Get seller earnings and sales history
+  app.get("/api/seller/earnings", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get all sales for this seller
+      const sales = await storage.getTemplatePurchasesBySeller(user.id);
+      
+      // Get payout history
+      const payouts = await storage.getSellerPayouts(user.id);
+
+      // Calculate stats
+      const totalEarnings = sales
+        .filter(s => s.status === "completed")
+        .reduce((sum, s) => sum + s.sellerEarningsCents, 0);
+      
+      const pendingBalance = user.pendingPayoutCents || 0;
+      const paidOut = payouts
+        .filter(p => p.status === "completed")
+        .reduce((sum, p) => sum + p.amountCents, 0);
+
+      return res.json({
+        totalEarnings,
+        pendingBalance,
+        paidOut,
+        totalSales: sales.filter(s => s.status === "completed").length,
+        sales: sales.slice(0, 50), // Last 50 sales
+        payouts: payouts.slice(0, 20), // Last 20 payouts
+      });
+    } catch (error) {
+      console.error("Get seller earnings error:", error);
+      return res.status(500).json({ error: "Failed to get seller earnings" });
+    }
+  });
+
+  // Create checkout session for purchasing a paid template
+  app.post("/api/templates/:id/purchase", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      if (!template.isPaid || !template.priceCents || template.priceCents <= 0) {
+        return res.status(400).json({ error: "This template is free" });
+      }
+
+      // Check if user already purchased this template
+      const templateId = template.id!;
+      const existingPurchase = await storage.getTemplatePurchase(req.user!.id, templateId);
+      if (existingPurchase && existingPurchase.status === "completed") {
+        return res.status(400).json({ error: "You already own this template" });
+      }
+
+      // Can't buy your own template
+      if (template.authorId === req.user!.id) {
+        return res.status(400).json({ error: "You cannot purchase your own template" });
+      }
+
+      // Get seller's Stripe Connect account
+      const seller = await storage.getUserById(template.authorId);
+      if (!seller || !seller.stripeConnectAccountId || !seller.stripeConnectOnboardingComplete) {
+        return res.status(400).json({ error: "Seller account is not set up" });
+      }
+
+      // Calculate fees: 30% platform, 70% seller
+      const platformFeeCents = Math.round(template.priceCents * (PLATFORM_FEE_PERCENTAGE / 100));
+      const sellerEarningsCents = template.priceCents - platformFeeCents;
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+
+      // Create Stripe Checkout session with application fee
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: template.title,
+                description: `PowerShell Template by ${seller.name}`,
+              },
+              unit_amount: template.priceCents,
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          application_fee_amount: platformFeeCents,
+          transfer_data: {
+            destination: seller.stripeConnectAccountId,
+          },
+        },
+        success_url: `${baseUrl}/marketplace/${templateId}?purchase=success`,
+        cancel_url: `${baseUrl}/marketplace/${templateId}?purchase=canceled`,
+        metadata: {
+          templateId: templateId,
+          buyerId: req.user!.id,
+          sellerId: template.authorId,
+          priceCents: template.priceCents.toString(),
+          platformFeeCents: platformFeeCents.toString(),
+          sellerEarningsCents: sellerEarningsCents.toString(),
+        },
+      });
+
+      // Create pending purchase record
+      await storage.createTemplatePurchase({
+        templateId: templateId,
+        buyerId: req.user!.id,
+        sellerId: template.authorId,
+        priceCents: template.priceCents,
+        platformFeeCents,
+        sellerEarningsCents,
+        stripeCheckoutSessionId: session.id,
+        status: "pending",
+      });
+
+      return res.json({ url: session.url });
+    } catch (error) {
+      console.error("Template purchase error:", error);
+      return res.status(500).json({ error: "Failed to create purchase session" });
+    }
+  });
+
+  // Check if user has purchased a template
+  app.get("/api/templates/:id/ownership", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      // User owns their own templates
+      if (template.authorId === req.user!.id) {
+        return res.json({ owned: true, isAuthor: true });
+      }
+
+      // Free templates are owned by everyone
+      if (!template.isPaid || !template.priceCents || template.priceCents <= 0) {
+        return res.json({ owned: true, isFree: true });
+      }
+
+      // Check for completed purchase
+      const purchase = await storage.getTemplatePurchase(req.user!.id, template.id!);
+      const owned = purchase && purchase.status === "completed";
+
+      return res.json({ 
+        owned, 
+        purchase: purchase ? {
+          purchasedAt: purchase.purchasedAt,
+          priceCents: purchase.priceCents,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Check template ownership error:", error);
+      return res.status(500).json({ error: "Failed to check ownership" });
+    }
+  });
+
+  // Get user's purchased templates
+  app.get("/api/user/purchases", requireAuth, async (req, res) => {
+    try {
+      const purchases = await storage.getTemplatePurchasesByBuyer(req.user!.id);
+      
+      // Get template details for each purchase
+      const purchasesWithTemplates = await Promise.all(
+        purchases
+          .filter((p: any) => p.status === "completed")
+          .map(async (purchase: any) => {
+            const template = await storage.getTemplate(purchase.templateId);
+            const seller = await storage.getUserById(purchase.sellerId);
+            return {
+              ...purchase,
+              template: template ? {
+                id: template.id,
+                title: template.title,
+                description: template.description,
+              } : null,
+              sellerName: seller?.name || "Unknown",
+            };
+          })
+      );
+
+      return res.json(purchasesWithTemplates);
+    } catch (error) {
+      console.error("Get user purchases error:", error);
+      return res.status(500).json({ error: "Failed to get purchases" });
     }
   });
 

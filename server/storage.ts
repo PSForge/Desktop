@@ -144,6 +144,19 @@ export interface IStorage {
   getTemplateInstalls(templateId: string): Promise<import("@shared/schema").TemplateInstall[]>;
   hasUserInstalledTemplate(templateId: string, userId: string): Promise<boolean>;
   
+  // Template Purchases for Paid Templates
+  createTemplatePurchase(purchase: import("@shared/schema").InsertTemplatePurchase): Promise<import("@shared/schema").TemplatePurchase>;
+  getTemplatePurchase(buyerId: string, templateId: string): Promise<import("@shared/schema").TemplatePurchase | undefined>;
+  getTemplatePurchaseByCheckoutSession(sessionId: string): Promise<import("@shared/schema").TemplatePurchase | undefined>;
+  getTemplatePurchasesByBuyer(buyerId: string): Promise<import("@shared/schema").TemplatePurchase[]>;
+  getTemplatePurchasesBySeller(sellerId: string): Promise<import("@shared/schema").TemplatePurchase[]>;
+  updateTemplatePurchase(id: string, updates: Partial<import("@shared/schema").TemplatePurchase>): Promise<import("@shared/schema").TemplatePurchase | undefined>;
+  
+  // Seller Payouts
+  createSellerPayout(payout: import("@shared/schema").InsertSellerPayout): Promise<import("@shared/schema").SellerPayout>;
+  getSellerPayouts(sellerId: string): Promise<import("@shared/schema").SellerPayout[]>;
+  updateSellerPayout(id: string, updates: Partial<import("@shared/schema").SellerPayout>): Promise<import("@shared/schema").SellerPayout | undefined>;
+  
   // User Stats & Pro Conversion Tracking
   getUserStats(userId: string): Promise<import("@shared/schema").UserStats>;
   incrementUserScriptCount(userId: string, timeSavedMinutes?: number): Promise<void>;

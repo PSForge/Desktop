@@ -34,6 +34,10 @@ import {
   Calendar,
   Package,
   ChevronRight,
+  DollarSign,
+  ShoppingCart,
+  Check,
+  Lock,
 } from "lucide-react";
 import type { Template, TemplateRating } from "@shared/schema";
 import { format } from "date-fns";
@@ -41,6 +45,14 @@ import { format } from "date-fns";
 interface TemplateWithAuthor extends Template {
   authorName?: string;
   categoryName?: string;
+  isPaid?: boolean;
+  priceCents?: number;
+}
+
+interface Purchase {
+  id: string;
+  templateId: string;
+  purchasedAt: string;
 }
 
 interface TemplateRatingWithUser extends TemplateRating {
@@ -77,6 +89,24 @@ export default function MarketplaceDetail() {
   });
 
   const myRating = myRatingData?.rating;
+
+  // Fetch user's purchases to check ownership
+  const { data: purchases = [] } = useQuery<Purchase[]>({
+    queryKey: ["/api/user/purchases"],
+    enabled: !!user,
+  });
+
+  // Helper to check if user owns the template (purchased or is author)
+  const hasTemplateAccess = (): boolean => {
+    if (!template?.isPaid) return true;
+    if (template?.authorId === user?.id) return true;
+    return purchases.some(p => p.templateId === template?.id);
+  };
+
+  // Format price for display
+  const formatPrice = (cents: number) => {
+    return (cents / 100).toFixed(2);
+  };
 
   // Install mutation
   const installMutation = useMutation({
@@ -184,7 +214,48 @@ export default function MarketplaceDetail() {
       setLocation("/login");
       return;
     }
+    
+    // Check if this is a paid template the user hasn't purchased
+    if (template?.isPaid && !hasTemplateAccess()) {
+      toast({
+        title: "Purchase Required",
+        description: `This template costs $${formatPrice(template.priceCents || 0)}. Please purchase to install.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     installMutation.mutate();
+  };
+
+  // Handle purchase - create Stripe checkout
+  const handlePurchase = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to purchase templates.",
+        variant: "destructive",
+      });
+      setLocation("/login");
+      return;
+    }
+
+    try {
+      const response = await apiRequest(`/api/templates/${id}/purchase`, "POST");
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || "No checkout URL returned");
+      }
+    } catch (error: unknown) {
+      console.error("Purchase error:", error);
+      toast({
+        title: "Purchase Failed",
+        description: error instanceof Error ? error.message : "Could not initiate purchase. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmitRating = () => {
@@ -558,30 +629,113 @@ export default function MarketplaceDetail() {
 
           {/* Sidebar Section (3/10) */}
           <div className="lg:col-span-3 space-y-4">
+            {/* Pricing Badge */}
+            {template.isPaid && template.priceCents ? (
+              <Card className="border-green-500/50 bg-green-500/5">
+                <CardContent className="pt-6 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Template Price</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      ${formatPrice(template.priceCents)}
+                    </p>
+                  </div>
+                  <DollarSign className="h-10 w-10 text-green-500/30" />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="pt-6 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Template Price</p>
+                    <p className="text-2xl font-bold">Free</p>
+                  </div>
+                  <Package className="h-10 w-10 text-muted-foreground/30" />
+                </CardContent>
+              </Card>
+            )}
+
             {/* Action Buttons */}
             <Card>
               <CardContent className="pt-6 space-y-3">
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleInstall}
-                  disabled={installMutation.isPending}
-                  data-testid="button-install-template"
-                >
-                  <Wrench className="h-4 w-4 mr-2" />
-                  {installMutation.isPending ? "Installing..." : "Install Template"}
-                </Button>
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={handleDownload}
-                  data-testid="button-download-template"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download .ps1
-                </Button>
+                {/* Primary action button - Purchase or Install */}
+                {(() => {
+                  const isPaid = template.isPaid && template.priceCents;
+                  const hasAccess = hasTemplateAccess();
+                  
+                  if (isPaid && !hasAccess && !isAuthor) {
+                    // Paid template user hasn't purchased
+                    return (
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={handlePurchase}
+                        data-testid="button-purchase-template"
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Purchase for ${formatPrice(template.priceCents!)}
+                      </Button>
+                    );
+                  } else if (isPaid && hasAccess && !isAuthor) {
+                    // User has purchased this template
+                    return (
+                      <>
+                        <Badge className="w-full justify-center py-2 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
+                          <Check className="h-4 w-4 mr-2" />
+                          Purchased
+                        </Badge>
+                        <Button
+                          className="w-full"
+                          size="lg"
+                          onClick={handleInstall}
+                          disabled={installMutation.isPending}
+                          data-testid="button-install-template"
+                        >
+                          <Wrench className="h-4 w-4 mr-2" />
+                          {installMutation.isPending ? "Installing..." : "Install Template"}
+                        </Button>
+                      </>
+                    );
+                  } else {
+                    // Free template or author's own template
+                    return (
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={handleInstall}
+                        disabled={installMutation.isPending}
+                        data-testid="button-install-template"
+                      >
+                        <Wrench className="h-4 w-4 mr-2" />
+                        {installMutation.isPending ? "Installing..." : "Install Template"}
+                      </Button>
+                    );
+                  }
+                })()}
+
+                {/* Download button - only show if user has access */}
+                {hasTemplateAccess() && (
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={handleDownload}
+                    data-testid="button-download-template"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download .ps1
+                  </Button>
+                )}
+                
+                {/* Show locked indicator for paid templates without access */}
+                {template.isPaid && !hasTemplateAccess() && !isAuthor && (
+                  <div className="text-center py-2 text-sm text-muted-foreground">
+                    <Lock className="h-4 w-4 inline mr-1" />
+                    Purchase to access download
+                  </div>
+                )}
+
                 {canEdit && (
                   <>
+                    <Separator />
                     <Button
                       className="w-full"
                       variant="outline"

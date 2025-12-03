@@ -25,8 +25,14 @@ import {
   FileCode,
   Shield,
   AlertTriangle,
-  ShieldAlert
+  ShieldAlert,
+  DollarSign,
+  ShoppingCart,
+  Check,
+  Lock
 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Template, TemplateCategory } from "@shared/schema";
 
 const ITEMS_PER_PAGE = 12;
@@ -36,6 +42,14 @@ type SortOption = "popular" | "newest" | "top-rated";
 interface TemplateWithAuthor extends Template {
   authorName?: string;
   categoryName?: string;
+  isPaid?: boolean;
+  priceCents?: number;
+}
+
+interface Purchase {
+  id: string;
+  templateId: string;
+  purchasedAt: string;
 }
 
 export default function TemplatesMarketplace() {
@@ -80,6 +94,24 @@ export default function TemplatesMarketplace() {
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<TemplateCategory[]>({
     queryKey: ["/api/template-categories"],
   });
+
+  // Fetch user's purchases to check ownership
+  const { data: purchases = [] } = useQuery<Purchase[]>({
+    queryKey: ["/api/user/purchases"],
+    enabled: !!user,
+  });
+
+  // Helper to check if user owns a template (purchased or is author)
+  const hasTemplateAccess = (template: TemplateWithAuthor): boolean => {
+    if (!template.isPaid) return true;
+    if (template.authorId === user?.id) return true;
+    return purchases.some(p => p.templateId === template.id);
+  };
+
+  // Format price for display
+  const formatPrice = (cents: number) => {
+    return (cents / 100).toFixed(2);
+  };
 
   // Filter and sort templates
   const filteredAndSortedTemplates = useMemo(() => {
@@ -149,12 +181,51 @@ export default function TemplatesMarketplace() {
     setLocation(`/marketplace/${templateId}`);
   };
 
-  const handleInstall = (template: Template) => {
+  const handleInstall = (template: TemplateWithAuthor) => {
+    // Check if this is a paid template the user hasn't purchased
+    if (template.isPaid && !hasTemplateAccess(template)) {
+      toast({
+        title: "Purchase Required",
+        description: `This template costs $${formatPrice(template.priceCents || 0)}. Please purchase to install.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // TODO: Implement install functionality
     toast({
       title: "Installing template",
       description: `"${template.title}" will be added to your library.`,
     });
+  };
+
+  // Handle purchase - create Stripe checkout
+  const handlePurchase = async (template: TemplateWithAuthor) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to purchase templates.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await apiRequest(`/api/templates/${template.id}/purchase`, "POST");
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || "No checkout URL returned");
+      }
+    } catch (error: unknown) {
+      console.error("Purchase error:", error);
+      toast({
+        title: "Purchase Failed",
+        description: error instanceof Error ? error.message : "Could not initiate purchase. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -378,12 +449,29 @@ export default function TemplatesMarketplace() {
                           <CardTitle className="text-lg line-clamp-2">
                             {template.title}
                           </CardTitle>
-                          {template.featured && (
-                            <Badge variant="default" className="shrink-0">
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              Featured
-                            </Badge>
-                          )}
+                          <div className="flex flex-col gap-1 shrink-0">
+                            {template.featured && (
+                              <Badge variant="default" className="shrink-0">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Featured
+                              </Badge>
+                            )}
+                            {/* Price Badge */}
+                            {template.isPaid && template.priceCents ? (
+                              <Badge 
+                                variant="secondary" 
+                                className="shrink-0 bg-green-500/10 text-green-600 dark:text-green-400"
+                                data-testid={`price-badge-${template.id}`}
+                              >
+                                <DollarSign className="h-3 w-3 mr-0.5" />
+                                {formatPrice(template.priceCents)}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="shrink-0" data-testid={`price-badge-${template.id}`}>
+                                Free
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         
                         {/* Security Badge (only for score < 80) */}
@@ -466,15 +554,54 @@ export default function TemplatesMarketplace() {
                         >
                           View Details
                         </Button>
-                        <Button
-                          variant="default"
-                          className="flex-1"
-                          onClick={() => handleInstall(template)}
-                          data-testid={`button-install-${template.id}`}
-                        >
-                          <Package className="h-4 w-4 mr-2" />
-                          Install
-                        </Button>
+                        
+                        {/* Show different button based on template access */}
+                        {(() => {
+                          const isPaid = template.isPaid && template.priceCents;
+                          const hasAccess = hasTemplateAccess(template);
+                          const isAuthor = template.authorId === user?.id;
+                          
+                          if (isPaid && !hasAccess && !isAuthor) {
+                            // Paid template user hasn't purchased
+                            return (
+                              <Button
+                                variant="default"
+                                className="flex-1"
+                                onClick={() => handlePurchase(template)}
+                                data-testid={`button-purchase-${template.id}`}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                ${formatPrice(template.priceCents!)}
+                              </Button>
+                            );
+                          } else if (isPaid && hasAccess && !isAuthor) {
+                            // User has purchased this template
+                            return (
+                              <Button
+                                variant="default"
+                                className="flex-1"
+                                onClick={() => handleInstall(template)}
+                                data-testid={`button-install-${template.id}`}
+                              >
+                                <Check className="h-4 w-4 mr-2" />
+                                Purchased
+                              </Button>
+                            );
+                          } else {
+                            // Free template or author's own template
+                            return (
+                              <Button
+                                variant="default"
+                                className="flex-1"
+                                onClick={() => handleInstall(template)}
+                                data-testid={`button-install-${template.id}`}
+                              >
+                                <Package className="h-4 w-4 mr-2" />
+                                Install
+                              </Button>
+                            );
+                          }
+                        })()}
                       </CardFooter>
                     </Card>
                   ))}

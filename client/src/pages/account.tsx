@@ -50,7 +50,8 @@ import {
   Store,
   Clock,
   ArrowRight,
-  Wallet
+  Wallet,
+  ShoppingBag
 } from "lucide-react";
 import { ProgressDashboard } from "@/components/pro-conversion/progress-dashboard";
 
@@ -113,6 +114,26 @@ export default function Account() {
   }>({
     queryKey: ["/api/seller/earnings"],
     enabled: !!sellerStatus?.isOnboardingComplete,
+  });
+
+  // User purchases query
+  type PurchaseWithTemplate = {
+    id: string;
+    templateId: string;
+    priceCents: number;
+    purchasedAt: string;
+    status: string;
+    template: {
+      id: string;
+      title: string;
+      description: string;
+    } | null;
+    sellerName: string;
+  };
+  
+  const { data: purchases = [], isLoading: purchasesLoading } = useQuery<PurchaseWithTemplate[]>({
+    queryKey: ["/api/user/purchases"],
+    enabled: !!user,
   });
 
   // Create Stripe Connect account mutation
@@ -1047,6 +1068,97 @@ export default function Account() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* My Purchases Section */}
+          <Card data-testid="section-my-purchases">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5" />
+                My Purchases
+              </CardTitle>
+              <CardDescription>
+                Templates you've purchased from the marketplace
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {purchasesLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="p-4 rounded-lg border">
+                      <Skeleton className="h-5 w-48 mb-2" />
+                      <Skeleton className="h-4 w-full mb-3" />
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-6 w-20" />
+                        <Skeleton className="h-6 w-24" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : !purchases || purchases.length === 0 ? (
+                <div className="text-center py-8 border rounded-lg">
+                  <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground mb-4">No purchases yet</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation("/marketplace")}
+                    data-testid="button-browse-marketplace-purchases"
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Browse Marketplace
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {purchases.map((purchase) => (
+                    <div
+                      key={purchase.id}
+                      className="p-4 rounded-lg border"
+                      data-testid={`purchase-item-${purchase.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium mb-1 truncate">
+                            {purchase.template?.title || "Unknown Template"}
+                          </h4>
+                          {purchase.template?.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                              {purchase.template.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <User className="h-3.5 w-3.5" />
+                              {purchase.sellerName}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3.5 w-3.5" />
+                              {new Date(purchase.purchasedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <Badge variant="secondary" className="text-green-600 dark:text-green-400">
+                            ${(purchase.priceCents / 100).toFixed(2)} paid
+                          </Badge>
+                          {purchase.template && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setLocation(`/marketplace/${purchase.templateId}`)}
+                              data-testid={`button-view-purchase-${purchase.id}`}
+                            >
+                              <Eye className="h-3.5 w-3.5 mr-1" />
+                              View
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

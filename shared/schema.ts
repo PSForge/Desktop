@@ -21,6 +21,13 @@ export const users = pgTable("users", {
   communityBadge: varchar("community_badge", { length: 100 }),
   proSinceDate: timestamp("pro_since_date"),
   featuredContributor: boolean("featured_contributor").notNull().default(false),
+  // Stripe Connect Seller Fields
+  stripeConnectAccountId: varchar("stripe_connect_account_id", { length: 255 }),
+  stripeConnectOnboardingComplete: boolean("stripe_connect_onboarding_complete").notNull().default(false),
+  sellerStatus: varchar("seller_status", { length: 50 }).default("not_seller"),
+  sellerEnabledAt: timestamp("seller_enabled_at"),
+  totalEarningsCents: integer("total_earnings_cents").notNull().default(0),
+  pendingPayoutCents: integer("pending_payout_cents").notNull().default(0),
 });
 
 export const sessions = pgTable("sessions", {
@@ -209,6 +216,13 @@ export const templates = pgTable("templates", {
   securityWarningsCount: integer("security_warnings_count"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  // Paid Template Fields
+  isPaid: boolean("is_paid").notNull().default(false),
+  priceCents: integer("price_cents").default(0),
+  stripeProductId: varchar("stripe_product_id", { length: 255 }),
+  stripePriceId: varchar("stripe_price_id", { length: 255 }),
+  totalSales: integer("total_sales").notNull().default(0),
+  totalRevenueCents: integer("total_revenue_cents").notNull().default(0),
 });
 
 export const templateRatings = pgTable("template_ratings", {
@@ -228,6 +242,38 @@ export const templateInstalls = pgTable("template_installs", {
   templateId: varchar("template_id").notNull().references(() => templates.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   installedAt: timestamp("installed_at").notNull().defaultNow(),
+});
+
+// Template Purchases for Paid Templates
+export const templatePurchases = pgTable("template_purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => templates.id, { onDelete: "cascade" }),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sellerId: varchar("seller_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  priceCents: integer("price_cents").notNull(),
+  platformFeeCents: integer("platform_fee_cents").notNull(),
+  sellerEarningsCents: integer("seller_earnings_cents").notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+  stripeCheckoutSessionId: varchar("stripe_checkout_session_id", { length: 255 }),
+  status: varchar("status", { length: 50 }).notNull().default("pending"),
+  refundedAt: timestamp("refunded_at"),
+  refundReason: text("refund_reason"),
+  purchasedAt: timestamp("purchased_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueBuyerTemplate: unique().on(table.buyerId, table.templateId),
+}));
+
+// Seller Payouts for Stripe Connect Transfers
+export const sellerPayouts = pgTable("seller_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amountCents: integer("amount_cents").notNull(),
+  stripeTransferId: varchar("stripe_transfer_id", { length: 255 }),
+  stripePayoutId: varchar("stripe_payout_id", { length: 255 }),
+  status: varchar("status", { length: 50 }).notNull().default("pending"),
+  failureReason: text("failure_reason"),
+  requestedAt: timestamp("requested_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
 });
 
 // User Milestones for Achievement Tracking
@@ -259,6 +305,15 @@ export type SubscriptionStatus = typeof subscriptionStatuses[number];
 
 export const templateStatuses = ["pending", "approved", "rejected"] as const;
 export type TemplateStatus = typeof templateStatuses[number];
+
+export const purchaseStatuses = ["pending", "completed", "refunded", "failed"] as const;
+export type PurchaseStatus = typeof purchaseStatuses[number];
+
+export const payoutStatuses = ["pending", "processing", "completed", "failed"] as const;
+export type PayoutStatus = typeof payoutStatuses[number];
+
+export const sellerStatuses = ["not_seller", "pending_onboarding", "active", "suspended"] as const;
+export type SellerStatus = typeof sellerStatuses[number];
 
 export const milestoneTypes = [
   "scripts_created_5", "scripts_created_10", "scripts_created_25", "scripts_created_50",
@@ -475,6 +530,12 @@ export const templateSchema = z.object({
   securityWarningsCount: z.number().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
+  isPaid: z.boolean().optional(),
+  priceCents: z.number().optional(),
+  stripeProductId: z.string().optional(),
+  stripePriceId: z.string().optional(),
+  totalSales: z.number().optional(),
+  totalRevenueCents: z.number().optional(),
 });
 
 export const templateRatingSchema = z.object({
@@ -492,6 +553,34 @@ export const templateInstallSchema = z.object({
   templateId: z.string(),
   userId: z.string(),
   installedAt: z.string().optional(),
+});
+
+export const templatePurchaseSchema = z.object({
+  id: z.string().optional(),
+  templateId: z.string(),
+  buyerId: z.string(),
+  sellerId: z.string(),
+  priceCents: z.number(),
+  platformFeeCents: z.number(),
+  sellerEarningsCents: z.number(),
+  stripePaymentIntentId: z.string().optional(),
+  stripeCheckoutSessionId: z.string().optional(),
+  status: z.enum(purchaseStatuses).optional(),
+  refundedAt: z.string().optional(),
+  refundReason: z.string().optional(),
+  purchasedAt: z.string().optional(),
+});
+
+export const sellerPayoutSchema = z.object({
+  id: z.string().optional(),
+  sellerId: z.string(),
+  amountCents: z.number(),
+  stripeTransferId: z.string().optional(),
+  stripePayoutId: z.string().optional(),
+  status: z.enum(payoutStatuses).optional(),
+  failureReason: z.string().optional(),
+  requestedAt: z.string().optional(),
+  completedAt: z.string().optional(),
 });
 
 export const userMilestoneSchema = z.object({
@@ -535,6 +624,8 @@ export const insertTemplateCategorySchema = templateCategorySchema.omit({ id: tr
 export const insertTemplateSchema = templateSchema.omit({ id: true, createdAt: true, updatedAt: true, downloads: true, installs: true, averageRating: true, totalRatings: true });
 export const insertTemplateRatingSchema = templateRatingSchema.omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTemplateInstallSchema = templateInstallSchema.omit({ id: true, installedAt: true });
+export const insertTemplatePurchaseSchema = templatePurchaseSchema.omit({ id: true, purchasedAt: true, refundedAt: true });
+export const insertSellerPayoutSchema = sellerPayoutSchema.omit({ id: true, requestedAt: true, completedAt: true });
 export const insertUserMilestoneSchema = userMilestoneSchema.omit({ id: true, achievedAt: true });
 export const insertNudgeDismissalSchema = nudgeDismissalSchema.omit({ id: true, dismissedAt: true });
 
@@ -591,6 +682,10 @@ export type InsertUserMilestone = z.infer<typeof insertUserMilestoneSchema>;
 export type NudgeDismissal = z.infer<typeof nudgeDismissalSchema>;
 export type InsertNudgeDismissal = z.infer<typeof insertNudgeDismissalSchema>;
 export type UserStats = z.infer<typeof userStatsSchema>;
+export type TemplatePurchase = z.infer<typeof templatePurchaseSchema>;
+export type InsertTemplatePurchase = z.infer<typeof insertTemplatePurchaseSchema>;
+export type SellerPayout = z.infer<typeof sellerPayoutSchema>;
+export type InsertSellerPayout = z.infer<typeof insertSellerPayoutSchema>;
 
 // User & Authentication Schemas
 export const userSchema = z.object({
@@ -602,6 +697,12 @@ export const userSchema = z.object({
   stripeCustomerId: z.string().nullable(),
   referralSource: z.string().nullable(),
   createdAt: z.string(),
+  stripeConnectAccountId: z.string().nullable().optional(),
+  stripeConnectOnboardingComplete: z.boolean().optional(),
+  sellerStatus: z.enum(sellerStatuses).nullable().optional(),
+  sellerEnabledAt: z.string().nullable().optional(),
+  totalEarningsCents: z.number().optional(),
+  pendingPayoutCents: z.number().optional(),
 });
 
 export const sessionSchema = z.object({

@@ -50,6 +50,29 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **Database Schema**: 4 new tables (templates, template_categories, template_ratings, template_installs) with proper relationships and Zod validation.
     - **API Endpoints**: 16 RESTful endpoints for templates, categories, ratings, and installs with proper authentication and admin-only routes protected by requireAdmin middleware.
 
+## Paid Template Marketplace (v4.4 - December 2025)
+Monetization system allowing Pro users to sell PowerShell templates with 70/30 revenue split:
+- **Seller Onboarding**: Pro subscription required, Stripe Connect Standard integration for payment processing, secure bank account linking
+- **Template Pricing**: Publishers can set prices from $1-$50 per template, with live earnings preview showing 70% creator share
+- **Purchase Flow**: Stripe Checkout for secure payments, automatic ownership tracking, instant access after purchase
+- **Seller Dashboard** (`/seller-dashboard`): Comprehensive analytics showing:
+    - Total earnings, pending balance, and paid out amounts
+    - Sales history with template details and transaction dates
+    - Payout management with request functionality (minimum $10 balance)
+- **My Purchases Section**: Account page section showing purchased templates with seller info and view access
+- **Ownership Access Control**: Purchase verification via `/api/templates/:id/ownership` endpoint, conditional Install/Purchase buttons
+- **Database Schema**: 2 new tables (template_purchases, seller_payouts) with buyer/seller relationships, pricing, and payout tracking
+- **API Endpoints**: 
+    - POST `/api/seller/connect` - Create Stripe Connect account
+    - GET `/api/seller/onboarding-status` - Check seller status
+    - GET `/api/seller/earnings` - Get earnings and sales data
+    - POST `/api/seller/payout` - Request payout transfer
+    - POST `/api/templates/:id/purchase` - Create Stripe checkout session
+    - GET `/api/user/purchases` - Get user's purchased templates
+    - GET `/api/templates/:id/ownership` - Verify template ownership
+- **Revenue Split**: Platform keeps 30% fee (PLATFORM_FEE_PERCENTAGE = 30), creators receive 70%
+- **Stripe Webhooks**: `checkout.session.completed` handles purchase recording and seller earnings credit
+
 ## Case Studies (v4.3 - December 2025)
 SEO-optimized public case studies for lead generation and conversion:
 - **Landing Page** (`/case-studies`): Overview page with all 3 case studies, SEO meta tags, public access without login

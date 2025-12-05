@@ -3523,6 +3523,1539 @@ try {
     Write-Error "Failed to export usage report: $_"
 }`;
     }
+  },
+
+  {
+    id: 'pp-export-app-package',
+    title: 'Export Power App Package',
+    description: 'Export a Power App as a deployable .msapp package',
+    category: 'Apps & Flows',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script exports a Power App as a .msapp package for backup, version control, or deployment to other environments.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or App Owner role
+- Authenticated to Power Platform
+- App must exist in the specified environment
+
+**What You Need to Provide:**
+- Environment name where app exists
+- App name (GUID) to export
+- Export file path (.msapp)
+
+**What the Script Does:**
+- Validates app exists in environment
+- Exports app definition and components
+- Creates .msapp package file
+- Confirms successful export
+
+**Important Notes:**
+- .msapp packages contain app definition and embedded resources
+- Does not include data source connections (must be reconfigured)
+- Use for application lifecycle management (ALM)
+- Store exports in version control for history
+- Typical use: backups before major changes, cross-environment deployment
+- Canvas apps export as .msapp, model-driven apps use solutions
+- Test imported apps thoroughly in target environment
+- Export before any destructive operations`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment containing the app'
+      },
+      {
+        name: 'appName',
+        label: 'App Name',
+        type: 'text',
+        required: true,
+        placeholder: 'App ID (GUID)',
+        helpText: 'The app to export'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export File Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\MyApp.msapp',
+        helpText: 'Path where the .msapp package will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const appName = escapePowerShellString(params.appName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Power App Package
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Exporting Power App package..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "App: ${appName}" -ForegroundColor Yellow
+    
+    # Get the app to verify it exists
+    $App = Get-AdminPowerApp -EnvironmentName "${environmentName}" -AppName "${appName}"
+    
+    if (-not $App) {
+        throw "App not found: ${appName}"
+    }
+    
+    Write-Host "✓ App found: $($App.DisplayName)" -ForegroundColor Green
+    
+    # Export the app package
+    Write-Host "Exporting app package..." -ForegroundColor Cyan
+    
+    Export-PowerApp -EnvironmentName "${environmentName}" -AppName "${appName}" -PackageFilePath "${exportPath}"
+    
+    Write-Host "✓ App package exported successfully" -ForegroundColor Green
+    Write-Host "Location: ${exportPath}" -ForegroundColor Gray
+    
+    # Display file info
+    if (Test-Path "${exportPath}") {
+        $FileInfo = Get-Item "${exportPath}"
+        Write-Host "File size: $([math]::Round($FileInfo.Length / 1KB, 2)) KB" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Yellow
+    Write-Host "  1. Store package in version control" -ForegroundColor Gray
+    Write-Host "  2. Use Import-PowerApp to deploy to other environments" -ForegroundColor Gray
+    Write-Host "  3. Data source connections must be reconfigured after import" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to export app package: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-import-app-package',
+    title: 'Import Power App Package',
+    description: 'Import a Power App from a .msapp package',
+    category: 'Apps & Flows',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script imports a Power App from a .msapp package into an environment for deployment or migration.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Environment Maker role
+- Authenticated to Power Platform
+- .msapp package file must exist
+- Target environment must exist
+
+**What You Need to Provide:**
+- Target environment name
+- Package file path (.msapp)
+- Display name for the imported app
+
+**What the Script Does:**
+- Validates package file exists
+- Imports app definition into target environment
+- Creates new app with specified display name
+- Confirms successful import
+
+**Important Notes:**
+- ⚠️ Data source connections must be reconfigured after import
+- App will be created in "draft" state initially
+- Existing app with same name is NOT overwritten
+- Users must reshare app permissions after import
+- Test thoroughly before publishing to users
+- Typical use: cross-environment deployment, disaster recovery
+- Canvas apps use .msapp format
+- Model-driven apps should use solution import instead`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Target Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment to import the app into'
+      },
+      {
+        name: 'packagePath',
+        label: 'Package File Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\MyApp.msapp',
+        helpText: 'Path to the .msapp package file'
+      },
+      {
+        name: 'appDisplayName',
+        label: 'App Display Name',
+        type: 'text',
+        required: true,
+        placeholder: 'My Imported App',
+        helpText: 'Display name for the imported app'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const packagePath = escapePowerShellString(params.packagePath);
+      const appDisplayName = escapePowerShellString(params.appDisplayName);
+
+      return `# Import Power App Package
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Importing Power App package..." -ForegroundColor Cyan
+    Write-Host "Target Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "Package: ${packagePath}" -ForegroundColor Yellow
+    Write-Host "App Name: ${appDisplayName}" -ForegroundColor Yellow
+    
+    # Verify package file exists
+    if (-not (Test-Path "${packagePath}")) {
+        throw "Package file not found: ${packagePath}"
+    }
+    
+    $FileInfo = Get-Item "${packagePath}"
+    Write-Host "✓ Package found: $([math]::Round($FileInfo.Length / 1KB, 2)) KB" -ForegroundColor Green
+    
+    # Import the app
+    Write-Host "Importing app..." -ForegroundColor Cyan
+    Write-Host "This may take several minutes for large apps" -ForegroundColor Gray
+    
+    $ImportedApp = Import-PowerApp -EnvironmentName "${environmentName}" -PackageFilePath "${packagePath}" -DisplayName "${appDisplayName}"
+    
+    Write-Host "✓ App imported successfully" -ForegroundColor Green
+    Write-Host "App ID: $($ImportedApp.AppName)" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "⚠️  Important next steps:" -ForegroundColor Yellow
+    Write-Host "  1. Open the app in Power Apps Studio" -ForegroundColor Gray
+    Write-Host "  2. Reconfigure data source connections" -ForegroundColor Gray
+    Write-Host "  3. Test all functionality thoroughly" -ForegroundColor Gray
+    Write-Host "  4. Share app with appropriate users" -ForegroundColor Gray
+    Write-Host "  5. Publish when ready for production use" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to import app package: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-get-app-versions',
+    title: 'Get Power App Version History',
+    description: 'Retrieve version history for a Power App',
+    category: 'Apps & Flows',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script retrieves the version history of a Power App for change tracking and rollback planning.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or App Owner role
+- Authenticated to Power Platform
+- App must exist and have version history
+
+**What You Need to Provide:**
+- Environment name where app exists
+- App name (GUID)
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all published versions of the app
+- Collects version number, publish date, and publisher
+- Exports version history to CSV
+- Reports total version count
+
+**Important Notes:**
+- Essential for change management and auditing
+- Shows chronological history of app publishes
+- Use to identify when changes were introduced
+- Supports rollback planning and troubleshooting
+- Version history retained based on tenant settings
+- Typical use: change tracking, compliance auditing
+- Identify who made specific changes and when
+- Review before major updates to plan rollback`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment containing the app'
+      },
+      {
+        name: 'appName',
+        label: 'App Name',
+        type: 'text',
+        required: true,
+        placeholder: 'App ID (GUID)',
+        helpText: 'The app to get version history for'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\AppVersions.csv',
+        helpText: 'Path where the version history CSV will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const appName = escapePowerShellString(params.appName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Get Power App Version History
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Retrieving Power App version history..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "App: ${appName}" -ForegroundColor Yellow
+    
+    # Get app info
+    $App = Get-AdminPowerApp -EnvironmentName "${environmentName}" -AppName "${appName}"
+    
+    if (-not $App) {
+        throw "App not found: ${appName}"
+    }
+    
+    Write-Host "✓ App found: $($App.DisplayName)" -ForegroundColor Green
+    
+    # Get version history
+    $Versions = Get-PowerAppVersion -EnvironmentName "${environmentName}" -AppName "${appName}"
+    
+    Write-Host "Found $($Versions.Count) versions" -ForegroundColor Yellow
+    
+    $VersionReport = foreach ($Version in $Versions) {
+        [PSCustomObject]@{
+            AppName          = $App.DisplayName
+            AppId            = "${appName}"
+            VersionId        = $Version.Id
+            VersionName      = $Version.Properties.appVersion
+            PublishedTime    = $Version.Properties.createdTime
+            PublishedBy      = $Version.Properties.createdBy.displayName
+            PublishedByEmail = $Version.Properties.createdBy.email
+            IsCurrent        = $Version.Properties.lifeCycleId -eq 'Published'
+        }
+    }
+    
+    $VersionReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Version history exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Show recent versions
+    Write-Host ""
+    Write-Host "Most recent versions:" -ForegroundColor Cyan
+    $VersionReport | Sort-Object PublishedTime -Descending | Select-Object -First 5 | Format-Table VersionName, PublishedTime, PublishedBy
+    
+} catch {
+    Write-Error "Failed to get app version history: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-export-flow-definition',
+    title: 'Export Flow Definition',
+    description: 'Export Power Automate flow definition as JSON',
+    category: 'Apps & Flows',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script exports a Power Automate flow definition as JSON for backup, version control, or migration.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Flow Owner role
+- Authenticated to Power Platform
+- Flow must exist in the specified environment
+
+**What You Need to Provide:**
+- Environment name where flow exists
+- Flow name (GUID)
+- Export file path (.json)
+
+**What the Script Does:**
+- Retrieves complete flow definition
+- Exports triggers, actions, and configuration
+- Creates JSON file with flow structure
+- Confirms successful export
+
+**Important Notes:**
+- Essential for flow backup and version control
+- JSON contains complete flow logic and configuration
+- Connection references are included but credentials are not
+- Use for disaster recovery and documentation
+- Store exports in source control
+- Typical use: backups, migrations, change tracking
+- Flow actions and triggers fully captured
+- Manual review recommended before import`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment containing the flow'
+      },
+      {
+        name: 'flowName',
+        label: 'Flow Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Flow ID (GUID)',
+        helpText: 'The flow to export'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export File Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\MyFlow.json',
+        helpText: 'Path where the JSON file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const flowName = escapePowerShellString(params.flowName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Flow Definition
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Exporting Power Automate flow definition..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "Flow: ${flowName}" -ForegroundColor Yellow
+    
+    # Get flow details
+    $Flow = Get-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}"
+    
+    if (-not $Flow) {
+        throw "Flow not found: ${flowName}"
+    }
+    
+    Write-Host "✓ Flow found: $($Flow.DisplayName)" -ForegroundColor Green
+    Write-Host "  Status: $(if ($Flow.Enabled) { 'Enabled' } else { 'Disabled' })" -ForegroundColor Gray
+    Write-Host "  Owner: $($Flow.CreatedBy.displayName)" -ForegroundColor Gray
+    
+    # Export flow definition
+    Write-Host "Exporting flow definition..." -ForegroundColor Cyan
+    
+    $FlowDefinition = [PSCustomObject]@{
+        DisplayName      = $Flow.DisplayName
+        FlowName         = $Flow.FlowName
+        EnvironmentName  = $Flow.EnvironmentName
+        Enabled          = $Flow.Enabled
+        CreatedTime      = $Flow.CreatedTime
+        LastModifiedTime = $Flow.LastModifiedTime
+        CreatedBy        = $Flow.CreatedBy
+        Definition       = $Flow.Internal.properties.definition
+        ConnectionRefs   = $Flow.Internal.properties.connectionReferences
+        TriggerConfig    = $Flow.Internal.properties.definition.triggers
+        ActionConfig     = $Flow.Internal.properties.definition.actions
+    }
+    
+    $FlowDefinition | ConvertTo-Json -Depth 20 | Out-File -FilePath "${exportPath}" -Encoding UTF8
+    
+    Write-Host "✓ Flow definition exported successfully" -ForegroundColor Green
+    Write-Host "Location: ${exportPath}" -ForegroundColor Gray
+    
+    # Display file info
+    if (Test-Path "${exportPath}") {
+        $FileInfo = Get-Item "${exportPath}"
+        Write-Host "File size: $([math]::Round($FileInfo.Length / 1KB, 2)) KB" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "Notes:" -ForegroundColor Yellow
+    Write-Host "  - Connection credentials are NOT included" -ForegroundColor Gray
+    Write-Host "  - Store in version control for history" -ForegroundColor Gray
+    Write-Host "  - Review before importing to other environments" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to export flow definition: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-flow-failed-runs',
+    title: 'Export Failed Flow Runs Report',
+    description: 'Generate report of failed Power Automate flow runs',
+    category: 'Reporting & Analytics',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script generates a comprehensive report of failed Power Automate flow runs for troubleshooting and error analysis.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Flow Owner role
+- Authenticated to Power Platform
+- Flow run history must be available (up to 28 days)
+
+**What You Need to Provide:**
+- Environment name where flows exist
+- Number of days to analyze (max 28)
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves flow run history across environment
+- Filters for failed runs only
+- Collects error messages and failure details
+- Exports failed runs report to CSV
+- Reports failure patterns and statistics
+
+**Important Notes:**
+- Essential for proactive flow monitoring
+- Shows error messages and failure timestamps
+- Use for identifying recurring issues
+- Prioritize fixes based on failure frequency
+- Run history limited to 28 days
+- Typical use: troubleshooting, health monitoring
+- Review failed runs regularly for reliability
+- Address high-frequency failures first`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment to analyze'
+      },
+      {
+        name: 'daysBack',
+        label: 'Days to Analyze',
+        type: 'number',
+        required: false,
+        defaultValue: 7,
+        placeholder: '7',
+        helpText: 'Number of days to look back (max 28)'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\FailedFlowRuns.csv',
+        helpText: 'Path where the failed runs CSV will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const daysBack = params.daysBack || 7;
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Failed Flow Runs Report
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Generating failed flow runs report..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    
+    $DaysBack = ${daysBack}
+    if ($DaysBack -gt 28) {
+        Write-Host "⚠️  Run history limited to 28 days, using 28" -ForegroundColor Yellow
+        $DaysBack = 28
+    }
+    
+    $StartDate = (Get-Date).AddDays(-$DaysBack)
+    Write-Host "Analyzing failures since: $($StartDate.ToString('yyyy-MM-dd'))" -ForegroundColor Yellow
+    
+    # Get all flows in environment
+    $Flows = Get-AdminFlow -EnvironmentName "${environmentName}"
+    Write-Host "Scanning $($Flows.Count) flows..." -ForegroundColor Gray
+    
+    $FailedRuns = @()
+    $ProcessedFlows = 0
+    
+    foreach ($Flow in $Flows) {
+        $ProcessedFlows++
+        Write-Progress -Activity "Analyzing flows" -Status "$ProcessedFlows of $($Flows.Count): $($Flow.DisplayName)" -PercentComplete (($ProcessedFlows / $Flows.Count) * 100)
+        
+        try {
+            $Runs = Get-FlowRun -EnvironmentName "${environmentName}" -FlowName $Flow.FlowName
+            $RecentFailures = $Runs | Where-Object { 
+                $_.Status -eq 'Failed' -and 
+                [datetime]$_.StartTime -ge $StartDate 
+            }
+            
+            foreach ($FailedRun in $RecentFailures) {
+                $FailedRuns += [PSCustomObject]@{
+                    FlowDisplayName  = $Flow.DisplayName
+                    FlowName         = $Flow.FlowName
+                    FlowOwner        = $Flow.CreatedBy.displayName
+                    RunId            = $FailedRun.Name
+                    Status           = $FailedRun.Status
+                    StartTime        = $FailedRun.StartTime
+                    EndTime          = $FailedRun.Properties.endTime
+                    ErrorCode        = if ($FailedRun.Properties.error) { $FailedRun.Properties.error.code } else { 'Unknown' }
+                    ErrorMessage     = if ($FailedRun.Properties.error) { $FailedRun.Properties.error.message } else { 'No error message' }
+                    TriggerName      = $FailedRun.Properties.trigger.name
+                }
+            }
+        } catch {
+            # Flow may not have runs or access issues
+        }
+    }
+    
+    Write-Progress -Activity "Analyzing flows" -Completed
+    
+    Write-Host "✓ Found $($FailedRuns.Count) failed runs in the last $DaysBack days" -ForegroundColor Yellow
+    
+    if ($FailedRuns.Count -gt 0) {
+        $FailedRuns | Export-Csv -Path "${exportPath}" -NoTypeInformation
+        Write-Host "✓ Failed runs report exported to: ${exportPath}" -ForegroundColor Green
+        
+        # Show summary
+        Write-Host ""
+        Write-Host "=== Failure Summary ===" -ForegroundColor Cyan
+        Write-Host "Top flows with failures:" -ForegroundColor Gray
+        $FailedRuns | Group-Object FlowDisplayName | Sort-Object Count -Descending | Select-Object -First 10 Name, Count | Format-Table
+        
+        Write-Host "Common error codes:" -ForegroundColor Gray
+        $FailedRuns | Group-Object ErrorCode | Sort-Object Count -Descending | Select-Object -First 5 Name, Count | Format-Table
+    } else {
+        Write-Host "✓ No failed runs found - excellent!" -ForegroundColor Green
+    }
+    
+} catch {
+    Write-Error "Failed to generate failed runs report: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-dataverse-tables',
+    title: 'Export Dataverse Tables Inventory',
+    description: 'List all Dataverse tables and their schemas',
+    category: 'Dataverse',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script exports an inventory of all Dataverse tables and their column schemas for documentation and governance.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or System Customizer role
+- Authenticated to Power Platform
+- Dataverse database must be enabled in environment
+
+**What You Need to Provide:**
+- Environment name with Dataverse
+- CSV export file path
+
+**What the Script Does:**
+- Connects to Dataverse environment
+- Retrieves all tables (entities) and their metadata
+- Collects table names, types, and ownership types
+- Exports complete table inventory to CSV
+- Reports total table count
+
+**Important Notes:**
+- Essential for data governance and documentation
+- Shows both system and custom tables
+- Includes ownership type (User, Organization, None)
+- Use for data dictionary and documentation
+- Track custom tables for solution planning
+- Typical use: documentation, compliance audits
+- Review before major data migrations
+- Identify unused tables for cleanup`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment with Dataverse database'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\DataverseTables.csv',
+        helpText: 'Path where the table inventory CSV will be saved'
+      },
+      {
+        name: 'includeSystem',
+        label: 'Include System Tables',
+        type: 'checkbox',
+        required: false,
+        defaultValue: false,
+        helpText: 'Include Microsoft system tables in export'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const exportPath = escapePowerShellString(params.exportPath);
+      const includeSystem = params.includeSystem ? '$true' : '$false';
+
+      return `# Export Dataverse Tables Inventory
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Exporting Dataverse tables inventory..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "Include System Tables: ${includeSystem}" -ForegroundColor Yellow
+    
+    # Connect to Dataverse
+    Write-Host "Connecting to Dataverse..." -ForegroundColor Gray
+    
+    # Get environment URL
+    $Env = Get-AdminPowerAppEnvironment -EnvironmentName "${environmentName}"
+    $OrgUrl = $Env.Internal.properties.linkedEnvironmentMetadata.instanceUrl
+    
+    if (-not $OrgUrl) {
+        throw "Dataverse is not enabled in this environment"
+    }
+    
+    Write-Host "✓ Connected to: $OrgUrl" -ForegroundColor Green
+    
+    # Get all entities/tables
+    Write-Host "Retrieving tables..." -ForegroundColor Cyan
+    
+    $ApiUrl = "$OrgUrl/api/data/v9.2/EntityDefinitions"
+    $Headers = @{
+        "Authorization" = "Bearer $((Get-AzAccessToken -ResourceUrl $OrgUrl).Token)"
+        "OData-MaxVersion" = "4.0"
+        "OData-Version" = "4.0"
+        "Accept" = "application/json"
+    }
+    
+    $Response = Invoke-RestMethod -Uri $ApiUrl -Headers $Headers -Method Get
+    $Tables = $Response.value
+    
+    # Filter system tables if requested
+    if (-not ${includeSystem}) {
+        $Tables = $Tables | Where-Object { -not $_.IsCustomizable.Value -eq $false -and $_.LogicalName -notlike "msdyn*" -and $_.LogicalName -notlike "adx*" }
+    }
+    
+    Write-Host "Found $($Tables.Count) tables" -ForegroundColor Yellow
+    
+    $TableReport = foreach ($Table in $Tables) {
+        [PSCustomObject]@{
+            DisplayName      = $Table.DisplayName.UserLocalizedLabel.Label
+            LogicalName      = $Table.LogicalName
+            SchemaName       = $Table.SchemaName
+            OwnershipType    = $Table.OwnershipType
+            IsCustomEntity   = $Table.IsCustomEntity
+            IsManaged        = $Table.IsManaged
+            TableType        = $Table.TableType
+            PrimaryIdAttr    = $Table.PrimaryIdAttribute
+            PrimaryNameAttr  = $Table.PrimaryNameAttribute
+            Description      = if ($Table.Description.UserLocalizedLabel) { $Table.Description.UserLocalizedLabel.Label } else { '' }
+        }
+    }
+    
+    $TableReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Table inventory exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Show summary
+    Write-Host ""
+    Write-Host "=== Table Summary ===" -ForegroundColor Cyan
+    Write-Host "Total Tables: $($Tables.Count)" -ForegroundColor Gray
+    Write-Host "Custom Tables: $(($TableReport | Where-Object { $_.IsCustomEntity }).Count)" -ForegroundColor Gray
+    Write-Host "Managed Tables: $(($TableReport | Where-Object { $_.IsManaged }).Count)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to export Dataverse tables: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-create-env-variable',
+    title: 'Create Environment Variable',
+    description: 'Create a new environment variable in Dataverse',
+    category: 'Dataverse',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates a new environment variable in Dataverse for configuration management and solution deployment.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or System Customizer role
+- Authenticated to Power Platform
+- Dataverse database must be enabled
+
+**What You Need to Provide:**
+- Environment name
+- Variable schema name
+- Variable display name
+- Variable type (String, Number, Boolean, JSON)
+- Default value
+
+**What the Script Does:**
+- Creates new environment variable definition
+- Sets variable type and default value
+- Makes variable available for apps and flows
+- Confirms successful creation
+
+**Important Notes:**
+- Essential for configuration management across environments
+- Environment variables enable ALM best practices
+- Values can differ per environment (dev/test/prod)
+- Use for connection strings, API endpoints, feature flags
+- Include in solutions for deployment
+- Typical use: configuration management, deployments
+- Avoid hardcoding values - use environment variables
+- Update values without modifying apps/flows`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment to create variable in'
+      },
+      {
+        name: 'schemaName',
+        label: 'Schema Name',
+        type: 'text',
+        required: true,
+        placeholder: 'contoso_ApiEndpoint',
+        helpText: 'Unique schema name (prefix_VariableName)'
+      },
+      {
+        name: 'displayName',
+        label: 'Display Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Contoso API Endpoint',
+        helpText: 'User-friendly display name'
+      },
+      {
+        name: 'variableType',
+        label: 'Variable Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'String', label: 'String (Text)' },
+          { value: 'Number', label: 'Number (Decimal)' },
+          { value: 'Boolean', label: 'Boolean (Yes/No)' },
+          { value: 'JSON', label: 'JSON (Data Object)' }
+        ],
+        helpText: 'Data type for the variable'
+      },
+      {
+        name: 'defaultValue',
+        label: 'Default Value',
+        type: 'text',
+        required: true,
+        placeholder: 'https://api.contoso.com',
+        helpText: 'Default value for the variable'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const schemaName = escapePowerShellString(params.schemaName);
+      const displayName = escapePowerShellString(params.displayName);
+      const variableType = params.variableType;
+      const defaultValue = escapePowerShellString(params.defaultValue);
+
+      return `# Create Environment Variable
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating environment variable..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "Schema Name: ${schemaName}" -ForegroundColor Yellow
+    Write-Host "Display Name: ${displayName}" -ForegroundColor Yellow
+    Write-Host "Type: ${variableType}" -ForegroundColor Yellow
+    
+    # Get environment URL
+    $Env = Get-AdminPowerAppEnvironment -EnvironmentName "${environmentName}"
+    $OrgUrl = $Env.Internal.properties.linkedEnvironmentMetadata.instanceUrl
+    
+    if (-not $OrgUrl) {
+        throw "Dataverse is not enabled in this environment"
+    }
+    
+    Write-Host "✓ Connected to: $OrgUrl" -ForegroundColor Green
+    
+    # Map variable type to Dataverse type code
+    $TypeMapping = @{
+        'String'  = 100000000
+        'Number'  = 100000001
+        'Boolean' = 100000002
+        'JSON'    = 100000003
+    }
+    
+    $TypeCode = $TypeMapping['${variableType}']
+    
+    # Create environment variable definition
+    $VariableDefinition = @{
+        schemaname = "${schemaName}"
+        displayname = "${displayName}"
+        type = $TypeCode
+        defaultvalue = "${defaultValue}"
+    }
+    
+    $ApiUrl = "$OrgUrl/api/data/v9.2/environmentvariabledefinitions"
+    $Headers = @{
+        "Authorization" = "Bearer $((Get-AzAccessToken -ResourceUrl $OrgUrl).Token)"
+        "OData-MaxVersion" = "4.0"
+        "OData-Version" = "4.0"
+        "Accept" = "application/json"
+        "Content-Type" = "application/json"
+    }
+    
+    $Body = $VariableDefinition | ConvertTo-Json
+    
+    Write-Host "Creating variable definition..." -ForegroundColor Cyan
+    $Response = Invoke-RestMethod -Uri $ApiUrl -Headers $Headers -Method Post -Body $Body
+    
+    Write-Host "✓ Environment variable created successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Variable Details:" -ForegroundColor Cyan
+    Write-Host "  Schema Name: ${schemaName}" -ForegroundColor Gray
+    Write-Host "  Display Name: ${displayName}" -ForegroundColor Gray
+    Write-Host "  Type: ${variableType}" -ForegroundColor Gray
+    Write-Host "  Default Value: ${defaultValue}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Yellow
+    Write-Host "  1. Add variable to a solution for deployment" -ForegroundColor Gray
+    Write-Host "  2. Reference in Power Apps using Environment() function" -ForegroundColor Gray
+    Write-Host "  3. Reference in Power Automate using environment variable actions" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create environment variable: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-update-dlp-connector-group',
+    title: 'Update DLP Connector Classification',
+    description: 'Move a connector between DLP policy groups',
+    category: 'Governance',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script updates DLP policy connector classifications by moving connectors between Business, Non-Business, and Blocked groups.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or Global Administrator role
+- Authenticated to Power Platform
+- DLP policy must exist
+
+**What You Need to Provide:**
+- DLP policy name (GUID)
+- Connector ID to reclassify
+- Target group (Business, NonBusiness, Blocked)
+
+**What the Script Does:**
+- Retrieves current DLP policy configuration
+- Moves connector to specified group
+- Updates policy with new classification
+- Confirms successful update
+
+**Important Notes:**
+- ⚠️ Changes take effect immediately
+- Apps/flows using misclassified connectors may break
+- Business connectors can share data with each other
+- Non-Business connectors can share data with each other
+- Blocked connectors cannot be used at all
+- Typical use: security policy updates, compliance changes
+- Test changes in non-production first
+- Notify users before blocking widely-used connectors`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'DLP Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Policy ID (GUID)',
+        helpText: 'The DLP policy to update'
+      },
+      {
+        name: 'connectorId',
+        label: 'Connector ID',
+        type: 'text',
+        required: true,
+        placeholder: 'shared_sharepointonline',
+        helpText: 'Connector ID (e.g., shared_sharepointonline, shared_office365)'
+      },
+      {
+        name: 'targetGroup',
+        label: 'Target Group',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Business', label: 'Business (confidential data allowed)' },
+          { value: 'NonBusiness', label: 'Non-Business (general data)' },
+          { value: 'Blocked', label: 'Blocked (cannot be used)' }
+        ],
+        helpText: 'Group to move the connector to'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const connectorId = escapePowerShellString(params.connectorId);
+      const targetGroup = params.targetGroup;
+
+      return `# Update DLP Connector Classification
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Updating DLP connector classification..." -ForegroundColor Cyan
+    Write-Host "Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "Connector: ${connectorId}" -ForegroundColor Yellow
+    Write-Host "Target Group: ${targetGroup}" -ForegroundColor Yellow
+    
+    # Get current policy
+    $Policy = Get-AdminDlpPolicy -PolicyName "${policyName}"
+    
+    if (-not $Policy) {
+        throw "DLP Policy not found: ${policyName}"
+    }
+    
+    Write-Host "✓ Policy found: $($Policy.DisplayName)" -ForegroundColor Green
+    
+    # Prepare connector classification update
+    $ConnectorConfig = @{
+        id = "/providers/Microsoft.PowerApps/apis/${connectorId}"
+        name = "${connectorId}"
+        type = "Microsoft.PowerApps/apis"
+    }
+    
+    # Map target group to DLP group name
+    $GroupMapping = @{
+        'Business'    = 'lbi'      # Low Business Impact (Business data)
+        'NonBusiness' = 'hbi'      # High Business Impact (Non-business data)  
+        'Blocked'     = 'blocked'
+    }
+    
+    $DlpGroup = $GroupMapping['${targetGroup}']
+    
+    Write-Host "Moving connector to group: $DlpGroup" -ForegroundColor Cyan
+    
+    # Update policy
+    Set-AdminDlpPolicy -PolicyName "${policyName}" -SetConnectorGroups @{
+        $DlpGroup = @($ConnectorConfig)
+    }
+    
+    Write-Host "✓ Connector classification updated successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "⚠️  Important:" -ForegroundColor Yellow
+    Write-Host "  - Changes take effect immediately" -ForegroundColor Gray
+    Write-Host "  - Apps/flows using this connector may be affected" -ForegroundColor Gray
+    Write-Host "  - Verify no critical processes are disrupted" -ForegroundColor Gray
+    
+    # Show current policy groups
+    Write-Host ""
+    Write-Host "Current policy connector groups:" -ForegroundColor Cyan
+    Get-AdminDlpPolicy -PolicyName "${policyName}" | Select-Object -ExpandProperty connectorGroups | Format-Table classification, connectors
+    
+} catch {
+    Write-Error "Failed to update DLP connector classification: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-license-consumption',
+    title: 'Export License Consumption Report',
+    description: 'Generate Power Platform license usage and consumption report',
+    category: 'Reporting & Analytics',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script generates a comprehensive license consumption report for Power Platform capacity planning and cost management.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator or License Administrator role
+- Authenticated to Power Platform and Azure AD
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves Power Platform license assignments
+- Collects user consumption metrics
+- Calculates per-user and per-environment usage
+- Exports license consumption report to CSV
+- Reports summary statistics
+
+**Important Notes:**
+- Essential for license compliance and cost optimization
+- Shows assigned vs consumed licenses
+- Identifies underutilized licenses for reallocation
+- Use for capacity planning and budgeting
+- Track premium connector usage for license requirements
+- Typical use: license audits, cost optimization
+- Review monthly for optimization opportunities
+- Identify users who need license upgrades`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\LicenseConsumption.csv',
+        helpText: 'Path where the license report CSV will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export License Consumption Report
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Generating Power Platform license consumption report..." -ForegroundColor Cyan
+    
+    # Get all environments and their resource usage
+    Write-Host "Collecting environment data..." -ForegroundColor Gray
+    $Environments = Get-AdminPowerAppEnvironment
+    
+    # Get all users with Power Apps/Automate activity
+    Write-Host "Collecting user activity data..." -ForegroundColor Gray
+    $Apps = Get-AdminPowerApp
+    $Flows = Get-AdminFlow
+    
+    # Build user consumption report
+    $UserConsumption = @{}
+    
+    # Track app ownership
+    foreach ($App in $Apps) {
+        $Owner = $App.Owner.userPrincipalName
+        if ($Owner) {
+            if (-not $UserConsumption.ContainsKey($Owner)) {
+                $UserConsumption[$Owner] = @{
+                    Email = $Owner
+                    DisplayName = $App.Owner.displayName
+                    AppCount = 0
+                    FlowCount = 0
+                    Environments = @{}
+                    UsesPremiumConnectors = $false
+                }
+            }
+            $UserConsumption[$Owner].AppCount++
+            $UserConsumption[$Owner].Environments[$App.EnvironmentName] = $true
+        }
+    }
+    
+    # Track flow ownership
+    foreach ($Flow in $Flows) {
+        $Owner = $Flow.CreatedBy.userPrincipalName
+        if ($Owner) {
+            if (-not $UserConsumption.ContainsKey($Owner)) {
+                $UserConsumption[$Owner] = @{
+                    Email = $Owner
+                    DisplayName = $Flow.CreatedBy.displayName
+                    AppCount = 0
+                    FlowCount = 0
+                    Environments = @{}
+                    UsesPremiumConnectors = $false
+                }
+            }
+            $UserConsumption[$Owner].FlowCount++
+            $UserConsumption[$Owner].Environments[$Flow.EnvironmentName] = $true
+        }
+    }
+    
+    # Build report
+    $LicenseReport = foreach ($User in $UserConsumption.Values) {
+        [PSCustomObject]@{
+            UserEmail            = $User.Email
+            DisplayName          = $User.DisplayName
+            TotalApps            = $User.AppCount
+            TotalFlows           = $User.FlowCount
+            EnvironmentsUsed     = $User.Environments.Count
+            TotalResources       = $User.AppCount + $User.FlowCount
+            RequiresPremium      = $User.UsesPremiumConnectors
+            LicenseRecommendation = if ($User.AppCount + $User.FlowCount -gt 10) { 'Per-User Plan' } 
+                                    elseif ($User.AppCount + $User.FlowCount -gt 0) { 'Per-App Plan' }
+                                    else { 'No License Needed' }
+        }
+    }
+    
+    Write-Host "Found $($LicenseReport.Count) users with Power Platform activity" -ForegroundColor Yellow
+    
+    # Export report
+    $LicenseReport | Sort-Object TotalResources -Descending | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ License consumption report exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Show summary
+    Write-Host ""
+    Write-Host "=== License Consumption Summary ===" -ForegroundColor Cyan
+    Write-Host "Total Users with Activity: $($LicenseReport.Count)" -ForegroundColor Gray
+    Write-Host "Total Apps: $(($LicenseReport | Measure-Object -Property TotalApps -Sum).Sum)" -ForegroundColor Gray
+    Write-Host "Total Flows: $(($LicenseReport | Measure-Object -Property TotalFlows -Sum).Sum)" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "License Recommendations:" -ForegroundColor Cyan
+    $LicenseReport | Group-Object LicenseRecommendation | Sort-Object Count -Descending | Format-Table Name, Count
+    
+    Write-Host ""
+    Write-Host "Top consumers:" -ForegroundColor Cyan
+    $LicenseReport | Sort-Object TotalResources -Descending | Select-Object -First 10 UserEmail, TotalApps, TotalFlows, TotalResources | Format-Table
+    
+} catch {
+    Write-Error "Failed to generate license consumption report: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-connection-health',
+    title: 'Check Connection Health Status',
+    description: 'Verify health status of all Power Platform connections',
+    category: 'Reporting & Analytics',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script checks the health status of all Power Platform connections to identify broken or expired connections.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator role
+- Authenticated to Power Platform
+
+**What You Need to Provide:**
+- Environment name to check
+- CSV export file path
+
+**What the Script Does:**
+- Retrieves all connections in environment
+- Checks connection status and validity
+- Identifies broken or expired connections
+- Exports connection health report to CSV
+- Reports issues requiring attention
+
+**Important Notes:**
+- Essential for proactive maintenance
+- Broken connections cause flow failures
+- Expired credentials need renewal
+- Check regularly to prevent outages
+- Notify connection owners of issues
+- Typical use: health monitoring, troubleshooting
+- Run weekly for proactive maintenance
+- Prioritize fixing connections used by critical flows`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment to check connections in'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\ConnectionHealth.csv',
+        helpText: 'Path where the connection health CSV will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Check Connection Health Status
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Checking Power Platform connection health..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    
+    # Get all connections in environment
+    $Connections = Get-AdminPowerAppConnection -EnvironmentName "${environmentName}"
+    
+    Write-Host "Found $($Connections.Count) connections" -ForegroundColor Yellow
+    
+    $HealthReport = foreach ($Connection in $Connections) {
+        $Status = $Connection.Statuses | Select-Object -First 1
+        $StatusCode = if ($Status) { $Status.status } else { 'Unknown' }
+        
+        $IsHealthy = $StatusCode -eq 'Connected'
+        $NeedsAttention = $StatusCode -in @('Error', 'Unauthenticated', 'Invalid')
+        
+        [PSCustomObject]@{
+            ConnectionName    = $Connection.DisplayName
+            ConnectionId      = $Connection.ConnectionName
+            ConnectorName     = $Connection.ConnectorName
+            Status            = $StatusCode
+            IsHealthy         = $IsHealthy
+            NeedsAttention    = $NeedsAttention
+            CreatedBy         = $Connection.CreatedBy.displayName
+            CreatedByEmail    = $Connection.CreatedBy.userPrincipalName
+            CreatedTime       = $Connection.CreatedTime
+            LastModifiedTime  = $Connection.LastModifiedTime
+            EnvironmentName   = $Connection.EnvironmentName
+        }
+    }
+    
+    # Export report
+    $HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Connection health report exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Summary statistics
+    $HealthyCount = ($HealthReport | Where-Object { $_.IsHealthy }).Count
+    $UnhealthyCount = ($HealthReport | Where-Object { -not $_.IsHealthy }).Count
+    $AttentionCount = ($HealthReport | Where-Object { $_.NeedsAttention }).Count
+    
+    Write-Host ""
+    Write-Host "=== Connection Health Summary ===" -ForegroundColor Cyan
+    Write-Host "Total Connections: $($Connections.Count)" -ForegroundColor Gray
+    Write-Host "Healthy: $HealthyCount" -ForegroundColor Green
+    Write-Host "Unhealthy: $UnhealthyCount" -ForegroundColor $(if ($UnhealthyCount -gt 0) { 'Yellow' } else { 'Gray' })
+    Write-Host "Needs Immediate Attention: $AttentionCount" -ForegroundColor $(if ($AttentionCount -gt 0) { 'Red' } else { 'Gray' })
+    
+    if ($AttentionCount -gt 0) {
+        Write-Host ""
+        Write-Host "⚠️  Connections requiring attention:" -ForegroundColor Red
+        $HealthReport | Where-Object { $_.NeedsAttention } | Format-Table ConnectionName, ConnectorName, Status, CreatedByEmail
+        
+        Write-Host ""
+        Write-Host "Recommended actions:" -ForegroundColor Yellow
+        Write-Host "  1. Contact connection owners to re-authenticate" -ForegroundColor Gray
+        Write-Host "  2. Update expired credentials" -ForegroundColor Gray
+        Write-Host "  3. Remove unused broken connections" -ForegroundColor Gray
+    } else {
+        Write-Host ""
+        Write-Host "✓ All connections are healthy!" -ForegroundColor Green
+    }
+    
+} catch {
+    Write-Error "Failed to check connection health: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-reassign-app-owner',
+    title: 'Reassign Power App Owner',
+    description: 'Transfer ownership of a Power App to another user',
+    category: 'Apps & Flows',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script transfers ownership of a Power App from one user to another for governance and personnel changes.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator role
+- Authenticated to Power Platform
+- New owner must exist in Azure AD
+- App must exist in the specified environment
+
+**What You Need to Provide:**
+- Environment name where app exists
+- App name (GUID)
+- New owner email address
+
+**What the Script Does:**
+- Validates app and new owner exist
+- Transfers app ownership to new user
+- Grants full edit permissions to new owner
+- Confirms successful ownership transfer
+
+**Important Notes:**
+- Essential for employee offboarding/transitions
+- New owner gets full control of the app
+- Previous owner retains co-owner access
+- Use for orphaned app cleanup
+- Data source permissions may need updating
+- Typical use: employee departures, team changes
+- Notify new owner of their responsibilities
+- Review app functionality after transfer`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment containing the app'
+      },
+      {
+        name: 'appName',
+        label: 'App Name',
+        type: 'text',
+        required: true,
+        placeholder: 'App ID (GUID)',
+        helpText: 'The app to transfer ownership of'
+      },
+      {
+        name: 'newOwnerEmail',
+        label: 'New Owner Email',
+        type: 'text',
+        required: true,
+        placeholder: 'newowner@company.com',
+        helpText: 'Email of the user to transfer ownership to'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const appName = escapePowerShellString(params.appName);
+      const newOwnerEmail = escapePowerShellString(params.newOwnerEmail);
+
+      return `# Reassign Power App Owner
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Reassigning Power App ownership..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "App: ${appName}" -ForegroundColor Yellow
+    Write-Host "New Owner: ${newOwnerEmail}" -ForegroundColor Yellow
+    
+    # Get current app info
+    $App = Get-AdminPowerApp -EnvironmentName "${environmentName}" -AppName "${appName}"
+    
+    if (-not $App) {
+        throw "App not found: ${appName}"
+    }
+    
+    Write-Host "✓ App found: $($App.DisplayName)" -ForegroundColor Green
+    Write-Host "  Current Owner: $($App.Owner.displayName) ($($App.Owner.userPrincipalName))" -ForegroundColor Gray
+    
+    # Transfer ownership
+    Write-Host "Transferring ownership..." -ForegroundColor Cyan
+    
+    Set-AdminPowerAppOwner -EnvironmentName "${environmentName}" -AppName "${appName}" -AppOwner "${newOwnerEmail}"
+    
+    Write-Host "✓ Ownership transferred successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Transfer Details:" -ForegroundColor Cyan
+    Write-Host "  App: $($App.DisplayName)" -ForegroundColor Gray
+    Write-Host "  Previous Owner: $($App.Owner.userPrincipalName)" -ForegroundColor Gray
+    Write-Host "  New Owner: ${newOwnerEmail}" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Next steps for new owner:" -ForegroundColor Yellow
+    Write-Host "  1. Review app functionality" -ForegroundColor Gray
+    Write-Host "  2. Update data source connections if needed" -ForegroundColor Gray
+    Write-Host "  3. Review and update sharing permissions" -ForegroundColor Gray
+    Write-Host "  4. Test all app features" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to reassign app ownership: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'pp-reassign-flow-owner',
+    title: 'Reassign Power Automate Flow Owner',
+    description: 'Transfer ownership of a Power Automate flow to another user',
+    category: 'Apps & Flows',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script transfers ownership of a Power Automate flow from one user to another for governance and personnel changes.
+
+**Prerequisites:**
+- Power Apps PowerShell module installed
+- Power Platform Administrator role
+- Authenticated to Power Platform
+- New owner must exist in Azure AD
+- Flow must exist in the specified environment
+
+**What You Need to Provide:**
+- Environment name where flow exists
+- Flow name (GUID)
+- New owner email address
+
+**What the Script Does:**
+- Validates flow and new owner exist
+- Transfers flow ownership to new user
+- Grants full edit permissions to new owner
+- Confirms successful ownership transfer
+
+**Important Notes:**
+- Essential for employee offboarding/transitions
+- New owner gets full control of the flow
+- Flow connections may need to be updated
+- ⚠️ Flow may pause if connections are user-specific
+- Check flow runs after transfer
+- Typical use: employee departures, team changes
+- New owner should verify all connections work
+- Re-enable flow if it was paused during transfer`,
+    parameters: [
+      {
+        name: 'environmentName',
+        label: 'Environment Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Environment ID',
+        helpText: 'Environment containing the flow'
+      },
+      {
+        name: 'flowName',
+        label: 'Flow Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Flow ID (GUID)',
+        helpText: 'The flow to transfer ownership of'
+      },
+      {
+        name: 'newOwnerEmail',
+        label: 'New Owner Email',
+        type: 'text',
+        required: true,
+        placeholder: 'newowner@company.com',
+        helpText: 'Email of the user to transfer ownership to'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const environmentName = escapePowerShellString(params.environmentName);
+      const flowName = escapePowerShellString(params.flowName);
+      const newOwnerEmail = escapePowerShellString(params.newOwnerEmail);
+
+      return `# Reassign Power Automate Flow Owner
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Reassigning Power Automate flow ownership..." -ForegroundColor Cyan
+    Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
+    Write-Host "Flow: ${flowName}" -ForegroundColor Yellow
+    Write-Host "New Owner: ${newOwnerEmail}" -ForegroundColor Yellow
+    
+    # Get current flow info
+    $Flow = Get-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}"
+    
+    if (-not $Flow) {
+        throw "Flow not found: ${flowName}"
+    }
+    
+    Write-Host "✓ Flow found: $($Flow.DisplayName)" -ForegroundColor Green
+    Write-Host "  Current Owner: $($Flow.CreatedBy.displayName) ($($Flow.CreatedBy.userPrincipalName))" -ForegroundColor Gray
+    Write-Host "  Status: $(if ($Flow.Enabled) { 'Enabled' } else { 'Disabled' })" -ForegroundColor Gray
+    
+    # Transfer ownership
+    Write-Host "Transferring ownership..." -ForegroundColor Cyan
+    
+    Set-AdminFlowOwnerRole -EnvironmentName "${environmentName}" -FlowName "${flowName}" -PrincipalType User -PrincipalObjectId "${newOwnerEmail}" -RoleName Owner
+    
+    Write-Host "✓ Ownership transferred successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Transfer Details:" -ForegroundColor Cyan
+    Write-Host "  Flow: $($Flow.DisplayName)" -ForegroundColor Gray
+    Write-Host "  Previous Owner: $($Flow.CreatedBy.userPrincipalName)" -ForegroundColor Gray
+    Write-Host "  New Owner: ${newOwnerEmail}" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "⚠️  Important next steps for new owner:" -ForegroundColor Yellow
+    Write-Host "  1. Open flow in Power Automate portal" -ForegroundColor Gray
+    Write-Host "  2. Update connection credentials if needed" -ForegroundColor Gray
+    Write-Host "  3. Verify flow triggers are working" -ForegroundColor Gray
+    Write-Host "  4. Re-enable flow if it was paused" -ForegroundColor Gray
+    Write-Host "  5. Monitor first few runs for errors" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to reassign flow ownership: $_"
+}`;
+    }
   }
 ];
 
@@ -3530,6 +5063,7 @@ export const powerPlatformCategories = [
   'Environment Management',
   'Apps & Flows',
   'Connectors',
+  'Dataverse',
   'Governance',
   'Reporting & Analytics',
   'Solutions',

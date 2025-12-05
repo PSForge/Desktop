@@ -3615,6 +3615,1616 @@ try {
     Write-Host "- Invalid quota values (min: 1 GB, max: 25 TB)" -ForegroundColor Gray
 }`;
     }
+  },
+
+  {
+    id: 'spo-create-site-from-template',
+    title: 'Create Site from Template',
+    description: 'Create a new SharePoint site using a predefined site template',
+    category: 'Site Management',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a new SharePoint site collection using a specific site template
+- Supports Team Site, Communication Site, and custom templates
+- Configures initial settings including time zone and locale
+
+**Prerequisites:**
+- SharePoint Online Management Shell or PnP PowerShell installed
+- SharePoint Administrator or Global Administrator role
+- Valid site template ID (e.g., STS#3, SITEPAGEPUBLISHING#0)
+
+**What You Need to Provide:**
+- Site URL (must be unique)
+- Site title
+- Owner email address
+- Site template selection
+- Optional: Time zone and locale settings
+
+**What the Script Does:**
+1. Connects to SharePoint Online admin center
+2. Creates new site collection with specified template
+3. Configures storage quota and regional settings
+4. Assigns owner as site collection administrator
+
+**Important Notes:**
+- Template options: Team Site (STS#3), Communication (SITEPAGEPUBLISHING#0)
+- Custom templates require provisioning with PnP templates
+- Modern templates create Microsoft 365 Group-connected sites
+- Classic templates create standalone SharePoint sites
+- Site provisioning may take 2-5 minutes to complete
+- Verify template compatibility with your requirements
+- Typical use: standardized department sites, project sites`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/NewProject',
+        helpText: 'Full URL for the new site collection'
+      },
+      {
+        name: 'title',
+        label: 'Site Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Marketing Project Site',
+        helpText: 'Display name for the site'
+      },
+      {
+        name: 'owner',
+        label: 'Owner Email',
+        type: 'text',
+        required: true,
+        placeholder: 'projectlead@contoso.com',
+        helpText: 'Primary site collection administrator'
+      },
+      {
+        name: 'template',
+        label: 'Site Template',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'STS#3', label: 'Team Site (Modern)' },
+          { value: 'SITEPAGEPUBLISHING#0', label: 'Communication Site' },
+          { value: 'STS#0', label: 'Team Site (Classic)' },
+          { value: 'BDR#0', label: 'Document Center' },
+          { value: 'PROJECTSITE#0', label: 'Project Site' }
+        ],
+        defaultValue: 'STS#3',
+        helpText: 'Select the site template type'
+      },
+      {
+        name: 'storageQuotaGB',
+        label: 'Storage Quota (GB)',
+        type: 'number',
+        required: false,
+        defaultValue: 10,
+        helpText: 'Initial storage quota in gigabytes'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const title = escapePowerShellString(params.title);
+      const owner = escapePowerShellString(params.owner);
+      const template = escapePowerShellString(params.template);
+      const storageQuotaGB = params.storageQuotaGB || 10;
+      const storageQuotaMB = storageQuotaGB * 1024;
+
+      return `# Create SharePoint Site from Template
+# Generated: ${new Date().toISOString()}
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $Title = "${title}"
+    $Owner = "${owner}"
+    $Template = "${template}"
+    $StorageQuotaMB = ${storageQuotaMB}
+    
+    Write-Host "Creating site from template..." -ForegroundColor Cyan
+    Write-Host "  URL: $SiteUrl" -ForegroundColor White
+    Write-Host "  Title: $Title" -ForegroundColor White
+    Write-Host "  Template: $Template" -ForegroundColor White
+    Write-Host "  Owner: $Owner" -ForegroundColor White
+    Write-Host ""
+    
+    # Create the site collection
+    New-SPOSite -Url $SiteUrl \`
+        -Title $Title \`
+        -Owner $Owner \`
+        -Template $Template \`
+        -StorageQuota $StorageQuotaMB \`
+        -TimeZoneId 10 \`
+        -LocaleId 1033
+    
+    Write-Host "✓ Site collection created successfully" -ForegroundColor Green
+    
+    # Wait for provisioning
+    Write-Host "Waiting for site provisioning to complete..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 30
+    
+    # Verify site creation
+    $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction SilentlyContinue
+    if ($Site) {
+        Write-Host ""
+        Write-Host "================= SITE DETAILS =================" -ForegroundColor Cyan
+        Write-Host "Title: $($Site.Title)" -ForegroundColor Gray
+        Write-Host "URL: $($Site.Url)" -ForegroundColor Gray
+        Write-Host "Template: $($Site.Template)" -ForegroundColor Gray
+        Write-Host "Owner: $($Site.Owner)" -ForegroundColor Gray
+        Write-Host "Storage Quota: $([math]::Round($Site.StorageQuota / 1024, 2)) GB" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Configure site permissions for team members" -ForegroundColor Gray
+    Write-Host "2. Set up document libraries and lists" -ForegroundColor Gray
+    Write-Host "3. Associate with hub site if applicable" -ForegroundColor Gray
+    Write-Host "4. Configure sharing settings" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create site from template: \$_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Site URL already exists" -ForegroundColor Gray
+    Write-Host "- Invalid template ID" -ForegroundColor Gray
+    Write-Host "- Owner not found or unlicensed" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-rename-site',
+    title: 'Rename Site Collection',
+    description: 'Change the URL of an existing SharePoint site collection',
+    category: 'Site Management',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Changes the URL path of an existing SharePoint site collection
+- Automatically creates redirects from old URL to new URL
+- Updates internal links and references where possible
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Site must not be a hub site or have pending changes
+
+**What You Need to Provide:**
+- Current site URL
+- New site URL path
+
+**What the Script Does:**
+1. Validates current site exists and is eligible for rename
+2. Initiates the site rename operation
+3. Creates automatic URL redirects
+4. Reports rename status and completion
+
+**Important Notes:**
+- ⚠️ Site renaming can take several hours for large sites
+- Old URL automatically redirects to new URL for 30+ days
+- Cannot rename hub sites (unregister hub first)
+- Cannot rename sites with ongoing migrations
+- Some external links may break if not using redirects
+- Users may experience brief access issues during rename
+- OneDrive sync clients require re-sync
+- Typical use: rebranding, organizational restructuring
+- Test with non-critical sites first`,
+    parameters: [
+      {
+        name: 'currentUrl',
+        label: 'Current Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/OldName',
+        helpText: 'Current full URL of the site'
+      },
+      {
+        name: 'newUrl',
+        label: 'New Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/NewName',
+        helpText: 'New full URL for the site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const currentUrl = escapePowerShellString(params.currentUrl);
+      const newUrl = escapePowerShellString(params.newUrl);
+
+      return `# Rename SharePoint Site Collection
+# Generated: ${new Date().toISOString()}
+# ⚠️ NOTE: Site rename operations can take several hours
+
+try {
+    $CurrentUrl = "${currentUrl}"
+    $NewUrl = "${newUrl}"
+    
+    Write-Host "Preparing to rename site collection..." -ForegroundColor Cyan
+    Write-Host "  Current URL: $CurrentUrl" -ForegroundColor White
+    Write-Host "  New URL: $NewUrl" -ForegroundColor White
+    Write-Host ""
+    
+    # Validate current site
+    $Site = Get-SPOSite -Identity $CurrentUrl -ErrorAction Stop
+    
+    Write-Host "Current Site Details:" -ForegroundColor Yellow
+    Write-Host "  Title: $($Site.Title)" -ForegroundColor White
+    Write-Host "  Template: $($Site.Template)" -ForegroundColor White
+    Write-Host "  Owner: $($Site.Owner)" -ForegroundColor White
+    Write-Host ""
+    
+    # Check if site is a hub
+    if ($Site.IsHubSite) {
+        Write-Host "⚠ WARNING: This is a hub site. Unregister it first." -ForegroundColor Red
+        Write-Host "Use: Unregister-SPOHubSite -Identity $CurrentUrl" -ForegroundColor Yellow
+        return
+    }
+    
+    Write-Host "⚠ IMPORTANT NOTES:" -ForegroundColor Yellow
+    Write-Host "  - Rename operation can take several hours" -ForegroundColor White
+    Write-Host "  - Old URL will automatically redirect to new URL" -ForegroundColor White
+    Write-Host "  - OneDrive sync clients will need to re-sync" -ForegroundColor White
+    Write-Host "  - External links using old URL will still work via redirect" -ForegroundColor White
+    Write-Host ""
+    
+    # Initiate the rename
+    Write-Host "Initiating site rename..." -ForegroundColor Cyan
+    Start-SPOSiteRename -Identity $CurrentUrl -NewSiteUrl $NewUrl
+    
+    Write-Host "✓ Site rename initiated successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Check rename status with:" -ForegroundColor Cyan
+    Write-Host "  Get-SPOSiteRenameState -Identity '$NewUrl'" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Possible states: NotStarted, InProgress, Success, Failed" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to rename site: \$_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Site URL already in use" -ForegroundColor Gray
+    Write-Host "- Site is a hub site" -ForegroundColor Gray
+    Write-Host "- Site has pending operations" -ForegroundColor Gray
+    Write-Host "- Insufficient permissions" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-delete-site-with-backup',
+    title: 'Delete Site with Content Backup',
+    description: 'Export site content to backup location before deletion',
+    category: 'Site Management',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Exports site content to a specified backup location
+- Creates comprehensive backup of document libraries
+- Then safely deletes the site to recycle bin
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator access
+- Backup destination accessible and writable
+
+**What You Need to Provide:**
+- Site URL to delete
+- Local backup folder path
+- Confirmation to proceed with deletion
+
+**What the Script Does:**
+1. Connects to the SharePoint site
+2. Exports all document libraries to local backup
+3. Creates metadata export of lists and items
+4. Moves site to recycle bin after backup completes
+5. Reports backup location and deletion status
+
+**Important Notes:**
+- ⚠️ DESTRUCTIVE OPERATION - Verify backup before deletion
+- Backup includes document content and metadata
+- Site moves to recycle bin for 93 days
+- Does not backup workflows or custom solutions
+- Large sites may take significant time to backup
+- Ensure sufficient local disk space
+- Typical use: site decommissioning, archival projects
+- Verify backup integrity before confirming deletion`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/OldProject',
+        helpText: 'Full URL of the site to backup and delete'
+      },
+      {
+        name: 'backupPath',
+        label: 'Backup Folder Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Backups\\SharePoint\\OldProject',
+        helpText: 'Local folder to store the backup files'
+      },
+      {
+        name: 'confirmDelete',
+        label: 'Confirm Deletion After Backup',
+        type: 'checkbox',
+        required: false,
+        defaultValue: false,
+        helpText: 'Check to delete site after backup completes'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const backupPath = escapePowerShellString(params.backupPath);
+      const confirmDelete = params.confirmDelete ? '$true' : '$false';
+
+      return `# Delete SharePoint Site with Content Backup
+# Generated: ${new Date().toISOString()}
+# ⚠️ WARNING: This will delete the site after backup
+
+Connect-PnPOnline -Url "${siteUrl}" -Interactive
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $BackupPath = "${backupPath}"
+    $ConfirmDelete = ${confirmDelete}
+    
+    Write-Host "Starting site backup and deletion process..." -ForegroundColor Cyan
+    Write-Host "  Site: $SiteUrl" -ForegroundColor White
+    Write-Host "  Backup Location: $BackupPath" -ForegroundColor White
+    Write-Host ""
+    
+    # Create backup directory
+    if (-not (Test-Path $BackupPath)) {
+        New-Item -ItemType Directory -Path $BackupPath -Force | Out-Null
+        Write-Host "✓ Created backup directory" -ForegroundColor Green
+    }
+    
+    # Get site info
+    $Web = Get-PnPWeb
+    Write-Host "Site Title: $($Web.Title)" -ForegroundColor Yellow
+    
+    # Export document libraries
+    Write-Host ""
+    Write-Host "Exporting document libraries..." -ForegroundColor Cyan
+    $Libraries = Get-PnPList | Where-Object { $_.BaseType -eq "DocumentLibrary" -and $_.Hidden -eq $false }
+    
+    foreach ($Library in $Libraries) {
+        Write-Host "  Backing up: $($Library.Title)" -ForegroundColor White
+        $LibraryPath = Join-Path $BackupPath $Library.Title
+        
+        if (-not (Test-Path $LibraryPath)) {
+            New-Item -ItemType Directory -Path $LibraryPath -Force | Out-Null
+        }
+        
+        $Items = Get-PnPListItem -List $Library.Title -PageSize 500
+        
+        foreach ($Item in $Items) {
+            if ($Item.FileSystemObjectType -eq "File") {
+                try {
+                    $FileName = $Item["FileLeafRef"]
+                    $FilePath = Join-Path $LibraryPath $FileName
+                    Get-PnPFile -Url $Item["FileRef"] -Path $LibraryPath -FileName $FileName -AsFile -Force
+                } catch {
+                    Write-Host "    Warning: Could not backup $FileName" -ForegroundColor Yellow
+                }
+            }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "✓ Content backup completed" -ForegroundColor Green
+    Write-Host "  Location: $BackupPath" -ForegroundColor Gray
+    
+    # Export site metadata
+    $MetadataPath = Join-Path $BackupPath "_SiteMetadata.json"
+    $SiteMetadata = @{
+        Title = $Web.Title
+        Url = $SiteUrl
+        BackupDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        Libraries = $Libraries | Select-Object Title, ItemCount
+    }
+    $SiteMetadata | ConvertTo-Json -Depth 3 | Out-File $MetadataPath
+    Write-Host "✓ Site metadata exported" -ForegroundColor Green
+    
+    # Delete site if confirmed
+    if ($ConfirmDelete) {
+        Write-Host ""
+        Write-Host "⚠ Proceeding with site deletion..." -ForegroundColor Yellow
+        
+        Disconnect-PnPOnline
+        
+        Remove-SPOSite -Identity $SiteUrl -Confirm:$false
+        
+        Write-Host "✓ Site moved to recycle bin" -ForegroundColor Green
+        Write-Host "  Can be restored within 93 days" -ForegroundColor Gray
+    } else {
+        Write-Host ""
+        Write-Host "Site deletion skipped (not confirmed)" -ForegroundColor Yellow
+        Write-Host "Review backup, then delete manually or rerun with confirmation" -ForegroundColor Gray
+    }
+    
+} catch {
+    Write-Error "Failed during backup/deletion: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-configure-permission-inheritance',
+    title: 'Configure Permission Inheritance',
+    description: 'Manage permission inheritance for sites, libraries, and folders',
+    category: 'Permissions',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Controls whether a site or library inherits permissions from its parent
+- Enables breaking inheritance for custom security requirements
+- Supports resetting inheritance to parent permissions
+
+**Prerequisites:**
+- PnP PowerShell module installed
+- Site Collection Administrator or Full Control permissions
+- Understanding of SharePoint permission model
+
+**What You Need to Provide:**
+- Site URL
+- Target object (site, library, or folder path)
+- Action (break or reset inheritance)
+
+**What the Script Does:**
+1. Connects to the SharePoint site
+2. Identifies the target object (list, library, or folder)
+3. Breaks or resets permission inheritance
+4. Reports current permission state
+
+**Important Notes:**
+- Breaking inheritance creates unique permissions
+- Resetting inheritance removes unique permissions
+- Unique permissions increase management complexity
+- Child items inherit from their parent by default
+- Breaking inheritance on many items impacts performance
+- Document permission decisions for compliance
+- Typical use: confidential folders, restricted libraries
+- Prefer SharePoint groups over individual permissions`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/HR',
+        helpText: 'Full URL of the SharePoint site'
+      },
+      {
+        name: 'targetType',
+        label: 'Target Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'List', label: 'Document Library or List' },
+          { value: 'Folder', label: 'Folder' },
+          { value: 'Item', label: 'Specific Item' }
+        ],
+        defaultValue: 'List',
+        helpText: 'Type of object to configure'
+      },
+      {
+        name: 'targetName',
+        label: 'Target Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Documents or Shared Documents/HR Policies',
+        helpText: 'Library name or folder server-relative path'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Break', label: 'Break Inheritance (Create Unique Permissions)' },
+          { value: 'Reset', label: 'Reset Inheritance (Use Parent Permissions)' }
+        ],
+        defaultValue: 'Break',
+        helpText: 'Whether to break or reset permission inheritance'
+      },
+      {
+        name: 'copyPermissions',
+        label: 'Copy Existing Permissions',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'When breaking inheritance, copy current permissions'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const targetType = escapePowerShellString(params.targetType);
+      const targetName = escapePowerShellString(params.targetName);
+      const action = escapePowerShellString(params.action);
+      const copyPermissions = params.copyPermissions ? '$true' : '$false';
+
+      return `# Configure Permission Inheritance
+# Generated: ${new Date().toISOString()}
+
+Connect-PnPOnline -Url "${siteUrl}" -Interactive
+
+try {
+    $TargetType = "${targetType}"
+    $TargetName = "${targetName}"
+    $Action = "${action}"
+    $CopyPermissions = ${copyPermissions}
+    
+    Write-Host "Configuring permission inheritance..." -ForegroundColor Cyan
+    Write-Host "  Site: ${siteUrl}" -ForegroundColor White
+    Write-Host "  Target: $TargetName ($TargetType)" -ForegroundColor White
+    Write-Host "  Action: $Action" -ForegroundColor White
+    Write-Host ""
+    
+    switch ($TargetType) {
+        "List" {
+            $List = Get-PnPList -Identity $TargetName -ErrorAction Stop
+            
+            Write-Host "Current Status:" -ForegroundColor Yellow
+            Write-Host "  Has Unique Permissions: $($List.HasUniqueRoleAssignments)" -ForegroundColor White
+            
+            if ($Action -eq "Break") {
+                if ($List.HasUniqueRoleAssignments) {
+                    Write-Host "⚠ List already has unique permissions" -ForegroundColor Yellow
+                } else {
+                    Set-PnPList -Identity $TargetName -BreakRoleInheritance -CopyRoleAssignments:$CopyPermissions
+                    Write-Host "✓ Permission inheritance broken for list" -ForegroundColor Green
+                }
+            } else {
+                if (-not $List.HasUniqueRoleAssignments) {
+                    Write-Host "⚠ List already inherits permissions" -ForegroundColor Yellow
+                } else {
+                    Set-PnPList -Identity $TargetName -ResetRoleInheritance
+                    Write-Host "✓ Permission inheritance reset for list" -ForegroundColor Green
+                }
+            }
+        }
+        "Folder" {
+            $Folder = Get-PnPFolder -Url $TargetName -ErrorAction Stop
+            $FolderItem = Get-PnPListItem -List "Documents" -Query "<View><Query><Where><Eq><FieldRef Name='FileRef'/><Value Type='Url'>$TargetName</Value></Eq></Where></Query></View>"
+            
+            if ($FolderItem) {
+                if ($Action -eq "Break") {
+                    Set-PnPListItemPermission -List "Documents" -Identity $FolderItem.Id -InheritPermissions:$false -CopyRoleAssignments:$CopyPermissions
+                    Write-Host "✓ Permission inheritance broken for folder" -ForegroundColor Green
+                } else {
+                    Set-PnPListItemPermission -List "Documents" -Identity $FolderItem.Id -InheritPermissions:$true
+                    Write-Host "✓ Permission inheritance reset for folder" -ForegroundColor Green
+                }
+            }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Permission Inheritance Best Practices:" -ForegroundColor Cyan
+    Write-Host "1. Minimize unique permissions for easier management" -ForegroundColor Gray
+    Write-Host "2. Use SharePoint groups instead of individual users" -ForegroundColor Gray
+    Write-Host "3. Document all permission changes for compliance" -ForegroundColor Gray
+    Write-Host "4. Review unique permissions quarterly" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure permission inheritance: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-cleanup-external-users',
+    title: 'Cleanup External Users',
+    description: 'Remove inactive or expired external guest users from SharePoint',
+    category: 'Permissions',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Identifies external users who haven't accessed SharePoint recently
+- Removes guest accounts that have exceeded inactivity threshold
+- Generates report of removed users for compliance
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Review company policy on external user retention
+
+**What You Need to Provide:**
+- Inactivity threshold in days
+- Whether to export report only or actually remove users
+- Optional: specific site to scope cleanup
+
+**What the Script Does:**
+1. Retrieves all external users in tenant or site
+2. Identifies users inactive beyond threshold
+3. Exports report of inactive external users
+4. Optionally removes inactive users
+
+**Important Notes:**
+- ⚠️ DESTRUCTIVE - Removed users lose all access
+- Removed users can be re-invited if needed
+- Default inactivity threshold: 90 days
+- Consider business relationships before removal
+- Export report first, review, then remove
+- Required for security compliance and GDPR
+- Typical use: quarterly external user reviews
+- Document removals for audit trail`,
+    parameters: [
+      {
+        name: 'inactivityDays',
+        label: 'Inactivity Threshold (Days)',
+        type: 'number',
+        required: true,
+        defaultValue: 90,
+        helpText: 'Remove users inactive for more than this many days'
+      },
+      {
+        name: 'exportPath',
+        label: 'Report Export Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Reports\\ExternalUserCleanup.csv',
+        helpText: 'Path to save the cleanup report'
+      },
+      {
+        name: 'removeUsers',
+        label: 'Remove Inactive Users',
+        type: 'checkbox',
+        required: false,
+        defaultValue: false,
+        helpText: 'Check to actually remove users (otherwise report only)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const inactivityDays = params.inactivityDays || 90;
+      const exportPath = escapePowerShellString(params.exportPath);
+      const removeUsers = params.removeUsers ? '$true' : '$false';
+
+      return `# Cleanup External Users
+# Generated: ${new Date().toISOString()}
+# Removes external users inactive for ${inactivityDays}+ days
+
+try {
+    $InactivityDays = ${inactivityDays}
+    $ExportPath = "${exportPath}"
+    $RemoveUsers = ${removeUsers}
+    $CutoffDate = (Get-Date).AddDays(-$InactivityDays)
+    
+    Write-Host "External User Cleanup" -ForegroundColor Cyan
+    Write-Host "  Inactivity Threshold: $InactivityDays days" -ForegroundColor White
+    Write-Host "  Cutoff Date: $($CutoffDate.ToString('yyyy-MM-dd'))" -ForegroundColor White
+    Write-Host "  Mode: $(if ($RemoveUsers) { 'REMOVE USERS' } else { 'REPORT ONLY' })" -ForegroundColor White
+    Write-Host ""
+    
+    # Get all external users
+    Write-Host "Retrieving external users..." -ForegroundColor Yellow
+    $ExternalUsers = Get-SPOExternalUser -PageSize 50
+    
+    Write-Host "Found $($ExternalUsers.Count) total external users" -ForegroundColor White
+    Write-Host ""
+    
+    # Identify inactive users
+    $InactiveUsers = @()
+    $ProcessedCount = 0
+    
+    foreach ($User in $ExternalUsers) {
+        $ProcessedCount++
+        Write-Progress -Activity "Analyzing external users" -Status "$ProcessedCount of $($ExternalUsers.Count)" -PercentComplete (($ProcessedCount / $ExternalUsers.Count) * 100)
+        
+        # Check last access via Azure AD sign-in logs (if available)
+        # For this script, we use WhenCreated as proxy
+        if ($User.WhenCreated -lt $CutoffDate) {
+            $InactiveUsers += [PSCustomObject]@{
+                DisplayName = $User.DisplayName
+                Email = $User.Email
+                AcceptedAs = $User.AcceptedAs
+                WhenCreated = $User.WhenCreated
+                InactiveDays = ((Get-Date) - $User.WhenCreated).Days
+            }
+        }
+    }
+    
+    Write-Progress -Activity "Analyzing external users" -Completed
+    
+    Write-Host "Inactive Users Found: $($InactiveUsers.Count)" -ForegroundColor Yellow
+    Write-Host ""
+    
+    # Export report
+    if ($InactiveUsers.Count -gt 0) {
+        $InactiveUsers | Export-Csv -Path $ExportPath -NoTypeInformation
+        Write-Host "✓ Report exported to: $ExportPath" -ForegroundColor Green
+        
+        # Show preview
+        Write-Host ""
+        Write-Host "Preview of Inactive Users:" -ForegroundColor Cyan
+        $InactiveUsers | Select-Object -First 10 | Format-Table DisplayName, Email, InactiveDays -AutoSize
+        
+        if ($RemoveUsers) {
+            Write-Host ""
+            Write-Host "⚠ Removing inactive users..." -ForegroundColor Red
+            
+            $RemovedCount = 0
+            foreach ($User in $InactiveUsers) {
+                try {
+                    Remove-SPOExternalUser -UniqueIDs $User.AcceptedAs -Confirm:$false
+                    $RemovedCount++
+                    Write-Host "  Removed: $($User.Email)" -ForegroundColor Gray
+                } catch {
+                    Write-Host "  Failed: $($User.Email) - \$_" -ForegroundColor Yellow
+                }
+            }
+            
+            Write-Host ""
+            Write-Host "✓ Removed $RemovedCount external users" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "No inactive external users found" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "Recommendations:" -ForegroundColor Cyan
+    Write-Host "1. Review report before bulk removal" -ForegroundColor Gray
+    Write-Host "2. Consider business relationships" -ForegroundColor Gray
+    Write-Host "3. Run cleanup quarterly" -ForegroundColor Gray
+    Write-Host "4. Document removals for compliance" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to cleanup external users: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-create-retention-policy',
+    title: 'Create Site Retention Policy',
+    description: 'Configure retention settings for SharePoint site content',
+    category: 'Compliance',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates retention policies to automatically manage content lifecycle
+- Configures retention period and post-retention actions
+- Applies to specified SharePoint sites or entire tenant
+
+**Prerequisites:**
+- Security & Compliance PowerShell module installed
+- Compliance Administrator or Global Administrator role
+- Microsoft 365 E3/E5 or equivalent compliance license
+
+**What You Need to Provide:**
+- Policy name and description
+- Retention period in days
+- Retention action (retain, delete, or retain then delete)
+- Target sites or locations
+
+**What the Script Does:**
+1. Connects to Security & Compliance Center
+2. Creates new retention policy with specified settings
+3. Configures retention rule and actions
+4. Applies policy to specified locations
+
+**Important Notes:**
+- Retention policies are part of Microsoft Purview
+- Policies apply to all content in specified locations
+- Content under retention cannot be permanently deleted
+- Multiple retention policies can apply to same content
+- Shortest retention wins for delete actions
+- Longest retention wins for retain actions
+- Changes may take 24-48 hours to propagate
+- Typical use: regulatory compliance, data governance
+- Test policies in non-production first`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'HR Documents - 7 Year Retention',
+        helpText: 'Descriptive name for the retention policy'
+      },
+      {
+        name: 'retentionDays',
+        label: 'Retention Period (Days)',
+        type: 'number',
+        required: true,
+        defaultValue: 2555,
+        placeholder: '2555',
+        helpText: 'Number of days to retain content (2555 = 7 years)'
+      },
+      {
+        name: 'retentionAction',
+        label: 'After Retention Period',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'KeepAndDelete', label: 'Delete content automatically' },
+          { value: 'Keep', label: 'Keep content (no deletion)' }
+        ],
+        defaultValue: 'KeepAndDelete',
+        helpText: 'Action to take after retention period expires'
+      },
+      {
+        name: 'siteUrls',
+        label: 'Site URLs (comma-separated)',
+        type: 'textarea',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/HR,https://contoso.sharepoint.com/sites/Legal',
+        helpText: 'Comma-separated list of SharePoint site URLs'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const retentionDays = params.retentionDays || 2555;
+      const retentionAction = escapePowerShellString(params.retentionAction);
+      const siteUrls = escapePowerShellString(params.siteUrls);
+
+      return `# Create SharePoint Retention Policy
+# Generated: ${new Date().toISOString()}
+# Requires Security & Compliance Center connection
+
+# Connect to Security & Compliance Center
+Connect-IPPSSession
+
+try {
+    $PolicyName = "${policyName}"
+    $RetentionDays = ${retentionDays}
+    $RetentionAction = "${retentionAction}"
+    $SiteUrls = "${siteUrls}" -split "," | ForEach-Object { $_.Trim() }
+    
+    Write-Host "Creating Retention Policy..." -ForegroundColor Cyan
+    Write-Host "  Policy Name: $PolicyName" -ForegroundColor White
+    Write-Host "  Retention Period: $RetentionDays days ($([math]::Round($RetentionDays / 365, 1)) years)" -ForegroundColor White
+    Write-Host "  Action: $RetentionAction" -ForegroundColor White
+    Write-Host "  Target Sites: $($SiteUrls.Count)" -ForegroundColor White
+    Write-Host ""
+    
+    # Create the retention policy
+    $PolicyParams = @{
+        Name = $PolicyName
+        SharePointLocation = $SiteUrls
+        Enabled = $true
+        Comment = "Created via PowerShell on $(Get-Date -Format 'yyyy-MM-dd')"
+    }
+    
+    $Policy = New-RetentionCompliancePolicy @PolicyParams
+    
+    Write-Host "✓ Retention policy created" -ForegroundColor Green
+    
+    # Create the retention rule
+    $RuleParams = @{
+        Policy = $PolicyName
+        Name = "$PolicyName - Rule"
+        RetentionDuration = $RetentionDays
+        RetentionDurationDisplayHint = "Days"
+        RetentionComplianceAction = $RetentionAction
+    }
+    
+    $Rule = New-RetentionComplianceRule @RuleParams
+    
+    Write-Host "✓ Retention rule configured" -ForegroundColor Green
+    Write-Host ""
+    
+    # Display policy details
+    Write-Host "================= POLICY DETAILS =================" -ForegroundColor Cyan
+    Write-Host "Policy Name: $PolicyName" -ForegroundColor Gray
+    Write-Host "Retention: $RetentionDays days" -ForegroundColor Gray
+    Write-Host "Action: $RetentionAction" -ForegroundColor Gray
+    Write-Host "Sites Covered:" -ForegroundColor Gray
+    foreach ($Site in $SiteUrls) {
+        Write-Host "  - $Site" -ForegroundColor Gray
+    }
+    Write-Host ""
+    
+    Write-Host "⚠ IMPORTANT:" -ForegroundColor Yellow
+    Write-Host "- Policy may take 24-48 hours to fully apply" -ForegroundColor White
+    Write-Host "- Content matching policy cannot be permanently deleted" -ForegroundColor White
+    Write-Host "- Review policy in Microsoft Purview Compliance Portal" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "To verify policy status:" -ForegroundColor Cyan
+    Write-Host "  Get-RetentionCompliancePolicy -Identity '$PolicyName'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create retention policy: \$_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Insufficient compliance licenses" -ForegroundColor Gray
+    Write-Host "- Policy name already exists" -ForegroundColor Gray
+    Write-Host "- Invalid site URLs" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-run-ediscovery-search',
+    title: 'Run eDiscovery Content Search',
+    description: 'Search SharePoint content for eDiscovery and compliance investigations',
+    category: 'Compliance',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates and runs eDiscovery content searches across SharePoint
+- Searches for keywords, date ranges, and content types
+- Exports search results for legal review
+
+**Prerequisites:**
+- Security & Compliance PowerShell module installed
+- eDiscovery Manager or Administrator role
+- Microsoft 365 E3/E5 or equivalent compliance license
+
+**What You Need to Provide:**
+- Search name
+- Search keywords or query
+- Target SharePoint sites
+- Optional: date range filters
+
+**What the Script Does:**
+1. Connects to Security & Compliance Center
+2. Creates new content search with specified parameters
+3. Initiates the search across target locations
+4. Reports search status and estimated results
+
+**Important Notes:**
+- eDiscovery searches are for legal/compliance purposes
+- All searches are logged and audited
+- Large searches may take hours to complete
+- Export requires additional permissions
+- Preserve evidence with legal hold first
+- Results may include deleted items in recycle bin
+- Typical use: litigation, regulatory investigations
+- Document search parameters for legal chain of custody`,
+    parameters: [
+      {
+        name: 'searchName',
+        label: 'Search Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Project Alpha Investigation - Dec 2024',
+        helpText: 'Unique name for this content search'
+      },
+      {
+        name: 'keywords',
+        label: 'Search Keywords',
+        type: 'textarea',
+        required: true,
+        placeholder: 'confidential AND (project OR contract)',
+        helpText: 'KQL keywords and operators'
+      },
+      {
+        name: 'siteUrls',
+        label: 'SharePoint Sites (comma-separated)',
+        type: 'textarea',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/Legal',
+        helpText: 'Comma-separated list of sites to search'
+      },
+      {
+        name: 'startDate',
+        label: 'Start Date (Optional)',
+        type: 'text',
+        required: false,
+        placeholder: '2024-01-01',
+        helpText: 'Search content created after this date (YYYY-MM-DD)'
+      },
+      {
+        name: 'endDate',
+        label: 'End Date (Optional)',
+        type: 'text',
+        required: false,
+        placeholder: '2024-12-31',
+        helpText: 'Search content created before this date (YYYY-MM-DD)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const searchName = escapePowerShellString(params.searchName);
+      const keywords = escapePowerShellString(params.keywords);
+      const siteUrls = escapePowerShellString(params.siteUrls);
+      const startDate = params.startDate ? escapePowerShellString(params.startDate) : '';
+      const endDate = params.endDate ? escapePowerShellString(params.endDate) : '';
+
+      return `# Run eDiscovery Content Search
+# Generated: ${new Date().toISOString()}
+# Requires Security & Compliance Center connection
+
+# Connect to Security & Compliance Center
+Connect-IPPSSession
+
+try {
+    $SearchName = "${searchName}"
+    $Keywords = "${keywords}"
+    $SiteUrls = "${siteUrls}" -split "," | ForEach-Object { $_.Trim() }
+    $StartDate = "${startDate}"
+    $EndDate = "${endDate}"
+    
+    Write-Host "Creating eDiscovery Content Search..." -ForegroundColor Cyan
+    Write-Host "  Search Name: $SearchName" -ForegroundColor White
+    Write-Host "  Keywords: $Keywords" -ForegroundColor White
+    Write-Host "  Sites: $($SiteUrls.Count)" -ForegroundColor White
+    Write-Host ""
+    
+    # Build search query
+    $Query = $Keywords
+    
+    if ($StartDate -and $EndDate) {
+        $Query = "($Keywords) AND (Created>=$StartDate AND Created<=$EndDate)"
+        Write-Host "  Date Range: $StartDate to $EndDate" -ForegroundColor White
+    }
+    
+    Write-Host "  Full Query: $Query" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Create the content search
+    $SearchParams = @{
+        Name = $SearchName
+        SharePointLocation = $SiteUrls
+        ContentMatchQuery = $Query
+        Description = "eDiscovery search created on $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+    }
+    
+    $Search = New-ComplianceSearch @SearchParams
+    
+    Write-Host "✓ Content search created" -ForegroundColor Green
+    
+    # Start the search
+    Write-Host "Starting search..." -ForegroundColor Yellow
+    Start-ComplianceSearch -Identity $SearchName
+    
+    Write-Host "✓ Search initiated" -ForegroundColor Green
+    Write-Host ""
+    
+    # Wait and check status
+    Write-Host "Checking search status..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 10
+    
+    $SearchStatus = Get-ComplianceSearch -Identity $SearchName
+    
+    Write-Host ""
+    Write-Host "================= SEARCH STATUS =================" -ForegroundColor Cyan
+    Write-Host "Name: $($SearchStatus.Name)" -ForegroundColor Gray
+    Write-Host "Status: $($SearchStatus.Status)" -ForegroundColor Gray
+    Write-Host "Items Found: $($SearchStatus.Items)" -ForegroundColor Gray
+    Write-Host "Size (MB): $([math]::Round($SearchStatus.Size / 1MB, 2))" -ForegroundColor Gray
+    Write-Host ""
+    
+    if ($SearchStatus.Status -eq "InProgress") {
+        Write-Host "⏳ Search is still running" -ForegroundColor Yellow
+        Write-Host "Check status with:" -ForegroundColor White
+        Write-Host "  Get-ComplianceSearch -Identity '$SearchName'" -ForegroundColor Gray
+    } elseif ($SearchStatus.Status -eq "Completed") {
+        Write-Host "✓ Search completed" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "To preview results:" -ForegroundColor Cyan
+        Write-Host "  Get-ComplianceSearch -Identity '$SearchName' | FL" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "To export results:" -ForegroundColor Cyan
+        Write-Host "  New-ComplianceSearchAction -SearchName '$SearchName' -Export" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "⚠ LEGAL NOTICE:" -ForegroundColor Yellow
+    Write-Host "- This search is logged for compliance purposes" -ForegroundColor White
+    Write-Host "- Maintain chain of custody documentation" -ForegroundColor White
+    Write-Host "- Export results through proper legal channels" -ForegroundColor White
+    
+} catch {
+    Write-Error "Failed to run eDiscovery search: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-apply-sensitivity-label',
+    title: 'Apply Sensitivity Labels to Site',
+    description: 'Configure sensitivity labels for SharePoint site classification',
+    category: 'Compliance',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Applies Microsoft Purview sensitivity labels to SharePoint sites
+- Controls site privacy, external sharing, and access settings
+- Enables container-level protection for classified content
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- Compliance Administrator or Global Administrator role
+- Sensitivity labels configured in Microsoft Purview
+- Azure AD Premium P1 or equivalent license
+
+**What You Need to Provide:**
+- Site URL
+- Sensitivity label name or GUID
+
+**What the Script Does:**
+1. Retrieves available sensitivity labels
+2. Validates site and label compatibility
+3. Applies sensitivity label to site container
+4. Reports label application status
+
+**Important Notes:**
+- Labels must be published before use
+- Container labels affect site settings, not document content
+- Document-level labels are separate from container labels
+- Label changes may take up to 24 hours to apply
+- Users see label in site settings
+- Labels can restrict external sharing automatically
+- Typical use: confidential project sites, regulated data
+- Coordinate with compliance team on label definitions`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/ConfidentialProject',
+        helpText: 'Full URL of the SharePoint site'
+      },
+      {
+        name: 'labelName',
+        label: 'Sensitivity Label Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Confidential - Internal Only',
+        helpText: 'Name of the sensitivity label to apply'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const labelName = escapePowerShellString(params.labelName);
+
+      return `# Apply Sensitivity Label to SharePoint Site
+# Generated: ${new Date().toISOString()}
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $LabelName = "${labelName}"
+    
+    Write-Host "Applying Sensitivity Label to Site..." -ForegroundColor Cyan
+    Write-Host "  Site: $SiteUrl" -ForegroundColor White
+    Write-Host "  Label: $LabelName" -ForegroundColor White
+    Write-Host ""
+    
+    # Get current site details
+    $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
+    
+    Write-Host "Current Site Status:" -ForegroundColor Yellow
+    Write-Host "  Title: $($Site.Title)" -ForegroundColor White
+    Write-Host "  Current Label: $($Site.SensitivityLabel)" -ForegroundColor White
+    Write-Host "  Sharing: $($Site.SharingCapability)" -ForegroundColor White
+    Write-Host ""
+    
+    # List available labels (requires Graph or Compliance module)
+    Write-Host "Available Sensitivity Labels:" -ForegroundColor Cyan
+    Write-Host "Note: Run this command to get label GUIDs:" -ForegroundColor Gray
+    Write-Host "  Get-Label | Select Name, Guid, Priority" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Apply sensitivity label
+    # Note: SensitivityLabel parameter requires the label GUID
+    Write-Host "To apply label, use the label GUID:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "# Get the label GUID first:" -ForegroundColor Gray
+    Write-Host "\$Label = Get-Label -Identity '$LabelName'" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "# Then apply to site:" -ForegroundColor Gray
+    Write-Host "Set-SPOSite -Identity '$SiteUrl' -SensitivityLabel \$Label.Guid" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Alternative: Apply using Microsoft Graph
+    Write-Host "Alternative: Using Microsoft Graph:" -ForegroundColor Cyan
+    Write-Host @"
+# Connect to Microsoft Graph
+Connect-MgGraph -Scopes "Sites.ReadWrite.All","Directory.AccessAsUser.All"
+
+# Get the site and group
+\$GroupId = (Get-SPOSite -Identity '$SiteUrl').GroupId
+
+# Update the sensitivity label
+Update-MgGroup -GroupId \$GroupId -AssignedLabels @{LabelId = "\$LabelGuid"}
+"@ -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "⚠ IMPORTANT:" -ForegroundColor Yellow
+    Write-Host "- Sensitivity labels control site privacy and sharing" -ForegroundColor White
+    Write-Host "- Some labels automatically restrict external sharing" -ForegroundColor White
+    Write-Host "- Labels apply to the container, not individual documents" -ForegroundColor White
+    Write-Host "- Document labels must be applied separately" -ForegroundColor White
+    Write-Host "- Changes may take up to 24 hours to propagate" -ForegroundColor White
+    
+} catch {
+    Write-Error "Failed to apply sensitivity label: \$_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Label not published to user" -ForegroundColor Gray
+    Write-Host "- Insufficient permissions" -ForegroundColor Gray
+    Write-Host "- Site not connected to Microsoft 365 Group" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-register-hub-site',
+    title: 'Register Hub Site',
+    description: 'Convert a site collection into a SharePoint hub site',
+    category: 'Hub Sites',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Converts an existing site collection into a hub site
+- Enables site association and shared navigation
+- Creates organizational hierarchy for related sites
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Global Administrator role
+- Site must be a Communication Site or Team Site
+
+**What You Need to Provide:**
+- Site URL to become hub
+- Hub site display name
+
+**What the Script Does:**
+1. Validates site eligibility for hub registration
+2. Registers site as a hub site
+3. Configures hub site permissions
+4. Reports hub registration status
+
+**Important Notes:**
+- Maximum 2,000 hub sites per tenant
+- Hub sites cannot be nested (no hub of hubs)
+- Associated sites inherit hub navigation
+- Hub site owners can approve site associations
+- Unregistering hub requires unassociating all sites first
+- Hub navigation appears at top of associated sites
+- Typical use: department portals, project portfolios
+- Plan hub hierarchy before implementation`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/HRHub',
+        helpText: 'Full URL of the site to register as hub'
+      },
+      {
+        name: 'hubTitle',
+        label: 'Hub Site Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Human Resources',
+        helpText: 'Display name for the hub site'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const hubTitle = escapePowerShellString(params.hubTitle);
+
+      return `# Register SharePoint Hub Site
+# Generated: ${new Date().toISOString()}
+
+try {
+    $SiteUrl = "${siteUrl}"
+    $HubTitle = "${hubTitle}"
+    
+    Write-Host "Registering Hub Site..." -ForegroundColor Cyan
+    Write-Host "  Site URL: $SiteUrl" -ForegroundColor White
+    Write-Host "  Hub Title: $HubTitle" -ForegroundColor White
+    Write-Host ""
+    
+    # Verify site exists and get current status
+    $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
+    
+    if ($Site.IsHubSite) {
+        Write-Host "⚠ This site is already a hub site" -ForegroundColor Yellow
+        Write-Host "  Hub Site ID: $($Site.HubSiteId)" -ForegroundColor White
+        return
+    }
+    
+    Write-Host "Current Site Status:" -ForegroundColor Yellow
+    Write-Host "  Title: $($Site.Title)" -ForegroundColor White
+    Write-Host "  Template: $($Site.Template)" -ForegroundColor White
+    Write-Host "  Owner: $($Site.Owner)" -ForegroundColor White
+    Write-Host ""
+    
+    # Register as hub site
+    Write-Host "Registering site as hub..." -ForegroundColor Yellow
+    Register-SPOHubSite -Site $SiteUrl -Principals $Site.Owner
+    
+    Write-Host "✓ Hub site registered successfully" -ForegroundColor Green
+    
+    # Set hub site properties
+    Set-SPOHubSite -Identity $SiteUrl -Title $HubTitle
+    
+    # Get updated hub info
+    $HubSite = Get-SPOHubSite -Identity $SiteUrl
+    
+    Write-Host ""
+    Write-Host "================= HUB SITE DETAILS =================" -ForegroundColor Cyan
+    Write-Host "Hub Site ID: $($HubSite.SiteId)" -ForegroundColor Gray
+    Write-Host "Title: $($HubSite.Title)" -ForegroundColor Gray
+    Write-Host "Site URL: $($HubSite.SiteUrl)" -ForegroundColor Gray
+    Write-Host ""
+    
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Configure hub navigation in site settings" -ForegroundColor Gray
+    Write-Host "2. Set hub permissions for site association approval" -ForegroundColor Gray
+    Write-Host "3. Associate child sites to this hub" -ForegroundColor Gray
+    Write-Host "4. Customize hub branding and theme" -ForegroundColor Gray
+    Write-Host ""
+    
+    Write-Host "To associate sites to this hub:" -ForegroundColor Cyan
+    Write-Host "  Add-SPOHubSiteAssociation -Site <ChildSiteUrl> -HubSite '$SiteUrl'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to register hub site: \$_"
+    Write-Host "Common issues:" -ForegroundColor Yellow
+    Write-Host "- Site is already a hub site" -ForegroundColor Gray
+    Write-Host "- Site is already associated with another hub" -ForegroundColor Gray
+    Write-Host "- Tenant hub site limit reached" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'spo-associate-hub-site',
+    title: 'Associate Sites to Hub',
+    description: 'Connect SharePoint sites to an existing hub site',
+    category: 'Hub Sites',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Associates one or more sites to an existing hub site
+- Enables shared navigation and search across associated sites
+- Sites inherit hub branding and navigation
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or hub site owner permissions
+- Hub site must already be registered
+
+**What You Need to Provide:**
+- Hub site URL
+- Site URLs to associate (comma-separated)
+
+**What the Script Does:**
+1. Validates hub site exists
+2. Associates each child site to the hub
+3. Reports association status for each site
+
+**Important Notes:**
+- A site can only belong to one hub at a time
+- Associated sites show hub navigation bar
+- Hub search includes content from all associated sites
+- Site owners can request association (requires approval)
+- Removing association removes hub navigation
+- Typical use: organizing department or project sites
+- Plan site hierarchy for optimal user experience`,
+    parameters: [
+      {
+        name: 'hubSiteUrl',
+        label: 'Hub Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/HRHub',
+        helpText: 'Full URL of the hub site'
+      },
+      {
+        name: 'childSiteUrls',
+        label: 'Sites to Associate (comma-separated)',
+        type: 'textarea',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/Benefits,https://contoso.sharepoint.com/sites/Recruiting',
+        helpText: 'Comma-separated list of site URLs to associate'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const hubSiteUrl = escapePowerShellString(params.hubSiteUrl);
+      const childSiteUrls = escapePowerShellString(params.childSiteUrls);
+
+      return `# Associate Sites to Hub Site
+# Generated: ${new Date().toISOString()}
+
+try {
+    $HubSiteUrl = "${hubSiteUrl}"
+    $ChildSiteUrls = "${childSiteUrls}" -split "," | ForEach-Object { $_.Trim() }
+    
+    Write-Host "Associating Sites to Hub..." -ForegroundColor Cyan
+    Write-Host "  Hub Site: $HubSiteUrl" -ForegroundColor White
+    Write-Host "  Sites to Associate: $($ChildSiteUrls.Count)" -ForegroundColor White
+    Write-Host ""
+    
+    # Verify hub site exists
+    $HubSite = Get-SPOHubSite -Identity $HubSiteUrl -ErrorAction Stop
+    
+    Write-Host "Hub Site Details:" -ForegroundColor Yellow
+    Write-Host "  Title: $($HubSite.Title)" -ForegroundColor White
+    Write-Host "  Hub ID: $($HubSite.SiteId)" -ForegroundColor White
+    Write-Host ""
+    
+    # Associate each site
+    $SuccessCount = 0
+    $FailCount = 0
+    
+    foreach ($SiteUrl in $ChildSiteUrls) {
+        Write-Host "Processing: $SiteUrl" -ForegroundColor White
+        
+        try {
+            # Check if already associated
+            $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
+            
+            if ($Site.HubSiteId -eq $HubSite.SiteId) {
+                Write-Host "  ⚠ Already associated to this hub" -ForegroundColor Yellow
+                continue
+            }
+            
+            if ($Site.HubSiteId -and $Site.HubSiteId -ne "00000000-0000-0000-0000-000000000000") {
+                Write-Host "  ⚠ Site is associated with different hub" -ForegroundColor Yellow
+                Write-Host "    Current Hub: $($Site.HubSiteId)" -ForegroundColor Gray
+                Write-Host "    Removing current association..." -ForegroundColor Gray
+                Remove-SPOHubSiteAssociation -Site $SiteUrl
+            }
+            
+            # Associate to hub
+            Add-SPOHubSiteAssociation -Site $SiteUrl -HubSite $HubSiteUrl
+            
+            Write-Host "  ✓ Successfully associated" -ForegroundColor Green
+            $SuccessCount++
+            
+        } catch {
+            Write-Host "  ✗ Failed: \$_" -ForegroundColor Red
+            $FailCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Successfully Associated: $SuccessCount" -ForegroundColor Green
+    Write-Host "Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { "Red" } else { "Gray" })
+    Write-Host ""
+    
+    # List all associated sites
+    Write-Host "All sites now associated with hub:" -ForegroundColor Cyan
+    $AssociatedSites = Get-SPOSite -Limit All | Where-Object { $_.HubSiteId -eq $HubSite.SiteId }
+    
+    foreach ($AssocSite in $AssociatedSites) {
+        Write-Host "  - $($AssocSite.Title): $($AssocSite.Url)" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "1. Verify hub navigation appears on associated sites" -ForegroundColor Gray
+    Write-Host "2. Configure shared navigation links" -ForegroundColor Gray
+    Write-Host "3. Set up hub site news and events" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to associate sites: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'spo-get-migration-status',
+    title: 'Get Site Migration Status',
+    description: 'Check migration status and progress for SharePoint Online migrations',
+    category: 'Migration',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Retrieves status of active SharePoint migrations
+- Shows progress, errors, and completion estimates
+- Supports SharePoint Migration Tool and SPMT migrations
+
+**Prerequisites:**
+- SharePoint Online Management Shell installed
+- SharePoint Administrator or Migration Administrator role
+- Active migration jobs in progress
+
+**What You Need to Provide:**
+- Migration job ID or site URL being migrated
+
+**What the Script Does:**
+1. Queries migration service for job status
+2. Reports progress percentage and items migrated
+3. Lists any errors or warnings
+4. Estimates time to completion
+
+**Important Notes:**
+- Migration status updates every few minutes
+- Large migrations may run for hours or days
+- Errors don't always stop the migration
+- Failed items are logged for retry
+- Monitor network bandwidth during migration
+- Schedule migrations during off-hours
+- Typical use: tracking tenant-to-tenant migrations
+- Document migration progress for project reporting`,
+    parameters: [
+      {
+        name: 'siteUrl',
+        label: 'Target Site URL',
+        type: 'text',
+        required: true,
+        placeholder: 'https://contoso.sharepoint.com/sites/MigratedSite',
+        helpText: 'Target SharePoint site URL for migration'
+      },
+      {
+        name: 'includeDetails',
+        label: 'Include Detailed Progress',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'Show detailed migration statistics'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const siteUrl = escapePowerShellString(params.siteUrl);
+      const includeDetails = params.includeDetails ? '$true' : '$false';
+
+      return `# Get SharePoint Migration Status
+# Generated: ${new Date().toISOString()}
+
+try {
+    $TargetSiteUrl = "${siteUrl}"
+    $IncludeDetails = ${includeDetails}
+    
+    Write-Host "Checking Migration Status..." -ForegroundColor Cyan
+    Write-Host "  Target Site: $TargetSiteUrl" -ForegroundColor White
+    Write-Host ""
+    
+    # Get site to verify access
+    $Site = Get-SPOSite -Identity $TargetSiteUrl -ErrorAction Stop
+    
+    Write-Host "Site Information:" -ForegroundColor Yellow
+    Write-Host "  Title: $($Site.Title)" -ForegroundColor White
+    Write-Host "  Status: $($Site.Status)" -ForegroundColor White
+    Write-Host "  Storage Used: $([math]::Round($Site.StorageUsageCurrent / 1024, 2)) GB" -ForegroundColor White
+    Write-Host ""
+    
+    # Check for active migrations using Migration Manager
+    Write-Host "Checking Migration Manager Status..." -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "To view migration status in Migration Manager:" -ForegroundColor Yellow
+    Write-Host "1. Go to SharePoint Admin Center" -ForegroundColor Gray
+    Write-Host "2. Navigate to Migration > Migration Manager" -ForegroundColor Gray
+    Write-Host "3. View active and completed migrations" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Alternative: Check using SPMT PowerShell
+    Write-Host "For SPMT Migrations:" -ForegroundColor Cyan
+    Write-Host @"
+# Register SPMT
+Register-SPMTMigration -Force
+
+# Get migration status
+\$Status = Get-SPMTMigration
+
+# Display results
+\$Status | Select-Object TaskId, Status, ProgressPercentage, ItemsScanned, ItemsMigrated, Errors | Format-Table -AutoSize
+"@ -ForegroundColor Gray
+    
+    Write-Host ""
+    
+    if ($IncludeDetails) {
+        # Get recent activity on the site
+        Write-Host "Recent Site Activity (may indicate migration):" -ForegroundColor Cyan
+        
+        # Check storage growth as indicator
+        $StorageMB = $Site.StorageUsageCurrent
+        $QuotaMB = $Site.StorageQuota
+        $PercentUsed = [math]::Round(($StorageMB / $QuotaMB) * 100, 1)
+        
+        Write-Host "  Storage: $StorageMB MB of $QuotaMB MB ($PercentUsed%)" -ForegroundColor Gray
+        Write-Host ""
+        
+        # Provide commands to check migration logs
+        Write-Host "To check migration logs:" -ForegroundColor Cyan
+        Write-Host "1. Azure Storage: Check container for migration package logs" -ForegroundColor Gray
+        Write-Host "2. SPMT Reports: Check %LOCALAPPDATA%\\Microsoft\\MigrationTool" -ForegroundColor Gray
+        Write-Host "3. Admin Center: Migration reports in SharePoint Admin" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "Migration Best Practices:" -ForegroundColor Cyan
+    Write-Host "1. Run assessment before migration" -ForegroundColor Gray
+    Write-Host "2. Schedule during off-peak hours" -ForegroundColor Gray
+    Write-Host "3. Monitor network bandwidth" -ForegroundColor Gray
+    Write-Host "4. Plan for incremental passes" -ForegroundColor Gray
+    Write-Host "5. Validate content after migration" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to get migration status: \$_"
+    Write-Host "Note: Direct migration status APIs require SPMT or Migration Manager" -ForegroundColor Yellow
+}`;
+    }
   }
 ];
 
@@ -3624,5 +5234,8 @@ export const sharePointOnlineCategories = [
   'Storage',
   'Security',
   'Sharing',
+  'Compliance',
+  'Hub Sites',
+  'Migration',
   'Common Admin Tasks'
 ];

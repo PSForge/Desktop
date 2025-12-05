@@ -3949,6 +3949,2053 @@ try {
     Write-Error "Failed to manage WSUS updates: $_"
 }`;
     }
+  },
+
+  // ==================== FAILOVER CLUSTERING TASKS ====================
+  {
+    id: 'ws-get-cluster-health',
+    title: 'Get Cluster Health Report',
+    description: 'Generate comprehensive health report for Windows Failover Cluster',
+    category: 'Failover Clustering',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Generates detailed health report for Windows Failover Cluster
+- Checks cluster nodes, resources, networks, and quorum status
+- Identifies issues before they cause outages
+
+**Prerequisites:**
+- Failover Clustering feature installed
+- Administrator credentials on cluster nodes
+- PowerShell remoting enabled on cluster nodes
+
+**What You Need to Provide:**
+- Cluster name to query
+- Export path for health report
+
+**What the Script Does:**
+1. Connects to the failover cluster
+2. Checks node health and online status
+3. Verifies cluster resources and groups
+4. Reports quorum configuration and health
+5. Exports comprehensive health report
+
+**Important Notes:**
+- Essential for proactive cluster monitoring
+- Run regularly to identify issues early
+- Check before planned maintenance
+- Monitor after configuration changes
+- Critical for high availability environments
+- Typical use: daily health checks, pre-maintenance validation
+- Investigate any warnings immediately
+- Document baseline health for comparison`,
+    parameters: [
+      {
+        name: 'clusterName',
+        label: 'Cluster Name',
+        type: 'text',
+        required: true,
+        placeholder: 'CLUSTER01',
+        helpText: 'Name of the failover cluster'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\ClusterHealth.html',
+        helpText: 'Path for the HTML health report'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const clusterName = escapePowerShellString(params.clusterName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Get Cluster Health Report
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Generating cluster health report for: ${clusterName}" -ForegroundColor Cyan
+    
+    # Import Failover Clusters module
+    Import-Module FailoverClusters -ErrorAction Stop
+    
+    # Get cluster object
+    $Cluster = Get-Cluster -Name "${clusterName}" -ErrorAction Stop
+    Write-Host "✓ Connected to cluster: $($Cluster.Name)" -ForegroundColor Green
+    
+    # Get cluster nodes
+    Write-Host ""
+    Write-Host "Cluster Nodes:" -ForegroundColor Cyan
+    $Nodes = Get-ClusterNode -Cluster "${clusterName}"
+    $Nodes | ForEach-Object {
+        $StateColor = if ($_.State -eq 'Up') { 'Green' } else { 'Red' }
+        Write-Host "  $($_.Name): $($_.State)" -ForegroundColor $StateColor
+    }
+    
+    # Get cluster resources
+    Write-Host ""
+    Write-Host "Cluster Resources:" -ForegroundColor Cyan
+    $Resources = Get-ClusterResource -Cluster "${clusterName}"
+    $OnlineCount = ($Resources | Where-Object { $_.State -eq 'Online' }).Count
+    $OfflineCount = ($Resources | Where-Object { $_.State -ne 'Online' }).Count
+    Write-Host "  Online: $OnlineCount" -ForegroundColor Green
+    if ($OfflineCount -gt 0) {
+        Write-Host "  Offline: $OfflineCount" -ForegroundColor Red
+    }
+    
+    # Get quorum status
+    Write-Host ""
+    Write-Host "Quorum Configuration:" -ForegroundColor Cyan
+    $Quorum = Get-ClusterQuorum -Cluster "${clusterName}"
+    Write-Host "  Type: $($Quorum.QuorumType)" -ForegroundColor Gray
+    Write-Host "  Resource: $($Quorum.QuorumResource)" -ForegroundColor Gray
+    
+    # Generate validation report
+    Write-Host ""
+    Write-Host "Generating HTML health report..." -ForegroundColor Cyan
+    Test-Cluster -Cluster "${clusterName}" -ReportName "${exportPath}" -ErrorAction SilentlyContinue
+    
+    Write-Host "✓ Cluster health report exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Summary
+    Write-Host ""
+    Write-Host "Cluster Health Summary:" -ForegroundColor Cyan
+    Write-Host "  Nodes: $($Nodes.Count) total, $(($Nodes | Where-Object { $_.State -eq 'Up' }).Count) online" -ForegroundColor Gray
+    Write-Host "  Resources: $($Resources.Count) total, $OnlineCount online" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to generate cluster health report: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-cluster-node-management',
+    title: 'Manage Cluster Node',
+    description: 'Pause, resume, or evict a node from Windows Failover Cluster',
+    category: 'Failover Clustering',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Manages cluster node state for maintenance or removal
+- Supports pause, resume, and evict operations
+- Ensures workloads are migrated before maintenance
+
+**Prerequisites:**
+- Failover Clustering feature installed
+- Administrator credentials on cluster nodes
+- Node must be part of the cluster
+
+**What You Need to Provide:**
+- Cluster name
+- Node name to manage
+- Action to perform (Pause/Resume/Evict)
+
+**What the Script Does:**
+1. Connects to the failover cluster
+2. Validates node exists in cluster
+3. Performs specified action on node
+4. Migrates workloads if pausing or evicting
+5. Reports operation status
+
+**Important Notes:**
+- Pause node before maintenance
+- Resume node after maintenance completes
+- Evict permanently removes node from cluster
+- Workloads migrate during pause/evict
+- Plan for temporary capacity reduction
+- Typical use: OS updates, hardware maintenance
+- Verify workloads migrated successfully
+- Monitor cluster during operations`,
+    parameters: [
+      {
+        name: 'clusterName',
+        label: 'Cluster Name',
+        type: 'text',
+        required: true,
+        placeholder: 'CLUSTER01',
+        helpText: 'Name of the failover cluster'
+      },
+      {
+        name: 'nodeName',
+        label: 'Node Name',
+        type: 'text',
+        required: true,
+        placeholder: 'NODE01',
+        helpText: 'Name of the cluster node'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Pause', label: 'Pause (Drain roles for maintenance)' },
+          { value: 'Resume', label: 'Resume (Return to service)' },
+          { value: 'Evict', label: 'Evict (Remove from cluster)' }
+        ],
+        helpText: 'Action to perform on the node'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const clusterName = escapePowerShellString(params.clusterName);
+      const nodeName = escapePowerShellString(params.nodeName);
+      const action = params.action;
+
+      return `# Manage Cluster Node
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Managing cluster node: ${nodeName}" -ForegroundColor Cyan
+    Write-Host "Cluster: ${clusterName}" -ForegroundColor Gray
+    Write-Host "Action: ${action}" -ForegroundColor Gray
+    
+    # Import Failover Clusters module
+    Import-Module FailoverClusters -ErrorAction Stop
+    
+    # Verify node exists
+    $Node = Get-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}" -ErrorAction Stop
+    Write-Host "Current state: $($Node.State)" -ForegroundColor Yellow
+    
+    switch ("${action}") {
+        "Pause" {
+            Write-Host ""
+            Write-Host "Pausing node and draining roles..." -ForegroundColor Cyan
+            Suspend-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}" -Drain -Wait
+            
+            $Node = Get-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}"
+            Write-Host "✓ Node paused successfully" -ForegroundColor Green
+            Write-Host "New state: $($Node.State)" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "Node is now safe for maintenance" -ForegroundColor Yellow
+        }
+        
+        "Resume" {
+            Write-Host ""
+            Write-Host "Resuming node..." -ForegroundColor Cyan
+            Resume-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}"
+            
+            $Node = Get-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}"
+            Write-Host "✓ Node resumed successfully" -ForegroundColor Green
+            Write-Host "New state: $($Node.State)" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "Node is available to host cluster roles" -ForegroundColor Yellow
+        }
+        
+        "Evict" {
+            Write-Host ""
+            Write-Host "⚠ WARNING: This will permanently remove the node from the cluster" -ForegroundColor Yellow
+            Write-Host "Evicting node..." -ForegroundColor Cyan
+            Remove-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}" -Force
+            
+            Write-Host "✓ Node evicted from cluster" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "To rejoin, use Add-ClusterNode cmdlet" -ForegroundColor Gray
+        }
+    }
+    
+    # Show remaining nodes
+    Write-Host ""
+    Write-Host "Current cluster nodes:" -ForegroundColor Cyan
+    Get-ClusterNode -Cluster "${clusterName}" | Select-Object Name, State | Format-Table -AutoSize
+    
+} catch {
+    Write-Error "Failed to manage cluster node: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-configure-cluster-quorum',
+    title: 'Configure Cluster Quorum',
+    description: 'Set up quorum configuration for Windows Failover Cluster',
+    category: 'Failover Clustering',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures cluster quorum for high availability voting
+- Supports disk witness, file share witness, and cloud witness
+- Ensures cluster can maintain quorum during failures
+
+**Prerequisites:**
+- Failover Clustering feature installed
+- Administrator credentials on cluster
+- Witness resource available (disk, share, or Azure account)
+
+**What You Need to Provide:**
+- Cluster name
+- Quorum type (Node Majority, Disk Witness, File Share, Cloud)
+- Witness path or Azure account (depending on type)
+
+**What the Script Does:**
+1. Connects to the failover cluster
+2. Shows current quorum configuration
+3. Configures new quorum settings
+4. Validates quorum is operational
+5. Reports configuration status
+
+**Important Notes:**
+- Critical for cluster high availability
+- Node Majority for odd number of nodes
+- Use witness for even number of nodes
+- Cloud witness requires Azure storage account
+- File share witness must be on separate server
+- Typical use: initial cluster setup, witness migration
+- Test quorum by simulating node failure
+- Monitor quorum during maintenance`,
+    parameters: [
+      {
+        name: 'clusterName',
+        label: 'Cluster Name',
+        type: 'text',
+        required: true,
+        placeholder: 'CLUSTER01',
+        helpText: 'Name of the failover cluster'
+      },
+      {
+        name: 'quorumType',
+        label: 'Quorum Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'NodeMajority', label: 'Node Majority (No witness)' },
+          { value: 'DiskWitness', label: 'Disk Witness' },
+          { value: 'FileShareWitness', label: 'File Share Witness' },
+          { value: 'CloudWitness', label: 'Cloud Witness (Azure)' }
+        ],
+        helpText: 'Type of quorum configuration'
+      },
+      {
+        name: 'witnessPath',
+        label: 'Witness Path/Account',
+        type: 'text',
+        required: false,
+        placeholder: '\\\\FILESERVER\\Witness or Azure Storage Account',
+        helpText: 'Path for file share witness or Azure account name for cloud witness'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const clusterName = escapePowerShellString(params.clusterName);
+      const quorumType = params.quorumType;
+      const witnessPath = params.witnessPath ? escapePowerShellString(params.witnessPath) : '';
+
+      return `# Configure Cluster Quorum
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring cluster quorum for: ${clusterName}" -ForegroundColor Cyan
+    Write-Host "Quorum Type: ${quorumType}" -ForegroundColor Gray
+    ${witnessPath ? `Write-Host "Witness: ${witnessPath}" -ForegroundColor Gray` : ''}
+    
+    # Import Failover Clusters module
+    Import-Module FailoverClusters -ErrorAction Stop
+    
+    # Get current quorum configuration
+    Write-Host ""
+    Write-Host "Current quorum configuration:" -ForegroundColor Yellow
+    $CurrentQuorum = Get-ClusterQuorum -Cluster "${clusterName}"
+    Write-Host "  Type: $($CurrentQuorum.QuorumType)" -ForegroundColor Gray
+    Write-Host "  Resource: $($CurrentQuorum.QuorumResource)" -ForegroundColor Gray
+    
+    # Configure new quorum
+    Write-Host ""
+    Write-Host "Configuring new quorum..." -ForegroundColor Cyan
+    
+    switch ("${quorumType}") {
+        "NodeMajority" {
+            Set-ClusterQuorum -Cluster "${clusterName}" -NoWitness
+            Write-Host "✓ Node Majority quorum configured" -ForegroundColor Green
+        }
+        
+        "DiskWitness" {
+            if (-not "${witnessPath}") {
+                Write-Error "Disk witness resource name required"
+                exit 1
+            }
+            Set-ClusterQuorum -Cluster "${clusterName}" -DiskWitness "${witnessPath}"
+            Write-Host "✓ Disk Witness quorum configured" -ForegroundColor Green
+        }
+        
+        "FileShareWitness" {
+            if (-not "${witnessPath}") {
+                Write-Error "File share path required"
+                exit 1
+            }
+            Set-ClusterQuorum -Cluster "${clusterName}" -FileShareWitness "${witnessPath}"
+            Write-Host "✓ File Share Witness quorum configured" -ForegroundColor Green
+        }
+        
+        "CloudWitness" {
+            if (-not "${witnessPath}") {
+                Write-Error "Azure storage account name required"
+                exit 1
+            }
+            Write-Host "⚠ Cloud witness requires Azure storage access key" -ForegroundColor Yellow
+            $AccessKey = Read-Host "Enter Azure storage access key" -AsSecureString
+            Set-ClusterQuorum -Cluster "${clusterName}" -CloudWitness -AccountName "${witnessPath}" -AccessKey $AccessKey
+            Write-Host "✓ Cloud Witness quorum configured" -ForegroundColor Green
+        }
+    }
+    
+    # Verify new configuration
+    Write-Host ""
+    Write-Host "New quorum configuration:" -ForegroundColor Cyan
+    $NewQuorum = Get-ClusterQuorum -Cluster "${clusterName}"
+    Write-Host "  Type: $($NewQuorum.QuorumType)" -ForegroundColor Gray
+    Write-Host "  Resource: $($NewQuorum.QuorumResource)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure cluster quorum: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-export-cluster-resources',
+    title: 'Export Cluster Resources',
+    description: 'Export inventory of all cluster resources and groups to CSV',
+    category: 'Failover Clustering',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Exports complete inventory of cluster resources and groups
+- Shows resource status, owner nodes, and dependencies
+- Supports documentation and disaster recovery planning
+
+**Prerequisites:**
+- Failover Clustering feature installed
+- Administrator credentials on cluster
+- Access to cluster nodes
+
+**What You Need to Provide:**
+- Cluster name
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to the failover cluster
+2. Queries all cluster groups and resources
+3. Collects status, owner, and configuration
+4. Exports complete inventory to CSV
+5. Reports resource counts
+
+**Important Notes:**
+- Essential for cluster documentation
+- Use for disaster recovery planning
+- Run after configuration changes
+- Track resource ownership and dependencies
+- Monitor resource states over time
+- Typical use: audits, DR planning, change tracking
+- Review resource health regularly
+- Document preferred owners for failback`,
+    parameters: [
+      {
+        name: 'clusterName',
+        label: 'Cluster Name',
+        type: 'text',
+        required: true,
+        placeholder: 'CLUSTER01',
+        helpText: 'Name of the failover cluster'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\ClusterResources.csv',
+        helpText: 'Path for the CSV export file'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const clusterName = escapePowerShellString(params.clusterName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Cluster Resources
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Exporting cluster resources from: ${clusterName}" -ForegroundColor Cyan
+    
+    # Import Failover Clusters module
+    Import-Module FailoverClusters -ErrorAction Stop
+    
+    # Get all cluster groups
+    $Groups = Get-ClusterGroup -Cluster "${clusterName}"
+    Write-Host "Found $($Groups.Count) cluster groups" -ForegroundColor Yellow
+    
+    # Get all resources with details
+    $ResourceReport = foreach ($Group in $Groups) {
+        $Resources = Get-ClusterResource -Cluster "${clusterName}" | Where-Object { $_.OwnerGroup -eq $Group.Name }
+        
+        foreach ($Resource in $Resources) {
+            [PSCustomObject]@{
+                GroupName           = $Group.Name
+                GroupState          = $Group.State
+                GroupOwnerNode      = $Group.OwnerNode
+                ResourceName        = $Resource.Name
+                ResourceType        = $Resource.ResourceType
+                ResourceState       = $Resource.State
+                OwnerNode           = $Resource.OwnerNode
+                IsClusterSharedVol  = $Resource.IsCoreResource
+            }
+        }
+    }
+    
+    # Also add group-level info for groups without resources
+    $GroupReport = foreach ($Group in $Groups) {
+        [PSCustomObject]@{
+            GroupName           = $Group.Name
+            GroupState          = $Group.State
+            GroupOwnerNode      = $Group.OwnerNode
+            ResourceName        = "(Group Summary)"
+            ResourceType        = "ClusterGroup"
+            ResourceState       = $Group.State
+            OwnerNode           = $Group.OwnerNode
+            IsClusterSharedVol  = $false
+        }
+    }
+    
+    # Combine and export
+    $AllData = $ResourceReport + $GroupReport | Sort-Object GroupName, ResourceName
+    $AllData | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Cluster resources exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Summary
+    Write-Host ""
+    Write-Host "Export Summary:" -ForegroundColor Cyan
+    Write-Host "  Groups: $($Groups.Count)" -ForegroundColor Gray
+    Write-Host "  Resources: $($ResourceReport.Count)" -ForegroundColor Gray
+    Write-Host "  Online Groups: $(($Groups | Where-Object { $_.State -eq 'Online' }).Count)" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to export cluster resources: \$_"
+}`;
+    }
+  },
+
+  // ==================== STORAGE SPACES TASKS ====================
+  {
+    id: 'ws-create-storage-pool',
+    title: 'Create Storage Pool',
+    description: 'Create a new Storage Spaces storage pool from physical disks',
+    category: 'Storage Spaces',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a Storage Spaces storage pool from available physical disks
+- Combines multiple disks into a single storage pool
+- Enables flexible storage allocation with virtual disks
+
+**Prerequisites:**
+- Windows Server 2012 or later
+- Physical disks available for pooling
+- Administrator credentials
+- Storage Spaces feature enabled
+
+**What You Need to Provide:**
+- Storage pool name
+- Friendly name for the pool
+
+**What the Script Does:**
+1. Identifies all available physical disks
+2. Creates storage pool from selected disks
+3. Configures pool settings
+4. Reports pool creation status
+5. Shows pool capacity information
+
+**Important Notes:**
+- Essential for software-defined storage
+- Disks must be uninitialized or primordial
+- Minimum 1 disk required (2+ recommended for resiliency)
+- Cannot undo pool creation without data loss
+- Use for flexible storage allocation
+- Typical use: file servers, Hyper-V storage
+- Plan disk layout before creating pool
+- Consider fault domains for resiliency`,
+    parameters: [
+      {
+        name: 'poolName',
+        label: 'Storage Pool Name',
+        type: 'text',
+        required: true,
+        placeholder: 'DataPool1',
+        helpText: 'Name for the new storage pool'
+      },
+      {
+        name: 'subsystemFriendlyName',
+        label: 'Storage Subsystem',
+        type: 'text',
+        required: false,
+        placeholder: 'Windows Storage',
+        defaultValue: 'Windows Storage*',
+        helpText: 'Storage subsystem name (default: Windows Storage)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const poolName = escapePowerShellString(params.poolName);
+      const subsystem = params.subsystemFriendlyName || 'Windows Storage*';
+
+      return `# Create Storage Pool
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating storage pool: ${poolName}" -ForegroundColor Cyan
+    
+    # Get storage subsystem
+    $Subsystem = Get-StorageSubSystem -FriendlyName "${subsystem}" -ErrorAction Stop
+    Write-Host "✓ Found storage subsystem: $($Subsystem.FriendlyName)" -ForegroundColor Green
+    
+    # Get available physical disks
+    $AvailableDisks = Get-PhysicalDisk -CanPool $true
+    
+    if ($AvailableDisks.Count -eq 0) {
+        Write-Error "No physical disks available for pooling"
+        exit 1
+    }
+    
+    Write-Host ""
+    Write-Host "Available disks for pooling:" -ForegroundColor Cyan
+    $AvailableDisks | Select-Object FriendlyName, MediaType, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}, HealthStatus | Format-Table -AutoSize
+    
+    Write-Host "Total disks: $($AvailableDisks.Count)" -ForegroundColor Yellow
+    $TotalCapacity = ($AvailableDisks | Measure-Object -Property Size -Sum).Sum / 1GB
+    Write-Host "Total capacity: $([math]::Round($TotalCapacity,2)) GB" -ForegroundColor Yellow
+    
+    # Create storage pool
+    Write-Host ""
+    Write-Host "Creating storage pool..." -ForegroundColor Cyan
+    
+    $Pool = New-StoragePool -FriendlyName "${poolName}" -StorageSubSystemFriendlyName $Subsystem.FriendlyName -PhysicalDisks $AvailableDisks
+    
+    Write-Host "✓ Storage pool created successfully" -ForegroundColor Green
+    
+    # Display pool information
+    Write-Host ""
+    Write-Host "Storage Pool Details:" -ForegroundColor Cyan
+    Write-Host "  Name: $($Pool.FriendlyName)" -ForegroundColor Gray
+    Write-Host "  Health: $($Pool.HealthStatus)" -ForegroundColor Gray
+    Write-Host "  Operational Status: $($Pool.OperationalStatus)" -ForegroundColor Gray
+    Write-Host "  Size: $([math]::Round($Pool.Size/1GB,2)) GB" -ForegroundColor Gray
+    Write-Host "  Allocated: $([math]::Round($Pool.AllocatedSize/1GB,2)) GB" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create storage pool: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-create-virtual-disk',
+    title: 'Create Virtual Disk',
+    description: 'Create a resilient virtual disk from a storage pool',
+    category: 'Storage Spaces',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a virtual disk with specified resiliency from storage pool
+- Supports Simple, Mirror, and Parity layouts
+- Enables flexible and resilient storage allocation
+
+**Prerequisites:**
+- Existing storage pool with available capacity
+- Administrator credentials
+- Understanding of resiliency requirements
+
+**What You Need to Provide:**
+- Storage pool name
+- Virtual disk name
+- Resiliency type and size
+
+**What the Script Does:**
+1. Connects to specified storage pool
+2. Creates virtual disk with resiliency settings
+3. Initializes and formats the disk
+4. Assigns drive letter
+5. Reports disk configuration
+
+**Important Notes:**
+- Mirror requires 2+ disks for redundancy
+- Parity requires 3+ disks
+- Simple provides no fault tolerance
+- Thin provisioning allows overcommitment
+- Fixed provisioning reserves space immediately
+- Typical use: creating data volumes
+- Match resiliency to data importance
+- Monitor pool capacity for thin disks`,
+    parameters: [
+      {
+        name: 'poolName',
+        label: 'Storage Pool Name',
+        type: 'text',
+        required: true,
+        placeholder: 'DataPool1',
+        helpText: 'Name of the storage pool'
+      },
+      {
+        name: 'vdiskName',
+        label: 'Virtual Disk Name',
+        type: 'text',
+        required: true,
+        placeholder: 'DataDisk1',
+        helpText: 'Name for the virtual disk'
+      },
+      {
+        name: 'resiliencyType',
+        label: 'Resiliency Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Simple', label: 'Simple (No fault tolerance)' },
+          { value: 'Mirror', label: 'Two-way Mirror (1 disk failure)' },
+          { value: 'Parity', label: 'Parity (Space efficient)' }
+        ],
+        defaultValue: 'Mirror',
+        helpText: 'Data protection level'
+      },
+      {
+        name: 'sizeGB',
+        label: 'Size (GB)',
+        type: 'number',
+        required: true,
+        defaultValue: 100,
+        helpText: 'Size of the virtual disk in GB'
+      },
+      {
+        name: 'driveLetter',
+        label: 'Drive Letter',
+        type: 'text',
+        required: false,
+        placeholder: 'E',
+        helpText: 'Drive letter to assign (optional)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const poolName = escapePowerShellString(params.poolName);
+      const vdiskName = escapePowerShellString(params.vdiskName);
+      const resiliencyType = params.resiliencyType || 'Mirror';
+      const sizeGB = params.sizeGB || 100;
+      const driveLetter = params.driveLetter ? escapePowerShellString(params.driveLetter) : '';
+
+      return `# Create Virtual Disk
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Creating virtual disk: ${vdiskName}" -ForegroundColor Cyan
+    Write-Host "  Pool: ${poolName}" -ForegroundColor Gray
+    Write-Host "  Resiliency: ${resiliencyType}" -ForegroundColor Gray
+    Write-Host "  Size: ${sizeGB} GB" -ForegroundColor Gray
+    
+    # Verify storage pool exists
+    $Pool = Get-StoragePool -FriendlyName "${poolName}" -ErrorAction Stop
+    Write-Host "✓ Storage pool found: $($Pool.FriendlyName)" -ForegroundColor Green
+    
+    # Check available capacity
+    $AvailableGB = [math]::Round(($Pool.Size - $Pool.AllocatedSize) / 1GB, 2)
+    Write-Host "  Available capacity: $AvailableGB GB" -ForegroundColor Gray
+    
+    # Create virtual disk
+    Write-Host ""
+    Write-Host "Creating virtual disk..." -ForegroundColor Cyan
+    
+    $VDisk = New-VirtualDisk -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}" -ResiliencySettingName "${resiliencyType}" -Size ${sizeGB}GB -ProvisioningType Thin
+    
+    Write-Host "✓ Virtual disk created" -ForegroundColor Green
+    
+    # Initialize disk
+    Write-Host "Initializing disk..." -ForegroundColor Cyan
+    $Disk = $VDisk | Get-Disk
+    $Disk | Initialize-Disk -PartitionStyle GPT
+    
+    # Create partition and format
+    Write-Host "Creating partition and formatting..." -ForegroundColor Cyan
+    ${driveLetter ? `
+    $Partition = $Disk | New-Partition -UseMaximumSize -DriveLetter "${driveLetter}"
+    $Partition | Format-Volume -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:\$false
+    Write-Host "✓ Volume formatted and mounted as ${driveLetter}:" -ForegroundColor Green
+    ` : `
+    $Partition = $Disk | New-Partition -UseMaximumSize -AssignDriveLetter
+    $Partition | Format-Volume -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:\$false
+    Write-Host "✓ Volume formatted and mounted" -ForegroundColor Green
+    `}
+    
+    # Display summary
+    Write-Host ""
+    Write-Host "Virtual Disk Summary:" -ForegroundColor Cyan
+    Get-VirtualDisk -FriendlyName "${vdiskName}" | Select-Object FriendlyName, ResiliencySettingName, Size, OperationalStatus, HealthStatus | Format-List
+    
+} catch {
+    Write-Error "Failed to create virtual disk: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-export-storage-spaces',
+    title: 'Export Storage Spaces Report',
+    description: 'Export inventory of storage pools, virtual disks, and physical disks',
+    category: 'Storage Spaces',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Exports comprehensive Storage Spaces inventory
+- Shows pools, virtual disks, and physical disk health
+- Supports capacity planning and health monitoring
+
+**Prerequisites:**
+- Storage Spaces configured on server
+- Administrator credentials
+- Storage PowerShell module available
+
+**What You Need to Provide:**
+- Export file path for CSV report
+
+**What the Script Does:**
+1. Queries all storage pools
+2. Collects virtual disk information
+3. Gathers physical disk health data
+4. Exports complete inventory to CSV
+5. Reports storage health summary
+
+**Important Notes:**
+- Essential for storage capacity planning
+- Monitor disk health status
+- Track pool utilization over time
+- Identify degraded or failing disks
+- Plan capacity expansion proactively
+- Typical use: capacity planning, health audits
+- Review weekly for proactive maintenance
+- Replace unhealthy disks promptly`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\StorageSpaces.csv',
+        helpText: 'Path for the CSV export file'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Storage Spaces Report
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Generating Storage Spaces report..." -ForegroundColor Cyan
+    
+    # Get all storage pools
+    $Pools = Get-StoragePool | Where-Object { $_.IsPrimordial -eq $false }
+    Write-Host "Found $($Pools.Count) storage pools" -ForegroundColor Yellow
+    
+    # Build comprehensive report
+    $Report = @()
+    
+    foreach ($Pool in $Pools) {
+        # Get virtual disks in this pool
+        $VDisks = Get-VirtualDisk -StoragePool $Pool -ErrorAction SilentlyContinue
+        
+        # Get physical disks in this pool
+        $PDisks = Get-PhysicalDisk -StoragePool $Pool -ErrorAction SilentlyContinue
+        
+        foreach ($VDisk in $VDisks) {
+            $Report += [PSCustomObject]@{
+                PoolName            = $Pool.FriendlyName
+                PoolHealthStatus    = $Pool.HealthStatus
+                PoolOperationalStatus = $Pool.OperationalStatus
+                PoolSizeGB          = [math]::Round($Pool.Size / 1GB, 2)
+                PoolAllocatedGB     = [math]::Round($Pool.AllocatedSize / 1GB, 2)
+                VirtualDiskName     = $VDisk.FriendlyName
+                VDiskResiliency     = $VDisk.ResiliencySettingName
+                VDiskSizeGB         = [math]::Round($VDisk.Size / 1GB, 2)
+                VDiskHealthStatus   = $VDisk.HealthStatus
+                PhysicalDiskCount   = $PDisks.Count
+            }
+        }
+        
+        # If no virtual disks, still report pool
+        if ($VDisks.Count -eq 0) {
+            $Report += [PSCustomObject]@{
+                PoolName            = $Pool.FriendlyName
+                PoolHealthStatus    = $Pool.HealthStatus
+                PoolOperationalStatus = $Pool.OperationalStatus
+                PoolSizeGB          = [math]::Round($Pool.Size / 1GB, 2)
+                PoolAllocatedGB     = [math]::Round($Pool.AllocatedSize / 1GB, 2)
+                VirtualDiskName     = "(No virtual disks)"
+                VDiskResiliency     = "N/A"
+                VDiskSizeGB         = 0
+                VDiskHealthStatus   = "N/A"
+                PhysicalDiskCount   = $PDisks.Count
+            }
+        }
+    }
+    
+    # Export report
+    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Storage Spaces report exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Physical disk health summary
+    Write-Host ""
+    Write-Host "Physical Disk Health Summary:" -ForegroundColor Cyan
+    Get-PhysicalDisk | Group-Object HealthStatus | ForEach-Object {
+        $Color = if ($_.Name -eq 'Healthy') { 'Green' } elseif ($_.Name -eq 'Warning') { 'Yellow' } else { 'Red' }
+        Write-Host "  $($_.Name): $($_.Count) disks" -ForegroundColor $Color
+    }
+    
+    # Storage pool summary
+    Write-Host ""
+    Write-Host "Storage Pool Summary:" -ForegroundColor Cyan
+    foreach ($Pool in $Pools) {
+        $UsedPercent = [math]::Round(($Pool.AllocatedSize / $Pool.Size) * 100, 1)
+        Write-Host "  $($Pool.FriendlyName): $UsedPercent% used ($([math]::Round($Pool.AllocatedSize/1GB,0))/$([math]::Round($Pool.Size/1GB,0)) GB)" -ForegroundColor Gray
+    }
+    
+} catch {
+    Write-Error "Failed to export Storage Spaces report: \$_"
+}`;
+    }
+  },
+
+  // ==================== REMOTE DESKTOP SERVICES TASKS ====================
+  {
+    id: 'ws-get-rds-session-hosts',
+    title: 'Get RDS Session Hosts Status',
+    description: 'Report on Remote Desktop Session Host servers and sessions',
+    category: 'Remote Desktop Services',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Reports on RDS Session Host servers in a collection
+- Shows active sessions, user counts, and server health
+- Supports RDS farm monitoring and capacity planning
+
+**Prerequisites:**
+- Remote Desktop Services role installed
+- RD Connection Broker configured
+- Administrator credentials on RD servers
+
+**What You Need to Provide:**
+- RD Connection Broker server name
+- Collection name (optional)
+
+**What the Script Does:**
+1. Connects to RD Connection Broker
+2. Queries Session Host servers
+3. Collects session and user information
+4. Reports server health and capacity
+5. Shows current session counts
+
+**Important Notes:**
+- Essential for RDS farm monitoring
+- Monitor session counts for capacity
+- Identify overloaded servers
+- Track user distribution across hosts
+- Plan maintenance during low usage
+- Typical use: daily monitoring, capacity planning
+- Balance sessions across hosts
+- Monitor for disconnected sessions`,
+    parameters: [
+      {
+        name: 'connectionBroker',
+        label: 'RD Connection Broker',
+        type: 'text',
+        required: true,
+        placeholder: 'RDCB01.domain.com',
+        helpText: 'RD Connection Broker server name'
+      },
+      {
+        name: 'collectionName',
+        label: 'Collection Name',
+        type: 'text',
+        required: false,
+        placeholder: 'Desktop Collection',
+        helpText: 'Optional: specific collection to query'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const connectionBroker = escapePowerShellString(params.connectionBroker);
+      const collectionName = params.collectionName ? escapePowerShellString(params.collectionName) : '';
+
+      return `# Get RDS Session Hosts Status
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Querying RDS Session Hosts from: ${connectionBroker}" -ForegroundColor Cyan
+    
+    # Import Remote Desktop module
+    Import-Module RemoteDesktop -ErrorAction Stop
+    
+    # Get collections
+    ${collectionName ? `
+    $Collections = Get-RDSessionCollection -ConnectionBroker "${connectionBroker}" | Where-Object { $_.CollectionName -eq "${collectionName}" }
+    ` : `
+    $Collections = Get-RDSessionCollection -ConnectionBroker "${connectionBroker}"
+    `}
+    
+    Write-Host "Found $($Collections.Count) session collection(s)" -ForegroundColor Yellow
+    
+    foreach ($Collection in $Collections) {
+        Write-Host ""
+        Write-Host "Collection: $($Collection.CollectionName)" -ForegroundColor Cyan
+        Write-Host "  Description: $($Collection.CollectionDescription)" -ForegroundColor Gray
+        
+        # Get session hosts in collection
+        $SessionHosts = Get-RDSessionHost -CollectionName $Collection.CollectionName -ConnectionBroker "${connectionBroker}"
+        
+        Write-Host ""
+        Write-Host "  Session Hosts:" -ForegroundColor Yellow
+        foreach ($Host in $SessionHosts) {
+            $StateColor = if ($Host.NewConnectionAllowed -eq 'Yes') { 'Green' } else { 'Yellow' }
+            Write-Host "    $($Host.SessionHost)" -ForegroundColor $StateColor
+            Write-Host "      New Connections: $($Host.NewConnectionAllowed)" -ForegroundColor Gray
+        }
+        
+        # Get active sessions
+        $Sessions = Get-RDUserSession -CollectionName $Collection.CollectionName -ConnectionBroker "${connectionBroker}" -ErrorAction SilentlyContinue
+        
+        Write-Host ""
+        Write-Host "  Active Sessions: $($Sessions.Count)" -ForegroundColor Yellow
+        
+        if ($Sessions.Count -gt 0) {
+            $Sessions | Group-Object HostServer | ForEach-Object {
+                Write-Host "    $($_.Name): $($_.Count) sessions" -ForegroundColor Gray
+            }
+            
+            # Session state breakdown
+            Write-Host ""
+            Write-Host "  Session States:" -ForegroundColor Yellow
+            $Sessions | Group-Object SessionState | ForEach-Object {
+                Write-Host "    $($_.Name): $($_.Count)" -ForegroundColor Gray
+            }
+        }
+    }
+    
+    # Summary
+    Write-Host ""
+    Write-Host "RDS Farm Summary:" -ForegroundColor Cyan
+    $TotalHosts = ($Collections | ForEach-Object { Get-RDSessionHost -CollectionName $_.CollectionName -ConnectionBroker "${connectionBroker}" }).Count
+    $TotalSessions = ($Collections | ForEach-Object { Get-RDUserSession -CollectionName $_.CollectionName -ConnectionBroker "${connectionBroker}" -ErrorAction SilentlyContinue }).Count
+    Write-Host "  Total Session Hosts: $TotalHosts" -ForegroundColor Gray
+    Write-Host "  Total Active Sessions: $TotalSessions" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to query RDS Session Hosts: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-manage-rds-sessions',
+    title: 'Manage RDS User Sessions',
+    description: 'Disconnect, logoff, or send messages to RDS user sessions',
+    category: 'Remote Desktop Services',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Manages user sessions on RDS Session Host servers
+- Supports disconnect, logoff, and messaging operations
+- Enables session management for maintenance
+
+**Prerequisites:**
+- Remote Desktop Services role installed
+- Administrator credentials on RD servers
+- RD Connection Broker configured
+
+**What You Need to Provide:**
+- RD Connection Broker server name
+- Username or session to manage
+- Action to perform
+
+**What the Script Does:**
+1. Connects to RD Connection Broker
+2. Finds specified user sessions
+3. Performs requested action
+4. Reports operation result
+5. Shows updated session status
+
+**Important Notes:**
+- Disconnect preserves user session state
+- Logoff closes all applications
+- Send message before forced logoff
+- Use for maintenance and support
+- Monitor session cleanup after logoff
+- Typical use: user support, maintenance prep
+- Warn users before disconnecting
+- Check for unsaved work before logoff`,
+    parameters: [
+      {
+        name: 'connectionBroker',
+        label: 'RD Connection Broker',
+        type: 'text',
+        required: true,
+        placeholder: 'RDCB01.domain.com',
+        helpText: 'RD Connection Broker server name'
+      },
+      {
+        name: 'userName',
+        label: 'Username',
+        type: 'text',
+        required: true,
+        placeholder: 'domain\\username',
+        helpText: 'Username to manage (domain\\user format)'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'List', label: 'List Sessions' },
+          { value: 'Disconnect', label: 'Disconnect Session' },
+          { value: 'Logoff', label: 'Logoff Session' },
+          { value: 'Message', label: 'Send Message' }
+        ],
+        helpText: 'Action to perform on session'
+      },
+      {
+        name: 'message',
+        label: 'Message Text',
+        type: 'text',
+        required: false,
+        placeholder: 'System maintenance in 10 minutes',
+        helpText: 'Message to send (for Message action)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const connectionBroker = escapePowerShellString(params.connectionBroker);
+      const userName = escapePowerShellString(params.userName);
+      const action = params.action;
+      const message = params.message ? escapePowerShellString(params.message) : 'System maintenance message';
+
+      return `# Manage RDS User Sessions
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Managing RDS sessions for: ${userName}" -ForegroundColor Cyan
+    Write-Host "Connection Broker: ${connectionBroker}" -ForegroundColor Gray
+    Write-Host "Action: ${action}" -ForegroundColor Gray
+    
+    # Import Remote Desktop module
+    Import-Module RemoteDesktop -ErrorAction Stop
+    
+    # Find user sessions
+    $AllCollections = Get-RDSessionCollection -ConnectionBroker "${connectionBroker}"
+    $UserSessions = @()
+    
+    foreach ($Collection in $AllCollections) {
+        $Sessions = Get-RDUserSession -CollectionName $Collection.CollectionName -ConnectionBroker "${connectionBroker}" -ErrorAction SilentlyContinue
+        $UserSessions += $Sessions | Where-Object { $_.UserName -like "*${userName}*" }
+    }
+    
+    if ($UserSessions.Count -eq 0) {
+        Write-Host "No sessions found for user: ${userName}" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    Write-Host "Found $($UserSessions.Count) session(s)" -ForegroundColor Yellow
+    
+    foreach ($Session in $UserSessions) {
+        Write-Host ""
+        Write-Host "Session: $($Session.UnifiedSessionId)" -ForegroundColor Cyan
+        Write-Host "  User: $($Session.UserName)" -ForegroundColor Gray
+        Write-Host "  Host: $($Session.HostServer)" -ForegroundColor Gray
+        Write-Host "  State: $($Session.SessionState)" -ForegroundColor Gray
+        Write-Host "  Created: $($Session.CreateTime)" -ForegroundColor Gray
+        
+        switch ("${action}") {
+            "List" {
+                # Just listing, no action needed
+            }
+            
+            "Disconnect" {
+                Write-Host "Disconnecting session..." -ForegroundColor Yellow
+                Disconnect-RDUser -HostServer $Session.HostServer -UnifiedSessionID $Session.UnifiedSessionId -Force
+                Write-Host "✓ Session disconnected" -ForegroundColor Green
+            }
+            
+            "Logoff" {
+                Write-Host "⚠ Logging off session..." -ForegroundColor Yellow
+                Invoke-RDUserLogoff -HostServer $Session.HostServer -UnifiedSessionID $Session.UnifiedSessionId -Force
+                Write-Host "✓ Session logged off" -ForegroundColor Green
+            }
+            
+            "Message" {
+                Write-Host "Sending message..." -ForegroundColor Yellow
+                Send-RDUserMessage -HostServer $Session.HostServer -UnifiedSessionID $Session.UnifiedSessionId -MessageTitle "Administrator Message" -MessageBody "${message}"
+                Write-Host "✓ Message sent" -ForegroundColor Green
+            }
+        }
+    }
+    
+    # Summary
+    Write-Host ""
+    Write-Host "Operation completed for $($UserSessions.Count) session(s)" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to manage RDS sessions: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-get-rds-licensing',
+    title: 'Get RDS Licensing Status',
+    description: 'Report on Remote Desktop Services licensing and CAL usage',
+    category: 'Remote Desktop Services',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Reports on RDS license server configuration
+- Shows CAL (Client Access License) usage and availability
+- Supports license compliance and planning
+
+**Prerequisites:**
+- RD Licensing role installed
+- Administrator credentials on license server
+- RDS deployment configured
+
+**What You Need to Provide:**
+- RD License Server name
+
+**What the Script Does:**
+1. Connects to RD License Server
+2. Queries installed license packs
+3. Reports issued and available CALs
+4. Shows license expiration dates
+5. Provides compliance summary
+
+**Important Notes:**
+- Essential for RDS license compliance
+- Monitor available CAL count
+- Plan license purchases proactively
+- Check for expired licenses
+- Per User vs Per Device licensing
+- Typical use: license audits, capacity planning
+- Review monthly for compliance
+- Add licenses before running out`,
+    parameters: [
+      {
+        name: 'licenseServer',
+        label: 'RD License Server',
+        type: 'text',
+        required: true,
+        placeholder: 'RDLS01.domain.com',
+        helpText: 'Remote Desktop License Server name'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const licenseServer = escapePowerShellString(params.licenseServer);
+
+      return `# Get RDS Licensing Status
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Querying RDS licensing from: ${licenseServer}" -ForegroundColor Cyan
+    
+    # Import Remote Desktop module
+    Import-Module RemoteDesktopServices -ErrorAction Stop
+    
+    # Connect to license server via WMI
+    $LicenseServer = "${licenseServer}"
+    
+    Write-Host ""
+    Write-Host "License Server Information:" -ForegroundColor Cyan
+    
+    # Get license server status
+    $ServerStatus = Get-WmiObject -Class Win32_TSLicenseServer -ComputerName $LicenseServer -ErrorAction Stop
+    Write-Host "  Server: $($ServerStatus.PSComputerName)" -ForegroundColor Gray
+    Write-Host "  Version: $($ServerStatus.Version)" -ForegroundColor Gray
+    Write-Host "  Status: $($ServerStatus.ServerStatus)" -ForegroundColor Gray
+    
+    # Get installed license packs
+    Write-Host ""
+    Write-Host "Installed License Packs:" -ForegroundColor Cyan
+    
+    $LicensePacks = Get-WmiObject -Class Win32_TSLicenseKeyPack -ComputerName $LicenseServer -ErrorAction Stop
+    
+    foreach ($Pack in $LicensePacks) {
+        $TypeName = switch ($Pack.KeyPackType) {
+            0 { "Unknown" }
+            1 { "Retail" }
+            2 { "Volume" }
+            3 { "Concurrent" }
+            4 { "Temporary" }
+            5 { "Open" }
+            6 { "Built-in" }
+            default { "Other" }
+        }
+        
+        $ProductType = switch ($Pack.ProductType) {
+            0 { "Per Device" }
+            1 { "Per User" }
+            2 { "Not Specified" }
+            default { "Unknown" }
+        }
+        
+        Write-Host ""
+        Write-Host "  Product: $($Pack.ProductVersion)" -ForegroundColor Yellow
+        Write-Host "    Type: $ProductType ($TypeName)" -ForegroundColor Gray
+        Write-Host "    Total Licenses: $($Pack.TotalLicenses)" -ForegroundColor Gray
+        Write-Host "    Issued Licenses: $($Pack.IssuedLicenses)" -ForegroundColor Gray
+        Write-Host "    Available: $($Pack.AvailableLicenses)" -ForegroundColor $(if ($Pack.AvailableLicenses -gt 10) { 'Green' } elseif ($Pack.AvailableLicenses -gt 0) { 'Yellow' } else { 'Red' })
+        
+        if ($Pack.ExpirationDate) {
+            Write-Host "    Expiration: $($Pack.ExpirationDate)" -ForegroundColor Gray
+        }
+    }
+    
+    # Summary
+    Write-Host ""
+    Write-Host "License Summary:" -ForegroundColor Cyan
+    $TotalLicenses = ($LicensePacks | Measure-Object -Property TotalLicenses -Sum).Sum
+    $IssuedLicenses = ($LicensePacks | Measure-Object -Property IssuedLicenses -Sum).Sum
+    $AvailableLicenses = ($LicensePacks | Measure-Object -Property AvailableLicenses -Sum).Sum
+    
+    Write-Host "  Total CALs: $TotalLicenses" -ForegroundColor Gray
+    Write-Host "  Issued: $IssuedLicenses" -ForegroundColor Gray
+    Write-Host "  Available: $AvailableLicenses" -ForegroundColor $(if ($AvailableLicenses -gt 10) { 'Green' } elseif ($AvailableLicenses -gt 0) { 'Yellow' } else { 'Red' })
+    
+    $UsagePercent = if ($TotalLicenses -gt 0) { [math]::Round(($IssuedLicenses / $TotalLicenses) * 100, 1) } else { 0 }
+    Write-Host "  Usage: $UsagePercent%" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to query RDS licensing: \$_"
+}`;
+    }
+  },
+
+  // ==================== WINDOWS SERVER BACKUP TASKS ====================
+  {
+    id: 'ws-run-system-state-backup',
+    title: 'Run System State Backup',
+    description: 'Create a system state backup for disaster recovery',
+    category: 'Windows Server Backup',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a system state backup of Windows Server
+- Includes Active Directory, registry, boot files, and COM+ registration
+- Essential for bare metal recovery and AD restoration
+
+**Prerequisites:**
+- Windows Server Backup feature installed
+- Administrator credentials
+- Sufficient backup destination space
+- Backup target available (local or network)
+
+**What You Need to Provide:**
+- Backup destination path
+- Optional network credentials
+
+**What the Script Does:**
+1. Validates Windows Server Backup is installed
+2. Creates system state backup policy
+3. Initiates backup to destination
+4. Monitors backup progress
+5. Reports completion status
+
+**Important Notes:**
+- Critical for domain controllers
+- Includes AD database and SYSVOL
+- Required for authoritative restore
+- Takes significant time for large AD
+- Schedule during low-activity periods
+- Typical use: nightly DC backups
+- Test restore procedures regularly
+- Maintain multiple backup generations`,
+    parameters: [
+      {
+        name: 'backupTarget',
+        label: 'Backup Destination',
+        type: 'text',
+        required: true,
+        placeholder: 'E:\\Backups or \\\\SERVER\\Backups',
+        helpText: 'Local path or network share for backup'
+      },
+      {
+        name: 'useVss',
+        label: 'Use VSS Copy Backup',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'Use Volume Shadow Copy for consistent backup'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const backupTarget = escapePowerShellString(params.backupTarget);
+      const useVss = params.useVss !== false;
+
+      return `# Run System State Backup
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Starting System State Backup..." -ForegroundColor Cyan
+    Write-Host "Destination: ${backupTarget}" -ForegroundColor Gray
+    
+    # Check if Windows Server Backup is installed
+    $WsbFeature = Get-WindowsFeature -Name Windows-Server-Backup
+    if (-not $WsbFeature.Installed) {
+        Write-Host "Installing Windows Server Backup feature..." -ForegroundColor Yellow
+        Install-WindowsFeature -Name Windows-Server-Backup -IncludeManagementTools
+        Write-Host "✓ Windows Server Backup installed" -ForegroundColor Green
+    }
+    
+    # Add Windows Server Backup snap-in
+    Add-PSSnapin Windows.ServerBackup -ErrorAction SilentlyContinue
+    
+    # Validate backup target
+    if (-not (Test-Path "${backupTarget}")) {
+        New-Item -Path "${backupTarget}" -ItemType Directory -Force | Out-Null
+        Write-Host "✓ Created backup directory" -ForegroundColor Green
+    }
+    
+    # Create backup policy
+    Write-Host ""
+    Write-Host "Creating backup policy..." -ForegroundColor Cyan
+    $Policy = New-WBPolicy
+    
+    # Add system state to backup
+    Add-WBSystemState -Policy $Policy
+    
+    # Configure backup target
+    $BackupLocation = New-WBBackupTarget -VolumePath "${backupTarget}"
+    Add-WBBackupTarget -Policy $Policy -Target $BackupLocation
+    
+    # Set VSS option
+    ${useVss ? `Set-WBVssBackupOption -Policy $Policy -VssCopyBackup` : `Set-WBVssBackupOption -Policy $Policy -VssFullBackup`}
+    
+    Write-Host ""
+    Write-Host "System State Backup includes:" -ForegroundColor Yellow
+    Write-Host "  - Active Directory (if DC)" -ForegroundColor Gray
+    Write-Host "  - Boot files" -ForegroundColor Gray
+    Write-Host "  - COM+ registration database" -ForegroundColor Gray
+    Write-Host "  - Registry" -ForegroundColor Gray
+    Write-Host "  - SYSVOL (if DC)" -ForegroundColor Gray
+    Write-Host "  - Certificate Services (if installed)" -ForegroundColor Gray
+    
+    # Start backup
+    Write-Host ""
+    Write-Host "Starting backup job..." -ForegroundColor Cyan
+    $BackupJob = Start-WBBackup -Policy $Policy
+    
+    # Monitor progress
+    do {
+        Start-Sleep -Seconds 10
+        $Status = Get-WBJob -Previous 1
+        Write-Host "  Status: $($Status.JobState) - $($Status.PercentComplete)% complete" -ForegroundColor Gray
+    } while ($Status.JobState -eq 'Running')
+    
+    # Report result
+    if ($Status.JobState -eq 'Completed') {
+        Write-Host ""
+        Write-Host "✓ System State Backup completed successfully" -ForegroundColor Green
+        Write-Host "  Start Time: $($Status.StartTime)" -ForegroundColor Gray
+        Write-Host "  End Time: $($Status.EndTime)" -ForegroundColor Gray
+        Write-Host "  Destination: ${backupTarget}" -ForegroundColor Gray
+    } else {
+        Write-Error "Backup job ended with status: $($Status.JobState)"
+        Write-Host "Error: $($Status.ErrorDescription)" -ForegroundColor Red
+    }
+    
+} catch {
+    Write-Error "Failed to run system state backup: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-run-bmr-backup',
+    title: 'Run Bare Metal Recovery Backup',
+    description: 'Create a full server backup for bare metal recovery',
+    category: 'Windows Server Backup',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates complete bare metal recovery (BMR) backup
+- Includes all volumes needed to restore server
+- Enables full server recovery to new hardware
+
+**Prerequisites:**
+- Windows Server Backup feature installed
+- Administrator credentials
+- Large backup destination (full server size)
+- Backup target available
+
+**What You Need to Provide:**
+- Backup destination path
+- Volumes to include (or all volumes)
+
+**What the Script Does:**
+1. Validates Windows Server Backup installation
+2. Creates BMR backup policy
+3. Includes all critical volumes
+4. Initiates full server backup
+5. Reports completion and size
+
+**Important Notes:**
+- Essential for disaster recovery
+- Largest backup type - plan storage accordingly
+- Enables recovery to dissimilar hardware
+- Include system reserved partition
+- Schedule weekly during maintenance
+- Typical use: weekly full server backup
+- Combine with incremental backups
+- Test recovery to spare hardware`,
+    parameters: [
+      {
+        name: 'backupTarget',
+        label: 'Backup Destination',
+        type: 'text',
+        required: true,
+        placeholder: 'E:\\Backups or \\\\SERVER\\BMR',
+        helpText: 'Local path or network share for backup'
+      },
+      {
+        name: 'allVolumes',
+        label: 'Include All Volumes',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'Backup all volumes for complete BMR'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const backupTarget = escapePowerShellString(params.backupTarget);
+      const allVolumes = params.allVolumes !== false;
+
+      return `# Run Bare Metal Recovery Backup
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Starting Bare Metal Recovery Backup..." -ForegroundColor Cyan
+    Write-Host "Destination: ${backupTarget}" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠ This backup type includes ALL data required for full server recovery" -ForegroundColor Yellow
+    Write-Host "⚠ Ensure sufficient storage space is available" -ForegroundColor Yellow
+    
+    # Check if Windows Server Backup is installed
+    $WsbFeature = Get-WindowsFeature -Name Windows-Server-Backup
+    if (-not $WsbFeature.Installed) {
+        Write-Host ""
+        Write-Host "Installing Windows Server Backup feature..." -ForegroundColor Yellow
+        Install-WindowsFeature -Name Windows-Server-Backup -IncludeManagementTools
+        Write-Host "✓ Windows Server Backup installed" -ForegroundColor Green
+    }
+    
+    # Add Windows Server Backup snap-in
+    Add-PSSnapin Windows.ServerBackup -ErrorAction SilentlyContinue
+    
+    # Validate backup target
+    if (-not (Test-Path "${backupTarget}")) {
+        New-Item -Path "${backupTarget}" -ItemType Directory -Force | Out-Null
+        Write-Host "✓ Created backup directory" -ForegroundColor Green
+    }
+    
+    # Create backup policy
+    Write-Host ""
+    Write-Host "Creating BMR backup policy..." -ForegroundColor Cyan
+    $Policy = New-WBPolicy
+    
+    # Add bare metal recovery option
+    Add-WBBareMetalRecovery -Policy $Policy
+    
+    # Add system state (required for BMR)
+    Add-WBSystemState -Policy $Policy
+    
+    # Add volumes
+    ${allVolumes ? `
+    $AllVolumes = Get-WBVolume -AllVolumes
+    Write-Host "Including all volumes:" -ForegroundColor Yellow
+    $AllVolumes | ForEach-Object { Write-Host "  - $($_.MountPath)" -ForegroundColor Gray }
+    Add-WBVolume -Policy $Policy -Volume $AllVolumes
+    ` : `
+    $CriticalVolumes = Get-WBVolume -CriticalVolumes
+    Write-Host "Including critical volumes only:" -ForegroundColor Yellow
+    $CriticalVolumes | ForEach-Object { Write-Host "  - $($_.MountPath)" -ForegroundColor Gray }
+    Add-WBVolume -Policy $Policy -Volume $CriticalVolumes
+    `}
+    
+    # Configure backup target
+    $BackupLocation = New-WBBackupTarget -VolumePath "${backupTarget}"
+    Add-WBBackupTarget -Policy $Policy -Target $BackupLocation
+    
+    # Set VSS options for consistent backup
+    Set-WBVssBackupOption -Policy $Policy -VssCopyBackup
+    
+    Write-Host ""
+    Write-Host "BMR Backup includes:" -ForegroundColor Yellow
+    Write-Host "  - System partition" -ForegroundColor Gray
+    Write-Host "  - Boot partition" -ForegroundColor Gray
+    Write-Host "  - System state" -ForegroundColor Gray
+    Write-Host "  - All application data" -ForegroundColor Gray
+    Write-Host "  - Recovery partition" -ForegroundColor Gray
+    
+    # Start backup
+    Write-Host ""
+    Write-Host "Starting backup job (this may take several hours)..." -ForegroundColor Cyan
+    $BackupJob = Start-WBBackup -Policy $Policy
+    
+    # Monitor progress
+    do {
+        Start-Sleep -Seconds 30
+        $Status = Get-WBJob -Previous 1
+        Write-Host "  Status: $($Status.JobState) - $($Status.PercentComplete)% complete" -ForegroundColor Gray
+    } while ($Status.JobState -eq 'Running')
+    
+    # Report result
+    if ($Status.JobState -eq 'Completed') {
+        Write-Host ""
+        Write-Host "✓ Bare Metal Recovery Backup completed successfully" -ForegroundColor Green
+        Write-Host "  Start Time: $($Status.StartTime)" -ForegroundColor Gray
+        Write-Host "  End Time: $($Status.EndTime)" -ForegroundColor Gray
+        Write-Host "  Duration: $(($Status.EndTime - $Status.StartTime).ToString())" -ForegroundColor Gray
+        Write-Host "  Destination: ${backupTarget}" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "This backup can be used for full server recovery using Windows RE" -ForegroundColor Yellow
+    } else {
+        Write-Error "Backup job ended with status: $($Status.JobState)"
+        Write-Host "Error: $($Status.ErrorDescription)" -ForegroundColor Red
+    }
+    
+} catch {
+    Write-Error "Failed to run BMR backup: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-get-backup-history',
+    title: 'Get Backup History Report',
+    description: 'Generate report of Windows Server Backup job history',
+    category: 'Windows Server Backup',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Reports on recent Windows Server Backup job history
+- Shows success, failure, and warning status
+- Supports backup monitoring and compliance
+
+**Prerequisites:**
+- Windows Server Backup feature installed
+- Administrator credentials
+- Backup jobs previously executed
+
+**What You Need to Provide:**
+- Number of recent backup jobs to report
+
+**What the Script Does:**
+1. Queries Windows Server Backup job history
+2. Collects job status, duration, and size
+3. Reports success and failure counts
+4. Shows backup destination details
+5. Exports history to CSV if specified
+
+**Important Notes:**
+- Essential for backup monitoring
+- Identify failed backups immediately
+- Track backup duration trends
+- Monitor backup size growth
+- Verify backup completion daily
+- Typical use: daily backup verification
+- Investigate any failures immediately
+- Document backup success for compliance`,
+    parameters: [
+      {
+        name: 'jobCount',
+        label: 'Number of Jobs',
+        type: 'number',
+        required: false,
+        defaultValue: 10,
+        helpText: 'Number of recent backup jobs to show'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path (Optional)',
+        type: 'text',
+        required: false,
+        placeholder: 'C:\\Exports\\BackupHistory.csv',
+        helpText: 'Optional path to export backup history'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const jobCount = params.jobCount || 10;
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+
+      return `# Get Backup History Report
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Generating Backup History Report..." -ForegroundColor Cyan
+    Write-Host "Showing last ${jobCount} backup jobs" -ForegroundColor Gray
+    
+    # Check if Windows Server Backup is installed
+    $WsbFeature = Get-WindowsFeature -Name Windows-Server-Backup
+    if (-not $WsbFeature.Installed) {
+        Write-Error "Windows Server Backup is not installed"
+        exit 1
+    }
+    
+    # Add Windows Server Backup snap-in
+    Add-PSSnapin Windows.ServerBackup -ErrorAction SilentlyContinue
+    
+    # Get backup history
+    $BackupSummary = Get-WBSummary
+    
+    Write-Host ""
+    Write-Host "Backup Summary:" -ForegroundColor Cyan
+    Write-Host "  Next Scheduled Backup: $($BackupSummary.NextBackupTime)" -ForegroundColor Gray
+    Write-Host "  Last Backup Time: $($BackupSummary.LastBackupTime)" -ForegroundColor Gray
+    Write-Host "  Last Backup Result: $($BackupSummary.LastBackupResultHR)" -ForegroundColor $(if ($BackupSummary.LastBackupResultHR -eq 0) { 'Green' } else { 'Red' })
+    
+    # Get detailed job history
+    Write-Host ""
+    Write-Host "Recent Backup Jobs:" -ForegroundColor Cyan
+    
+    $Jobs = @()
+    for ($i = 1; $i -le ${jobCount}; $i++) {
+        $Job = Get-WBJob -Previous $i -ErrorAction SilentlyContinue
+        if ($Job) {
+            $Jobs += [PSCustomObject]@{
+                JobNumber       = $i
+                StartTime       = $Job.StartTime
+                EndTime         = $Job.EndTime
+                Duration        = if ($Job.EndTime -and $Job.StartTime) { ($Job.EndTime - $Job.StartTime).ToString() } else { "N/A" }
+                JobState        = $Job.JobState
+                PercentComplete = $Job.PercentComplete
+                ErrorDescription = $Job.ErrorDescription
+            }
+            
+            $StateColor = switch ($Job.JobState) {
+                'Completed' { 'Green' }
+                'Failed' { 'Red' }
+                'Running' { 'Yellow' }
+                default { 'Gray' }
+            }
+            
+            Write-Host ""
+            Write-Host "  Job #$i" -ForegroundColor Yellow
+            Write-Host "    Start: $($Job.StartTime)" -ForegroundColor Gray
+            Write-Host "    End: $($Job.EndTime)" -ForegroundColor Gray
+            Write-Host "    Status: $($Job.JobState)" -ForegroundColor $StateColor
+            if ($Job.ErrorDescription) {
+                Write-Host "    Error: $($Job.ErrorDescription)" -ForegroundColor Red
+            }
+        }
+    }
+    
+    # Export to CSV if path provided
+    ${exportPath ? `
+    $Jobs | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    Write-Host ""
+    Write-Host "✓ Backup history exported to: ${exportPath}" -ForegroundColor Green
+    ` : ''}
+    
+    # Summary statistics
+    Write-Host ""
+    Write-Host "Backup Statistics:" -ForegroundColor Cyan
+    $SuccessCount = ($Jobs | Where-Object { $_.JobState -eq 'Completed' }).Count
+    $FailedCount = ($Jobs | Where-Object { $_.JobState -eq 'Failed' }).Count
+    $TotalCount = $Jobs.Count
+    
+    Write-Host "  Total Jobs: $TotalCount" -ForegroundColor Gray
+    Write-Host "  Successful: $SuccessCount" -ForegroundColor Green
+    Write-Host "  Failed: $FailedCount" -ForegroundColor $(if ($FailedCount -eq 0) { 'Gray' } else { 'Red' })
+    
+    if ($TotalCount -gt 0) {
+        $SuccessRate = [math]::Round(($SuccessCount / $TotalCount) * 100, 1)
+        Write-Host "  Success Rate: $SuccessRate%" -ForegroundColor $(if ($SuccessRate -ge 95) { 'Green' } elseif ($SuccessRate -ge 80) { 'Yellow' } else { 'Red' })
+    }
+    
+} catch {
+    Write-Error "Failed to get backup history: \$_"
+}`;
+    }
+  },
+
+  // ==================== ADDITIONAL SERVER ROLES TASKS ====================
+  {
+    id: 'ws-get-role-services',
+    title: 'Get Role Services Configuration',
+    description: 'Export detailed role services configuration for installed roles',
+    category: 'Roles & Features',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Exports detailed configuration for installed Windows Server roles
+- Shows role services, sub-features, and dependencies
+- Supports documentation and configuration auditing
+
+**Prerequisites:**
+- PowerShell remoting enabled on target server
+- Administrator credentials
+- Server Manager PowerShell module
+
+**What You Need to Provide:**
+- Server name to query
+- Specific role name (optional - all roles if not specified)
+- Export file path
+
+**What the Script Does:**
+1. Queries installed Windows Server roles
+2. Collects role services and sub-features
+3. Reports dependencies and install state
+4. Exports detailed configuration to CSV
+5. Shows role service hierarchy
+
+**Important Notes:**
+- Essential for role configuration documentation
+- Shows all role services and dependencies
+- Use for compliance and auditing
+- Run after role installation changes
+- Document configuration for DR planning
+- Typical use: audits, DR documentation
+- Compare configurations across servers
+- Identify unnecessary role services`,
+    parameters: [
+      {
+        name: 'serverName',
+        label: 'Server Name',
+        type: 'text',
+        required: true,
+        placeholder: 'SERVER01',
+        helpText: 'Name of the server to query'
+      },
+      {
+        name: 'roleName',
+        label: 'Role Name (Optional)',
+        type: 'text',
+        required: false,
+        placeholder: 'Web-Server',
+        helpText: 'Specific role name to query (leave empty for all roles)'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\RoleServices.csv',
+        helpText: 'Path for the CSV export file'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const serverName = escapePowerShellString(params.serverName);
+      const roleName = params.roleName ? escapePowerShellString(params.roleName) : '';
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Get Role Services Configuration
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Querying role services from: ${serverName}" -ForegroundColor Cyan
+    ${roleName ? `Write-Host "Role: ${roleName}" -ForegroundColor Gray` : `Write-Host "Querying all installed roles" -ForegroundColor Gray`}
+    
+    # Get installed features
+    ${roleName ? `
+    $Features = Get-WindowsFeature -ComputerName "${serverName}" | Where-Object { 
+        $_.Name -like "${roleName}*" -and $_.Installed -eq $true 
+    }
+    ` : `
+    $Features = Get-WindowsFeature -ComputerName "${serverName}" | Where-Object { 
+        $_.Installed -eq $true 
+    }
+    `}
+    
+    Write-Host "Found $($Features.Count) installed features" -ForegroundColor Yellow
+    
+    # Build detailed report
+    $Report = foreach ($Feature in $Features) {
+        [PSCustomObject]@{
+            Name              = $Feature.Name
+            DisplayName       = $Feature.DisplayName
+            FeatureType       = $Feature.FeatureType
+            Depth             = $Feature.Depth
+            Parent            = $Feature.Parent
+            SubFeatures       = ($Feature.SubFeatures -join '; ')
+            InstallState      = $Feature.InstallState
+            DependsOn         = ($Feature.DependsOn -join '; ')
+            Path              = $Feature.Path
+        }
+    }
+    
+    # Export report
+    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Role services exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Display summary by feature type
+    Write-Host ""
+    Write-Host "Feature Summary:" -ForegroundColor Cyan
+    $Features | Group-Object FeatureType | ForEach-Object {
+        Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor Gray
+    }
+    
+    # Show role hierarchy
+    Write-Host ""
+    Write-Host "Role Hierarchy:" -ForegroundColor Cyan
+    $RootRoles = $Features | Where-Object { $_.Depth -eq 1 -and $_.FeatureType -eq 'Role' }
+    foreach ($Role in $RootRoles) {
+        Write-Host "  $($Role.DisplayName)" -ForegroundColor Yellow
+        $SubFeatures = $Features | Where-Object { $_.Parent -eq $Role.Name }
+        foreach ($Sub in $SubFeatures) {
+            Write-Host "    - $($Sub.DisplayName)" -ForegroundColor Gray
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to get role services configuration: \$_"
+}`;
+    }
+  },
+
+  {
+    id: 'ws-configure-tiered-storage',
+    title: 'Configure Tiered Storage',
+    description: 'Set up SSD and HDD tiered storage in Storage Spaces',
+    category: 'Storage Spaces',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures tiered storage combining SSD and HDD tiers
+- Automatically moves frequently accessed data to SSD tier
+- Maximizes performance while maintaining capacity
+
+**Prerequisites:**
+- Storage Spaces configured
+- Mix of SSD and HDD physical disks
+- Storage pool with both disk types
+- Administrator credentials
+
+**What You Need to Provide:**
+- Storage pool name
+- Tiered virtual disk name
+- Tier sizes for SSD and HDD
+
+**What the Script Does:**
+1. Identifies SSD and HDD disks in pool
+2. Creates storage tiers for each media type
+3. Creates tiered virtual disk
+4. Configures automatic tiering
+5. Reports tier configuration
+
+**Important Notes:**
+- Essential for cost-effective performance
+- Hot data moves to SSD tier automatically
+- Cold data moves to HDD tier
+- Monitor tier utilization over time
+- Adjust tier sizes based on workload
+- Typical use: file servers, SQL databases
+- Review tiering statistics monthly
+- Increase SSD tier if overutilized`,
+    parameters: [
+      {
+        name: 'poolName',
+        label: 'Storage Pool Name',
+        type: 'text',
+        required: true,
+        placeholder: 'DataPool1',
+        helpText: 'Name of the storage pool'
+      },
+      {
+        name: 'vdiskName',
+        label: 'Virtual Disk Name',
+        type: 'text',
+        required: true,
+        placeholder: 'TieredDisk1',
+        helpText: 'Name for the tiered virtual disk'
+      },
+      {
+        name: 'ssdSizeGB',
+        label: 'SSD Tier Size (GB)',
+        type: 'number',
+        required: true,
+        defaultValue: 100,
+        helpText: 'Size of the fast SSD tier'
+      },
+      {
+        name: 'hddSizeGB',
+        label: 'HDD Tier Size (GB)',
+        type: 'number',
+        required: true,
+        defaultValue: 500,
+        helpText: 'Size of the capacity HDD tier'
+      },
+      {
+        name: 'resiliency',
+        label: 'Resiliency Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Mirror', label: 'Mirror (Recommended)' },
+          { value: 'Simple', label: 'Simple (No redundancy)' }
+        ],
+        defaultValue: 'Mirror',
+        helpText: 'Data protection level'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const poolName = escapePowerShellString(params.poolName);
+      const vdiskName = escapePowerShellString(params.vdiskName);
+      const ssdSizeGB = params.ssdSizeGB || 100;
+      const hddSizeGB = params.hddSizeGB || 500;
+      const resiliency = params.resiliency || 'Mirror';
+
+      return `# Configure Tiered Storage
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Configuring tiered storage in pool: ${poolName}" -ForegroundColor Cyan
+    Write-Host "  Virtual Disk: ${vdiskName}" -ForegroundColor Gray
+    Write-Host "  SSD Tier: ${ssdSizeGB} GB" -ForegroundColor Gray
+    Write-Host "  HDD Tier: ${hddSizeGB} GB" -ForegroundColor Gray
+    Write-Host "  Resiliency: ${resiliency}" -ForegroundColor Gray
+    
+    # Get storage pool
+    $Pool = Get-StoragePool -FriendlyName "${poolName}" -ErrorAction Stop
+    Write-Host "✓ Storage pool found" -ForegroundColor Green
+    
+    # Get physical disks by media type
+    $SSDDisks = Get-PhysicalDisk -StoragePool $Pool | Where-Object { $_.MediaType -eq 'SSD' }
+    $HDDDisks = Get-PhysicalDisk -StoragePool $Pool | Where-Object { $_.MediaType -eq 'HDD' }
+    
+    Write-Host ""
+    Write-Host "Physical Disk Inventory:" -ForegroundColor Cyan
+    Write-Host "  SSD Disks: $($SSDDisks.Count)" -ForegroundColor Yellow
+    Write-Host "  HDD Disks: $($HDDDisks.Count)" -ForegroundColor Yellow
+    
+    if ($SSDDisks.Count -eq 0 -or $HDDDisks.Count -eq 0) {
+        Write-Error "Tiered storage requires both SSD and HDD disks in the pool"
+        exit 1
+    }
+    
+    # Create storage tiers
+    Write-Host ""
+    Write-Host "Creating storage tiers..." -ForegroundColor Cyan
+    
+    $SSDTier = New-StorageTier -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}_SSDTier" -MediaType SSD -ResiliencySettingName ${resiliency}
+    Write-Host "✓ SSD tier created" -ForegroundColor Green
+    
+    $HDDTier = New-StorageTier -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}_HDDTier" -MediaType HDD -ResiliencySettingName ${resiliency}
+    Write-Host "✓ HDD tier created" -ForegroundColor Green
+    
+    # Create tiered virtual disk
+    Write-Host ""
+    Write-Host "Creating tiered virtual disk..." -ForegroundColor Cyan
+    
+    $VDisk = New-VirtualDisk -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}" -StorageTiers $SSDTier, $HDDTier -StorageTierSizes ${ssdSizeGB}GB, ${hddSizeGB}GB -WriteCacheSize 1GB
+    
+    Write-Host "✓ Tiered virtual disk created" -ForegroundColor Green
+    
+    # Initialize and format
+    Write-Host ""
+    Write-Host "Initializing and formatting disk..." -ForegroundColor Cyan
+    
+    $Disk = $VDisk | Get-Disk
+    $Disk | Initialize-Disk -PartitionStyle GPT
+    $Partition = $Disk | New-Partition -UseMaximumSize -AssignDriveLetter
+    $Partition | Format-Volume -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:\$false
+    
+    Write-Host "✓ Volume formatted and mounted at $($Partition.DriveLetter):" -ForegroundColor Green
+    
+    # Display configuration
+    Write-Host ""
+    Write-Host "Tiered Storage Configuration:" -ForegroundColor Cyan
+    Write-Host "  Virtual Disk: ${vdiskName}" -ForegroundColor Gray
+    Write-Host "  Total Size: $([math]::Round(($VDisk.Size / 1GB), 2)) GB" -ForegroundColor Gray
+    Write-Host "  SSD Tier: ${ssdSizeGB} GB (fast tier)" -ForegroundColor Gray
+    Write-Host "  HDD Tier: ${hddSizeGB} GB (capacity tier)" -ForegroundColor Gray
+    Write-Host "  Write Cache: 1 GB" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Storage tiering will automatically move data between tiers based on access patterns" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to configure tiered storage: \$_"
+}`;
+    }
   }
 ];
 
@@ -3958,8 +6005,12 @@ export const windowsServerCategories = [
   'Event Logs',
   'Services',
   'Storage',
+  'Storage Spaces',
   'File Sharing',
   'Security & Networking',
   'Disk Management',
+  'Failover Clustering',
+  'Remote Desktop Services',
+  'Windows Server Backup',
   'Common Admin Tasks'
 ];

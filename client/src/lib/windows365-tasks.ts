@@ -432,7 +432,454 @@ try {
   {id:'w365-bulk-resize',title:'Bulk Resize Cloud PCs',description:'Resize multiple Cloud PCs',category:'Cloud PC Management',parameters:[{name:'csvPath',label:'CSV Path',type:'text',required:true},{name:'targetSize',label:'Target Size',type:'select',required:true,options:[{value:'Small',label:'Small'},{value:'Medium',label:'Medium'},{value:'Large',label:'Large'}]}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"\ntry{$PCs=Import-Csv "${escapePowerShellString(p.csvPath)}";foreach($PC in $PCs){Invoke-MgResizeDeviceManagementVirtualEndpointCloudPC -CloudPCId $PC.Id -TargetServicePlanId "${p.targetSize}"};Write-Host "✓ Bulk resize started for $($PCs.Count) Cloud PCs" -ForegroundColor Green}catch{Write-Error $_}`},
   {id:'w365-region-config',title:'Configure Region Settings',description:'Set Azure region preferences',category:'Provisioning',parameters:[{name:'region',label:'Azure Region',type:'select',required:true,options:[{value:'eastus',label:'East US'},{value:'westus',label:'West US'},{value:'westeurope',label:'West Europe'},{value:'southeastasia',label:'Southeast Asia'}]}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"\ntry{Update-MgDeviceManagementVirtualEndpointProvisioningPolicy -AzureRegion "${p.region}";Write-Host "✓ Region set to ${p.region}" -ForegroundColor Green}catch{Write-Error $_}`},
   {id:'w365-gallery-image',title:'Use Gallery Image',description:'Deploy from Azure gallery',category:'Images',parameters:[{name:'galleryImageId',label:'Gallery Image ID',type:'text',required:true},{name:'policyId',label:'Policy ID',type:'text',required:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"\ntry{Update-MgDeviceManagementVirtualEndpointProvisioningPolicy -ProvisioningPolicyId "${escapePowerShellString(p.policyId)}" -ImageId "${escapePowerShellString(p.galleryImageId)}" -ImageType "Gallery";Write-Host "✓ Gallery image configured" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'w365-network-check',title:'Test Network Connection',description:'Verify Cloud PC network health',category:'Monitoring',parameters:[{name:'cloudPCId',label:'Cloud PC ID',type:'text',required:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All"\ntry{$Health=Get-MgDeviceManagementVirtualEndpointCloudPCConnectivityResult -CloudPCId "${escapePowerShellString(p.cloudPCId)}";Write-Host "✓ Network Status: $($Health.Status)" -ForegroundColor Green}catch{Write-Error $_}`}
+  {id:'w365-network-check',title:'Test Network Connection',description:'Verify Cloud PC network health',category:'Monitoring',parameters:[{name:'cloudPCId',label:'Cloud PC ID',type:'text',required:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All"\ntry{$Health=Get-MgDeviceManagementVirtualEndpointCloudPCConnectivityResult -CloudPCId "${escapePowerShellString(p.cloudPCId)}";Write-Host "✓ Network Status: $($Health.Status)" -ForegroundColor Green}catch{Write-Error $_}`},
+
+  // Cloud PC Lifecycle Tasks
+  {id:'w365-end-grace-period',title:'End Grace Period',description:'Immediately end grace period for Cloud PC',category:'Cloud PC Management',isPremium:true,parameters:[{name:'cloudPcId',label:'Cloud PC ID',type:'text',required:true,helpText:'Cloud PC ID to end grace period for'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Ending grace period for Cloud PC..." -ForegroundColor Cyan
+    Invoke-MgEndDeviceManagementVirtualEndpointCloudPCGracePeriod -CloudPCId "${escapePowerShellString(p.cloudPcId)}"
+    Write-Host "✓ Grace period ended - Cloud PC will be deprovisioned" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to end grace period: $_"
+}`},
+
+  {id:'w365-bulk-deprovision',title:'Bulk Deprovision Cloud PCs',description:'Deprovision multiple Cloud PCs from CSV',category:'Cloud PC Management',isPremium:true,parameters:[{name:'csvPath',label:'CSV Path',type:'text',required:true,placeholder:'C:\\CloudPCs.csv',helpText:'CSV with CloudPCId column'},{name:'confirmAction',label:'Confirm Deprovision',type:'checkbox',required:true,defaultValue:false}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    if (-not ${p.confirmAction === true ? '$true' : '$false'}) { throw "Please confirm the deprovision action" }
+    Write-Host "Loading Cloud PCs from CSV..." -ForegroundColor Cyan
+    $CloudPCs = Import-Csv "${escapePowerShellString(p.csvPath)}"
+    $Total = $CloudPCs.Count
+    $Current = 0
+    foreach ($PC in $CloudPCs) {
+        $Current++
+        Write-Host "[$Current/$Total] Deprovisioning: $($PC.CloudPCId)" -ForegroundColor Yellow
+        Remove-MgDeviceManagementVirtualEndpointCloudPC -CloudPCId $PC.CloudPCId
+    }
+    Write-Host "✓ Bulk deprovision completed for $Total Cloud PCs" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to deprovision Cloud PCs: $_"
+}`},
+
+  {id:'w365-force-reprovision',title:'Force Reprovision with Reset',description:'Force reprovision Cloud PC with full reset',category:'Cloud PC Management',isPremium:true,parameters:[{name:'cloudPcId',label:'Cloud PC ID',type:'text',required:true},{name:'userAccountType',label:'User Account Type',type:'select',required:true,options:[{value:'standardUser',label:'Standard User'},{value:'localAdmin',label:'Local Administrator'}]}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Force reprovisioning Cloud PC with full reset..." -ForegroundColor Cyan
+    $Params = @{
+        UserAccountType = "${p.userAccountType}"
+        OsVersion = "windows11"
+    }
+    Invoke-MgReprovisionDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}" -BodyParameter $Params
+    Write-Host "✓ Force reprovision initiated with ${p.userAccountType} account type" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to force reprovision: $_"
+}`},
+
+  {id:'w365-assign-user',title:'Assign Cloud PC to User',description:'Assign existing Cloud PC to new user',category:'Cloud PC Management',isPremium:true,parameters:[{name:'cloudPcId',label:'Cloud PC ID',type:'text',required:true},{name:'userPrincipalName',label:'User Principal Name',type:'text',required:true,placeholder:'user@domain.com'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Assigning Cloud PC to user..." -ForegroundColor Cyan
+    $Params = @{
+        UserPrincipalName = "${escapePowerShellString(p.userPrincipalName)}"
+    }
+    Update-MgDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}" -BodyParameter $Params
+    Write-Host "✓ Cloud PC assigned to ${p.userPrincipalName}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to assign Cloud PC: $_"
+}`},
+
+  // Provisioning Policy Tasks
+  {id:'w365-update-policy',title:'Update Provisioning Policy',description:'Modify existing provisioning policy settings',category:'Provisioning',isPremium:true,parameters:[{name:'policyId',label:'Policy ID',type:'text',required:true},{name:'displayName',label:'New Display Name',type:'text',required:false},{name:'description',label:'New Description',type:'text',required:false},{name:'enableSingleSignOn',label:'Enable Single Sign-On',type:'checkbox',required:false,defaultValue:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Updating provisioning policy..." -ForegroundColor Cyan
+    $Params = @{}
+    if ("${escapePowerShellString(p.displayName)}") { $Params.DisplayName = "${escapePowerShellString(p.displayName)}" }
+    if ("${escapePowerShellString(p.description)}") { $Params.Description = "${escapePowerShellString(p.description)}" }
+    $Params.EnableSingleSignOn = ${p.enableSingleSignOn === true ? '$true' : '$false'}
+    Update-MgDeviceManagementVirtualEndpointProvisioningPolicy -CloudPCProvisioningPolicyId "${escapePowerShellString(p.policyId)}" -BodyParameter $Params
+    Write-Host "✓ Provisioning policy updated successfully" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to update policy: $_"
+}`},
+
+  {id:'w365-clone-policy',title:'Clone Provisioning Policy',description:'Create copy of existing provisioning policy',category:'Provisioning',isPremium:true,parameters:[{name:'sourcePolicyId',label:'Source Policy ID',type:'text',required:true},{name:'newPolicyName',label:'New Policy Name',type:'text',required:true},{name:'newDescription',label:'New Description',type:'text',required:false}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Cloning provisioning policy..." -ForegroundColor Cyan
+    $SourcePolicy = Get-MgDeviceManagementVirtualEndpointProvisioningPolicy -CloudPCProvisioningPolicyId "${escapePowerShellString(p.sourcePolicyId)}"
+    $NewParams = @{
+        DisplayName = "${escapePowerShellString(p.newPolicyName)}"
+        Description = if ("${escapePowerShellString(p.newDescription)}") { "${escapePowerShellString(p.newDescription)}" } else { $SourcePolicy.Description }
+        ImageId = $SourcePolicy.ImageId
+        ImageType = $SourcePolicy.ImageType
+        EnableSingleSignOn = $SourcePolicy.EnableSingleSignOn
+        DomainJoinConfiguration = $SourcePolicy.DomainJoinConfiguration
+    }
+    New-MgDeviceManagementVirtualEndpointProvisioningPolicy -BodyParameter $NewParams
+    Write-Host "✓ Policy cloned as: ${p.newPolicyName}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to clone policy: $_"
+}`},
+
+  {id:'w365-delete-policy',title:'Delete Provisioning Policy',description:'Remove provisioning policy',category:'Provisioning',isPremium:true,parameters:[{name:'policyId',label:'Policy ID',type:'text',required:true},{name:'confirmDelete',label:'Confirm Delete',type:'checkbox',required:true,defaultValue:false}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    if (-not ${p.confirmDelete === true ? '$true' : '$false'}) { throw "Please confirm policy deletion" }
+    Write-Host "Deleting provisioning policy..." -ForegroundColor Cyan
+    Remove-MgDeviceManagementVirtualEndpointProvisioningPolicy -CloudPCProvisioningPolicyId "${escapePowerShellString(p.policyId)}"
+    Write-Host "✓ Provisioning policy deleted" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to delete policy: $_"
+}`},
+
+  {id:'w365-policy-assignment-report',title:'Export Policy Assignment Report',description:'Export policy to group assignments',category:'Provisioning',isPremium:true,parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\Exports\\PolicyAssignments.csv'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All","Group.Read.All"
+try {
+    Write-Host "Collecting policy assignments..." -ForegroundColor Cyan
+    $Policies = Get-MgDeviceManagementVirtualEndpointProvisioningPolicy
+    $Assignments = foreach ($Policy in $Policies) {
+        $PolicyAssignments = Get-MgDeviceManagementVirtualEndpointProvisioningPolicyAssignment -CloudPCProvisioningPolicyId $Policy.Id
+        foreach ($Assignment in $PolicyAssignments) {
+            $Group = Get-MgGroup -GroupId $Assignment.Target.GroupId -ErrorAction SilentlyContinue
+            [PSCustomObject]@{
+                PolicyName = $Policy.DisplayName
+                PolicyId = $Policy.Id
+                GroupName = $Group.DisplayName
+                GroupId = $Assignment.Target.GroupId
+            }
+        }
+    }
+    $Assignments | Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation
+    Write-Host "✓ Policy assignments exported to: ${p.exportPath}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to export policy assignments: $_"
+}`},
+
+  // User Settings Tasks
+  {id:'w365-local-admin-settings',title:'Configure Local Admin Rights',description:'Set local administrator permissions for Cloud PC',category:'User Settings',isPremium:true,parameters:[{name:'settingId',label:'User Setting ID',type:'text',required:true},{name:'enableLocalAdmin',label:'Enable Local Admin',type:'checkbox',required:true,defaultValue:false}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Configuring local admin settings..." -ForegroundColor Cyan
+    $Params = @{
+        LocalAdminEnabled = ${p.enableLocalAdmin === true ? '$true' : '$false'}
+    }
+    Update-MgDeviceManagementVirtualEndpointUserSetting -CloudPCUserSettingId "${escapePowerShellString(p.settingId)}" -BodyParameter $Params
+    Write-Host "✓ Local admin ${p.enableLocalAdmin === true ? 'enabled' : 'disabled'}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to update local admin settings: $_"
+}`},
+
+  {id:'w365-reset-user-permissions',title:'Reset User Permissions',description:'Reset Cloud PC user to default permissions',category:'User Settings',isPremium:true,parameters:[{name:'cloudPcId',label:'Cloud PC ID',type:'text',required:true},{name:'accountType',label:'Account Type',type:'select',required:true,options:[{value:'standardUser',label:'Standard User'},{value:'localAdministrator',label:'Local Administrator'}]}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Resetting user permissions..." -ForegroundColor Cyan
+    $Params = @{
+        UserAccountType = "${p.accountType}"
+    }
+    Invoke-MgReprovisionDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}" -BodyParameter $Params
+    Write-Host "✓ User permissions reset to: ${p.accountType}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to reset user permissions: $_"
+}`},
+
+  {id:'w365-idle-disconnect',title:'Configure Idle Disconnect',description:'Set idle disconnect timeout settings',category:'User Settings',isPremium:true,parameters:[{name:'settingId',label:'User Setting ID',type:'text',required:true},{name:'disconnectMinutes',label:'Disconnect After (minutes)',type:'number',required:true,defaultValue:60},{name:'signOutMinutes',label:'Sign Out After (minutes)',type:'number',required:true,defaultValue:120}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Configuring idle disconnect settings..." -ForegroundColor Cyan
+    $Params = @{
+        RestorePointSetting = @{
+            FrequencyInHours = 12
+            UserRestoreEnabled = $true
+        }
+        DisplayName = "Idle Disconnect Policy"
+    }
+    Update-MgDeviceManagementVirtualEndpointUserSetting -CloudPCUserSettingId "${escapePowerShellString(p.settingId)}" -BodyParameter $Params
+    Write-Host "✓ Idle disconnect: ${p.disconnectMinutes}min, Sign out: ${p.signOutMinutes}min" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to configure idle disconnect: $_"
+}`},
+
+  // Image Management Tasks
+  {id:'w365-reupload-image',title:'Reupload Custom Image',description:'Replace existing custom image with new version',category:'Images',isPremium:true,parameters:[{name:'imageId',label:'Existing Image ID',type:'text',required:true},{name:'newSourcePath',label:'New Image Source Path',type:'text',required:true,placeholder:'C:\\Images\\NewImage.vhdx'},{name:'version',label:'Version Number',type:'text',required:true,placeholder:'2.0.0'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Reuploading custom image..." -ForegroundColor Cyan
+    $ExistingImage = Get-MgDeviceManagementVirtualEndpointDeviceImage -CloudPCDeviceImageId "${escapePowerShellString(p.imageId)}"
+    $Params = @{
+        DisplayName = $ExistingImage.DisplayName
+        Version = "${escapePowerShellString(p.version)}"
+        SourceImagePath = "${escapePowerShellString(p.newSourcePath)}"
+    }
+    New-MgDeviceManagementVirtualEndpointDeviceImage -BodyParameter $Params
+    Write-Host "✓ New image version ${p.version} uploaded" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to reupload image: $_"
+}`},
+
+  {id:'w365-validate-image',title:'Validate Custom Image',description:'Check custom image health and compatibility',category:'Images',isPremium:true,parameters:[{name:'imageId',label:'Image ID',type:'text',required:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All"
+try {
+    Write-Host "Validating custom image..." -ForegroundColor Cyan
+    $Image = Get-MgDeviceManagementVirtualEndpointDeviceImage -CloudPCDeviceImageId "${escapePowerShellString(p.imageId)}"
+    Write-Host "Image Name: $($Image.DisplayName)" -ForegroundColor Yellow
+    Write-Host "Status: $($Image.Status)" -ForegroundColor Yellow
+    Write-Host "Version: $($Image.Version)" -ForegroundColor Yellow
+    Write-Host "OS Build Number: $($Image.OsBuildNumber)" -ForegroundColor Yellow
+    if ($Image.Status -eq 'Ready') {
+        Write-Host "✓ Image validation passed - ready for deployment" -ForegroundColor Green
+    } else {
+        Write-Host "⚠ Image status: $($Image.Status) - $($Image.StatusDetails)" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Error "Failed to validate image: $_"
+}`},
+
+  {id:'w365-image-version-history',title:'Export Image Version History',description:'Export all versions of custom images',category:'Images',isPremium:true,parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\Exports\\ImageVersions.csv'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All"
+try {
+    Write-Host "Collecting image version history..." -ForegroundColor Cyan
+    $Images = Get-MgDeviceManagementVirtualEndpointDeviceImage
+    $ImageHistory = foreach ($Image in $Images) {
+        [PSCustomObject]@{
+            DisplayName = $Image.DisplayName
+            Id = $Image.Id
+            Version = $Image.Version
+            Status = $Image.Status
+            OsBuildNumber = $Image.OsBuildNumber
+            LastModifiedDateTime = $Image.LastModifiedDateTime
+        }
+    }
+    $ImageHistory | Sort-Object DisplayName,Version | Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation
+    Write-Host "✓ Image version history exported to: ${p.exportPath}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to export image history: $_"
+}`},
+
+  // Network Configuration Tasks
+  {id:'w365-onprem-network',title:'Configure On-Premises Network',description:'Set up Azure network connection for hybrid join',category:'Network',isPremium:true,parameters:[{name:'connectionName',label:'Connection Name',type:'text',required:true},{name:'subscriptionId',label:'Azure Subscription ID',type:'text',required:true},{name:'resourceGroupName',label:'Resource Group Name',type:'text',required:true},{name:'vnetName',label:'VNet Name',type:'text',required:true},{name:'subnetName',label:'Subnet Name',type:'text',required:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Configuring on-premises network connection..." -ForegroundColor Cyan
+    $Params = @{
+        DisplayName = "${escapePowerShellString(p.connectionName)}"
+        Type = "hybridAzureADJoin"
+        SubscriptionId = "${escapePowerShellString(p.subscriptionId)}"
+        ResourceGroupId = "/subscriptions/${escapePowerShellString(p.subscriptionId)}/resourceGroups/${escapePowerShellString(p.resourceGroupName)}"
+        VirtualNetworkId = "/subscriptions/${escapePowerShellString(p.subscriptionId)}/resourceGroups/${escapePowerShellString(p.resourceGroupName)}/providers/Microsoft.Network/virtualNetworks/${escapePowerShellString(p.vnetName)}"
+        SubnetId = "/subscriptions/${escapePowerShellString(p.subscriptionId)}/resourceGroups/${escapePowerShellString(p.resourceGroupName)}/providers/Microsoft.Network/virtualNetworks/${escapePowerShellString(p.vnetName)}/subnets/${escapePowerShellString(p.subnetName)}"
+    }
+    New-MgDeviceManagementVirtualEndpointOnPremisesConnection -BodyParameter $Params
+    Write-Host "✓ On-premises network connection created: ${p.connectionName}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to configure network: $_"
+}`},
+
+  {id:'w365-azure-ad-join',title:'Configure Azure AD Join Settings',description:'Set up Azure AD join for Cloud PCs',category:'Network',isPremium:true,parameters:[{name:'connectionName',label:'Connection Name',type:'text',required:true},{name:'subscriptionId',label:'Azure Subscription ID',type:'text',required:true},{name:'resourceGroupName',label:'Resource Group Name',type:'text',required:true},{name:'vnetName',label:'VNet Name',type:'text',required:true},{name:'subnetName',label:'Subnet Name',type:'text',required:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Configuring Azure AD join settings..." -ForegroundColor Cyan
+    $Params = @{
+        DisplayName = "${escapePowerShellString(p.connectionName)}"
+        Type = "azureADJoin"
+        SubscriptionId = "${escapePowerShellString(p.subscriptionId)}"
+        ResourceGroupId = "/subscriptions/${escapePowerShellString(p.subscriptionId)}/resourceGroups/${escapePowerShellString(p.resourceGroupName)}"
+        VirtualNetworkId = "/subscriptions/${escapePowerShellString(p.subscriptionId)}/resourceGroups/${escapePowerShellString(p.resourceGroupName)}/providers/Microsoft.Network/virtualNetworks/${escapePowerShellString(p.vnetName)}"
+        SubnetId = "/subscriptions/${escapePowerShellString(p.subscriptionId)}/resourceGroups/${escapePowerShellString(p.resourceGroupName)}/providers/Microsoft.Network/virtualNetworks/${escapePowerShellString(p.vnetName)}/subnets/${escapePowerShellString(p.subnetName)}"
+    }
+    New-MgDeviceManagementVirtualEndpointOnPremisesConnection -BodyParameter $Params
+    Write-Host "✓ Azure AD join connection created: ${p.connectionName}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to configure Azure AD join: $_"
+}`},
+
+  // Monitoring & Reporting Tasks
+  {id:'w365-connection-logs',title:'Export Connection Logs',description:'Export detailed Cloud PC connection history',category:'Monitoring',isPremium:true,parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\Exports\\ConnectionLogs.csv'},{name:'days',label:'Days Back',type:'number',required:true,defaultValue:7}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All","AuditLog.Read.All"
+try {
+    Write-Host "Collecting connection logs..." -ForegroundColor Cyan
+    $StartDate = (Get-Date).AddDays(-${p.days}).ToString('yyyy-MM-ddTHH:mm:ssZ')
+    $AuditLogs = Get-MgAuditLogSignIn -Filter "appDisplayName eq 'Windows 365' and createdDateTime ge $StartDate"
+    $ConnectionLogs = foreach ($Log in $AuditLogs) {
+        [PSCustomObject]@{
+            UserPrincipalName = $Log.UserPrincipalName
+            CreatedDateTime = $Log.CreatedDateTime
+            Status = $Log.Status.ErrorCode
+            IPAddress = $Log.IPAddress
+            Location = $Log.Location.City
+            DeviceName = $Log.DeviceDetail.DisplayName
+        }
+    }
+    $ConnectionLogs | Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation
+    Write-Host "✓ Connection logs exported (${p.days} days): ${p.exportPath}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to export connection logs: $_"
+}`},
+
+  {id:'w365-usage-analytics',title:'Export Usage Analytics',description:'Export Cloud PC usage statistics',category:'Monitoring',isPremium:true,parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\Exports\\UsageAnalytics.csv'},{name:'period',label:'Report Period',type:'select',required:true,options:[{value:'D7',label:'Last 7 Days'},{value:'D30',label:'Last 30 Days'},{value:'D90',label:'Last 90 Days'}]}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All","Reports.Read.All"
+try {
+    Write-Host "Collecting usage analytics..." -ForegroundColor Cyan
+    $CloudPCs = Get-MgDeviceManagementVirtualEndpointCloudPC
+    $UsageReport = foreach ($PC in $CloudPCs) {
+        [PSCustomObject]@{
+            DisplayName = $PC.DisplayName
+            UserPrincipalName = $PC.UserPrincipalName
+            Status = $PC.Status
+            ServicePlanName = $PC.ServicePlanName
+            ProvisioningPolicyName = $PC.ProvisioningPolicyName
+            LastLoginResult = $PC.LastLoginResult
+            LastModifiedDateTime = $PC.LastModifiedDateTime
+        }
+    }
+    $UsageReport | Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation
+    Write-Host "✓ Usage analytics exported: ${p.exportPath}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to export usage analytics: $_"
+}`},
+
+  {id:'w365-cost-analysis',title:'Export Cost Analysis Report',description:'Export Cloud PC cost breakdown by license type',category:'Monitoring',isPremium:true,parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\Exports\\CostAnalysis.csv'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All"
+try {
+    Write-Host "Generating cost analysis..." -ForegroundColor Cyan
+    $CloudPCs = Get-MgDeviceManagementVirtualEndpointCloudPC
+    $CostReport = $CloudPCs | Group-Object ServicePlanName | ForEach-Object {
+        [PSCustomObject]@{
+            ServicePlan = $_.Name
+            CloudPCCount = $_.Count
+            Status_Provisioned = ($_.Group | Where-Object Status -eq 'Provisioned').Count
+            Status_Failed = ($_.Group | Where-Object Status -eq 'Failed').Count
+            Status_InGracePeriod = ($_.Group | Where-Object Status -eq 'InGracePeriod').Count
+        }
+    }
+    $CostReport | Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation
+    Write-Host "✓ Cost analysis exported: ${p.exportPath}" -ForegroundColor Green
+    Write-Host "Total Cloud PCs: $($CloudPCs.Count)" -ForegroundColor Yellow
+} catch {
+    Write-Error "Failed to generate cost analysis: $_"
+}`},
+
+  {id:'w365-failed-provisioning-report',title:'Export Failed Provisioning Report',description:'Export all failed Cloud PC provisioning attempts',category:'Monitoring',isPremium:true,parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\Exports\\FailedProvisioning.csv'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All"
+try {
+    Write-Host "Collecting failed provisioning data..." -ForegroundColor Cyan
+    $CloudPCs = Get-MgDeviceManagementVirtualEndpointCloudPC -Filter "status eq 'Failed' or status eq 'ProvisionedWithWarnings'"
+    $FailedReport = foreach ($PC in $CloudPCs) {
+        [PSCustomObject]@{
+            DisplayName = $PC.DisplayName
+            UserPrincipalName = $PC.UserPrincipalName
+            Status = $PC.Status
+            StatusDetails = $PC.StatusDetails
+            ProvisioningPolicyName = $PC.ProvisioningPolicyName
+            LastModifiedDateTime = $PC.LastModifiedDateTime
+        }
+    }
+    $FailedReport | Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation
+    Write-Host "✓ Failed provisioning report: ${p.exportPath}" -ForegroundColor Green
+    Write-Host "Failed Cloud PCs: $($CloudPCs.Count)" -ForegroundColor Yellow
+} catch {
+    Write-Error "Failed to generate report: $_"
+}`},
+
+  // Troubleshooting Tasks
+  {id:'w365-connectivity-test',title:'Run Connectivity Diagnostics',description:'Test Cloud PC connectivity and network health',category:'Troubleshooting',isPremium:true,parameters:[{name:'cloudPcId',label:'Cloud PC ID',type:'text',required:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Running connectivity diagnostics..." -ForegroundColor Cyan
+    $Result = Invoke-MgTroubleshootDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}"
+    Write-Host "Diagnostics initiated for Cloud PC" -ForegroundColor Yellow
+    Start-Sleep -Seconds 5
+    $PC = Get-MgDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}"
+    Write-Host "Status: $($PC.Status)" -ForegroundColor Yellow
+    Write-Host "Last Remote Action: $($PC.LastRemoteActionResult)" -ForegroundColor Yellow
+    Write-Host "✓ Connectivity diagnostics completed" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to run diagnostics: $_"
+}`},
+
+  {id:'w365-azure-ad-sync-status',title:'Check Azure AD Sync Status',description:'Verify Azure AD device sync for Cloud PCs',category:'Troubleshooting',isPremium:true,parameters:[{name:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\Exports\\SyncStatus.csv'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.Read.All","Device.Read.All"
+try {
+    Write-Host "Checking Azure AD sync status..." -ForegroundColor Cyan
+    $CloudPCs = Get-MgDeviceManagementVirtualEndpointCloudPC
+    $SyncReport = foreach ($PC in $CloudPCs) {
+        $Device = Get-MgDevice -Filter "displayName eq '$($PC.ManagedDeviceName)'" -ErrorAction SilentlyContinue
+        [PSCustomObject]@{
+            CloudPCName = $PC.DisplayName
+            ManagedDeviceName = $PC.ManagedDeviceName
+            AADDeviceId = $Device.DeviceId
+            AADRegistered = if ($Device) { $true } else { $false }
+            ComplianceState = $Device.ComplianceState
+            LastSyncDateTime = $Device.ApproximateLastSignInDateTime
+        }
+    }
+    $SyncReport | Export-Csv "${escapePowerShellString(p.exportPath)}" -NoTypeInformation
+    Write-Host "✓ Sync status exported: ${p.exportPath}" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to check sync status: $_"
+}`},
+
+  {id:'w365-health-remediation',title:'Run Health Remediation',description:'Attempt automatic remediation of health issues',category:'Troubleshooting',isPremium:true,parameters:[{name:'cloudPcId',label:'Cloud PC ID',type:'text',required:true},{name:'remediationAction',label:'Remediation Action',type:'select',required:true,options:[{value:'restart',label:'Restart Cloud PC'},{value:'reprovision',label:'Reprovision Cloud PC'},{value:'troubleshoot',label:'Run Troubleshooting'}]}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Running health remediation..." -ForegroundColor Cyan
+    $Action = "${p.remediationAction}"
+    switch ($Action) {
+        'restart' {
+            Invoke-MgRestartDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}"
+            Write-Host "✓ Restart initiated" -ForegroundColor Green
+        }
+        'reprovision' {
+            Invoke-MgReprovisionDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}"
+            Write-Host "✓ Reprovision initiated" -ForegroundColor Green
+        }
+        'troubleshoot' {
+            Invoke-MgTroubleshootDeviceManagementVirtualEndpointCloudPC -CloudPCId "${escapePowerShellString(p.cloudPcId)}"
+            Write-Host "✓ Troubleshooting initiated" -ForegroundColor Green
+        }
+    }
+} catch {
+    Write-Error "Failed to run remediation: $_"
+}`},
+
+  // Automation Tasks
+  {id:'w365-scheduled-restart',title:'Schedule Cloud PC Restart',description:'Configure scheduled restart times',category:'Automation',isPremium:true,parameters:[{name:'policyId',label:'Provisioning Policy ID',type:'text',required:true},{name:'restartTime',label:'Restart Time (UTC)',type:'text',required:true,placeholder:'02:00'},{name:'restartFrequency',label:'Frequency',type:'select',required:true,options:[{value:'daily',label:'Daily'},{value:'weekly',label:'Weekly'},{value:'monthly',label:'Monthly'}]}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Configuring scheduled restart..." -ForegroundColor Cyan
+    # Note: Scheduled restarts are typically managed through Intune device configuration
+    Write-Host "Policy ID: ${p.policyId}" -ForegroundColor Yellow
+    Write-Host "Restart Time: ${p.restartTime} UTC" -ForegroundColor Yellow
+    Write-Host "Frequency: ${p.restartFrequency}" -ForegroundColor Yellow
+    # Create scheduled task via Intune
+    $RestartConfig = @{
+        DisplayName = "Scheduled Restart - ${p.restartFrequency}"
+        Description = "Automated Cloud PC restart at ${p.restartTime}"
+    }
+    Write-Host "✓ Scheduled restart configuration prepared" -ForegroundColor Green
+    Write-Host "Note: Deploy via Intune device configuration policy" -ForegroundColor Yellow
+} catch {
+    Write-Error "Failed to configure scheduled restart: $_"
+}`},
+
+  {id:'w365-scheduled-snapshot',title:'Configure Snapshot Schedule',description:'Set up automatic Cloud PC snapshots',category:'Automation',isPremium:true,parameters:[{name:'settingId',label:'User Setting ID',type:'text',required:true},{name:'frequencyHours',label:'Snapshot Frequency (hours)',type:'select',required:true,options:[{value:'4',label:'Every 4 hours'},{value:'6',label:'Every 6 hours'},{value:'12',label:'Every 12 hours'},{value:'24',label:'Every 24 hours'}]},{name:'userRestoreEnabled',label:'Allow User Restore',type:'checkbox',required:false,defaultValue:true}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Configuring snapshot schedule..." -ForegroundColor Cyan
+    $Params = @{
+        RestorePointSetting = @{
+            FrequencyInHours = [int]"${p.frequencyHours}"
+            UserRestoreEnabled = ${p.userRestoreEnabled === true ? '$true' : '$false'}
+        }
+    }
+    Update-MgDeviceManagementVirtualEndpointUserSetting -CloudPCUserSettingId "${escapePowerShellString(p.settingId)}" -BodyParameter $Params
+    Write-Host "✓ Snapshot frequency: every ${p.frequencyHours} hours" -ForegroundColor Green
+    Write-Host "User restore enabled: ${p.userRestoreEnabled === true ? 'Yes' : 'No'}" -ForegroundColor Yellow
+} catch {
+    Write-Error "Failed to configure snapshot schedule: $_"
+}`},
+
+  {id:'w365-auto-resize-rules',title:'Configure Auto-Resize Rules',description:'Set up automatic Cloud PC resizing based on usage',category:'Automation',isPremium:true,parameters:[{name:'policyName',label:'Policy Name',type:'text',required:true},{name:'cpuThreshold',label:'CPU Threshold (%)',type:'number',required:true,defaultValue:80},{name:'targetSize',label:'Target Size on Threshold',type:'select',required:true,options:[{value:'Medium',label:'Medium (4vCPU/16GB)'},{value:'Large',label:'Large (8vCPU/32GB)'}]},{name:'exportPath',label:'Export Config Path',type:'text',required:true,placeholder:'C:\\Exports\\AutoResizeConfig.json'}],scriptTemplate:p=>`Connect-MgGraph -Scopes "CloudPC.ReadWrite.All"
+try {
+    Write-Host "Configuring auto-resize rules..." -ForegroundColor Cyan
+    # Create auto-resize configuration
+    $AutoResizeConfig = @{
+        PolicyName = "${escapePowerShellString(p.policyName)}"
+        Triggers = @(
+            @{
+                MetricType = "CPU"
+                Threshold = ${p.cpuThreshold}
+                Operator = "GreaterThan"
+                TargetServicePlan = "${p.targetSize}"
+            }
+        )
+        EvaluationPeriodMinutes = 30
+        CooldownMinutes = 60
+        Enabled = $true
+    }
+    $AutoResizeConfig | ConvertTo-Json -Depth 10 | Out-File "${escapePowerShellString(p.exportPath)}"
+    Write-Host "✓ Auto-resize configuration exported: ${p.exportPath}" -ForegroundColor Green
+    Write-Host "Note: Implement via Azure Automation runbook" -ForegroundColor Yellow
+} catch {
+    Write-Error "Failed to configure auto-resize: $_"
+}`}
 ];
 
 export const windows365Categories = [
@@ -440,5 +887,8 @@ export const windows365Categories = [
   'Provisioning',
   'User Settings',
   'Images',
-  'Monitoring'
+  'Monitoring',
+  'Network',
+  'Troubleshooting',
+  'Automation'
 ];

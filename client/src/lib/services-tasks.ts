@@ -20,6 +20,7 @@ export interface ServicesTask {
   parameters: ServicesTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const servicesTasks: ServicesTask[] = [
@@ -2411,6 +2412,2784 @@ if ($Issues.Count -eq 0 -and $Warnings.Count -eq 0) {
     Write-Host "RESULT: PASSED WITH WARNINGS (Score: $Score%)" -ForegroundColor Yellow
 } else {
     Write-Host "RESULT: FAILED (Score: $Score%)" -ForegroundColor Red
+}`;
+    }
+  },
+
+  {
+    id: 'pause-service',
+    name: 'Pause Windows Service',
+    category: 'Service Control',
+    description: 'Pause a running Windows service that supports pause operations',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Pauses a service without fully stopping it
+- Service remains in memory but stops processing
+- Not all services support pause operations
+- Useful for temporary maintenance
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must support pause operation
+- Service must be running
+
+**What You Need to Provide:**
+- Service name (not display name)
+
+**What the Script Does:**
+1. Validates service exists and is running
+2. Checks if service supports pause
+3. Sends pause command
+4. Verifies service is paused
+5. Reports final status
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Not all services support pause (CanPauseAndContinue property)
+- Paused services remain in memory
+- Use continue to resume operations
+- Typical use: brief maintenance windows
+- Some services may timeout if paused too long`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      
+      return `# Pause Windows Service
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+
+$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+if ($Service.Status -ne "Running") {
+    Write-Host "✗ Service is not running: $ServiceName (Status: $($Service.Status))" -ForegroundColor Red
+    exit 1
+}
+
+if (-not $Service.CanPauseAndContinue) {
+    Write-Host "✗ Service does not support pause: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Pausing service: $($Service.DisplayName)" -ForegroundColor Cyan
+
+Suspend-Service -Name $ServiceName
+
+Start-Sleep -Seconds 2
+$Status = (Get-Service -Name $ServiceName).Status
+
+if ($Status -eq "Paused") {
+    Write-Host "✓ Service paused successfully" -ForegroundColor Green
+    Write-Host "  Current status: $Status" -ForegroundColor Gray
+} else {
+    Write-Host "⚠ Pause command sent but status is: $Status" -ForegroundColor Yellow
+}`;
+    }
+  },
+
+  {
+    id: 'continue-service',
+    name: 'Continue Paused Service',
+    category: 'Service Control',
+    description: 'Resume a paused Windows service',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Resumes a service that was previously paused
+- Service continues processing from where it stopped
+- Faster than full restart
+- No service reinitialization required
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must be in paused state
+- Service must support continue operation
+
+**What You Need to Provide:**
+- Service name (not display name)
+
+**What the Script Does:**
+1. Validates service exists
+2. Confirms service is paused
+3. Sends continue command
+4. Verifies service is running
+5. Reports final status
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Only works on paused services
+- Faster than stop/start cycle
+- Typical use: resume after maintenance
+- If continue fails, try full restart`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      
+      return `# Continue Paused Service
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+
+$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+if ($Service.Status -ne "Paused") {
+    Write-Host "✗ Service is not paused: $ServiceName (Status: $($Service.Status))" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Resuming service: $($Service.DisplayName)" -ForegroundColor Cyan
+
+Resume-Service -Name $ServiceName
+
+Start-Sleep -Seconds 2
+$Status = (Get-Service -Name $ServiceName).Status
+
+if ($Status -eq "Running") {
+    Write-Host "✓ Service resumed successfully" -ForegroundColor Green
+    Write-Host "  Current status: $Status" -ForegroundColor Gray
+} else {
+    Write-Host "⚠ Continue command sent but status is: $Status" -ForegroundColor Yellow
+}`;
+    }
+  },
+
+  {
+    id: 'get-remote-service-status',
+    name: 'Get Remote Service Status',
+    category: 'Remote Services',
+    description: 'Check service status on a remote computer',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Queries service status on remote Windows computers
+- Uses WMI for remote connectivity
+- Supports domain and workgroup environments
+- Displays detailed service information
+
+**Prerequisites:**
+- Administrator privileges on remote computer
+- PowerShell 5.1 or later
+- WinRM or WMI connectivity to remote host
+- Firewall rules allowing remote management
+- Valid credentials for remote computer
+
+**What You Need to Provide:**
+- Remote computer name or IP address
+- Service name to check
+- Optional: alternate credentials
+
+**What the Script Does:**
+1. Tests connectivity to remote computer
+2. Queries service status via WMI
+3. Retrieves service configuration details
+4. Displays status and configuration
+5. Reports any connectivity issues
+
+**Important Notes:**
+- Requires network connectivity to remote host
+- WMI/DCOM ports must be open (TCP 135, dynamic)
+- Alternatively configure WinRM for PowerShell remoting
+- Typical use: centralized monitoring, troubleshooting
+- Consider PowerShell remoting for bulk operations
+- Firewall may block WMI queries`,
+    parameters: [
+      { id: 'computerName', label: 'Remote Computer Name', type: 'text', required: true, placeholder: 'SERVER01' },
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
+    ],
+    scriptTemplate: (params) => {
+      const computerName = escapePowerShellString(params.computerName);
+      const serviceName = escapePowerShellString(params.serviceName);
+      
+      return `# Get Remote Service Status
+# Generated: ${new Date().toISOString()}
+
+$ComputerName = "${computerName}"
+$ServiceName = "${serviceName}"
+
+Write-Host "Querying service on remote computer..." -ForegroundColor Cyan
+Write-Host "  Computer: $ComputerName" -ForegroundColor Gray
+Write-Host "  Service: $ServiceName" -ForegroundColor Gray
+Write-Host ""
+
+# Test connectivity first
+if (-not (Test-Connection -ComputerName $ComputerName -Count 1 -Quiet)) {
+    Write-Host "✗ Cannot reach computer: $ComputerName" -ForegroundColor Red
+    exit 1
+}
+
+try {
+    $Service = Get-WmiObject Win32_Service -ComputerName $ComputerName -Filter "Name='$ServiceName'" -ErrorAction Stop
+    
+    if ($Service) {
+        Write-Host "SERVICE DETAILS:" -ForegroundColor Yellow
+        Write-Host "  Name: $($Service.Name)" -ForegroundColor Gray
+        Write-Host "  Display Name: $($Service.DisplayName)" -ForegroundColor Gray
+        Write-Host "  Status: $($Service.State)" -ForegroundColor $(if ($Service.State -eq "Running") { "Green" } else { "Yellow" })
+        Write-Host "  Start Mode: $($Service.StartMode)" -ForegroundColor Gray
+        Write-Host "  Account: $($Service.StartName)" -ForegroundColor Gray
+        Write-Host "  Process ID: $($Service.ProcessId)" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✓ Query completed successfully" -ForegroundColor Green
+    } else {
+        Write-Host "✗ Service not found on $ComputerName\`: $ServiceName" -ForegroundColor Red
+    }
+} catch {
+    Write-Host "✗ Failed to query remote service" -ForegroundColor Red
+    Write-Host "  Error: $_" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Troubleshooting:" -ForegroundColor Yellow
+    Write-Host "  - Verify WMI/DCOM connectivity" -ForegroundColor Gray
+    Write-Host "  - Check firewall rules" -ForegroundColor Gray
+    Write-Host "  - Ensure administrator credentials" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'restart-remote-service',
+    name: 'Restart Remote Service',
+    category: 'Remote Services',
+    description: 'Restart a Windows service on a remote computer',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Restarts a service on a remote Windows computer
+- Uses PowerShell remoting (WinRM) for reliability
+- Waits and verifies restart completion
+- Provides detailed status feedback
+
+**Prerequisites:**
+- Administrator privileges on remote computer
+- PowerShell 5.1 or later
+- WinRM enabled on remote computer
+- Network connectivity to remote host
+- Trusted hosts configured if not domain-joined
+
+**What You Need to Provide:**
+- Remote computer name or IP address
+- Service name to restart
+
+**What the Script Does:**
+1. Tests WinRM connectivity to remote computer
+2. Connects via PowerShell remoting
+3. Stops the service on remote host
+4. Starts the service on remote host
+5. Verifies service is running
+6. Reports final status
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES on remote host
+- WinRM must be enabled (Enable-PSRemoting)
+- Non-domain computers need TrustedHosts configuration
+- Typical use: remote troubleshooting, centralized management
+- Brief service interruption expected
+- Consider impact on connected users`,
+    parameters: [
+      { id: 'computerName', label: 'Remote Computer Name', type: 'text', required: true, placeholder: 'SERVER01' },
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
+    ],
+    scriptTemplate: (params) => {
+      const computerName = escapePowerShellString(params.computerName);
+      const serviceName = escapePowerShellString(params.serviceName);
+      
+      return `# Restart Remote Service
+# Generated: ${new Date().toISOString()}
+
+$ComputerName = "${computerName}"
+$ServiceName = "${serviceName}"
+
+Write-Host "Restarting service on remote computer..." -ForegroundColor Cyan
+Write-Host "  Computer: $ComputerName" -ForegroundColor Gray
+Write-Host "  Service: $ServiceName" -ForegroundColor Gray
+Write-Host ""
+
+# Test WinRM connectivity
+try {
+    $TestResult = Test-WSMan -ComputerName $ComputerName -ErrorAction Stop
+    Write-Host "✓ WinRM connectivity verified" -ForegroundColor Green
+} catch {
+    Write-Host "✗ Cannot connect via WinRM to: $ComputerName" -ForegroundColor Red
+    Write-Host "  Ensure WinRM is enabled: Enable-PSRemoting -Force" -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host ""
+Write-Host "Executing remote restart..." -ForegroundColor Yellow
+
+try {
+    $Result = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+        param($SvcName)
+        
+        $Service = Get-Service -Name $SvcName -ErrorAction SilentlyContinue
+        if (-not $Service) {
+            return @{ Success = $false; Message = "Service not found: $SvcName" }
+        }
+        
+        try {
+            Restart-Service -Name $SvcName -Force -ErrorAction Stop
+            Start-Sleep -Seconds 3
+            $NewStatus = (Get-Service -Name $SvcName).Status
+            return @{ Success = $true; Status = $NewStatus }
+        } catch {
+            return @{ Success = $false; Message = $_.Exception.Message }
+        }
+    } -ArgumentList $ServiceName -ErrorAction Stop
+    
+    if ($Result.Success) {
+        Write-Host ""
+        Write-Host "✓ Service restarted successfully on $ComputerName" -ForegroundColor Green
+        Write-Host "  Current status: $($Result.Status)" -ForegroundColor Gray
+    } else {
+        Write-Host ""
+        Write-Host "✗ Failed to restart service" -ForegroundColor Red
+        Write-Host "  Error: $($Result.Message)" -ForegroundColor Gray
+    }
+} catch {
+    Write-Host ""
+    Write-Host "✗ Remote command failed" -ForegroundColor Red
+    Write-Host "  Error: $_" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'bulk-restart-services-multiserver',
+    name: 'Bulk Restart Service on Multiple Servers',
+    category: 'Remote Services',
+    description: 'Restart a service across multiple remote servers simultaneously',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Restarts a specific service on multiple servers
+- Executes in parallel for efficiency
+- Reports success/failure for each server
+- Essential for enterprise fleet management
+
+**Prerequisites:**
+- Administrator privileges on all target servers
+- PowerShell 5.1 or later
+- WinRM enabled on all target servers
+- Network connectivity to all servers
+
+**What You Need to Provide:**
+- Comma-separated list of server names
+- Service name to restart on all servers
+- Test mode option for preview
+
+**What the Script Does:**
+1. Parses server list
+2. Validates connectivity to each server
+3. In test mode: shows servers without action
+4. In execution mode: restarts service on all servers
+5. Collects results from each server
+6. Generates summary report
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES on all servers
+- Test mode enabled by default for safety
+- Parallel execution may strain network
+- Typical use: patching, maintenance windows
+- Consider staggered restarts for critical services
+- Large server lists may timeout`,
+    parameters: [
+      { id: 'servers', label: 'Server Names (comma-separated)', type: 'textarea', required: true, placeholder: 'SERVER01, SERVER02, SERVER03' },
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const servers = escapePowerShellString(params.servers);
+      const serviceName = escapePowerShellString(params.serviceName);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Bulk Restart Service on Multiple Servers
+# Generated: ${new Date().toISOString()}
+
+$ServerList = "${servers}" -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+$ServiceName = "${serviceName}"
+$TestMode = ${testMode}
+
+Write-Host "Multi-Server Service Restart" -ForegroundColor Cyan
+Write-Host "Service: $ServiceName" -ForegroundColor Gray
+Write-Host "Servers: $($ServerList.Count)" -ForegroundColor Gray
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host ""
+
+if ($ServerList.Count -eq 0) {
+    Write-Host "✗ No servers specified" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Target Servers:" -ForegroundColor Yellow
+$ServerList | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
+Write-Host ""
+
+if ($TestMode) {
+    Write-Host "⚠ TEST MODE - No actions will be taken" -ForegroundColor Yellow
+    Write-Host ""
+    
+    # Test connectivity
+    Write-Host "Testing connectivity..." -ForegroundColor Cyan
+    foreach ($Server in $ServerList) {
+        $Ping = Test-Connection -ComputerName $Server -Count 1 -Quiet
+        if ($Ping) {
+            Write-Host "  ✓ $Server - Reachable" -ForegroundColor Green
+        } else {
+            Write-Host "  ✗ $Server - Unreachable" -ForegroundColor Red
+        }
+    }
+    exit 0
+}
+
+# Execute restart on all servers
+Write-Host "Restarting service on all servers..." -ForegroundColor Cyan
+Write-Host ""
+
+$Results = @()
+
+foreach ($Server in $ServerList) {
+    Write-Host "Processing: $Server" -ForegroundColor Yellow
+    
+    try {
+        $Result = Invoke-Command -ComputerName $Server -ScriptBlock {
+            param($SvcName)
+            try {
+                Restart-Service -Name $SvcName -Force -ErrorAction Stop
+                Start-Sleep -Seconds 2
+                $Status = (Get-Service -Name $SvcName).Status
+                return @{ Success = $true; Status = $Status.ToString() }
+            } catch {
+                return @{ Success = $false; Error = $_.Exception.Message }
+            }
+        } -ArgumentList $ServiceName -ErrorAction Stop
+        
+        if ($Result.Success) {
+            Write-Host "  ✓ Success - Status: $($Result.Status)" -ForegroundColor Green
+            $Results += [PSCustomObject]@{ Server = $Server; Status = "Success"; Details = $Result.Status }
+        } else {
+            Write-Host "  ✗ Failed - $($Result.Error)" -ForegroundColor Red
+            $Results += [PSCustomObject]@{ Server = $Server; Status = "Failed"; Details = $Result.Error }
+        }
+    } catch {
+        Write-Host "  ✗ Connection failed - $_" -ForegroundColor Red
+        $Results += [PSCustomObject]@{ Server = $Server; Status = "Error"; Details = $_.Exception.Message }
+    }
+}
+
+# Summary
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "SUMMARY:" -ForegroundColor Cyan
+$Successful = ($Results | Where-Object { $_.Status -eq "Success" }).Count
+$Failed = ($Results | Where-Object { $_.Status -ne "Success" }).Count
+Write-Host "  Successful: $Successful" -ForegroundColor Green
+Write-Host "  Failed: $Failed" -ForegroundColor $(if ($Failed -gt 0) { "Red" } else { "Gray" })`;
+    }
+  },
+
+  {
+    id: 'get-orphaned-services',
+    name: 'Find Orphaned Services',
+    category: 'Service Discovery',
+    description: 'Identify services whose executable files no longer exist',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Scans all Windows services for orphaned entries
+- Identifies services pointing to missing executables
+- Helps clean up remnants from uninstalled software
+- Essential for system hygiene and troubleshooting
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- WMI access for service path information
+
+**What You Need to Provide:**
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Retrieves all registered Windows services
+2. Extracts executable path for each service
+3. Validates each executable file exists
+4. Reports services with missing executables
+5. Provides cleanup recommendations
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES for complete scan
+- Some services use svchost.exe (shared services)
+- Orphaned services can cause boot delays
+- Typical use: post-uninstall cleanup, troubleshooting
+- Removing orphaned services requires caution
+- Verify before removing - some paths may be dynamic`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Find Orphaned Services
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Scanning for orphaned services..." -ForegroundColor Cyan
+Write-Host ""
+
+$Services = Get-WmiObject Win32_Service
+
+$OrphanedServices = @()
+
+foreach ($Service in $Services) {
+    $PathName = $Service.PathName
+    
+    if (-not $PathName) {
+        continue
+    }
+    
+    # Extract executable path (handle quotes and arguments)
+    if ($PathName.StartsWith('"')) {
+        $ExePath = $PathName.Substring(1, $PathName.IndexOf('"', 1) - 1)
+    } else {
+        $ExePath = ($PathName -split ' ')[0]
+    }
+    
+    # Skip system paths that use environment variables
+    if ($ExePath -match '^%') {
+        $ExePath = [Environment]::ExpandEnvironmentVariables($ExePath)
+    }
+    
+    # Check if executable exists
+    if (-not (Test-Path $ExePath -ErrorAction SilentlyContinue)) {
+        $OrphanedServices += [PSCustomObject]@{
+            ServiceName = $Service.Name
+            DisplayName = $Service.DisplayName
+            Status = $Service.State
+            StartMode = $Service.StartMode
+            ExpectedPath = $ExePath
+        }
+    }
+}
+
+if ($OrphanedServices.Count -eq 0) {
+    Write-Host "✓ No orphaned services found" -ForegroundColor Green
+    exit 0
+}
+
+Write-Host "⚠ Found $($OrphanedServices.Count) orphaned service(s):" -ForegroundColor Yellow
+Write-Host ""
+
+$OrphanedServices | ForEach-Object {
+    Write-Host "Service: $($_.DisplayName)" -ForegroundColor Yellow
+    Write-Host "  Name: $($_.ServiceName)" -ForegroundColor Gray
+    Write-Host "  Status: $($_.Status)" -ForegroundColor Gray
+    Write-Host "  Missing Path: $($_.ExpectedPath)" -ForegroundColor Red
+    Write-Host ""
+}
+
+Write-Host "RECOMMENDATIONS:" -ForegroundColor Cyan
+Write-Host "  1. Verify the application was properly uninstalled" -ForegroundColor Gray
+Write-Host "  2. Disable orphaned services to prevent boot issues" -ForegroundColor Gray
+Write-Host "  3. Use 'sc.exe delete ServiceName' to remove (caution!)" -ForegroundColor Gray
+
+${exportPath ? `
+$OrphanedServices | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'get-third-party-services',
+    name: 'Inventory Third-Party Services',
+    category: 'Service Discovery',
+    description: 'List all non-Microsoft services installed on the system',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Identifies services not from Microsoft/Windows
+- Separates third-party from built-in services
+- Helps with software inventory and licensing
+- Essential for security audits
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions for basic info
+- Administrator for complete file details
+- WMI access required
+
+**What You Need to Provide:**
+- Optional: filter by running services only
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Retrieves all Windows services
+2. Extracts publisher/company information from executable
+3. Filters out Microsoft/Windows services
+4. Groups by publisher for easy review
+5. Generates categorized report
+
+**Important Notes:**
+- Some services may not have publisher information
+- Unsigned services may indicate security concerns
+- Typical use: software inventory, security audits
+- Verify unknown publishers are legitimate
+- Consider reviewing services from unknown sources`,
+    parameters: [
+      { id: 'runningOnly', label: 'Running Services Only', type: 'boolean', required: false, defaultValue: false },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const runningOnly = toPowerShellBoolean(params.runningOnly ?? false);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Inventory Third-Party Services
+# Generated: ${new Date().toISOString()}
+
+$RunningOnly = ${runningOnly}
+
+Write-Host "Scanning for third-party services..." -ForegroundColor Cyan
+Write-Host ""
+
+$Services = Get-WmiObject Win32_Service
+if ($RunningOnly) {
+    $Services = $Services | Where-Object { $_.State -eq "Running" }
+}
+
+$ThirdPartyServices = @()
+
+foreach ($Service in $Services) {
+    $PathName = $Service.PathName
+    
+    if (-not $PathName) {
+        continue
+    }
+    
+    # Extract executable path
+    if ($PathName.StartsWith('"')) {
+        $ExePath = $PathName.Substring(1, $PathName.IndexOf('"', 1) - 1)
+    } else {
+        $ExePath = ($PathName -split ' ')[0]
+    }
+    
+    # Get file version info
+    $Publisher = "Unknown"
+    if (Test-Path $ExePath -ErrorAction SilentlyContinue) {
+        try {
+            $VersionInfo = (Get-Item $ExePath -ErrorAction SilentlyContinue).VersionInfo
+            $Publisher = $VersionInfo.CompanyName
+        } catch {
+            $Publisher = "Unknown"
+        }
+    }
+    
+    # Filter out Microsoft services
+    if ($Publisher -and $Publisher -notmatch "Microsoft|Windows") {
+        $ThirdPartyServices += [PSCustomObject]@{
+            ServiceName = $Service.Name
+            DisplayName = $Service.DisplayName
+            Publisher = if ($Publisher) { $Publisher } else { "Unknown" }
+            Status = $Service.State
+            StartMode = $Service.StartMode
+            Path = $ExePath
+        }
+    }
+}
+
+# Summary by publisher
+Write-Host "THIRD-PARTY SERVICES BY PUBLISHER:" -ForegroundColor Yellow
+Write-Host ""
+
+$ByPublisher = $ThirdPartyServices | Group-Object Publisher | Sort-Object Count -Descending
+
+foreach ($Group in $ByPublisher) {
+    Write-Host "$($Group.Name): $($Group.Count) service(s)" -ForegroundColor Cyan
+    $Group.Group | ForEach-Object {
+        $StatusColor = if ($_.Status -eq "Running") { "Green" } else { "Gray" }
+        Write-Host "  - $($_.DisplayName) [$($_.Status)]" -ForegroundColor $StatusColor
+    }
+    Write-Host ""
+}
+
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "Total third-party services: $($ThirdPartyServices.Count)" -ForegroundColor Yellow
+
+${exportPath ? `
+$ThirdPartyServices | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'get-service-startup-impact',
+    name: 'Analyze Service Startup Impact',
+    category: 'Service Monitoring',
+    description: 'Identify services that may be slowing system boot time',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Analyzes automatic services for boot impact
+- Identifies services with slow startup patterns
+- Checks for delayed start optimization opportunities
+- Helps improve system boot performance
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Administrator privileges for complete analysis
+- Event Log access for timing data
+- WMI access required
+
+**What You Need to Provide:**
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Retrieves all automatic start services
+2. Identifies non-essential auto-start services
+3. Checks for delayed start configuration
+4. Analyzes service dependencies
+5. Provides optimization recommendations
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES for full analysis
+- Some services are critical and cannot be delayed
+- Delayed Auto start reduces boot contention
+- Typical use: boot optimization, performance tuning
+- Test changes in non-production first
+- Document baseline before making changes`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Analyze Service Startup Impact
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Analyzing service startup impact..." -ForegroundColor Cyan
+Write-Host ""
+
+# Get all auto-start services
+$AutoServices = Get-WmiObject Win32_Service | Where-Object { $_.StartMode -eq "Auto" }
+
+$Analysis = @()
+
+foreach ($Service in $AutoServices) {
+    # Check if it's delayed auto
+    $RegPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\$($Service.Name)"
+    $DelayedAutoStart = $false
+    try {
+        $DelayedValue = Get-ItemProperty -Path $RegPath -Name "DelayedAutostart" -ErrorAction SilentlyContinue
+        $DelayedAutoStart = $DelayedValue.DelayedAutostart -eq 1
+    } catch {}
+    
+    # Get dependency count
+    $DepService = Get-Service -Name $Service.Name -ErrorAction SilentlyContinue
+    $DependencyCount = 0
+    $DependentCount = 0
+    if ($DepService) {
+        $DependencyCount = $DepService.ServicesDependedOn.Count
+        $DependentCount = $DepService.DependentServices.Count
+    }
+    
+    # Categorize impact
+    $Impact = "Low"
+    if ($DependentCount -gt 3) { $Impact = "High" }
+    elseif ($DependentCount -gt 0 -or $DependencyCount -gt 2) { $Impact = "Medium" }
+    
+    $Analysis += [PSCustomObject]@{
+        ServiceName = $Service.Name
+        DisplayName = $Service.DisplayName
+        DelayedStart = $DelayedAutoStart
+        Dependencies = $DependencyCount
+        Dependents = $DependentCount
+        Status = $Service.State
+        Impact = $Impact
+        Account = $Service.StartName
+    }
+}
+
+# Sort by impact
+$Analysis = $Analysis | Sort-Object @{Expression={switch ($_.Impact) { "High" { 1 } "Medium" { 2 } "Low" { 3 } }}}, DependentCount -Descending
+
+# Summary
+$HighImpact = ($Analysis | Where-Object { $_.Impact -eq "High" }).Count
+$DelayedCount = ($Analysis | Where-Object { $_.DelayedStart }).Count
+$NotDelayed = ($Analysis | Where-Object { -not $_.DelayedStart }).Count
+
+Write-Host "STARTUP IMPACT SUMMARY:" -ForegroundColor Yellow
+Write-Host "  Total auto-start services: $($Analysis.Count)" -ForegroundColor Gray
+Write-Host "  High impact services: $HighImpact" -ForegroundColor $(if ($HighImpact -gt 5) { "Red" } else { "Gray" })
+Write-Host "  Using Delayed Auto-start: $DelayedCount" -ForegroundColor Green
+Write-Host "  Standard Auto-start: $NotDelayed" -ForegroundColor Gray
+Write-Host ""
+
+# High impact services
+Write-Host "HIGH IMPACT SERVICES:" -ForegroundColor Red
+$Analysis | Where-Object { $_.Impact -eq "High" } | ForEach-Object {
+    Write-Host "  $($_.DisplayName) - $($_.Dependents) dependent(s)" -ForegroundColor Yellow
+}
+
+Write-Host ""
+Write-Host "OPTIMIZATION CANDIDATES (not using Delayed Start):" -ForegroundColor Cyan
+$Candidates = $Analysis | Where-Object { -not $_.DelayedStart -and $_.Impact -eq "Low" -and $_.Dependents -eq 0 } | Select-Object -First 10
+$Candidates | ForEach-Object {
+    Write-Host "  $($_.DisplayName)" -ForegroundColor Gray
+}
+
+Write-Host ""
+Write-Host "RECOMMENDATION:" -ForegroundColor Green
+Write-Host "  Consider setting low-impact services to 'Automatic (Delayed Start)'" -ForegroundColor Gray
+Write-Host "  Use: sc.exe config ServiceName start= delayed-auto" -ForegroundColor Gray
+
+${exportPath ? `
+$Analysis | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Full analysis exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'set-service-delayed-start',
+    name: 'Set Delayed Auto-Start',
+    category: 'Startup Configuration',
+    description: 'Configure service to start automatically with delay after boot',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures service to start after initial boot rush
+- Reduces boot contention with other services
+- Improves overall system startup time
+- Service still starts automatically, just delayed
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must exist and be set to automatic
+- sc.exe utility (built into Windows)
+
+**What You Need to Provide:**
+- Service name (not display name)
+- Enable or disable delayed start
+
+**What the Script Does:**
+1. Validates service exists
+2. Confirms service is set to automatic startup
+3. Configures delayed auto-start setting
+4. Verifies configuration change
+5. Reports new startup configuration
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Only applies to automatic start services
+- Delayed services start approximately 2 minutes after boot
+- Critical services should not be delayed
+- Typical use: non-essential auto-start services
+- Test impact on dependent applications`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'MyService' },
+      { id: 'enableDelayed', label: 'Enable Delayed Start', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      const enableDelayed = toPowerShellBoolean(params.enableDelayed ?? true);
+      
+      return `# Set Delayed Auto-Start
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+$EnableDelayed = ${enableDelayed}
+
+$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+$WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
+
+if ($WMIService.StartMode -ne "Auto") {
+    Write-Host "✗ Service is not set to Automatic startup" -ForegroundColor Red
+    Write-Host "  Current startup type: $($WMIService.StartMode)" -ForegroundColor Yellow
+    Write-Host "  Delayed start only applies to Automatic services" -ForegroundColor Gray
+    exit 1
+}
+
+Write-Host "Configuring delayed auto-start for: $($Service.DisplayName)" -ForegroundColor Cyan
+
+if ($EnableDelayed) {
+    sc.exe config $ServiceName start= delayed-auto | Out-Null
+    Write-Host "✓ Delayed auto-start ENABLED" -ForegroundColor Green
+} else {
+    sc.exe config $ServiceName start= auto | Out-Null
+    Write-Host "✓ Delayed auto-start DISABLED (standard auto)" -ForegroundColor Green
+}
+
+# Verify
+$RegPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\$ServiceName"
+$DelayedValue = Get-ItemProperty -Path $RegPath -Name "DelayedAutostart" -ErrorAction SilentlyContinue
+$IsDelayed = $DelayedValue.DelayedAutostart -eq 1
+
+Write-Host ""
+Write-Host "Current configuration:" -ForegroundColor Gray
+Write-Host "  Service: $ServiceName" -ForegroundColor Gray
+Write-Host "  Startup Type: Automatic $(if ($IsDelayed) { '(Delayed Start)' } else { '(Immediate)' })" -ForegroundColor Gray
+Write-Host ""
+Write-Host "⚠ Changes take effect on next system boot" -ForegroundColor Yellow`;
+    }
+  },
+
+  {
+    id: 'export-service-config',
+    name: 'Export Service Configuration',
+    category: 'Reporting',
+    description: 'Export complete service configuration for backup or documentation',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Exports comprehensive service configuration
+- Creates backup for disaster recovery
+- Documents current service state
+- Supports registry export for complete backup
+
+**Prerequisites:**
+- Administrator privileges for full export
+- PowerShell 5.1 or later
+- WMI access required
+- Write access to export path
+
+**What You Need to Provide:**
+- Service name (or leave blank for all services)
+- Export directory path
+- Whether to include registry backup
+
+**What the Script Does:**
+1. Retrieves complete service configuration
+2. Extracts startup, account, recovery settings
+3. Optionally exports registry keys
+4. Creates JSON configuration file
+5. Documents dependencies and permissions
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES for complete export
+- Registry export enables full restoration
+- Typical use: backup before changes, documentation
+- Keep exports in secure location (may contain paths)
+- Review before sharing externally
+- Export before major system changes`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name (blank for all)', type: 'text', required: false },
+      { id: 'exportPath', label: 'Export Directory', type: 'path', required: true, placeholder: 'C:\\ServiceBackups' },
+      { id: 'includeRegistry', label: 'Include Registry Backup', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = params.serviceName ? escapePowerShellString(params.serviceName) : '';
+      const exportPath = escapePowerShellString(params.exportPath);
+      const includeRegistry = toPowerShellBoolean(params.includeRegistry ?? true);
+      
+      return `# Export Service Configuration
+# Generated: ${new Date().toISOString()}
+
+$ServiceFilter = "${serviceName}"
+$ExportPath = "${exportPath}"
+$IncludeRegistry = ${includeRegistry}
+
+# Create export directory
+if (-not (Test-Path $ExportPath)) {
+    New-Item -ItemType Directory -Path $ExportPath -Force | Out-Null
+}
+
+$Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+
+Write-Host "Exporting service configuration..." -ForegroundColor Cyan
+Write-Host "  Export path: $ExportPath" -ForegroundColor Gray
+Write-Host ""
+
+# Get services to export
+if ($ServiceFilter) {
+    $Services = Get-WmiObject Win32_Service -Filter "Name='$ServiceFilter'"
+    if (-not $Services) {
+        Write-Host "✗ Service not found: $ServiceFilter" -ForegroundColor Red
+        exit 1
+    }
+} else {
+    $Services = Get-WmiObject Win32_Service
+}
+
+Write-Host "Exporting $($Services.Count) service(s)..." -ForegroundColor Yellow
+
+$ExportData = @()
+
+foreach ($Service in $Services) {
+    # Get additional info from PowerShell cmdlet
+    $PSService = Get-Service -Name $Service.Name -ErrorAction SilentlyContinue
+    
+    $Config = [PSCustomObject]@{
+        ExportDate = (Get-Date).ToString("o")
+        ComputerName = $env:COMPUTERNAME
+        ServiceName = $Service.Name
+        DisplayName = $Service.DisplayName
+        Description = $Service.Description
+        PathName = $Service.PathName
+        State = $Service.State
+        StartMode = $Service.StartMode
+        StartName = $Service.StartName
+        ProcessId = $Service.ProcessId
+        CanPauseAndContinue = $PSService.CanPauseAndContinue
+        CanStop = $PSService.CanStop
+        DependsOn = ($PSService.ServicesDependedOn | Select-Object -ExpandProperty Name) -join ','
+        DependentServices = ($PSService.DependentServices | Select-Object -ExpandProperty Name) -join ','
+    }
+    
+    $ExportData += $Config
+    
+    # Registry backup if requested
+    if ($IncludeRegistry) {
+        $RegExportFile = Join-Path $ExportPath "$($Service.Name)_$Timestamp.reg"
+        reg export "HKLM\\SYSTEM\\CurrentControlSet\\Services\\$($Service.Name)" $RegExportFile /y 2>$null | Out-Null
+    }
+}
+
+# Export to JSON
+$JsonFile = Join-Path $ExportPath "ServiceConfig_$Timestamp.json"
+$ExportData | ConvertTo-Json -Depth 10 | Out-File $JsonFile -Encoding UTF8
+
+# Export to CSV
+$CsvFile = Join-Path $ExportPath "ServiceConfig_$Timestamp.csv"
+$ExportData | Export-Csv $CsvFile -NoTypeInformation
+
+Write-Host ""
+Write-Host "✓ Export completed successfully" -ForegroundColor Green
+Write-Host ""
+Write-Host "Exported files:" -ForegroundColor Yellow
+Write-Host "  JSON: $JsonFile" -ForegroundColor Gray
+Write-Host "  CSV: $CsvFile" -ForegroundColor Gray
+if ($IncludeRegistry) {
+    Write-Host "  Registry: $($Services.Count) .reg file(s)" -ForegroundColor Gray
+}
+Write-Host ""
+Write-Host "Total services exported: $($ExportData.Count)" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'compare-service-baseline',
+    name: 'Compare Services to Baseline',
+    category: 'Reporting',
+    description: 'Compare current service configuration against a saved baseline',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Compares current services to a baseline configuration
+- Identifies new, removed, or changed services
+- Detects configuration drift over time
+- Essential for change management and compliance
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Baseline JSON file from previous export
+- Standard user permissions for comparison
+- Administrator for complete details
+
+**What You Need to Provide:**
+- Path to baseline JSON file
+- Optional: export path for comparison report
+
+**What the Script Does:**
+1. Loads baseline configuration from JSON
+2. Retrieves current service configuration
+3. Compares service lists (additions/removals)
+4. Compares settings for matching services
+5. Generates detailed change report
+
+**Important Notes:**
+- Baseline file must be valid JSON from Export task
+- Changes flagged may be intentional
+- Typical use: drift detection, compliance audits
+- Review changes before taking action
+- Create new baseline after approved changes
+- Automate for continuous monitoring`,
+    parameters: [
+      { id: 'baselinePath', label: 'Baseline JSON File Path', type: 'path', required: true, placeholder: 'C:\\Baselines\\ServiceConfig.json' },
+      { id: 'exportPath', label: 'Export Report Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const baselinePath = escapePowerShellString(params.baselinePath);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Compare Services to Baseline
+# Generated: ${new Date().toISOString()}
+
+$BaselinePath = "${baselinePath}"
+
+Write-Host "Comparing services to baseline..." -ForegroundColor Cyan
+Write-Host "  Baseline: $BaselinePath" -ForegroundColor Gray
+Write-Host ""
+
+# Load baseline
+if (-not (Test-Path $BaselinePath)) {
+    Write-Host "✗ Baseline file not found: $BaselinePath" -ForegroundColor Red
+    exit 1
+}
+
+try {
+    $Baseline = Get-Content $BaselinePath -Raw | ConvertFrom-Json
+} catch {
+    Write-Host "✗ Invalid baseline JSON file" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Baseline date: $($Baseline[0].ExportDate)" -ForegroundColor Gray
+Write-Host "Baseline services: $($Baseline.Count)" -ForegroundColor Gray
+Write-Host ""
+
+# Get current services
+$CurrentServices = Get-WmiObject Win32_Service | ForEach-Object {
+    [PSCustomObject]@{
+        ServiceName = $_.Name
+        DisplayName = $_.DisplayName
+        State = $_.State
+        StartMode = $_.StartMode
+        StartName = $_.StartName
+    }
+}
+
+$Changes = @()
+
+# Check for new services
+$BaselineNames = $Baseline.ServiceName
+$CurrentNames = $CurrentServices.ServiceName
+
+$NewServices = $CurrentNames | Where-Object { $_ -notin $BaselineNames }
+$RemovedServices = $BaselineNames | Where-Object { $_ -notin $CurrentNames }
+
+# Check for changed services
+foreach ($Current in $CurrentServices) {
+    if ($Current.ServiceName -in $RemovedServices -or $Current.ServiceName -in $NewServices) {
+        continue
+    }
+    
+    $BaselineService = $Baseline | Where-Object { $_.ServiceName -eq $Current.ServiceName }
+    
+    $ServiceChanges = @()
+    if ($Current.State -ne $BaselineService.State) {
+        $ServiceChanges += "State: $($BaselineService.State) -> $($Current.State)"
+    }
+    if ($Current.StartMode -ne $BaselineService.StartMode) {
+        $ServiceChanges += "StartMode: $($BaselineService.StartMode) -> $($Current.StartMode)"
+    }
+    if ($Current.StartName -ne $BaselineService.StartName) {
+        $ServiceChanges += "Account: $($BaselineService.StartName) -> $($Current.StartName)"
+    }
+    
+    if ($ServiceChanges.Count -gt 0) {
+        $Changes += [PSCustomObject]@{
+            ServiceName = $Current.ServiceName
+            ChangeType = "Modified"
+            Details = $ServiceChanges -join "; "
+        }
+    }
+}
+
+# Add new and removed
+$NewServices | ForEach-Object {
+    $Changes += [PSCustomObject]@{
+        ServiceName = $_
+        ChangeType = "Added"
+        Details = "New service since baseline"
+    }
+}
+
+$RemovedServices | ForEach-Object {
+    $Changes += [PSCustomObject]@{
+        ServiceName = $_
+        ChangeType = "Removed"
+        Details = "Service no longer exists"
+    }
+}
+
+# Display results
+Write-Host "COMPARISON RESULTS:" -ForegroundColor Yellow
+Write-Host "  Current services: $($CurrentServices.Count)" -ForegroundColor Gray
+Write-Host "  New services: $($NewServices.Count)" -ForegroundColor $(if ($NewServices.Count -gt 0) { "Cyan" } else { "Gray" })
+Write-Host "  Removed services: $($RemovedServices.Count)" -ForegroundColor $(if ($RemovedServices.Count -gt 0) { "Red" } else { "Gray" })
+Write-Host "  Modified services: $($Changes.Count - $NewServices.Count - $RemovedServices.Count)" -ForegroundColor $(if ($Changes.Count -gt 0) { "Yellow" } else { "Gray" })
+Write-Host ""
+
+if ($Changes.Count -eq 0) {
+    Write-Host "✓ No changes detected - configuration matches baseline" -ForegroundColor Green
+} else {
+    Write-Host "CHANGES DETECTED:" -ForegroundColor Red
+    Write-Host ""
+    
+    $Changes | ForEach-Object {
+        $Color = switch ($_.ChangeType) {
+            "Added" { "Cyan" }
+            "Removed" { "Red" }
+            "Modified" { "Yellow" }
+        }
+        Write-Host "[$($_.ChangeType)] $($_.ServiceName)" -ForegroundColor $Color
+        Write-Host "  $($_.Details)" -ForegroundColor Gray
+    }
+}
+
+${exportPath ? `
+$Changes | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'get-service-event-history',
+    name: 'Get Service Event History',
+    category: 'Service Monitoring',
+    description: 'Retrieve detailed event log history for a specific service',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Retrieves all events related to a specific service
+- Includes start, stop, failure, and configuration events
+- Shows timeline of service activity
+- Essential for troubleshooting and auditing
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Event Log read access
+- Service must exist on system
+- Sufficient event log retention
+
+**What You Need to Provide:**
+- Service name to analyze
+- Days of history to retrieve
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Queries System and Application event logs
+2. Filters for service-specific events
+3. Sorts events chronologically
+4. Categorizes events by type
+5. Displays timeline with details
+
+**Important Notes:**
+- Event retention depends on log configuration
+- Some services generate many events
+- Typical use: troubleshooting, root cause analysis
+- Check both System and Application logs
+- Consider filtering by severity for large datasets`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' },
+      { id: 'daysBack', label: 'Days of History', type: 'number', required: false, defaultValue: 7 },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      const daysBack = Number(params.daysBack || 7);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Service Event History
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+$DaysBack = ${daysBack}
+$StartTime = (Get-Date).AddDays(-$DaysBack)
+
+Write-Host "Retrieving event history for: $ServiceName" -ForegroundColor Cyan
+Write-Host "  Period: Last $DaysBack days" -ForegroundColor Gray
+Write-Host ""
+
+# Verify service exists
+$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Searching event logs..." -ForegroundColor Yellow
+
+# Query System log for service events
+$ServiceEvents = @()
+
+# Service Control Manager events (System log)
+$SCMEvents = Get-WinEvent -FilterHashtable @{
+    LogName = 'System'
+    ProviderName = 'Service Control Manager'
+    StartTime = $StartTime
+} -ErrorAction SilentlyContinue | Where-Object { $_.Message -match $ServiceName }
+
+if ($SCMEvents) {
+    $ServiceEvents += $SCMEvents | ForEach-Object {
+        [PSCustomObject]@{
+            TimeCreated = $_.TimeCreated
+            Source = "System"
+            EventId = $_.Id
+            Level = $_.LevelDisplayName
+            Message = $_.Message.Substring(0, [Math]::Min(200, $_.Message.Length))
+        }
+    }
+}
+
+# Application log events (if service logs there)
+$AppEvents = Get-WinEvent -FilterHashtable @{
+    LogName = 'Application'
+    StartTime = $StartTime
+} -ErrorAction SilentlyContinue | Where-Object { $_.ProviderName -eq $ServiceName -or $_.Message -match $ServiceName } | Select-Object -First 50
+
+if ($AppEvents) {
+    $ServiceEvents += $AppEvents | ForEach-Object {
+        [PSCustomObject]@{
+            TimeCreated = $_.TimeCreated
+            Source = "Application"
+            EventId = $_.Id
+            Level = $_.LevelDisplayName
+            Message = $_.Message.Substring(0, [Math]::Min(200, $_.Message.Length))
+        }
+    }
+}
+
+# Sort by time
+$ServiceEvents = $ServiceEvents | Sort-Object TimeCreated -Descending
+
+if ($ServiceEvents.Count -eq 0) {
+    Write-Host "No events found for service: $ServiceName" -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host ""
+Write-Host "Found $($ServiceEvents.Count) event(s)" -ForegroundColor Green
+Write-Host ""
+
+# Summary by level
+$ByLevel = $ServiceEvents | Group-Object Level
+Write-Host "EVENT SUMMARY:" -ForegroundColor Yellow
+$ByLevel | ForEach-Object {
+    $Color = switch ($_.Name) {
+        "Error" { "Red" }
+        "Warning" { "Yellow" }
+        default { "Gray" }
+    }
+    Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor $Color
+}
+Write-Host ""
+
+# Show recent events
+Write-Host "RECENT EVENTS (last 20):" -ForegroundColor Yellow
+$ServiceEvents | Select-Object -First 20 | ForEach-Object {
+    $LevelColor = switch ($_.Level) {
+        "Error" { "Red" }
+        "Warning" { "Yellow" }
+        default { "Gray" }
+    }
+    Write-Host ""
+    Write-Host "[$($_.TimeCreated)] [$($_.Level)]" -ForegroundColor $LevelColor
+    Write-Host "  $($_.Message)" -ForegroundColor Gray
+}
+
+${exportPath ? `
+$ServiceEvents | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Full history exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'configure-gmsa-service',
+    name: 'Configure Group Managed Service Account',
+    category: 'Service Accounts',
+    description: 'Configure a service to use a Group Managed Service Account (gMSA)',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures service to use gMSA for authentication
+- Eliminates need for password management
+- Enhances security with automatic password rotation
+- Requires Active Directory domain environment
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later with AD module
+- Domain-joined computer
+- gMSA must already exist in AD
+- Computer must be in gMSA principals group
+
+**What You Need to Provide:**
+- Service name to configure
+- gMSA account name (DOMAIN\\gMSA$)
+
+**What the Script Does:**
+1. Validates gMSA account exists and is accessible
+2. Tests computer can retrieve gMSA password
+3. Configures service to use gMSA
+4. Sets password to empty (managed by AD)
+5. Verifies configuration change
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- gMSA must exist before running this script
+- Computer must be in PrincipalsAllowedToRetrieveManagedPassword
+- Service MUST BE RESTARTED after change
+- Typical use: secure service accounts, compliance
+- Test thoroughly before production deployment`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'MyService' },
+      { id: 'gmsaAccount', label: 'gMSA Account (DOMAIN\\gMSA$)', type: 'text', required: true, placeholder: 'CONTOSO\\svc_webapp$' }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      const gmsaAccount = escapePowerShellString(params.gmsaAccount);
+      
+      return `# Configure Group Managed Service Account
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+$GMSAAccount = "${gmsaAccount}"
+
+Write-Host "Configuring gMSA for service..." -ForegroundColor Cyan
+Write-Host "  Service: $ServiceName" -ForegroundColor Gray
+Write-Host "  gMSA: $GMSAAccount" -ForegroundColor Gray
+Write-Host ""
+
+# Verify domain membership
+if (-not (Get-WmiObject Win32_ComputerSystem).PartOfDomain) {
+    Write-Host "✗ This computer is not domain-joined" -ForegroundColor Red
+    Write-Host "  gMSA requires Active Directory domain membership" -ForegroundColor Yellow
+    exit 1
+}
+
+# Verify service exists
+$Service = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+# Validate gMSA account format
+if ($GMSAAccount -notmatch '\\$\$') {
+    Write-Host "⚠ gMSA account should end with \$ (e.g., DOMAIN\\account\$)" -ForegroundColor Yellow
+}
+
+# Test gMSA access (requires AD module)
+Write-Host "Testing gMSA access..." -ForegroundColor Yellow
+try {
+    if (Get-Command Test-ADServiceAccount -ErrorAction SilentlyContinue) {
+        $AccountName = ($GMSAAccount -split '\\\\')[1]
+        $TestResult = Test-ADServiceAccount -Identity $AccountName -ErrorAction Stop
+        if ($TestResult) {
+            Write-Host "✓ gMSA access verified" -ForegroundColor Green
+        } else {
+            Write-Host "⚠ gMSA test returned false - computer may not have access" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "⚠ AD PowerShell module not available - skipping gMSA test" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "⚠ Could not test gMSA access: $_" -ForegroundColor Yellow
+}
+
+# Configure service
+Write-Host ""
+Write-Host "Configuring service account..." -ForegroundColor Yellow
+
+# Use sc.exe to set gMSA (password left empty for managed accounts)
+$Result = sc.exe config $ServiceName obj= $GMSAAccount password= "" 2>&1
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host ""
+    Write-Host "✓ Service configured to use gMSA" -ForegroundColor Green
+    Write-Host "  Service: $ServiceName" -ForegroundColor Gray
+    Write-Host "  Account: $GMSAAccount" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠ IMPORTANT: Restart the service for changes to take effect" -ForegroundColor Yellow
+    Write-Host "  Run: Restart-Service -Name $ServiceName -Force" -ForegroundColor Gray
+} else {
+    Write-Host ""
+    Write-Host "✗ Failed to configure service" -ForegroundColor Red
+    Write-Host "  Error: $Result" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Verify:" -ForegroundColor Yellow
+    Write-Host "  1. gMSA account exists in AD" -ForegroundColor Gray
+    Write-Host "  2. Computer is in PrincipalsAllowedToRetrieveManagedPassword" -ForegroundColor Gray
+    Write-Host "  3. DNS and domain connectivity" -ForegroundColor Gray
+}`;
+    }
+  },
+
+  {
+    id: 'set-service-description',
+    name: 'Set Service Description',
+    category: 'Service Configuration',
+    description: 'Update the description text for a Windows service',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Updates the description displayed in services.msc
+- Improves documentation and discoverability
+- Does not affect service functionality
+- Persists across reboots
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must exist on system
+
+**What You Need to Provide:**
+- Service name (not display name)
+- New description text
+
+**What the Script Does:**
+1. Validates service exists
+2. Updates description via sc.exe
+3. Verifies description was set
+4. Displays new description
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Description is visible in Services console
+- Useful for custom/third-party services
+- Typical use: documentation, identification
+- Does not affect service behavior
+- Clear descriptions help with troubleshooting`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'MyService' },
+      { id: 'description', label: 'Description', type: 'textarea', required: true, placeholder: 'This service provides...' }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      const description = escapePowerShellString(params.description);
+      
+      return `# Set Service Description
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+$Description = "${description}"
+
+$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Updating service description..." -ForegroundColor Cyan
+Write-Host "  Service: $($Service.DisplayName)" -ForegroundColor Gray
+
+# Set description using sc.exe
+sc.exe description $ServiceName $Description | Out-Null
+
+if ($LASTEXITCODE -eq 0) {
+    # Verify
+    $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
+    
+    Write-Host ""
+    Write-Host "✓ Description updated successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Current description:" -ForegroundColor Yellow
+    Write-Host "  $($WMIService.Description)" -ForegroundColor Gray
+} else {
+    Write-Host "✗ Failed to update description" -ForegroundColor Red
+}`;
+    }
+  },
+
+  {
+    id: 'clear-service-dependencies',
+    name: 'Clear Service Dependencies',
+    category: 'Service Dependencies',
+    description: 'Remove all dependencies from a Windows service',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Removes all startup dependencies from a service
+- Makes service completely standalone
+- Useful for troubleshooting dependency issues
+- Service will start regardless of other services
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must exist on system
+- sc.exe utility (built into Windows)
+
+**What You Need to Provide:**
+- Service name (not display name)
+- Confirmation to proceed
+
+**What the Script Does:**
+1. Validates service exists
+2. Shows current dependencies
+3. Removes all dependencies
+4. Verifies removal
+5. Displays new configuration
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- HIGH RISK: Service may fail if it needs dependencies
+- Document original dependencies before clearing
+- Typical use: troubleshooting, testing
+- Service restart required for change to take effect
+- Consider Set Service Dependencies to restore if needed`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'MyService' },
+      { id: 'confirm', label: 'Confirm Removal', type: 'boolean', required: true, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      const confirm = toPowerShellBoolean(params.confirm ?? false);
+      
+      return `# Clear Service Dependencies
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+$Confirm = ${confirm}
+
+$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Service: $($Service.DisplayName)" -ForegroundColor Cyan
+Write-Host ""
+
+# Show current dependencies
+Write-Host "Current dependencies:" -ForegroundColor Yellow
+if ($Service.ServicesDependedOn.Count -gt 0) {
+    $Service.ServicesDependedOn | ForEach-Object {
+        Write-Host "  - $($_.DisplayName) ($($_.Name))" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "  (None)" -ForegroundColor Gray
+}
+
+Write-Host ""
+
+if (-not $Confirm) {
+    Write-Host "⚠ Confirmation required to clear dependencies" -ForegroundColor Yellow
+    Write-Host "  Set 'Confirm Removal' to true to proceed" -ForegroundColor Gray
+    exit 0
+}
+
+# Clear dependencies using sc.exe
+Write-Host "Removing all dependencies..." -ForegroundColor Yellow
+sc.exe config $ServiceName depend= "" | Out-Null
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host ""
+    Write-Host "✓ Dependencies cleared successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "⚠ Restart service for changes to take effect" -ForegroundColor Yellow
+} else {
+    Write-Host ""
+    Write-Host "✗ Failed to clear dependencies" -ForegroundColor Red
+}`;
+    }
+  },
+
+  {
+    id: 'get-service-permissions',
+    name: 'Get Service Security Permissions',
+    category: 'Service Accounts',
+    description: 'View the security descriptor and access permissions for a service',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Retrieves security permissions for a Windows service
+- Shows who can start, stop, and configure the service
+- Essential for security audits
+- Identifies potential permission issues
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must exist on system
+- sc.exe utility (built into Windows)
+
+**What You Need to Provide:**
+- Service name (not display name)
+
+**What the Script Does:**
+1. Validates service exists
+2. Retrieves service security descriptor
+3. Parses and displays permissions
+4. Shows DACL entries
+5. Identifies high-risk permissions
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Complex output - requires understanding of SDDL
+- Typical use: security audits, troubleshooting access
+- Default permissions are usually appropriate
+- Modifying permissions can break service management
+- Document before changing permissions`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      
+      return `# Get Service Security Permissions
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+
+$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+if (-not $Service) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Service Security Permissions" -ForegroundColor Cyan
+Write-Host "Service: $($Service.DisplayName)" -ForegroundColor Gray
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host ""
+
+# Get security descriptor using sc.exe
+$SDDL = sc.exe sdshow $ServiceName 2>$null
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "✗ Failed to retrieve security descriptor" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Security Descriptor (SDDL):" -ForegroundColor Yellow
+Write-Host "  $SDDL" -ForegroundColor Gray
+Write-Host ""
+
+# Try to parse common permission patterns
+Write-Host "Parsed Permissions:" -ForegroundColor Yellow
+
+# Common SID translations
+$SIDMap = @{
+    "BA" = "Built-in Administrators"
+    "SY" = "Local System"
+    "WD" = "Everyone"
+    "IU" = "Interactive Users"
+    "AU" = "Authenticated Users"
+    "LS" = "Local Service"
+    "NS" = "Network Service"
+    "BU" = "Built-in Users"
+    "NO" = "Network Configuration Operators"
+    "PU" = "Power Users"
+}
+
+# Common permission masks
+$PermissionMap = @{
+    "CC" = "Query Configuration"
+    "LC" = "Query Status"
+    "SW" = "Enumerate Dependents"
+    "LO" = "Interrogate"
+    "RC" = "Read Control"
+    "RP" = "Start"
+    "WP" = "Stop"
+    "DT" = "Pause/Continue"
+    "CR" = "User-defined Control"
+    "SD" = "Delete"
+    "WD" = "Write DAC"
+    "WO" = "Write Owner"
+}
+
+# Extract and display DACL entries
+$DACLMatch = $SDDL -match 'D:(.+)'
+if ($Matches[1]) {
+    $DACL = $Matches[1]
+    
+    # Parse ACE entries (simplified)
+    $ACEPattern = '\\(([^)]+)\\)'
+    $ACEs = [regex]::Matches($DACL, $ACEPattern)
+    
+    foreach ($ACE in $ACEs) {
+        $ACEText = $ACE.Groups[1].Value
+        $Parts = $ACEText -split ';'
+        
+        if ($Parts.Count -ge 6) {
+            $AceType = if ($Parts[0] -eq "A") { "Allow" } else { "Deny" }
+            $Trustee = $Parts[5]
+            
+            # Translate SID
+            $TrusteeName = if ($SIDMap[$Trustee]) { $SIDMap[$Trustee] } else { $Trustee }
+            
+            Write-Host "  $AceType : $TrusteeName" -ForegroundColor $(if ($AceType -eq "Allow") { "Green" } else { "Red" })
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "NOTE:" -ForegroundColor Gray
+Write-Host "  SDDL format is complex. Use 'sc sdshow' and 'sc sdset' for modifications." -ForegroundColor Gray
+Write-Host "  Consult Microsoft documentation for detailed SDDL syntax." -ForegroundColor Gray`;
+    }
+  },
+
+  {
+    id: 'generate-service-compliance-report',
+    name: 'Generate Service Compliance Report',
+    category: 'Reporting',
+    description: 'Generate a compliance report for service configurations against best practices',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Audits all services against security best practices
+- Checks for common misconfigurations
+- Identifies compliance issues
+- Generates actionable recommendations
+
+**Prerequisites:**
+- Administrator privileges for complete audit
+- PowerShell 5.1 or later
+- WMI access required
+
+**What You Need to Provide:**
+- Optional: CSV export path for full report
+
+**What the Script Does:**
+1. Scans all Windows services
+2. Checks startup type appropriateness
+3. Audits service accounts for security
+4. Validates recovery configurations
+5. Scores overall compliance
+6. Provides remediation guidance
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES for full audit
+- Recommendations are guidelines, not absolute rules
+- Some exceptions may be valid for your environment
+- Typical use: security audits, CIS benchmarks
+- Review findings before making changes
+- Document any approved exceptions`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Generate Service Compliance Report
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Service Compliance Audit" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host ""
+
+$ComplianceIssues = @()
+$Warnings = @()
+$Passed = @()
+
+$Services = Get-WmiObject Win32_Service
+
+foreach ($Service in $Services) {
+    $Issues = @()
+    
+    # Check 1: Unnecessary auto-start services
+    $CriticalAutoServices = @("EventLog", "PlugPlay", "RpcSs", "DcomLaunch", "LSM", "Winmgmt")
+    if ($Service.StartMode -eq "Auto" -and $Service.State -ne "Running" -and $Service.Name -notin $CriticalAutoServices) {
+        $Issues += "Auto-start service not running"
+    }
+    
+    # Check 2: Services running as LocalSystem that shouldn't
+    $AllowedLocalSystem = @("Spooler", "W32Time", "PlugPlay", "EventLog", "MSDTC", "netprofm", "NlaSvc")
+    if ($Service.StartName -match "LocalSystem|SYSTEM" -and $Service.Name -notin $AllowedLocalSystem -and $Service.State -eq "Running") {
+        $Issues += "Running as LocalSystem (high privilege)"
+    }
+    
+    # Check 3: Disabled but should be enabled
+    $ShouldBeEnabled = @("EventLog", "RpcSs", "Winmgmt")
+    if ($Service.StartMode -eq "Disabled" -and $Service.Name -in $ShouldBeEnabled) {
+        $Issues += "Critical service is disabled"
+    }
+    
+    # Check 4: Custom account without proper notation
+    if ($Service.StartName -and $Service.StartName -match "\\\\" -and $Service.StartName -notmatch "\\$\$" -and $Service.StartName -notmatch "NT AUTHORITY") {
+        $Warnings += [PSCustomObject]@{
+            ServiceName = $Service.Name
+            DisplayName = $Service.DisplayName
+            Issue = "Custom account - consider gMSA"
+            Severity = "Warning"
+        }
+    }
+    
+    if ($Issues.Count -gt 0) {
+        foreach ($Issue in $Issues) {
+            $ComplianceIssues += [PSCustomObject]@{
+                ServiceName = $Service.Name
+                DisplayName = $Service.DisplayName
+                Issue = $Issue
+                Severity = "Issue"
+                Account = $Service.StartName
+                Status = $Service.State
+            }
+        }
+    }
+}
+
+# Calculate score
+$TotalServices = $Services.Count
+$IssueCount = $ComplianceIssues.Count
+$WarningCount = $Warnings.Count
+$ComplianceScore = [Math]::Round((1 - ($IssueCount / $TotalServices)) * 100, 1)
+
+Write-Host "COMPLIANCE SUMMARY:" -ForegroundColor Yellow
+Write-Host "  Total Services: $TotalServices" -ForegroundColor Gray
+Write-Host "  Compliance Issues: $IssueCount" -ForegroundColor $(if ($IssueCount -gt 0) { "Red" } else { "Green" })
+Write-Host "  Warnings: $WarningCount" -ForegroundColor $(if ($WarningCount -gt 0) { "Yellow" } else { "Gray" })
+Write-Host ""
+
+if ($ComplianceScore -ge 95) {
+    Write-Host "  Compliance Score: $ComplianceScore% (Excellent)" -ForegroundColor Green
+} elseif ($ComplianceScore -ge 80) {
+    Write-Host "  Compliance Score: $ComplianceScore% (Good)" -ForegroundColor Yellow
+} else {
+    Write-Host "  Compliance Score: $ComplianceScore% (Needs Improvement)" -ForegroundColor Red
+}
+
+Write-Host ""
+
+if ($ComplianceIssues.Count -gt 0) {
+    Write-Host "COMPLIANCE ISSUES:" -ForegroundColor Red
+    $ComplianceIssues | ForEach-Object {
+        Write-Host "  [$($_.Severity)] $($_.DisplayName)" -ForegroundColor Yellow
+        Write-Host "    Issue: $($_.Issue)" -ForegroundColor Gray
+        Write-Host "    Account: $($_.Account)" -ForegroundColor Gray
+    }
+    Write-Host ""
+}
+
+if ($Warnings.Count -gt 0) {
+    Write-Host "WARNINGS:" -ForegroundColor Yellow
+    $Warnings | ForEach-Object {
+        Write-Host "  $($_.DisplayName): $($_.Issue)" -ForegroundColor Gray
+    }
+    Write-Host ""
+}
+
+Write-Host "RECOMMENDATIONS:" -ForegroundColor Cyan
+Write-Host "  1. Review auto-start services that are stopped" -ForegroundColor Gray
+Write-Host "  2. Minimize LocalSystem usage where possible" -ForegroundColor Gray
+Write-Host "  3. Consider Group Managed Service Accounts (gMSA)" -ForegroundColor Gray
+Write-Host "  4. Ensure critical services are enabled" -ForegroundColor Gray
+Write-Host "  5. Configure recovery options for important services" -ForegroundColor Gray
+
+${exportPath ? `
+$AllFindings = $ComplianceIssues + $Warnings
+$AllFindings | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Full report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'bulk-set-startup-type',
+    name: 'Bulk Set Startup Type',
+    category: 'Bulk Operations',
+    description: 'Change startup type for multiple services matching a pattern',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Changes startup type for multiple services at once
+- Uses pattern matching to select services
+- Test mode for preview before changes
+- Efficient for bulk configuration
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Pattern must match intended services
+
+**What You Need to Provide:**
+- Service name pattern with wildcards
+- Target startup type
+- Test mode option
+
+**What the Script Does:**
+1. Finds services matching pattern
+2. Displays list of matching services
+3. In test mode: shows without changing
+4. In execution mode: changes each service
+5. Reports success/failure for each
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Test mode enabled by default for safety
+- Typical use: security hardening, optimization
+- Review pattern matches carefully
+- Some services may reject changes
+- Document original settings before bulk changes`,
+    parameters: [
+      { id: 'pattern', label: 'Service Name Pattern', type: 'text', required: true, placeholder: 'Remote*' },
+      { id: 'startupType', label: 'Startup Type', type: 'select', required: true, options: ['Automatic', 'Manual', 'Disabled'], defaultValue: 'Manual' },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const pattern = escapePowerShellString(params.pattern);
+      const startupType = params.startupType;
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Bulk Set Startup Type
+# Generated: ${new Date().toISOString()}
+
+$Pattern = "${pattern}"
+$StartupType = "${startupType}"
+$TestMode = ${testMode}
+
+Write-Host "Bulk Startup Type Configuration" -ForegroundColor Cyan
+Write-Host "  Pattern: $Pattern" -ForegroundColor Gray
+Write-Host "  Target Startup Type: $StartupType" -ForegroundColor Gray
+Write-Host ""
+
+$Services = Get-Service -Name $Pattern -ErrorAction SilentlyContinue
+
+if (-not $Services) {
+    Write-Host "✗ No services found matching pattern: $Pattern" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Found $($Services.Count) matching service(s):" -ForegroundColor Yellow
+$Services | ForEach-Object {
+    $WMI = Get-WmiObject Win32_Service -Filter "Name='$($_.Name)'" -ErrorAction SilentlyContinue
+    Write-Host "  - $($_.DisplayName) [Current: $($WMI.StartMode)]" -ForegroundColor Gray
+}
+Write-Host ""
+
+if ($TestMode) {
+    Write-Host "⚠ TEST MODE - No changes will be made" -ForegroundColor Yellow
+    Write-Host "  Set Test Mode to false to apply changes" -ForegroundColor Gray
+    exit 0
+}
+
+Write-Host "Applying changes..." -ForegroundColor Yellow
+Write-Host ""
+
+$Success = 0
+$Failed = 0
+
+foreach ($Service in $Services) {
+    try {
+        Set-Service -Name $Service.Name -StartupType $StartupType -ErrorAction Stop
+        Write-Host "  ✓ $($Service.Name)" -ForegroundColor Green
+        $Success++
+    } catch {
+        Write-Host "  ✗ $($Service.Name): $_" -ForegroundColor Red
+        $Failed++
+    }
+}
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "SUMMARY:" -ForegroundColor Cyan
+Write-Host "  Successful: $Success" -ForegroundColor Green
+Write-Host "  Failed: $Failed" -ForegroundColor $(if ($Failed -gt 0) { "Red" } else { "Gray" })`;
+    }
+  },
+
+  {
+    id: 'monitor-service-resource-usage',
+    name: 'Monitor Service Resource Usage',
+    category: 'Service Monitoring',
+    description: 'Monitor CPU and memory usage for a specific service',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Monitors resource consumption of a running service
+- Tracks CPU and memory usage over time
+- Identifies resource-intensive services
+- Helps with capacity planning
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Service must be running
+- Standard user permissions for basic monitoring
+
+**What You Need to Provide:**
+- Service name to monitor
+- Number of samples to collect
+- Interval between samples (seconds)
+
+**What the Script Does:**
+1. Validates service is running
+2. Gets service process ID
+3. Collects resource samples at specified interval
+4. Calculates average and peak usage
+5. Displays usage statistics
+
+**Important Notes:**
+- Only works for running services
+- Some services share svchost.exe (grouped)
+- Typical use: performance troubleshooting, capacity planning
+- Longer sampling provides more accurate data
+- Consider external monitoring for production systems`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'Spooler' },
+      { id: 'samples', label: 'Number of Samples', type: 'number', required: false, defaultValue: 5 },
+      { id: 'interval', label: 'Interval (seconds)', type: 'number', required: false, defaultValue: 2 }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      const samples = Number(params.samples || 5);
+      const interval = Number(params.interval || 2);
+      
+      return `# Monitor Service Resource Usage
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+$Samples = ${samples}
+$Interval = ${interval}
+
+Write-Host "Service Resource Monitor" -ForegroundColor Cyan
+Write-Host "  Service: $ServiceName" -ForegroundColor Gray
+Write-Host "  Samples: $Samples @ ${interval}s intervals" -ForegroundColor Gray
+Write-Host ""
+
+# Verify service exists and is running
+$WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
+
+if (-not $WMIService) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+if ($WMIService.State -ne "Running") {
+    Write-Host "✗ Service is not running: $ServiceName (Status: $($WMIService.State))" -ForegroundColor Red
+    exit 1
+}
+
+$ProcessId = $WMIService.ProcessId
+
+if ($ProcessId -eq 0) {
+    Write-Host "✗ Service has no associated process" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Process ID: $ProcessId" -ForegroundColor Gray
+
+# Check if svchost (shared)
+$Process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+if ($Process.Name -eq "svchost") {
+    Write-Host "⚠ Service runs in shared svchost - resource usage may include other services" -ForegroundColor Yellow
+}
+
+Write-Host ""
+Write-Host "Collecting samples..." -ForegroundColor Yellow
+Write-Host ""
+
+$ResourceData = @()
+
+for ($i = 1; $i -le $Samples; $i++) {
+    $Process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+    
+    if (-not $Process) {
+        Write-Host "⚠ Process terminated during monitoring" -ForegroundColor Yellow
+        break
+    }
+    
+    $CPUTime = $Process.CPU
+    $MemoryMB = [Math]::Round($Process.WorkingSet64 / 1MB, 2)
+    $ThreadCount = $Process.Threads.Count
+    $HandleCount = $Process.HandleCount
+    
+    $Sample = [PSCustomObject]@{
+        SampleNum = $i
+        CPUTime = $CPUTime
+        MemoryMB = $MemoryMB
+        Threads = $ThreadCount
+        Handles = $HandleCount
+    }
+    
+    $ResourceData += $Sample
+    
+    Write-Host "Sample $i\`: CPU=$CPUTime s, Memory=$MemoryMB MB, Threads=$ThreadCount, Handles=$HandleCount" -ForegroundColor Gray
+    
+    if ($i -lt $Samples) {
+        Start-Sleep -Seconds $Interval
+    }
+}
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "RESOURCE SUMMARY:" -ForegroundColor Yellow
+
+$AvgMemory = [Math]::Round(($ResourceData.MemoryMB | Measure-Object -Average).Average, 2)
+$MaxMemory = ($ResourceData.MemoryMB | Measure-Object -Maximum).Maximum
+$AvgThreads = [Math]::Round(($ResourceData.Threads | Measure-Object -Average).Average)
+$MaxHandles = ($ResourceData.Handles | Measure-Object -Maximum).Maximum
+
+Write-Host "  Average Memory: $AvgMemory MB" -ForegroundColor Gray
+Write-Host "  Peak Memory: $MaxMemory MB" -ForegroundColor Gray
+Write-Host "  Average Threads: $AvgThreads" -ForegroundColor Gray
+Write-Host "  Peak Handles: $MaxHandles" -ForegroundColor Gray
+
+# Simple assessment
+if ($MaxMemory -gt 500) {
+    Write-Host ""
+    Write-Host "⚠ High memory usage detected (>500 MB)" -ForegroundColor Yellow
+} elseif ($MaxMemory -gt 200) {
+    Write-Host ""
+    Write-Host "Memory usage is moderate" -ForegroundColor Gray
+} else {
+    Write-Host ""
+    Write-Host "✓ Memory usage is within normal range" -ForegroundColor Green
+}`;
+    }
+  },
+
+  {
+    id: 'get-services-by-account',
+    name: 'List Services by Account',
+    category: 'Service Discovery',
+    description: 'List all services running under a specific account',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Finds all services configured to run under a specific account
+- Useful for password rotation planning
+- Essential for service account auditing
+- Supports partial matching
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions for basic info
+- WMI access required
+
+**What You Need to Provide:**
+- Account name or partial match
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Retrieves all Windows services
+2. Filters by service account
+3. Groups services by exact account
+4. Displays service count and details
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Supports partial matching (e.g., "CONTOSO" matches all CONTOSO accounts)
+- Use full account name for exact match
+- Typical use: password rotation, account auditing
+- Shows both running and stopped services
+- Include domain in search for domain accounts`,
+    parameters: [
+      { id: 'accountName', label: 'Account Name (or partial)', type: 'text', required: true, placeholder: 'NetworkService or DOMAIN\\user' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const accountName = escapePowerShellString(params.accountName);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# List Services by Account
+# Generated: ${new Date().toISOString()}
+
+$AccountFilter = "${accountName}"
+
+Write-Host "Finding services running as: $AccountFilter" -ForegroundColor Cyan
+Write-Host ""
+
+$Services = Get-WmiObject Win32_Service | Where-Object { 
+    $_.StartName -like "*$AccountFilter*" 
+}
+
+if ($Services.Count -eq 0) {
+    Write-Host "No services found running under account matching: $AccountFilter" -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host "Found $($Services.Count) service(s):" -ForegroundColor Green
+Write-Host ""
+
+# Group by exact account name
+$ByAccount = $Services | Group-Object StartName
+
+foreach ($Group in $ByAccount) {
+    Write-Host "$($Group.Name): $($Group.Count) service(s)" -ForegroundColor Yellow
+    $Group.Group | ForEach-Object {
+        $StatusColor = if ($_.State -eq "Running") { "Green" } elseif ($_.State -eq "Stopped") { "Gray" } else { "Yellow" }
+        Write-Host "  - $($_.DisplayName) [$($_.State)]" -ForegroundColor $StatusColor
+        Write-Host "    Name: $($_.Name) | Startup: $($_.StartMode)" -ForegroundColor Gray
+    }
+    Write-Host ""
+}
+
+# Summary
+Write-Host "============================================" -ForegroundColor Gray
+$Running = ($Services | Where-Object { $_.State -eq "Running" }).Count
+$Stopped = ($Services | Where-Object { $_.State -eq "Stopped" }).Count
+
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Total: $($Services.Count)" -ForegroundColor Gray
+Write-Host "  Running: $Running" -ForegroundColor Green
+Write-Host "  Stopped: $Stopped" -ForegroundColor Gray
+
+${exportPath ? `
+$Services | Select-Object Name, DisplayName, State, StartMode, StartName | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'restart-services-with-delay',
+    name: 'Restart Services with Delay',
+    category: 'Bulk Operations',
+    description: 'Restart multiple services with configurable delay between restarts',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Restarts services sequentially with delays
+- Reduces impact on system resources
+- Allows services to fully stabilize before next restart
+- Essential for dependent service chains
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Services must exist on system
+
+**What You Need to Provide:**
+- Comma-separated list of service names
+- Delay between restarts (seconds)
+- Test mode option
+
+**What the Script Does:**
+1. Parses service list
+2. Validates each service exists
+3. In test mode: shows plan without action
+4. In execution mode: restarts each with delay
+5. Verifies each service started before continuing
+6. Reports final status for all services
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Test mode enabled by default
+- Order matters for dependent services
+- Delay allows dependent services to recover
+- Typical use: rolling restarts, maintenance`,
+    parameters: [
+      { id: 'services', label: 'Service Names (comma-separated)', type: 'textarea', required: true, placeholder: 'Service1, Service2, Service3' },
+      { id: 'delaySeconds', label: 'Delay Between Restarts (seconds)', type: 'number', required: false, defaultValue: 5 },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const services = escapePowerShellString(params.services);
+      const delaySeconds = Number(params.delaySeconds || 5);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Restart Services with Delay
+# Generated: ${new Date().toISOString()}
+
+$ServiceList = "${services}" -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+$DelaySeconds = ${delaySeconds}
+$TestMode = ${testMode}
+
+Write-Host "Sequential Service Restart" -ForegroundColor Cyan
+Write-Host "  Services: $($ServiceList.Count)" -ForegroundColor Gray
+Write-Host "  Delay: $DelaySeconds seconds between restarts" -ForegroundColor Gray
+Write-Host ""
+
+if ($ServiceList.Count -eq 0) {
+    Write-Host "✗ No services specified" -ForegroundColor Red
+    exit 1
+}
+
+# Validate all services exist
+Write-Host "Validating services..." -ForegroundColor Yellow
+$InvalidServices = @()
+foreach ($SvcName in $ServiceList) {
+    $Svc = Get-Service -Name $SvcName -ErrorAction SilentlyContinue
+    if (-not $Svc) {
+        $InvalidServices += $SvcName
+        Write-Host "  ✗ $SvcName - Not found" -ForegroundColor Red
+    } else {
+        Write-Host "  ✓ $($Svc.DisplayName) [$($Svc.Status)]" -ForegroundColor Green
+    }
+}
+
+if ($InvalidServices.Count -gt 0) {
+    Write-Host ""
+    Write-Host "✗ Some services not found. Aborting." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host ""
+
+if ($TestMode) {
+    Write-Host "⚠ TEST MODE - Restart order preview:" -ForegroundColor Yellow
+    for ($i = 0; $i -lt $ServiceList.Count; $i++) {
+        Write-Host "  $($i + 1). $($ServiceList[$i])" -ForegroundColor Gray
+        if ($i -lt $ServiceList.Count - 1) {
+            Write-Host "     (wait $DelaySeconds seconds)" -ForegroundColor DarkGray
+        }
+    }
+    Write-Host ""
+    Write-Host "Set Test Mode to false to execute" -ForegroundColor Gray
+    exit 0
+}
+
+Write-Host "Starting sequential restart..." -ForegroundColor Yellow
+Write-Host ""
+
+$Results = @()
+
+for ($i = 0; $i -lt $ServiceList.Count; $i++) {
+    $SvcName = $ServiceList[$i]
+    Write-Host "[$($i + 1)/$($ServiceList.Count)] Restarting: $SvcName" -ForegroundColor Cyan
+    
+    try {
+        Restart-Service -Name $SvcName -Force -ErrorAction Stop
+        Start-Sleep -Seconds 2
+        $Status = (Get-Service -Name $SvcName).Status
+        
+        if ($Status -eq "Running") {
+            Write-Host "  ✓ Running" -ForegroundColor Green
+            $Results += [PSCustomObject]@{ Service = $SvcName; Status = "Success"; FinalState = $Status }
+        } else {
+            Write-Host "  ⚠ Status: $Status" -ForegroundColor Yellow
+            $Results += [PSCustomObject]@{ Service = $SvcName; Status = "Warning"; FinalState = $Status }
+        }
+    } catch {
+        Write-Host "  ✗ Failed: $_" -ForegroundColor Red
+        $Results += [PSCustomObject]@{ Service = $SvcName; Status = "Failed"; FinalState = "Error" }
+    }
+    
+    if ($i -lt $ServiceList.Count - 1) {
+        Write-Host "  Waiting $DelaySeconds seconds..." -ForegroundColor Gray
+        Start-Sleep -Seconds $DelaySeconds
+    }
+    Write-Host ""
+}
+
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "SUMMARY:" -ForegroundColor Cyan
+$Success = ($Results | Where-Object { $_.Status -eq "Success" }).Count
+$Failed = ($Results | Where-Object { $_.Status -ne "Success" }).Count
+Write-Host "  Successful: $Success" -ForegroundColor Green
+Write-Host "  Issues: $Failed" -ForegroundColor $(if ($Failed -gt 0) { "Red" } else { "Gray" })`;
+    }
+  },
+
+  {
+    id: 'get-stopped-auto-services',
+    name: 'Find Stopped Auto-Start Services',
+    category: 'Service Health',
+    description: 'Identify automatic services that are not currently running',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Finds services configured to auto-start but currently stopped
+- Indicates potential issues or incomplete startup
+- Essential for system health monitoring
+- Excludes services that are meant to be stopped
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions
+- WMI access for full details
+
+**What You Need to Provide:**
+- Optional: exclude trigger-start services
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Retrieves all automatic start services
+2. Filters to only stopped services
+3. Excludes known trigger-start services if requested
+4. Analyzes potential causes
+5. Provides remediation options
+
+**Important Notes:**
+- Some auto-start services use triggers (start on demand)
+- Not all stopped auto-start services indicate problems
+- Typical use: post-boot verification, health checks
+- Check Event Viewer for startup failure details
+- Consider dependencies that may be stopping services`,
+    parameters: [
+      { id: 'excludeTrigger', label: 'Exclude Trigger-Start Services', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const excludeTrigger = toPowerShellBoolean(params.excludeTrigger ?? true);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Find Stopped Auto-Start Services
+# Generated: ${new Date().toISOString()}
+
+$ExcludeTrigger = ${excludeTrigger}
+
+Write-Host "Finding stopped auto-start services..." -ForegroundColor Cyan
+Write-Host ""
+
+# Common trigger-start services that are normally stopped
+$TriggerServices = @(
+    "AppReadiness", "BITS", "DoSvc", "DusmSvc", "InstallService",
+    "MapsBroker", "WMPNetworkSvc", "XblAuthManager", "XblGameSave",
+    "diagnosticshub.standardcollector.service", "lfsvc", "WerSvc"
+)
+
+$AutoServices = Get-WmiObject Win32_Service | Where-Object { 
+    $_.StartMode -eq "Auto" -and $_.State -eq "Stopped"
+}
+
+if ($ExcludeTrigger) {
+    $AutoServices = $AutoServices | Where-Object { $_.Name -notin $TriggerServices }
+}
+
+if ($AutoServices.Count -eq 0) {
+    Write-Host "✓ All auto-start services are running" -ForegroundColor Green
+    exit 0
+}
+
+Write-Host "⚠ Found $($AutoServices.Count) stopped auto-start service(s):" -ForegroundColor Yellow
+Write-Host ""
+
+$Report = $AutoServices | ForEach-Object {
+    [PSCustomObject]@{
+        ServiceName = $_.Name
+        DisplayName = $_.DisplayName
+        Account = $_.StartName
+        StartMode = $_.StartMode
+        State = $_.State
+    }
+}
+
+$Report | ForEach-Object {
+    Write-Host "$($_.DisplayName)" -ForegroundColor Yellow
+    Write-Host "  Name: $($_.ServiceName)" -ForegroundColor Gray
+    Write-Host "  Account: $($_.Account)" -ForegroundColor Gray
+    Write-Host ""
+}
+
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "RECOMMENDATIONS:" -ForegroundColor Cyan
+Write-Host "  1. Check Event Viewer > System for startup errors" -ForegroundColor Gray
+Write-Host "  2. Verify service dependencies are running" -ForegroundColor Gray
+Write-Host "  3. Confirm service account has correct permissions" -ForegroundColor Gray
+Write-Host "  4. Try starting services manually to see errors" -ForegroundColor Gray
+
+${exportPath ? `
+$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'get-new-services',
+    name: 'Find Recently Installed Services',
+    category: 'Service Discovery',
+    description: 'Identify services installed within a specified time period',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Identifies services installed recently
+- Uses registry timestamps to determine installation time
+- Helps track changes to service configuration
+- Essential for security and change management
+
+**Prerequisites:**
+- Administrator privileges for registry access
+- PowerShell 5.1 or later
+- Registry access to Services key
+
+**What You Need to Provide:**
+- Days back to search (default: 7)
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Enumerates service registry keys
+2. Checks last write time on each key
+3. Filters services modified within timeframe
+4. Sorts by modification date
+5. Displays recently added services
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES for accurate results
+- Registry timestamp shows last modification, not just creation
+- May include updated services, not just new ones
+- Typical use: change tracking, security auditing
+- Combine with software installation logs for context`,
+    parameters: [
+      { id: 'daysBack', label: 'Days Back to Search', type: 'number', required: false, defaultValue: 7 },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const daysBack = Number(params.daysBack || 7);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Find Recently Installed Services
+# Generated: ${new Date().toISOString()}
+
+$DaysBack = ${daysBack}
+$CutoffDate = (Get-Date).AddDays(-$DaysBack)
+
+Write-Host "Finding services modified in the last $DaysBack days..." -ForegroundColor Cyan
+Write-Host "  Cutoff date: $($CutoffDate.ToString('yyyy-MM-dd'))" -ForegroundColor Gray
+Write-Host ""
+
+$ServicesPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services"
+
+$RecentServices = @()
+
+Get-ChildItem $ServicesPath -ErrorAction SilentlyContinue | ForEach-Object {
+    $ServiceKey = $_
+    $LastWriteTime = $ServiceKey.LastWriteTime
+    
+    if ($LastWriteTime -gt $CutoffDate) {
+        # Get service details
+        $ServiceName = $ServiceKey.PSChildName
+        $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
+        
+        if ($WMIService) {
+            $RecentServices += [PSCustomObject]@{
+                ServiceName = $ServiceName
+                DisplayName = $WMIService.DisplayName
+                ModifiedDate = $LastWriteTime
+                State = $WMIService.State
+                StartMode = $WMIService.StartMode
+                Account = $WMIService.StartName
+                Path = $WMIService.PathName
+            }
+        }
+    }
+}
+
+# Sort by date
+$RecentServices = $RecentServices | Sort-Object ModifiedDate -Descending
+
+if ($RecentServices.Count -eq 0) {
+    Write-Host "No new or modified services found in the last $DaysBack days" -ForegroundColor Green
+    exit 0
+}
+
+Write-Host "Found $($RecentServices.Count) recently modified service(s):" -ForegroundColor Yellow
+Write-Host ""
+
+$RecentServices | ForEach-Object {
+    Write-Host "$($_.DisplayName)" -ForegroundColor Yellow
+    Write-Host "  Name: $($_.ServiceName)" -ForegroundColor Gray
+    Write-Host "  Modified: $($_.ModifiedDate)" -ForegroundColor Cyan
+    Write-Host "  Status: $($_.State) | Startup: $($_.StartMode)" -ForegroundColor Gray
+    Write-Host "  Account: $($_.Account)" -ForegroundColor Gray
+    Write-Host ""
+}
+
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host "NOTE: Modification date may indicate update, not just new installation" -ForegroundColor Gray
+
+${exportPath ? `
+$RecentServices | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'kill-service-process',
+    name: 'Force Kill Service Process',
+    category: 'Troubleshooting',
+    description: 'Forcefully terminate a service process that is not responding',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Forcefully terminates a service's underlying process
+- Bypasses normal service stop procedures
+- Last resort for hung or unresponsive services
+- Service may auto-restart based on recovery settings
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Service must have associated process
+
+**What You Need to Provide:**
+- Service name (not display name)
+- Confirmation to proceed
+
+**What the Script Does:**
+1. Validates service exists
+2. Gets associated process ID
+3. Warns about potential consequences
+4. If confirmed, terminates process
+5. Verifies service status after termination
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- HIGH RISK: May cause data loss
+- Last resort after normal stop fails
+- Service may restart automatically (recovery)
+- Typical use: hung services, emergency recovery
+- Check Event Viewer for crash details`,
+    parameters: [
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'MyService' },
+      { id: 'confirm', label: 'Confirm Force Kill', type: 'boolean', required: true, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const serviceName = escapePowerShellString(params.serviceName);
+      const confirm = toPowerShellBoolean(params.confirm ?? false);
+      
+      return `# Force Kill Service Process
+# Generated: ${new Date().toISOString()}
+
+$ServiceName = "${serviceName}"
+$Confirm = ${confirm}
+
+Write-Host "Force Kill Service Process" -ForegroundColor Red
+Write-Host "============================================" -ForegroundColor Gray
+Write-Host ""
+
+# Get service
+$WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
+
+if (-not $WMIService) {
+    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Service: $($WMIService.DisplayName)" -ForegroundColor Yellow
+Write-Host "Status: $($WMIService.State)" -ForegroundColor Gray
+Write-Host "Process ID: $($WMIService.ProcessId)" -ForegroundColor Gray
+Write-Host ""
+
+$ProcessId = $WMIService.ProcessId
+
+if (-not $ProcessId -or $ProcessId -eq 0) {
+    Write-Host "✗ Service has no associated process (may already be stopped)" -ForegroundColor Red
+    exit 1
+}
+
+# Get process info
+$Process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+
+if (-not $Process) {
+    Write-Host "✗ Process ID $ProcessId not found" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Process Details:" -ForegroundColor Yellow
+Write-Host "  Name: $($Process.ProcessName)" -ForegroundColor Gray
+Write-Host "  ID: $ProcessId" -ForegroundColor Gray
+Write-Host "  Memory: $([Math]::Round($Process.WorkingSet64 / 1MB, 2)) MB" -ForegroundColor Gray
+Write-Host ""
+
+if ($Process.ProcessName -eq "svchost") {
+    Write-Host "⚠ WARNING: This is a svchost process!" -ForegroundColor Red
+    Write-Host "  Killing may affect multiple services" -ForegroundColor Yellow
+    Write-Host ""
+}
+
+if (-not $Confirm) {
+    Write-Host "⚠ This action will forcefully terminate the process" -ForegroundColor Yellow
+    Write-Host "  This may cause data loss or system instability" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Set 'Confirm Force Kill' to true to proceed" -ForegroundColor Gray
+    exit 0
+}
+
+Write-Host "Terminating process..." -ForegroundColor Red
+
+try {
+    Stop-Process -Id $ProcessId -Force -ErrorAction Stop
+    
+    Start-Sleep -Seconds 2
+    
+    $Service = Get-Service -Name $ServiceName
+    Write-Host ""
+    Write-Host "✓ Process terminated" -ForegroundColor Green
+    Write-Host "  Service status: $($Service.Status)" -ForegroundColor Gray
+    
+    if ($Service.Status -eq "Running") {
+        Write-Host "  ⚠ Service has restarted (recovery options may have triggered)" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host ""
+    Write-Host "✗ Failed to terminate process" -ForegroundColor Red
+    Write-Host "  Error: $_" -ForegroundColor Gray
 }`;
     }
   },

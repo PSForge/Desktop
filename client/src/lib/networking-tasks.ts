@@ -20,6 +20,7 @@ export interface NetworkingTask {
   parameters: NetworkingTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;
+  isPremium?: boolean;
 }
 
 export const networkingTasks: NetworkingTask[] = [
@@ -1477,6 +1478,2820 @@ Write-Host "Summary: $Reachable of $Total hosts reachable" -ForegroundColor Cyan
 
 ${exportPath ? `$Results | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  // === NEW TASKS START HERE ===
+
+  {
+    id: 'get-active-connections',
+    name: 'Get Active Network Connections',
+    category: 'Network Monitoring',
+    description: 'List all active TCP/UDP connections with process information',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all active TCP and UDP connections
+- Shows local and remote endpoints
+- Includes process name and PID for each connection
+- Essential for security auditing and troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Administrator privileges recommended for full process details
+- Network connectivity
+
+**What You Need to Provide:**
+- State filter: All, Established, Listen, or TimeWait (default: All)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all TCP connections with Get-NetTCPConnection
+2. Filters by connection state if specified
+3. Maps each connection to its owning process
+4. Displays local address, remote address, state, process name, PID
+5. Optionally exports to CSV for analysis
+
+**Important Notes:**
+- Administrator privileges show all process details
+- Established connections are active communications
+- Listen state indicates services waiting for connections
+- TimeWait shows recently closed connections
+- Typical use: security audits, identify network-heavy processes, troubleshoot
+- Watch for unexpected outbound connections
+- Remote address shows destination server`,
+    parameters: [
+      { id: 'state', label: 'Connection State', type: 'select', required: false, options: ['All', 'Established', 'Listen', 'TimeWait'], defaultValue: 'All' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const state = params.state || 'All';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Active Network Connections
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Retrieving active network connections..." -ForegroundColor Gray
+
+$Connections = Get-NetTCPConnection${state !== 'All' ? ` -State ${state}` : ''} -ErrorAction SilentlyContinue
+
+$Report = $Connections | ForEach-Object {
+    $Process = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    [PSCustomObject]@{
+        LocalAddress = "$($_.LocalAddress):$($_.LocalPort)"
+        RemoteAddress = "$($_.RemoteAddress):$($_.RemotePort)"
+        State = $_.State
+        ProcessName = $Process.ProcessName
+        PID = $_.OwningProcess
+    }
+} | Sort-Object State, ProcessName
+
+Write-Host ""
+Write-Host "Active Connections:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total connections: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'get-bandwidth-stats',
+    name: 'Get Network Bandwidth Statistics',
+    category: 'Network Monitoring',
+    description: 'Monitor network adapter bandwidth usage and traffic statistics',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Retrieves network adapter traffic statistics
+- Shows bytes sent/received over time
+- Calculates throughput in Mbps
+- Essential for performance monitoring
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+- Network adapter(s) must exist
+
+**What You Need to Provide:**
+- Adapter name (optional - blank for all active adapters)
+- Monitoring duration in seconds (default: 10)
+- Sample interval in seconds (default: 2)
+
+**What the Script Does:**
+1. Captures initial adapter statistics
+2. Waits for specified interval
+3. Captures final statistics
+4. Calculates bytes transferred during interval
+5. Converts to Mbps throughput
+6. Displays results per adapter
+
+**Important Notes:**
+- No administrator privileges required
+- Statistics include all traffic types
+- Mbps calculated from actual bytes transferred
+- Typical use: identify bandwidth hogs, verify throughput, capacity planning
+- Results show point-in-time snapshot
+- Run during representative workload for accurate results
+- Compare to adapter link speed for utilization percentage`,
+    parameters: [
+      { id: 'adapterName', label: 'Adapter Name (blank for all)', type: 'text', required: false, placeholder: 'Ethernet' },
+      { id: 'duration', label: 'Duration (seconds)', type: 'number', required: false, defaultValue: 10 },
+      { id: 'interval', label: 'Sample Interval (seconds)', type: 'number', required: false, defaultValue: 2 }
+    ],
+    scriptTemplate: (params) => {
+      const adapterName = params.adapterName ? escapePowerShellString(params.adapterName) : '';
+      const duration = Number(params.duration || 10);
+      const interval = Number(params.interval || 2);
+      
+      return `# Get Network Bandwidth Statistics
+# Generated: ${new Date().toISOString()}
+
+$Duration = ${duration}
+$Interval = ${interval}
+
+${adapterName ? `$Adapters = Get-NetAdapter -Name "${adapterName}" | Where-Object { $_.Status -eq 'Up' }` : `$Adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }`}
+
+Write-Host "Monitoring network bandwidth for $Duration seconds..." -ForegroundColor Cyan
+Write-Host ""
+
+$StartTime = Get-Date
+$EndTime = $StartTime.AddSeconds($Duration)
+
+$Results = @()
+
+foreach ($Adapter in $Adapters) {
+    $Initial = Get-NetAdapterStatistics -Name $Adapter.Name
+    $InitialReceived = $Initial.ReceivedBytes
+    $InitialSent = $Initial.SentBytes
+    
+    Start-Sleep -Seconds $Duration
+    
+    $Final = Get-NetAdapterStatistics -Name $Adapter.Name
+    $FinalReceived = $Final.ReceivedBytes
+    $FinalSent = $Final.SentBytes
+    
+    $ReceivedBytes = $FinalReceived - $InitialReceived
+    $SentBytes = $FinalSent - $InitialSent
+    
+    $ReceivedMbps = [math]::Round(($ReceivedBytes * 8 / $Duration) / 1000000, 2)
+    $SentMbps = [math]::Round(($SentBytes * 8 / $Duration) / 1000000, 2)
+    
+    $Results += [PSCustomObject]@{
+        Adapter = $Adapter.Name
+        LinkSpeed = $Adapter.LinkSpeed
+        ReceivedMB = [math]::Round($ReceivedBytes / 1MB, 2)
+        SentMB = [math]::Round($SentBytes / 1MB, 2)
+        ReceiveMbps = $ReceivedMbps
+        SendMbps = $SentMbps
+    }
+}
+
+Write-Host "Bandwidth Statistics (over $Duration seconds):" -ForegroundColor Green
+$Results | Format-Table -AutoSize`;
+    }
+  },
+
+  {
+    id: 'create-smb-share',
+    name: 'Create SMB Network Share',
+    category: 'Network Shares',
+    description: 'Create a new SMB file share with permissions',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a new SMB (Server Message Block) network share
+- Configures share name and folder path
+- Sets access permissions for users/groups
+- Essential for file sharing in Windows environments
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Folder path must exist
+- File sharing feature must be enabled
+
+**What You Need to Provide:**
+- Share name (UNC path name, e.g., "SharedDocs")
+- Folder path to share (must exist)
+- Access level: Read, Change, or Full
+- User/group for permissions (default: Everyone)
+
+**What the Script Does:**
+1. Validates folder path exists
+2. Checks if share name already exists
+3. Creates new SMB share
+4. Applies specified access permissions
+5. Displays share configuration
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Share name must be unique on the server
+- Folder must exist before creating share
+- Access levels: Read (view), Change (modify), Full (all including permissions)
+- UNC path will be \\\\servername\\sharename
+- Both share and NTFS permissions apply (most restrictive wins)
+- Consider using AD groups instead of Everyone for security
+- Typical use: file server shares, departmental folders, application data`,
+    parameters: [
+      { id: 'shareName', label: 'Share Name', type: 'text', required: true, placeholder: 'SharedDocs' },
+      { id: 'folderPath', label: 'Folder Path', type: 'path', required: true, placeholder: 'C:\\Shares\\Documents' },
+      { id: 'accessLevel', label: 'Access Level', type: 'select', required: true, options: ['Read', 'Change', 'Full'], defaultValue: 'Read' },
+      { id: 'accessAccount', label: 'User/Group', type: 'text', required: false, defaultValue: 'Everyone', placeholder: 'Domain\\Group or Everyone' },
+      { id: 'description', label: 'Description', type: 'text', required: false, placeholder: 'Shared documents folder' }
+    ],
+    scriptTemplate: (params) => {
+      const shareName = escapePowerShellString(params.shareName);
+      const folderPath = escapePowerShellString(params.folderPath);
+      const accessLevel = params.accessLevel;
+      const accessAccount = escapePowerShellString(params.accessAccount || 'Everyone');
+      const description = params.description ? escapePowerShellString(params.description) : '';
+      
+      return `# Create SMB Network Share
+# Generated: ${new Date().toISOString()}
+
+$ShareName = "${shareName}"
+$FolderPath = "${folderPath}"
+$AccessLevel = "${accessLevel}"
+$AccessAccount = "${accessAccount}"
+${description ? `$Description = "${description}"` : ''}
+
+# Validate folder exists
+if (-not (Test-Path $FolderPath)) {
+    Write-Host "✗ Folder does not exist: $FolderPath" -ForegroundColor Red
+    Write-Host "  Create the folder first, then run this script again." -ForegroundColor Yellow
+    exit 1
+}
+
+# Check if share already exists
+$ExistingShare = Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue
+if ($ExistingShare) {
+    Write-Host "✗ Share already exists: $ShareName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Creating SMB share..." -ForegroundColor Gray
+
+try {
+    New-SmbShare -Name $ShareName -Path $FolderPath ${description ? '-Description $Description' : ''} -ErrorAction Stop | Out-Null
+    
+    # Grant access
+    Grant-SmbShareAccess -Name $ShareName -AccountName $AccessAccount -AccessRight $AccessLevel -Force | Out-Null
+    
+    Write-Host ""
+    Write-Host "✓ SMB share created successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Share Details:" -ForegroundColor Cyan
+    Write-Host "  Name: $ShareName" -ForegroundColor Gray
+    Write-Host "  Path: $FolderPath" -ForegroundColor Gray
+    Write-Host "  UNC Path: \\\\$env:COMPUTERNAME\\$ShareName" -ForegroundColor Gray
+    Write-Host "  Access: $AccessAccount ($AccessLevel)" -ForegroundColor Gray
+    
+    Get-SmbShareAccess -Name $ShareName | Format-Table
+} catch {
+    Write-Host "✗ Failed to create share: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'list-smb-shares',
+    name: 'List SMB Shares',
+    category: 'Network Shares',
+    description: 'List all SMB shares with permissions and access details',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all SMB shares on the local computer
+- Shows share name, path, and description
+- Displays access permissions for each share
+- Optional CSV export for documentation
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions for basic info
+- Administrator for full permission details
+
+**What You Need to Provide:**
+- Include hidden shares: true to include administrative shares (C$, ADMIN$), false to exclude (default: false)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all SMB shares
+2. Optionally filters out hidden/administrative shares
+3. Displays share name, path, description
+4. Shows current sessions and access permissions
+5. Optionally exports to CSV
+
+**Important Notes:**
+- No administrator privileges required for basic listing
+- Hidden shares have $ suffix (e.g., C$, ADMIN$)
+- Administrative shares are created by default on Windows
+- Typical use: share inventory, security audit, documentation
+- Shows who has what level of access
+- UNC paths available for each share
+- Current connections shown if any`,
+    parameters: [
+      { id: 'includeHidden', label: 'Include Hidden Shares ($)', type: 'boolean', required: false, defaultValue: false },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const includeHidden = toPowerShellBoolean(params.includeHidden ?? false);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# List SMB Shares
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Retrieving SMB shares..." -ForegroundColor Gray
+
+$Shares = Get-SmbShare${includeHidden ? '' : ' | Where-Object { $_.Name -notlike "*$" }'}
+
+$Report = foreach ($Share in $Shares) {
+    $Access = Get-SmbShareAccess -Name $Share.Name -ErrorAction SilentlyContinue | 
+              ForEach-Object { "$($_.AccountName): $($_.AccessRight)" }
+    
+    [PSCustomObject]@{
+        Name = $Share.Name
+        Path = $Share.Path
+        Description = $Share.Description
+        UNCPath = "\\\\$env:COMPUTERNAME\\$($Share.Name)"
+        Access = ($Access -join '; ')
+    }
+}
+
+Write-Host ""
+Write-Host "SMB Shares on $env:COMPUTERNAME:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize -Wrap
+
+Write-Host ""
+Write-Host "Total shares: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'remove-smb-share',
+    name: 'Remove SMB Share',
+    category: 'Network Shares',
+    description: 'Remove an existing SMB network share',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Removes an existing SMB share
+- Does NOT delete the underlying folder
+- Disconnects active sessions to the share
+- Essential for share management
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Share must exist
+
+**What You Need to Provide:**
+- Share name to remove
+- Force disconnect: true to disconnect active sessions, false to warn (default: false)
+
+**What the Script Does:**
+1. Verifies share exists
+2. Checks for active sessions
+3. Optionally disconnects active sessions
+4. Removes the SMB share
+5. Confirms removal
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Only removes share, NOT the folder or files
+- Active sessions will be disconnected if forced
+- Users may lose unsaved work if force disconnected
+- Typical use: cleanup, security, share reorganization
+- Administrative shares (C$, ADMIN$) recreate on reboot
+- Consider warning users before removing active shares`,
+    parameters: [
+      { id: 'shareName', label: 'Share Name', type: 'text', required: true, placeholder: 'SharedDocs' },
+      { id: 'forceDisconnect', label: 'Force Disconnect Sessions', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const shareName = escapePowerShellString(params.shareName);
+      const forceDisconnect = toPowerShellBoolean(params.forceDisconnect ?? false);
+      
+      return `# Remove SMB Share
+# Generated: ${new Date().toISOString()}
+
+$ShareName = "${shareName}"
+
+# Verify share exists
+$Share = Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue
+if (-not $Share) {
+    Write-Host "✗ Share not found: $ShareName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Share found: $ShareName" -ForegroundColor Gray
+Write-Host "  Path: $($Share.Path)" -ForegroundColor Gray
+
+# Check for active sessions
+$Sessions = Get-SmbSession -ErrorAction SilentlyContinue | Where-Object { $_.NumOpens -gt 0 }
+if ($Sessions -and -not ${forceDisconnect}) {
+    Write-Host ""
+    Write-Host "⚠ Active sessions detected. Use Force Disconnect to proceed." -ForegroundColor Yellow
+    $Sessions | Format-Table ClientUserName, ClientComputerName, NumOpens
+    exit 1
+}
+
+Write-Host ""
+Write-Host "Removing share..." -ForegroundColor Gray
+
+try {
+    Remove-SmbShare -Name $ShareName -Force -ErrorAction Stop
+    Write-Host ""
+    Write-Host "✓ Share removed successfully: $ShareName" -ForegroundColor Green
+    Write-Host "  Note: Folder and files NOT deleted" -ForegroundColor Yellow
+} catch {
+    Write-Host "✗ Failed to remove share: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-smb-sessions',
+    name: 'Get SMB Sessions and Open Files',
+    category: 'Network Shares',
+    description: 'View active SMB sessions and open files on shares',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all active SMB sessions to the server
+- Shows which users are connected from where
+- Displays open files on each share
+- Essential for server management and troubleshooting
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- SMB Server service running
+
+**What You Need to Provide:**
+- Show open files: true to include open file details, false for sessions only (default: true)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all active SMB sessions
+2. Shows client username and computer
+3. Optionally lists all open files per session
+4. Displays share name and file path for each open file
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Sessions show who is connected
+- Open files show what they're accessing
+- Typical use: identify who has files locked, troubleshoot "file in use" errors
+- Can close sessions to release locked files
+- High session counts may indicate issues
+- Remote computer names show connection source`,
+    parameters: [
+      { id: 'showOpenFiles', label: 'Show Open Files', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const showOpenFiles = toPowerShellBoolean(params.showOpenFiles ?? true);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get SMB Sessions and Open Files
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Retrieving SMB sessions..." -ForegroundColor Gray
+
+$Sessions = Get-SmbSession -ErrorAction SilentlyContinue
+
+if (-not $Sessions) {
+    Write-Host ""
+    Write-Host "No active SMB sessions found." -ForegroundColor Yellow
+} else {
+    Write-Host ""
+    Write-Host "Active SMB Sessions:" -ForegroundColor Cyan
+    $Sessions | Select-Object SessionId, ClientUserName, ClientComputerName, NumOpens, SecondsExists | Format-Table -AutoSize
+    
+    Write-Host "Total sessions: $($Sessions.Count)" -ForegroundColor Gray
+}
+
+${showOpenFiles ? `
+Write-Host ""
+Write-Host "Open Files:" -ForegroundColor Cyan
+
+$OpenFiles = Get-SmbOpenFile -ErrorAction SilentlyContinue
+
+if (-not $OpenFiles) {
+    Write-Host "No open files found." -ForegroundColor Yellow
+} else {
+    $OpenFiles | Select-Object FileId, SessionId, ClientUserName, Path, ShareRelativePath | Format-Table -AutoSize
+    Write-Host "Total open files: $($OpenFiles.Count)" -ForegroundColor Gray
+}` : ''}
+
+${exportPath ? `
+$Report = $Sessions | Select-Object SessionId, ClientUserName, ClientComputerName, NumOpens, SecondsExists
+$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'configure-dns-forwarders',
+    name: 'Configure DNS Forwarders',
+    category: 'DNS Management',
+    description: 'Configure DNS forwarders on a Windows DNS Server',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Configures DNS forwarding on Windows DNS Server
+- Sets external DNS servers for non-authoritative queries
+- Essential for DNS resolution of internet names
+- Replaces existing forwarders with new configuration
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later with DnsServer module
+- Windows DNS Server role installed
+- DNS Server service running
+
+**What You Need to Provide:**
+- Forwarder IP addresses (comma-separated)
+- Use root hints if forwarders unavailable: true or false (default: true)
+
+**What the Script Does:**
+1. Clears existing DNS forwarders
+2. Adds new forwarder IP addresses
+3. Configures root hints fallback setting
+4. Displays new forwarder configuration
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- REQUIRES DNS Server role (not for DNS client)
+- Forwarders used for queries DNS server can't resolve locally
+- Common forwarders: 8.8.8.8, 1.1.1.1, your ISP's DNS
+- Root hints used as backup if forwarders fail
+- Order matters: first forwarder tried first
+- Typical use: configure internal DNS to forward internet queries
+- Test resolution after configuration change`,
+    parameters: [
+      { id: 'forwarders', label: 'Forwarder IPs (comma-separated)', type: 'text', required: true, placeholder: '8.8.8.8,8.8.4.4' },
+      { id: 'useRootHints', label: 'Use Root Hints if Unavailable', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const forwarders = params.forwarders.split(',').map((f: string) => f.trim());
+      const useRootHints = toPowerShellBoolean(params.useRootHints ?? true);
+      
+      return `# Configure DNS Forwarders
+# Generated: ${new Date().toISOString()}
+
+# Check for DNS Server role
+$DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
+if (-not $DnsServer) {
+    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+$Forwarders = ${buildPowerShellArray(forwarders)}
+$UseRootHints = ${useRootHints}
+
+Write-Host "Configuring DNS forwarders..." -ForegroundColor Gray
+
+try {
+    # Clear existing forwarders
+    Set-DnsServerForwarder -IPAddress @() -ErrorAction Stop
+    
+    # Add new forwarders
+    foreach ($Forwarder in $Forwarders) {
+        Add-DnsServerForwarder -IPAddress $Forwarder -ErrorAction Stop
+        Write-Host "  Added forwarder: $Forwarder" -ForegroundColor Gray
+    }
+    
+    # Configure root hints fallback
+    Set-DnsServerForwarder -UseRootHint $UseRootHints -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ DNS forwarders configured successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Current Configuration:" -ForegroundColor Cyan
+    Get-DnsServerForwarder | Format-List
+} catch {
+    Write-Host "✗ Failed to configure forwarders: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-dns-zones',
+    name: 'Get DNS Zones',
+    category: 'DNS Management',
+    description: 'List all DNS zones on a Windows DNS Server',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all DNS zones hosted on DNS server
+- Shows zone name, type, and status
+- Displays zone replication scope
+- Essential for DNS server management
+
+**Prerequisites:**
+- PowerShell 5.1 or later with DnsServer module
+- Windows DNS Server role installed
+- Standard user permissions (admin for full details)
+
+**What You Need to Provide:**
+- Zone type filter: All, Primary, Secondary, or Stub (default: All)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all DNS zones
+2. Filters by zone type if specified
+3. Shows zone name, type, status, dynamic update setting
+4. Displays AD-integrated replication scope
+5. Optionally exports to CSV
+
+**Important Notes:**
+- REQUIRES DNS Server role installed
+- Primary zones: authoritative, locally managed
+- Secondary zones: read-only copies from primary
+- Stub zones: contain only NS records
+- AD-integrated zones stored in Active Directory
+- Typical use: DNS inventory, troubleshooting, documentation
+- Zone status shows if zone is loading or active`,
+    parameters: [
+      { id: 'zoneType', label: 'Zone Type', type: 'select', required: false, options: ['All', 'Primary', 'Secondary', 'Stub'], defaultValue: 'All' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const zoneType = params.zoneType || 'All';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get DNS Zones
+# Generated: ${new Date().toISOString()}
+
+# Check for DNS Server role
+$DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
+if (-not $DnsServer) {
+    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Retrieving DNS zones..." -ForegroundColor Gray
+
+$Zones = Get-DnsServerZone -ErrorAction SilentlyContinue${zoneType !== 'All' ? ` | Where-Object { $_.ZoneType -eq '${zoneType}' }` : ''}
+
+if (-not $Zones) {
+    Write-Host ""
+    Write-Host "No DNS zones found." -ForegroundColor Yellow
+    exit 0
+}
+
+$Report = $Zones | Select-Object ZoneName, ZoneType, IsAutoCreated, IsDsIntegrated, IsReverseLookupZone, DynamicUpdate
+
+Write-Host ""
+Write-Host "DNS Zones:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total zones: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'add-dns-arecord',
+    name: 'Add DNS A Record',
+    category: 'DNS Management',
+    description: 'Create a new DNS A (host) record in a zone',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a new DNS A record (hostname to IP mapping)
+- Adds record to specified DNS zone
+- Sets TTL (time to live) for caching
+- Essential for DNS record management
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later with DnsServer module
+- Windows DNS Server role installed
+- Target zone must exist
+
+**What You Need to Provide:**
+- Zone name (e.g., contoso.com)
+- Host name (e.g., webserver01)
+- IP address to map to
+- TTL in seconds (default: 3600 = 1 hour)
+
+**What the Script Does:**
+1. Validates zone exists
+2. Checks if record already exists
+3. Creates new A record with specified TTL
+4. Confirms record creation
+5. Displays new record details
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- REQUIRES DNS Server role
+- A records map hostnames to IPv4 addresses
+- FQDN will be hostname.zonename (e.g., webserver01.contoso.com)
+- TTL controls how long clients cache the record
+- Short TTL: more DNS queries, faster changes
+- Long TTL: fewer queries, slower propagation
+- Typical use: add new servers, create DNS aliases
+- For IPv6, use AAAA records instead`,
+    parameters: [
+      { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'hostName', label: 'Host Name', type: 'text', required: true, placeholder: 'webserver01' },
+      { id: 'ipAddress', label: 'IP Address', type: 'text', required: true, placeholder: '192.168.1.50' },
+      { id: 'ttl', label: 'TTL (seconds)', type: 'number', required: false, defaultValue: 3600 }
+    ],
+    scriptTemplate: (params) => {
+      const zoneName = escapePowerShellString(params.zoneName);
+      const hostName = escapePowerShellString(params.hostName);
+      const ipAddress = escapePowerShellString(params.ipAddress);
+      const ttl = Number(params.ttl || 3600);
+      
+      return `# Add DNS A Record
+# Generated: ${new Date().toISOString()}
+
+$ZoneName = "${zoneName}"
+$HostName = "${hostName}"
+$IPAddress = "${ipAddress}"
+$TTL = [System.TimeSpan]::FromSeconds(${ttl})
+
+# Check for DNS Server role
+$DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
+if (-not $DnsServer) {
+    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+# Validate zone exists
+$Zone = Get-DnsServerZone -Name $ZoneName -ErrorAction SilentlyContinue
+if (-not $Zone) {
+    Write-Host "✗ Zone not found: $ZoneName" -ForegroundColor Red
+    exit 1
+}
+
+# Check if record already exists
+$Existing = Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $HostName -RRType A -ErrorAction SilentlyContinue
+if ($Existing) {
+    Write-Host "⚠ Record already exists: $HostName.$ZoneName" -ForegroundColor Yellow
+    Write-Host "  IP: $($Existing.RecordData.IPv4Address)" -ForegroundColor Gray
+    exit 1
+}
+
+Write-Host "Creating DNS A record..." -ForegroundColor Gray
+
+try {
+    Add-DnsServerResourceRecordA -ZoneName $ZoneName -Name $HostName -IPv4Address $IPAddress -TimeToLive $TTL -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ DNS A record created successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Record Details:" -ForegroundColor Cyan
+    Write-Host "  FQDN: $HostName.$ZoneName" -ForegroundColor Gray
+    Write-Host "  IP Address: $IPAddress" -ForegroundColor Gray
+    Write-Host "  TTL: ${ttl} seconds" -ForegroundColor Gray
+    
+    Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $HostName -RRType A | Format-List
+} catch {
+    Write-Host "✗ Failed to create record: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'add-dns-cname',
+    name: 'Add DNS CNAME Record',
+    category: 'DNS Management',
+    description: 'Create a new DNS CNAME (alias) record in a zone',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a new DNS CNAME (alias) record
+- Points one hostname to another hostname
+- Enables multiple names for the same server
+- Essential for application aliases and load balancing
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later with DnsServer module
+- Windows DNS Server role installed
+- Target zone must exist
+- Target hostname should exist
+
+**What You Need to Provide:**
+- Zone name (e.g., contoso.com)
+- Alias name (e.g., www)
+- Target hostname FQDN (e.g., webserver01.contoso.com)
+- TTL in seconds (default: 3600 = 1 hour)
+
+**What the Script Does:**
+1. Validates zone exists
+2. Checks if alias record already exists
+3. Creates CNAME record pointing to target
+4. Confirms record creation
+5. Displays new record details
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- REQUIRES DNS Server role
+- CNAME creates an alias (pointer to another name)
+- Target must be a FQDN (fully qualified domain name)
+- CNAME cannot coexist with other record types at same name
+- Typical use: www alias, application names, environment aliases
+- Chain CNAMEs sparingly (impacts resolution time)
+- For IP mapping, use A records instead`,
+    parameters: [
+      { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'aliasName', label: 'Alias Name', type: 'text', required: true, placeholder: 'www' },
+      { id: 'targetHost', label: 'Target Hostname (FQDN)', type: 'text', required: true, placeholder: 'webserver01.contoso.com' },
+      { id: 'ttl', label: 'TTL (seconds)', type: 'number', required: false, defaultValue: 3600 }
+    ],
+    scriptTemplate: (params) => {
+      const zoneName = escapePowerShellString(params.zoneName);
+      const aliasName = escapePowerShellString(params.aliasName);
+      const targetHost = escapePowerShellString(params.targetHost);
+      const ttl = Number(params.ttl || 3600);
+      
+      return `# Add DNS CNAME Record
+# Generated: ${new Date().toISOString()}
+
+$ZoneName = "${zoneName}"
+$AliasName = "${aliasName}"
+$TargetHost = "${targetHost}"
+$TTL = [System.TimeSpan]::FromSeconds(${ttl})
+
+# Check for DNS Server role
+$DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
+if (-not $DnsServer) {
+    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+# Validate zone exists
+$Zone = Get-DnsServerZone -Name $ZoneName -ErrorAction SilentlyContinue
+if (-not $Zone) {
+    Write-Host "✗ Zone not found: $ZoneName" -ForegroundColor Red
+    exit 1
+}
+
+# Check if record already exists
+$Existing = Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $AliasName -ErrorAction SilentlyContinue
+if ($Existing) {
+    Write-Host "⚠ Record already exists at: $AliasName.$ZoneName" -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "Creating DNS CNAME record..." -ForegroundColor Gray
+
+try {
+    Add-DnsServerResourceRecordCName -ZoneName $ZoneName -Name $AliasName -HostNameAlias $TargetHost -TimeToLive $TTL -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ DNS CNAME record created successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Record Details:" -ForegroundColor Cyan
+    Write-Host "  Alias: $AliasName.$ZoneName" -ForegroundColor Gray
+    Write-Host "  Points to: $TargetHost" -ForegroundColor Gray
+    Write-Host "  TTL: ${ttl} seconds" -ForegroundColor Gray
+    
+    Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $AliasName | Format-List
+} catch {
+    Write-Host "✗ Failed to create record: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-dns-records',
+    name: 'Get DNS Records from Zone',
+    category: 'DNS Management',
+    description: 'List all DNS records in a specific zone',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all DNS records in a specified zone
+- Shows record name, type, and data
+- Filters by record type optionally
+- Essential for DNS zone auditing
+
+**Prerequisites:**
+- PowerShell 5.1 or later with DnsServer module
+- Windows DNS Server role installed
+- Zone must exist
+
+**What You Need to Provide:**
+- Zone name (e.g., contoso.com)
+- Record type filter: All, A, AAAA, CNAME, MX, TXT, NS, SOA (default: All)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Validates zone exists
+2. Retrieves all records (or filtered by type)
+3. Displays record name, type, TTL, and data
+4. Optionally exports to CSV
+
+**Important Notes:**
+- No administrator privileges required for viewing
+- A = IPv4 address, AAAA = IPv6 address
+- CNAME = alias, MX = mail server
+- TXT = text data, NS = name server
+- SOA = start of authority (zone settings)
+- Typical use: DNS audit, troubleshooting, documentation
+- Large zones may have many records
+- TTL shows caching duration`,
+    parameters: [
+      { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'recordType', label: 'Record Type', type: 'select', required: false, options: ['All', 'A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SOA'], defaultValue: 'All' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const zoneName = escapePowerShellString(params.zoneName);
+      const recordType = params.recordType || 'All';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get DNS Records from Zone
+# Generated: ${new Date().toISOString()}
+
+$ZoneName = "${zoneName}"
+
+# Check for DNS Server role
+$DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
+if (-not $DnsServer) {
+    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+# Validate zone exists
+$Zone = Get-DnsServerZone -Name $ZoneName -ErrorAction SilentlyContinue
+if (-not $Zone) {
+    Write-Host "✗ Zone not found: $ZoneName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Retrieving DNS records from $ZoneName..." -ForegroundColor Gray
+
+$Records = Get-DnsServerResourceRecord -ZoneName $ZoneName -ErrorAction SilentlyContinue${recordType !== 'All' ? ` -RRType ${recordType}` : ''}
+
+if (-not $Records) {
+    Write-Host ""
+    Write-Host "No records found." -ForegroundColor Yellow
+    exit 0
+}
+
+$Report = $Records | Select-Object HostName, RecordType, @{N='TTL';E={$_.TimeToLive}}, @{N='Data';E={
+    switch ($_.RecordType) {
+        'A' { $_.RecordData.IPv4Address }
+        'AAAA' { $_.RecordData.IPv6Address }
+        'CNAME' { $_.RecordData.HostNameAlias }
+        'MX' { "$($_.RecordData.Preference) $($_.RecordData.MailExchange)" }
+        'TXT' { $_.RecordData.DescriptiveText }
+        'NS' { $_.RecordData.NameServer }
+        default { $_.RecordData }
+    }
+}}
+
+Write-Host ""
+Write-Host "DNS Records in $ZoneName:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total records: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'remove-dns-record',
+    name: 'Remove DNS Record',
+    category: 'DNS Management',
+    description: 'Delete a DNS record from a zone',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Removes a specific DNS record from a zone
+- Supports removal by name and type
+- Prevents accidental deletion with confirmation
+- Essential for DNS cleanup and maintenance
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later with DnsServer module
+- Windows DNS Server role installed
+- Record must exist
+
+**What You Need to Provide:**
+- Zone name (e.g., contoso.com)
+- Record name (e.g., oldserver)
+- Record type: A, AAAA, CNAME, MX, TXT, PTR
+
+**What the Script Does:**
+1. Validates zone exists
+2. Finds the specified record
+3. Displays record details before deletion
+4. Removes the record
+5. Confirms deletion
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Deletion is immediate and permanent
+- Consider TTL propagation (clients may cache old record)
+- Typical use: remove old servers, cleanup, DNS migration
+- Critical records (SOA, NS) require special handling
+- For PTR records, use reverse lookup zone name`,
+    parameters: [
+      { id: 'zoneName', label: 'Zone Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'recordName', label: 'Record Name', type: 'text', required: true, placeholder: 'oldserver' },
+      { id: 'recordType', label: 'Record Type', type: 'select', required: true, options: ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'PTR'] }
+    ],
+    scriptTemplate: (params) => {
+      const zoneName = escapePowerShellString(params.zoneName);
+      const recordName = escapePowerShellString(params.recordName);
+      const recordType = params.recordType;
+      
+      return `# Remove DNS Record
+# Generated: ${new Date().toISOString()}
+
+$ZoneName = "${zoneName}"
+$RecordName = "${recordName}"
+$RecordType = "${recordType}"
+
+# Check for DNS Server role
+$DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
+if (-not $DnsServer) {
+    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+# Find the record
+$Record = Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $RecordName -RRType $RecordType -ErrorAction SilentlyContinue
+if (-not $Record) {
+    Write-Host "✗ Record not found: $RecordName ($RecordType) in $ZoneName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Record found:" -ForegroundColor Gray
+$Record | Format-List
+
+Write-Host "Removing record..." -ForegroundColor Yellow
+
+try {
+    Remove-DnsServerResourceRecord -ZoneName $ZoneName -Name $RecordName -RRType $RecordType -Force -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ DNS record removed successfully" -ForegroundColor Green
+    Write-Host "  Zone: $ZoneName" -ForegroundColor Gray
+    Write-Host "  Record: $RecordName" -ForegroundColor Gray
+    Write-Host "  Type: $RecordType" -ForegroundColor Gray
+} catch {
+    Write-Host "✗ Failed to remove record: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-dhcp-scope',
+    name: 'Get DHCP Scopes',
+    category: 'DHCP Management',
+    description: 'List all DHCP scopes with configuration details',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all DHCP scopes on the server
+- Shows scope range, subnet mask, and state
+- Displays lease duration and available addresses
+- Essential for DHCP server management
+
+**Prerequisites:**
+- PowerShell 5.1 or later with DhcpServer module
+- Windows DHCP Server role installed
+- Standard user can view, admin for full details
+
+**What You Need to Provide:**
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all DHCP scopes
+2. Shows scope ID, name, and state
+3. Displays start/end IP range
+4. Shows lease duration and free addresses
+5. Optionally exports to CSV
+
+**Important Notes:**
+- REQUIRES DHCP Server role installed
+- Scope state: Active, Inactive
+- Typical use: DHCP inventory, capacity planning, troubleshooting
+- Free addresses show available IPs in scope
+- Low free addresses indicates capacity issues
+- Consider scope expansion or cleanup if running low`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get DHCP Scopes
+# Generated: ${new Date().toISOString()}
+
+# Check for DHCP Server role
+$DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
+if (-not $DhcpServer) {
+    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Retrieving DHCP scopes..." -ForegroundColor Gray
+
+$Scopes = Get-DhcpServerv4Scope -ErrorAction SilentlyContinue
+
+if (-not $Scopes) {
+    Write-Host ""
+    Write-Host "No DHCP scopes found." -ForegroundColor Yellow
+    exit 0
+}
+
+$Report = foreach ($Scope in $Scopes) {
+    $Stats = Get-DhcpServerv4ScopeStatistics -ScopeId $Scope.ScopeId -ErrorAction SilentlyContinue
+    
+    [PSCustomObject]@{
+        ScopeId = $Scope.ScopeId
+        Name = $Scope.Name
+        State = $Scope.State
+        StartRange = $Scope.StartRange
+        EndRange = $Scope.EndRange
+        SubnetMask = $Scope.SubnetMask
+        LeaseDuration = $Scope.LeaseDuration
+        Free = $Stats.Free
+        InUse = $Stats.InUse
+        PercentInUse = "$([math]::Round($Stats.PercentageInUse, 1))%"
+    }
+}
+
+Write-Host ""
+Write-Host "DHCP Scopes:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total scopes: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'get-dhcp-leases',
+    name: 'Get DHCP Leases',
+    category: 'DHCP Management',
+    description: 'List all active DHCP leases in a scope',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all active DHCP leases in a scope
+- Shows IP address, MAC address, and hostname
+- Displays lease expiration time
+- Essential for DHCP troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later with DhcpServer module
+- Windows DHCP Server role installed
+- Scope must exist
+
+**What You Need to Provide:**
+- Scope ID (subnet, e.g., 192.168.1.0)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Validates scope exists
+2. Retrieves all active leases
+3. Shows IP, MAC, hostname, lease expiry
+4. Identifies client type (DHCP or Reservation)
+5. Optionally exports to CSV
+
+**Important Notes:**
+- No administrator privileges required for viewing
+- Active leases show currently assigned IPs
+- MAC address identifies the client device
+- Lease expiry shows when client must renew
+- Reservations show as different type
+- Typical use: find IP assignments, troubleshoot, identify devices`,
+    parameters: [
+      { id: 'scopeId', label: 'Scope ID', type: 'text', required: true, placeholder: '192.168.1.0' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const scopeId = escapePowerShellString(params.scopeId);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get DHCP Leases
+# Generated: ${new Date().toISOString()}
+
+$ScopeId = "${scopeId}"
+
+# Check for DHCP Server role
+$DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
+if (-not $DhcpServer) {
+    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+# Validate scope exists
+$Scope = Get-DhcpServerv4Scope -ScopeId $ScopeId -ErrorAction SilentlyContinue
+if (-not $Scope) {
+    Write-Host "✗ Scope not found: $ScopeId" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Retrieving DHCP leases for scope $ScopeId..." -ForegroundColor Gray
+
+$Leases = Get-DhcpServerv4Lease -ScopeId $ScopeId -ErrorAction SilentlyContinue
+
+if (-not $Leases) {
+    Write-Host ""
+    Write-Host "No active leases found." -ForegroundColor Yellow
+    exit 0
+}
+
+$Report = $Leases | Select-Object IPAddress, ClientId, HostName, AddressState, LeaseExpiryTime, @{N='Type';E={
+    if ($_.AddressState -like '*Reservation*') { 'Reservation' } else { 'DHCP' }
+}}
+
+Write-Host ""
+Write-Host "DHCP Leases in scope $ScopeId ($($Scope.Name)):" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total leases: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'add-dhcp-reservation',
+    name: 'Add DHCP Reservation',
+    category: 'DHCP Management',
+    description: 'Create a DHCP reservation for a specific MAC address',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a DHCP reservation in a scope
+- Reserves specific IP for a MAC address
+- Device always gets same IP from DHCP
+- Essential for servers, printers, network devices
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later with DhcpServer module
+- Windows DHCP Server role installed
+- Scope must exist
+- IP must be within scope range
+
+**What You Need to Provide:**
+- Scope ID (subnet, e.g., 192.168.1.0)
+- IP address to reserve
+- Client MAC address (format: 00-11-22-33-44-55)
+- Description/hostname
+
+**What the Script Does:**
+1. Validates scope exists
+2. Checks IP is within scope range
+3. Verifies IP not already reserved
+4. Creates reservation for MAC address
+5. Confirms reservation creation
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- MAC format: 00-11-22-33-44-55 (hyphens)
+- IP must be within scope range but outside exclusions
+- Client still uses DHCP but always gets reserved IP
+- Typical use: servers, printers, network devices, IoT
+- Preferred over static IP: centralized management
+- Client must release/renew to get reserved IP`,
+    parameters: [
+      { id: 'scopeId', label: 'Scope ID', type: 'text', required: true, placeholder: '192.168.1.0' },
+      { id: 'ipAddress', label: 'IP Address', type: 'text', required: true, placeholder: '192.168.1.100' },
+      { id: 'clientId', label: 'MAC Address', type: 'text', required: true, placeholder: '00-11-22-33-44-55' },
+      { id: 'description', label: 'Description/Hostname', type: 'text', required: true, placeholder: 'Printer-Floor2' }
+    ],
+    scriptTemplate: (params) => {
+      const scopeId = escapePowerShellString(params.scopeId);
+      const ipAddress = escapePowerShellString(params.ipAddress);
+      const clientId = escapePowerShellString(params.clientId);
+      const description = escapePowerShellString(params.description);
+      
+      return `# Add DHCP Reservation
+# Generated: ${new Date().toISOString()}
+
+$ScopeId = "${scopeId}"
+$IPAddress = "${ipAddress}"
+$ClientId = "${clientId}"
+$Description = "${description}"
+
+# Check for DHCP Server role
+$DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
+if (-not $DhcpServer) {
+    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+# Validate scope exists
+$Scope = Get-DhcpServerv4Scope -ScopeId $ScopeId -ErrorAction SilentlyContinue
+if (-not $Scope) {
+    Write-Host "✗ Scope not found: $ScopeId" -ForegroundColor Red
+    exit 1
+}
+
+# Check if reservation already exists
+$Existing = Get-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ErrorAction SilentlyContinue
+if ($Existing) {
+    Write-Host "✗ Reservation already exists for IP: $IPAddress" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Creating DHCP reservation..." -ForegroundColor Gray
+
+try {
+    Add-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ClientId $ClientId -Description $Description -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ DHCP reservation created successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Reservation Details:" -ForegroundColor Cyan
+    Write-Host "  Scope: $ScopeId" -ForegroundColor Gray
+    Write-Host "  IP Address: $IPAddress" -ForegroundColor Gray
+    Write-Host "  MAC Address: $ClientId" -ForegroundColor Gray
+    Write-Host "  Description: $Description" -ForegroundColor Gray
+    
+    Get-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress | Format-List
+} catch {
+    Write-Host "✗ Failed to create reservation: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'remove-dhcp-reservation',
+    name: 'Remove DHCP Reservation',
+    category: 'DHCP Management',
+    description: 'Delete a DHCP reservation by IP address',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Removes an existing DHCP reservation
+- Device will get dynamic IP on next lease
+- Does not affect current lease until expiry
+- Essential for DHCP cleanup
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later with DhcpServer module
+- Windows DHCP Server role installed
+- Reservation must exist
+
+**What You Need to Provide:**
+- Scope ID (subnet, e.g., 192.168.1.0)
+- IP address of reservation to remove
+
+**What the Script Does:**
+1. Validates scope exists
+2. Finds the reservation
+3. Displays reservation details
+4. Removes the reservation
+5. Confirms removal
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Device keeps current IP until lease expires
+- On renewal, device gets dynamic IP from pool
+- Typical use: device decommissioned, IP conflict resolution
+- Consider releasing lease on device after removal`,
+    parameters: [
+      { id: 'scopeId', label: 'Scope ID', type: 'text', required: true, placeholder: '192.168.1.0' },
+      { id: 'ipAddress', label: 'Reserved IP Address', type: 'text', required: true, placeholder: '192.168.1.100' }
+    ],
+    scriptTemplate: (params) => {
+      const scopeId = escapePowerShellString(params.scopeId);
+      const ipAddress = escapePowerShellString(params.ipAddress);
+      
+      return `# Remove DHCP Reservation
+# Generated: ${new Date().toISOString()}
+
+$ScopeId = "${scopeId}"
+$IPAddress = "${ipAddress}"
+
+# Check for DHCP Server role
+$DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
+if (-not $DhcpServer) {
+    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    exit 1
+}
+
+# Find the reservation
+$Reservation = Get-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ErrorAction SilentlyContinue
+if (-not $Reservation) {
+    Write-Host "✗ Reservation not found: $IPAddress in scope $ScopeId" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Reservation found:" -ForegroundColor Gray
+$Reservation | Format-List
+
+Write-Host "Removing reservation..." -ForegroundColor Yellow
+
+try {
+    Remove-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ DHCP reservation removed successfully" -ForegroundColor Green
+    Write-Host "  Scope: $ScopeId" -ForegroundColor Gray
+    Write-Host "  IP Address: $IPAddress" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Note: Device will receive dynamic IP on next lease renewal" -ForegroundColor Yellow
+} catch {
+    Write-Host "✗ Failed to remove reservation: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-vpn-connections',
+    name: 'Get VPN Connections',
+    category: 'Remote Access',
+    description: 'List configured VPN connections on the computer',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all configured VPN connections
+- Shows connection name, server, and tunnel type
+- Displays authentication methods
+- Essential for VPN troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- VPN connections configured on the system
+- Standard user permissions (no admin required)
+
+**What You Need to Provide:**
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all VPN connections
+2. Shows connection name and server address
+3. Displays tunnel type (PPTP, L2TP, SSTP, IKEv2)
+4. Shows authentication method
+5. Indicates split tunneling status
+
+**Important Notes:**
+- No administrator privileges required
+- Lists both connected and disconnected VPNs
+- Tunnel types have different security levels
+- Split tunneling: Only VPN traffic goes through tunnel
+- Typical use: inventory, troubleshooting, documentation
+- Server address may be hostname or IP
+- All-user connections may require admin to view`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get VPN Connections
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Retrieving VPN connections..." -ForegroundColor Gray
+
+$VpnConnections = Get-VpnConnection -ErrorAction SilentlyContinue
+
+if (-not $VpnConnections) {
+    Write-Host ""
+    Write-Host "No VPN connections configured." -ForegroundColor Yellow
+    exit 0
+}
+
+$Report = $VpnConnections | Select-Object Name, ServerAddress, TunnelType, AuthenticationMethod, 
+    @{N='SplitTunneling';E={if($_.SplitTunneling){'Enabled'}else{'Disabled'}}},
+    ConnectionStatus, RememberCredential
+
+Write-Host ""
+Write-Host "VPN Connections:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total connections: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'add-vpn-connection',
+    name: 'Add VPN Connection',
+    category: 'Remote Access',
+    description: 'Create a new VPN connection profile',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Creates a new VPN connection profile
+- Configures server address and tunnel type
+- Sets authentication method
+- Essential for deploying VPN access
+
+**Prerequisites:**
+- Administrator privileges for all-user connections
+- PowerShell 5.1 or later
+- VPN server must be accessible
+
+**What You Need to Provide:**
+- Connection name (friendly name)
+- VPN server address (hostname or IP)
+- Tunnel type: Automatic, IKEv2, SSTP, L2TP, PPTP
+- Enable split tunneling: true or false
+- All users: true for machine profile, false for current user
+
+**What the Script Does:**
+1. Validates connection name not already in use
+2. Creates VPN connection with specified settings
+3. Configures split tunneling if enabled
+4. Sets connection scope (all users or current user)
+5. Displays new connection configuration
+
+**Important Notes:**
+- All-users connection requires administrator privileges
+- IKEv2 recommended for security and performance
+- Split tunnel: only VPN traffic through tunnel (more efficient)
+- Force tunnel: all traffic through VPN (more secure)
+- Typical use: deploy VPN to workstations, configure remote access
+- Credentials configured separately on first connect
+- Test connection after creation`,
+    parameters: [
+      { id: 'connectionName', label: 'Connection Name', type: 'text', required: true, placeholder: 'Corporate VPN' },
+      { id: 'serverAddress', label: 'Server Address', type: 'text', required: true, placeholder: 'vpn.company.com' },
+      { id: 'tunnelType', label: 'Tunnel Type', type: 'select', required: true, options: ['Automatic', 'IKEv2', 'Sstp', 'L2tp', 'Pptp'], defaultValue: 'Automatic' },
+      { id: 'splitTunneling', label: 'Enable Split Tunneling', type: 'boolean', required: false, defaultValue: false },
+      { id: 'allUsers', label: 'All Users (requires admin)', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const connectionName = escapePowerShellString(params.connectionName);
+      const serverAddress = escapePowerShellString(params.serverAddress);
+      const tunnelType = params.tunnelType;
+      const splitTunneling = toPowerShellBoolean(params.splitTunneling ?? false);
+      const allUsers = toPowerShellBoolean(params.allUsers ?? false);
+      
+      return `# Add VPN Connection
+# Generated: ${new Date().toISOString()}
+
+$ConnectionName = "${connectionName}"
+$ServerAddress = "${serverAddress}"
+$TunnelType = "${tunnelType}"
+$SplitTunneling = ${splitTunneling}
+$AllUsers = ${allUsers}
+
+# Check if connection already exists
+$Existing = Get-VpnConnection -Name $ConnectionName -ErrorAction SilentlyContinue
+if ($Existing) {
+    Write-Host "✗ VPN connection already exists: $ConnectionName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Creating VPN connection..." -ForegroundColor Gray
+
+try {
+    $Params = @{
+        Name = $ConnectionName
+        ServerAddress = $ServerAddress
+        TunnelType = $TunnelType
+        SplitTunneling = $SplitTunneling
+        RememberCredential = $true
+    }
+    
+    if ($AllUsers) {
+        $Params.AllUserConnection = $true
+    }
+    
+    Add-VpnConnection @Params -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ VPN connection created successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Connection Details:" -ForegroundColor Cyan
+    Write-Host "  Name: $ConnectionName" -ForegroundColor Gray
+    Write-Host "  Server: $ServerAddress" -ForegroundColor Gray
+    Write-Host "  Tunnel Type: $TunnelType" -ForegroundColor Gray
+    Write-Host "  Split Tunneling: $SplitTunneling" -ForegroundColor Gray
+    Write-Host "  All Users: $AllUsers" -ForegroundColor Gray
+    
+    Get-VpnConnection -Name $ConnectionName | Format-List
+} catch {
+    Write-Host "✗ Failed to create VPN connection: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-routing-table',
+    name: 'Get Routing Table',
+    category: 'Remote Access',
+    description: 'Display the IP routing table with route metrics',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Displays the IP routing table
+- Shows destination networks and next hops
+- Displays route metrics (priority)
+- Essential for network troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+
+**What You Need to Provide:**
+- Address family: IPv4, IPv6, or All (default: IPv4)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves routing table entries
+2. Filters by address family if specified
+3. Shows destination prefix, next hop, interface
+4. Displays route metric (lower = preferred)
+5. Optionally exports to CSV
+
+**Important Notes:**
+- No administrator privileges required
+- 0.0.0.0/0 is the default route (gateway)
+- Lower metric = higher priority
+- Multiple routes to same destination: lowest metric wins
+- Typical use: troubleshoot routing, verify VPN routes, diagnose connectivity
+- Persistent routes survive reboot
+- Interface column shows which adapter used`,
+    parameters: [
+      { id: 'addressFamily', label: 'Address Family', type: 'select', required: false, options: ['IPv4', 'IPv6', 'All'], defaultValue: 'IPv4' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const addressFamily = params.addressFamily || 'IPv4';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Routing Table
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Retrieving routing table..." -ForegroundColor Gray
+
+$Routes = Get-NetRoute${addressFamily !== 'All' ? ` -AddressFamily ${addressFamily}` : ''} -ErrorAction SilentlyContinue | 
+    Where-Object { $_.DestinationPrefix -ne 'ff00::/8' -and $_.DestinationPrefix -ne 'fe80::/64' }
+
+$Report = $Routes | Select-Object DestinationPrefix, NextHop, RouteMetric, 
+    @{N='Interface';E={(Get-NetAdapter -InterfaceIndex $_.InterfaceIndex -ErrorAction SilentlyContinue).Name}},
+    @{N='Type';E={if($_.NextHop -eq '0.0.0.0' -or $_.NextHop -eq '::'){'Local'}else{'Gateway'}}}
+
+Write-Host ""
+Write-Host "IP Routing Table (${addressFamily}):" -ForegroundColor Cyan
+$Report | Sort-Object DestinationPrefix | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total routes: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'add-static-route',
+    name: 'Add Static Route',
+    category: 'Remote Access',
+    description: 'Add a persistent static route to the routing table',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Adds a static route to the routing table
+- Routes traffic for specific network through gateway
+- Optionally makes route persistent (survives reboot)
+- Essential for multi-subnet environments
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Gateway must be reachable
+
+**What You Need to Provide:**
+- Destination network (CIDR format, e.g., 10.0.0.0/8)
+- Next hop/gateway IP address
+- Interface index or name
+- Route metric (default: 1)
+- Persistent route: true to survive reboot
+
+**What the Script Does:**
+1. Resolves interface by name or index
+2. Validates gateway is on same subnet
+3. Creates new static route
+4. Optionally makes route persistent
+5. Displays new route
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- CIDR format: network/prefix (e.g., 10.0.0.0/8)
+- Gateway must be directly reachable
+- Lower metric = higher priority
+- Persistent routes stored in registry
+- Typical use: route to remote subnets, VPN split tunnel
+- Verify route with Get-NetRoute after adding`,
+    parameters: [
+      { id: 'destination', label: 'Destination (CIDR)', type: 'text', required: true, placeholder: '10.0.0.0/8' },
+      { id: 'gateway', label: 'Gateway/Next Hop', type: 'text', required: true, placeholder: '192.168.1.1' },
+      { id: 'interfaceName', label: 'Interface Name', type: 'text', required: true, placeholder: 'Ethernet' },
+      { id: 'metric', label: 'Route Metric', type: 'number', required: false, defaultValue: 1 },
+      { id: 'persistent', label: 'Persistent (survives reboot)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const destination = escapePowerShellString(params.destination);
+      const gateway = escapePowerShellString(params.gateway);
+      const interfaceName = escapePowerShellString(params.interfaceName);
+      const metric = Number(params.metric || 1);
+      const persistent = params.persistent ?? true;
+      
+      return `# Add Static Route
+# Generated: ${new Date().toISOString()}
+
+$Destination = "${destination}"
+$Gateway = "${gateway}"
+$InterfaceName = "${interfaceName}"
+$Metric = ${metric}
+
+# Get interface index
+$Interface = Get-NetAdapter -Name $InterfaceName -ErrorAction SilentlyContinue
+if (-not $Interface) {
+    Write-Host "✗ Interface not found: $InterfaceName" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Adding static route..." -ForegroundColor Gray
+
+try {
+    New-NetRoute -DestinationPrefix $Destination -NextHop $Gateway -InterfaceIndex $Interface.ifIndex -RouteMetric $Metric ${persistent ? '-PolicyStore PersistentStore' : ''} -ErrorAction Stop | Out-Null
+    
+    Write-Host ""
+    Write-Host "✓ Static route added successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Route Details:" -ForegroundColor Cyan
+    Write-Host "  Destination: $Destination" -ForegroundColor Gray
+    Write-Host "  Gateway: $Gateway" -ForegroundColor Gray
+    Write-Host "  Interface: $InterfaceName" -ForegroundColor Gray
+    Write-Host "  Metric: $Metric" -ForegroundColor Gray
+    Write-Host "  Persistent: ${persistent}" -ForegroundColor Gray
+    
+    Get-NetRoute -DestinationPrefix $Destination -InterfaceIndex $Interface.ifIndex | Format-List
+} catch {
+    Write-Host "✗ Failed to add route: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'test-network-latency',
+    name: 'Test Network Latency (Continuous)',
+    category: 'Network Monitoring',
+    description: 'Continuously monitor network latency to a target host',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Continuously pings a target host
+- Calculates min, max, and average latency
+- Tracks packet loss percentage
+- Essential for network quality monitoring
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Network connectivity to target
+- Standard user permissions (no admin required)
+
+**What You Need to Provide:**
+- Target hostname or IP address
+- Duration in seconds (default: 60)
+- Interval between pings in milliseconds (default: 1000)
+
+**What the Script Does:**
+1. Pings target at specified interval
+2. Records response time for each ping
+3. Calculates statistics (min, max, avg, std dev)
+4. Tracks packet loss
+5. Displays summary report
+
+**Important Notes:**
+- No administrator privileges required
+- ICMP traffic must be allowed
+- Typical use: measure link quality, baseline performance
+- Jitter = variation in latency (std deviation)
+- High jitter indicates unstable connection
+- Packet loss indicates network issues
+- Run during normal operations for accurate baseline`,
+    parameters: [
+      { id: 'target', label: 'Target Host/IP', type: 'text', required: true, placeholder: 'google.com' },
+      { id: 'duration', label: 'Duration (seconds)', type: 'number', required: false, defaultValue: 60 },
+      { id: 'interval', label: 'Interval (milliseconds)', type: 'number', required: false, defaultValue: 1000 }
+    ],
+    scriptTemplate: (params) => {
+      const target = escapePowerShellString(params.target);
+      const duration = Number(params.duration || 60);
+      const interval = Number(params.interval || 1000);
+      
+      return `# Test Network Latency (Continuous)
+# Generated: ${new Date().toISOString()}
+
+$Target = "${target}"
+$Duration = ${duration}
+$Interval = ${interval}
+
+Write-Host "Testing latency to $Target for $Duration seconds..." -ForegroundColor Cyan
+Write-Host "Press Ctrl+C to stop early" -ForegroundColor Gray
+Write-Host ""
+
+$Results = @()
+$StartTime = Get-Date
+$EndTime = $StartTime.AddSeconds($Duration)
+$Sent = 0
+$Received = 0
+
+while ((Get-Date) -lt $EndTime) {
+    $Sent++
+    $Ping = Test-Connection -ComputerName $Target -Count 1 -ErrorAction SilentlyContinue
+    
+    if ($Ping) {
+        $Received++
+        $Latency = $Ping.ResponseTime
+        $Results += $Latency
+        
+        $Color = if ($Latency -lt 50) { "Green" } elseif ($Latency -lt 100) { "Yellow" } else { "Red" }
+        Write-Host "Reply from $Target: time=$($Latency)ms" -ForegroundColor $Color
+    } else {
+        Write-Host "Request timed out" -ForegroundColor Red
+    }
+    
+    Start-Sleep -Milliseconds $Interval
+}
+
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "Latency Statistics for $Target" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+
+if ($Results.Count -gt 0) {
+    $Stats = $Results | Measure-Object -Minimum -Maximum -Average -StandardDeviation
+    
+    Write-Host "  Packets: Sent = $Sent, Received = $Received, Lost = $($Sent - $Received) ($([math]::Round((($Sent - $Received) / $Sent) * 100, 1))% loss)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Minimum: $([math]::Round($Stats.Minimum, 2)) ms" -ForegroundColor Gray
+    Write-Host "  Maximum: $([math]::Round($Stats.Maximum, 2)) ms" -ForegroundColor Gray
+    Write-Host "  Average: $([math]::Round($Stats.Average, 2)) ms" -ForegroundColor Gray
+    Write-Host "  Jitter:  $([math]::Round($Stats.StandardDeviation, 2)) ms" -ForegroundColor Gray
+} else {
+    Write-Host "  No responses received (100% packet loss)" -ForegroundColor Red
+}`;
+    }
+  },
+
+  {
+    id: 'get-network-performance-counters',
+    name: 'Get Network Performance Counters',
+    category: 'Network Monitoring',
+    description: 'Monitor real-time network performance metrics',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Collects network interface performance counters
+- Shows bytes/packets sent and received per second
+- Monitors for errors and discards
+- Essential for performance troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+- Network adapter(s) must exist
+
+**What You Need to Provide:**
+- Adapter name (optional - blank for all active adapters)
+- Sample duration in seconds (default: 10)
+
+**What the Script Does:**
+1. Captures initial counter values
+2. Waits for sample duration
+3. Captures final counter values
+4. Calculates per-second rates
+5. Displays throughput, packet rates, errors
+
+**Important Notes:**
+- No administrator privileges required
+- Errors indicate hardware/driver issues
+- Discards indicate buffer overflows
+- High discard rate = congestion
+- Typical use: diagnose slow network, identify bottlenecks
+- Run during representative workload
+- Compare to baseline for anomaly detection`,
+    parameters: [
+      { id: 'adapterName', label: 'Adapter Name (blank for all)', type: 'text', required: false, placeholder: 'Ethernet' },
+      { id: 'duration', label: 'Sample Duration (seconds)', type: 'number', required: false, defaultValue: 10 }
+    ],
+    scriptTemplate: (params) => {
+      const adapterName = params.adapterName ? escapePowerShellString(params.adapterName) : '';
+      const duration = Number(params.duration || 10);
+      
+      return `# Get Network Performance Counters
+# Generated: ${new Date().toISOString()}
+
+$Duration = ${duration}
+
+${adapterName ? `$Adapters = Get-NetAdapter -Name "${adapterName}" | Where-Object { $_.Status -eq 'Up' }` : `$Adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }`}
+
+Write-Host "Collecting network performance counters ($Duration seconds)..." -ForegroundColor Cyan
+Write-Host ""
+
+$Results = foreach ($Adapter in $Adapters) {
+    $Initial = Get-NetAdapterStatistics -Name $Adapter.Name
+    
+    Start-Sleep -Seconds $Duration
+    
+    $Final = Get-NetAdapterStatistics -Name $Adapter.Name
+    
+    $BytesReceivedPerSec = ($Final.ReceivedBytes - $Initial.ReceivedBytes) / $Duration
+    $BytesSentPerSec = ($Final.SentBytes - $Initial.SentBytes) / $Duration
+    $PacketsReceivedPerSec = ($Final.ReceivedUnicastPackets - $Initial.ReceivedUnicastPackets) / $Duration
+    $PacketsSentPerSec = ($Final.SentUnicastPackets - $Initial.SentUnicastPackets) / $Duration
+    
+    [PSCustomObject]@{
+        Adapter = $Adapter.Name
+        LinkSpeed = $Adapter.LinkSpeed
+        'Recv MB/s' = [math]::Round($BytesReceivedPerSec / 1MB, 3)
+        'Send MB/s' = [math]::Round($BytesSentPerSec / 1MB, 3)
+        'Recv Pkts/s' = [math]::Round($PacketsReceivedPerSec, 0)
+        'Send Pkts/s' = [math]::Round($PacketsSentPerSec, 0)
+        'Recv Errors' = $Final.ReceivedPacketErrors - $Initial.ReceivedPacketErrors
+        'Recv Discards' = $Final.ReceivedDiscards - $Initial.ReceivedDiscards
+        'Send Errors' = $Final.OutboundPacketErrors - $Initial.OutboundPacketErrors
+        'Send Discards' = $Final.OutboundDiscards - $Initial.OutboundDiscards
+    }
+}
+
+Write-Host "Network Performance (over $Duration seconds):" -ForegroundColor Green
+$Results | Format-Table -AutoSize`;
+    }
+  },
+
+  {
+    id: 'firewall-log-enable',
+    name: 'Enable Firewall Logging',
+    category: 'Firewall Management',
+    description: 'Enable Windows Firewall logging for a profile',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Enables Windows Firewall logging
+- Logs allowed and/or dropped connections
+- Configures log file path and size
+- Essential for security auditing
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Windows Firewall service running
+
+**What You Need to Provide:**
+- Profile: Domain, Private, Public, or All
+- Log allowed connections: true or false
+- Log dropped connections: true or false (default: true)
+- Log file path (default: system default)
+- Max log size in KB (default: 4096)
+
+**What the Script Does:**
+1. Configures logging for specified profile
+2. Enables allowed/dropped logging as specified
+3. Sets log file path and maximum size
+4. Displays current logging configuration
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Default log path: %systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log
+- Log size in KB (4096 KB = 4 MB)
+- Old entries overwritten when max size reached
+- Typical use: troubleshooting, security audit, compliance
+- Log analysis tools: Event Viewer, Log Parser, SIEM
+- Consider disk space for high-traffic environments`,
+    parameters: [
+      { id: 'profile', label: 'Profile', type: 'select', required: true, options: ['Domain', 'Private', 'Public', 'All'], defaultValue: 'All' },
+      { id: 'logAllowed', label: 'Log Allowed Connections', type: 'boolean', required: false, defaultValue: false },
+      { id: 'logDropped', label: 'Log Dropped Connections', type: 'boolean', required: false, defaultValue: true },
+      { id: 'logPath', label: 'Log File Path', type: 'path', required: false, placeholder: 'C:\\Windows\\System32\\LogFiles\\Firewall\\pfirewall.log' },
+      { id: 'maxSizeKB', label: 'Max Size (KB)', type: 'number', required: false, defaultValue: 4096 }
+    ],
+    scriptTemplate: (params) => {
+      const profile = params.profile;
+      const logAllowed = toPowerShellBoolean(params.logAllowed ?? false);
+      const logDropped = toPowerShellBoolean(params.logDropped ?? true);
+      const logPath = params.logPath ? escapePowerShellString(params.logPath) : '';
+      const maxSizeKB = Number(params.maxSizeKB || 4096);
+      
+      return `# Enable Firewall Logging
+# Generated: ${new Date().toISOString()}
+
+$Profile = "${profile}"
+$LogAllowed = ${logAllowed}
+$LogDropped = ${logDropped}
+${logPath ? `$LogPath = "${logPath}"` : ''}
+$MaxSizeKB = ${maxSizeKB}
+
+Write-Host "Configuring firewall logging..." -ForegroundColor Gray
+
+try {
+    $Params = @{
+        LogAllowed = $LogAllowed
+        LogBlocked = $LogDropped
+        LogMaxSizeKilobytes = $MaxSizeKB
+    }
+    
+    ${logPath ? '$Params.LogFileName = $LogPath' : ''}
+    
+    if ($Profile -eq "All") {
+        Set-NetFirewallProfile -All @Params -ErrorAction Stop
+    } else {
+        Set-NetFirewallProfile -Profile $Profile @Params -ErrorAction Stop
+    }
+    
+    Write-Host ""
+    Write-Host "✓ Firewall logging configured successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Configuration Details:" -ForegroundColor Cyan
+    Write-Host "  Profile: $Profile" -ForegroundColor Gray
+    Write-Host "  Log Allowed: $LogAllowed" -ForegroundColor Gray
+    Write-Host "  Log Dropped: $LogDropped" -ForegroundColor Gray
+    Write-Host "  Max Size: $MaxSizeKB KB" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Current Logging Settings:" -ForegroundColor Cyan
+    Get-NetFirewallProfile | Select-Object Name, LogAllowed, LogBlocked, LogFileName, LogMaxSizeKilobytes | Format-Table -AutoSize
+} catch {
+    Write-Host "✗ Failed to configure logging: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'remove-firewall-rule',
+    name: 'Remove Firewall Rule',
+    category: 'Firewall Management',
+    description: 'Delete a Windows Firewall rule by name',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Removes a Windows Firewall rule by name
+- Supports exact name or pattern matching
+- Can remove multiple matching rules
+- Essential for firewall cleanup
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Windows Firewall service running
+
+**What You Need to Provide:**
+- Rule name (exact name or pattern with wildcards)
+- Remove all matches: true to remove all matching, false for exact match only
+
+**What the Script Does:**
+1. Finds firewall rules matching the name
+2. Displays matching rules before deletion
+3. Removes matching rule(s)
+4. Confirms removal
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Use wildcards (*) for pattern matching
+- Deletion is immediate and permanent
+- Built-in rules may be recreated on updates
+- Typical use: cleanup, security hardening, troubleshooting
+- Test with exact name first before using wildcards`,
+    parameters: [
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Allow RDP' },
+      { id: 'removeAll', label: 'Remove All Matches', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const ruleName = escapePowerShellString(params.ruleName);
+      const removeAll = toPowerShellBoolean(params.removeAll ?? false);
+      
+      return `# Remove Firewall Rule
+# Generated: ${new Date().toISOString()}
+
+$RuleName = "${ruleName}"
+
+# Find matching rules
+$Rules = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
+
+if (-not $Rules) {
+    Write-Host "✗ No firewall rules found matching: $RuleName" -ForegroundColor Red
+    exit 1
+}
+
+$RuleCount = @($Rules).Count
+Write-Host "Found $RuleCount matching rule(s):" -ForegroundColor Gray
+$Rules | Select-Object DisplayName, Direction, Action, Enabled | Format-Table -AutoSize
+
+${removeAll ? '' : `if ($RuleCount -gt 1) {
+    Write-Host "⚠ Multiple rules match. Enable 'Remove All Matches' to delete all, or use exact name." -ForegroundColor Yellow
+    exit 1
+}`}
+
+Write-Host "Removing firewall rule(s)..." -ForegroundColor Yellow
+
+try {
+    Remove-NetFirewallRule -DisplayName $RuleName -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "✓ Removed $RuleCount firewall rule(s)" -ForegroundColor Green
+    Write-Host "  Pattern: $RuleName" -ForegroundColor Gray
+} catch {
+    Write-Host "✗ Failed to remove rule(s): $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-listening-ports',
+    name: 'Get Listening Ports',
+    category: 'Network Monitoring',
+    description: 'List all TCP/UDP ports in listening state with process info',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all TCP ports in LISTEN state
+- Shows which process is listening on each port
+- Identifies potential security risks
+- Essential for security auditing
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Administrator privileges recommended for full process details
+
+**What You Need to Provide:**
+- Include UDP: true to also show UDP listeners
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all TCP connections in Listen state
+2. Optionally retrieves UDP endpoints
+3. Maps each port to its owning process
+4. Displays port, protocol, process name, PID
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Administrator shows all process details
+- 0.0.0.0 = listening on all interfaces
+- 127.0.0.1 = localhost only
+- Typical use: security audit, identify services, troubleshoot port conflicts
+- Unexpected listeners may indicate malware
+- Compare against known services baseline`,
+    parameters: [
+      { id: 'includeUdp', label: 'Include UDP Endpoints', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const includeUdp = toPowerShellBoolean(params.includeUdp ?? true);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Listening Ports
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Retrieving listening ports..." -ForegroundColor Gray
+
+# Get TCP listeners
+$TcpListeners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | ForEach-Object {
+    $Process = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    [PSCustomObject]@{
+        Protocol = 'TCP'
+        LocalAddress = $_.LocalAddress
+        LocalPort = $_.LocalPort
+        ProcessName = $Process.ProcessName
+        PID = $_.OwningProcess
+    }
+}
+
+$AllListeners = @($TcpListeners)
+
+${includeUdp ? `
+# Get UDP listeners
+$UdpListeners = Get-NetUDPEndpoint -ErrorAction SilentlyContinue | ForEach-Object {
+    $Process = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    [PSCustomObject]@{
+        Protocol = 'UDP'
+        LocalAddress = $_.LocalAddress
+        LocalPort = $_.LocalPort
+        ProcessName = $Process.ProcessName
+        PID = $_.OwningProcess
+    }
+}
+
+$AllListeners += @($UdpListeners)` : ''}
+
+$Report = $AllListeners | Sort-Object Protocol, LocalPort
+
+Write-Host ""
+Write-Host "Listening Ports:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total listeners: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'test-network-path',
+    name: 'Test Network Path MTU',
+    category: 'Diagnostics & Testing',
+    description: 'Discover the Maximum Transmission Unit (MTU) along a network path',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Tests various packet sizes along network path
+- Discovers maximum packet size without fragmentation
+- Identifies MTU issues causing connectivity problems
+- Essential for VPN and WAN troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- ICMP allowed through firewalls
+- Standard user permissions (no admin required)
+
+**What You Need to Provide:**
+- Target host (hostname or IP)
+- Starting packet size (default: 1500)
+
+**What the Script Does:**
+1. Sends packets with Don't Fragment flag
+2. Uses binary search to find maximum MTU
+3. Reports packet sizes that succeed/fail
+4. Displays discovered path MTU
+
+**Important Notes:**
+- No administrator privileges required
+- Standard Ethernet MTU: 1500 bytes
+- VPN tunnels reduce effective MTU (overhead)
+- MTU issues cause intermittent connectivity
+- Symptoms: small packets work, large fail
+- Typical use: VPN troubleshooting, WAN optimization
+- Path MTU may differ from interface MTU`,
+    parameters: [
+      { id: 'target', label: 'Target Host/IP', type: 'text', required: true, placeholder: 'server.domain.com' },
+      { id: 'startSize', label: 'Starting Packet Size', type: 'number', required: false, defaultValue: 1500 }
+    ],
+    scriptTemplate: (params) => {
+      const target = escapePowerShellString(params.target);
+      const startSize = Number(params.startSize || 1500);
+      
+      return `# Test Network Path MTU
+# Generated: ${new Date().toISOString()}
+
+$Target = "${target}"
+$StartSize = ${startSize}
+
+Write-Host "Discovering path MTU to $Target..." -ForegroundColor Cyan
+Write-Host "Starting with packet size: $StartSize bytes" -ForegroundColor Gray
+Write-Host ""
+
+# Binary search for MTU
+$Low = 68  # Minimum MTU
+$High = $StartSize
+$LastSuccess = $Low
+
+while ($Low -le $High) {
+    $Mid = [math]::Floor(($Low + $High) / 2)
+    
+    # Ping with Don't Fragment flag
+    $Result = ping -n 1 -f -l $Mid $Target 2>&1
+    
+    if ($Result -match "Reply from" -and $Result -notmatch "fragmented") {
+        Write-Host "  Size $Mid bytes: Success" -ForegroundColor Green
+        $LastSuccess = $Mid
+        $Low = $Mid + 1
+    } else {
+        Write-Host "  Size $Mid bytes: Failed (needs fragmentation)" -ForegroundColor Yellow
+        $High = $Mid - 1
+    }
+}
+
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "Path MTU Discovery Results" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  Target: $Target" -ForegroundColor Gray
+Write-Host "  Maximum MTU: $LastSuccess bytes" -ForegroundColor Green
+Write-Host ""
+Write-Host "Recommendations:" -ForegroundColor Yellow
+Write-Host "  - Standard Ethernet MTU: 1500 bytes" -ForegroundColor Gray
+Write-Host "  - If MTU < 1500, check for VPN/tunnel overhead" -ForegroundColor Gray
+Write-Host "  - Consider setting interface MTU to discovered value" -ForegroundColor Gray`;
+    }
+  },
+
+  {
+    id: 'arp-cache-report',
+    name: 'Get ARP Cache',
+    category: 'Diagnostics & Testing',
+    description: 'Display and export the ARP cache (IP to MAC mappings)',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Displays the ARP (Address Resolution Protocol) cache
+- Shows IP address to MAC address mappings
+- Identifies device types and manufacturers
+- Essential for network troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+
+**What You Need to Provide:**
+- Include incomplete entries: true or false (default: false)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves ARP cache entries
+2. Shows IP address, MAC address, type
+3. Identifies interface for each entry
+4. Optionally exports to CSV
+
+**Important Notes:**
+- No administrator privileges required
+- Dynamic entries learned from network
+- Static entries manually configured
+- Cache clears on reboot or timeout
+- Typical use: troubleshoot connectivity, identify devices
+- Duplicate MAC addresses indicate problems
+- MAC address first 3 bytes identify manufacturer`,
+    parameters: [
+      { id: 'includeIncomplete', label: 'Include Incomplete Entries', type: 'boolean', required: false, defaultValue: false },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const includeIncomplete = toPowerShellBoolean(params.includeIncomplete ?? false);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get ARP Cache
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Retrieving ARP cache..." -ForegroundColor Gray
+
+$ArpEntries = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue
+
+${includeIncomplete ? '' : `$ArpEntries = $ArpEntries | Where-Object { $_.State -ne 'Incomplete' }`}
+
+$Report = $ArpEntries | ForEach-Object {
+    $Interface = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex -ErrorAction SilentlyContinue
+    [PSCustomObject]@{
+        IPAddress = $_.IPAddress
+        MACAddress = $_.LinkLayerAddress
+        State = $_.State
+        Interface = $Interface.Name
+        InterfaceIndex = $_.InterfaceIndex
+    }
+} | Sort-Object IPAddress
+
+Write-Host ""
+Write-Host "ARP Cache:" -ForegroundColor Cyan
+$Report | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total entries: $($Report.Count)" -ForegroundColor Gray
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'clear-arp-cache',
+    name: 'Clear ARP Cache',
+    category: 'Diagnostics & Testing',
+    description: 'Clear the ARP cache to force fresh MAC address resolution',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Clears the ARP cache entries
+- Forces devices to re-resolve MAC addresses
+- Useful for troubleshooting connectivity issues
+- Clears specific interface or all interfaces
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+
+**What You Need to Provide:**
+- Interface name (optional - blank for all interfaces)
+
+**What the Script Does:**
+1. Shows current ARP cache count
+2. Clears ARP cache entries
+3. Shows cache count after clearing
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Cache rebuilds automatically as needed
+- May cause brief network delays as entries rebuild
+- Typical use: resolve IP conflicts, clear stale entries
+- ARP poisoning attacks can be mitigated by clearing
+- Combine with IP conflict resolution`,
+    parameters: [
+      { id: 'interfaceName', label: 'Interface Name (blank for all)', type: 'text', required: false, placeholder: 'Ethernet' }
+    ],
+    scriptTemplate: (params) => {
+      const interfaceName = params.interfaceName ? escapePowerShellString(params.interfaceName) : '';
+      
+      return `# Clear ARP Cache
+# Generated: ${new Date().toISOString()}
+
+Write-Host "ARP cache before clearing:" -ForegroundColor Gray
+$Before = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue${interfaceName ? ` | Where-Object { (Get-NetAdapter -InterfaceIndex $_.InterfaceIndex).Name -eq "${interfaceName}" }` : ''}
+Write-Host "  Entries: $($Before.Count)" -ForegroundColor Gray
+
+Write-Host ""
+Write-Host "Clearing ARP cache..." -ForegroundColor Yellow
+
+${interfaceName ? `
+$Interface = Get-NetAdapter -Name "${interfaceName}" -ErrorAction SilentlyContinue
+if (-not $Interface) {
+    Write-Host "✗ Interface not found: ${interfaceName}" -ForegroundColor Red
+    exit 1
+}
+Get-NetNeighbor -InterfaceIndex $Interface.ifIndex -ErrorAction SilentlyContinue | Remove-NetNeighbor -Confirm:$false -ErrorAction SilentlyContinue
+Write-Host "✓ ARP cache cleared for ${interfaceName}" -ForegroundColor Green
+` : `
+Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue | Remove-NetNeighbor -Confirm:$false -ErrorAction SilentlyContinue
+Write-Host "✓ ARP cache cleared for all interfaces" -ForegroundColor Green
+`}
+
+Write-Host ""
+Write-Host "ARP cache after clearing:" -ForegroundColor Gray
+$After = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue${interfaceName ? ` | Where-Object { (Get-NetAdapter -InterfaceIndex $_.InterfaceIndex).Name -eq "${interfaceName}" }` : ''}
+Write-Host "  Entries: $($After.Count)" -ForegroundColor Gray`;
+    }
+  },
+
+  {
+    id: 'netstat-report',
+    name: 'Generate Netstat Report',
+    category: 'Network Monitoring',
+    description: 'Comprehensive network statistics report similar to netstat -an',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Generates comprehensive network statistics
+- Shows all TCP/UDP connections and listeners
+- Groups by state for easy analysis
+- Essential for network troubleshooting
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Administrator for full process details
+
+**What You Need to Provide:**
+- Show process names: true to include process info (default: true)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Retrieves all TCP connections
+2. Retrieves all UDP endpoints
+3. Maps connections to processes
+4. Groups and counts by state
+5. Optionally exports full report
+
+**Important Notes:**
+- Similar to traditional netstat -an command
+- Shows connection states and statistics
+- Typical use: overview of all network activity
+- High TIME_WAIT may indicate connection issues
+- Many ESTABLISHED connections may indicate high load
+- CLOSE_WAIT indicates application not closing sockets`,
+    parameters: [
+      { id: 'showProcess', label: 'Show Process Names', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const showProcess = toPowerShellBoolean(params.showProcess ?? true);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Generate Netstat Report
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Generating network statistics report..." -ForegroundColor Gray
+
+# Get all TCP connections
+$TcpConnections = Get-NetTCPConnection -ErrorAction SilentlyContinue | ForEach-Object {
+    $Props = @{
+        Protocol = 'TCP'
+        LocalAddress = "$($_.LocalAddress):$($_.LocalPort)"
+        RemoteAddress = "$($_.RemoteAddress):$($_.RemotePort)"
+        State = $_.State
+    }
+    
+    ${showProcess ? `$Process = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    $Props.ProcessName = $Process.ProcessName
+    $Props.PID = $_.OwningProcess` : ''}
+    
+    [PSCustomObject]$Props
+}
+
+# Get all UDP endpoints
+$UdpEndpoints = Get-NetUDPEndpoint -ErrorAction SilentlyContinue | ForEach-Object {
+    $Props = @{
+        Protocol = 'UDP'
+        LocalAddress = "$($_.LocalAddress):$($_.LocalPort)"
+        RemoteAddress = '*:*'
+        State = 'N/A'
+    }
+    
+    ${showProcess ? `$Process = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    $Props.ProcessName = $Process.ProcessName
+    $Props.PID = $_.OwningProcess` : ''}
+    
+    [PSCustomObject]$Props
+}
+
+$AllConnections = @($TcpConnections) + @($UdpEndpoints)
+
+Write-Host ""
+Write-Host "Connection Summary by State:" -ForegroundColor Cyan
+$AllConnections | Where-Object { $_.State -ne 'N/A' } | Group-Object State | 
+    Select-Object @{N='State';E={$_.Name}}, Count | 
+    Sort-Object Count -Descending | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "All Connections:" -ForegroundColor Cyan
+$AllConnections | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Total: $($AllConnections.Count) connections/endpoints" -ForegroundColor Gray
+
+${exportPath ? `$AllConnections | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'enable-network-discovery',
+    name: 'Enable/Disable Network Discovery',
+    category: 'Network Shares',
+    description: 'Enable or disable network discovery and file sharing',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Enables or disables network discovery
+- Controls visibility of computer on network
+- Affects file and printer sharing
+- Essential for network security
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Network Discovery feature installed
+
+**What You Need to Provide:**
+- Action: Enable or Disable
+- Profile: Domain, Private, Public, or All
+
+**What the Script Does:**
+1. Configures network discovery firewall rules
+2. Enables/disables file and printer sharing
+3. Applies to specified network profile
+4. Displays current status
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Public profile should stay disabled for security
+- Enables/disables related firewall rules
+- Typical use: workgroup file sharing, security hardening
+- Domain profile usually managed by Group Policy
+- Private profile for home/work networks`,
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Enable', 'Disable'] },
+      { id: 'profile', label: 'Network Profile', type: 'select', required: true, options: ['Domain', 'Private', 'Public', 'All'], defaultValue: 'Private' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const profile = params.profile;
+      const enabled = action === 'Enable' ? 'True' : 'False';
+      
+      return `# ${action} Network Discovery
+# Generated: ${new Date().toISOString()}
+
+$Action = "${action}"
+$Profile = "${profile}"
+
+Write-Host "${action === 'Enable' ? 'Enabling' : 'Disabling'} network discovery for $Profile profile..." -ForegroundColor Gray
+
+try {
+    # Network Discovery
+    if ($Profile -eq "All") {
+        Get-NetFirewallRule -DisplayGroup "Network Discovery" | Set-NetFirewallRule -Enabled ${enabled} -ErrorAction Stop
+        Get-NetFirewallRule -DisplayGroup "File and Printer Sharing" | Set-NetFirewallRule -Enabled ${enabled} -ErrorAction Stop
+    } else {
+        Get-NetFirewallRule -DisplayGroup "Network Discovery" | 
+            Where-Object { $_.Profile -match $Profile } | 
+            Set-NetFirewallRule -Enabled ${enabled} -ErrorAction Stop
+        Get-NetFirewallRule -DisplayGroup "File and Printer Sharing" | 
+            Where-Object { $_.Profile -match $Profile } | 
+            Set-NetFirewallRule -Enabled ${enabled} -ErrorAction Stop
+    }
+    
+    Write-Host ""
+    Write-Host "✓ Network discovery ${action.toLowerCase()}d for $Profile profile" -ForegroundColor Green
+    Write-Host "✓ File and printer sharing ${action.toLowerCase()}d for $Profile profile" -ForegroundColor Green
+    
+    Write-Host ""
+    Write-Host "Current Status:" -ForegroundColor Cyan
+    Get-NetFirewallRule -DisplayGroup "Network Discovery" | 
+        Select-Object DisplayName, Profile, Enabled | 
+        Format-Table -AutoSize
+} catch {
+    Write-Host "✗ Failed to configure network discovery: $_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-network-bandwidth-stats',
+    name: 'Get Network Bandwidth Statistics',
+    category: 'Network Monitoring',
+    description: 'Monitor real-time network bandwidth usage and interface statistics across all adapters',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Collects network interface statistics
+- Shows bytes sent/received per adapter
+- Calculates bandwidth utilization over monitoring period
+- Identifies top bandwidth consumers
+- Optional continuous monitoring mode
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Standard user permissions (no admin required)
+- Write permissions on export location (if exporting)
+
+**What You Need to Provide:**
+- Monitoring duration (seconds, default: 10)
+- Sample interval (seconds, default: 1)
+- Optional: Export CSV file path
+
+**What the Script Does:**
+1. Captures baseline network statistics for all adapters
+2. Waits for specified monitoring duration
+3. Captures final statistics
+4. Calculates bytes/packets sent and received during period
+5. Converts to human-readable units (KB/s, MB/s)
+6. Reports per-adapter bandwidth utilization
+7. Identifies adapter with highest throughput
+
+**Important Notes:**
+- No administrator privileges required
+- Statistics are cumulative since adapter start
+- Script calculates delta during monitoring period
+- Typical use: identify bandwidth hogs, capacity planning
+- Zero values indicate no traffic during monitoring period
+- High utilization may indicate network congestion
+- Combine with netstat-report for connection details
+- Export useful for historical trending`,
+    parameters: [
+      { id: 'durationSeconds', label: 'Monitoring Duration (seconds)', type: 'number', required: false, defaultValue: 10 },
+      { id: 'sampleInterval', label: 'Sample Interval (seconds)', type: 'number', required: false, defaultValue: 1 },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false, placeholder: 'C:\\Reports\\BandwidthStats.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const durationSeconds = Number(params.durationSeconds || 10);
+      const sampleInterval = Number(params.sampleInterval || 1);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Network Bandwidth Statistics
+# Generated: ${new Date().toISOString()}
+
+$DurationSeconds = ${durationSeconds}
+$SampleInterval = ${sampleInterval}
+
+Write-Host "Network Bandwidth Statistics Monitor" -ForegroundColor Cyan
+Write-Host "====================================" -ForegroundColor Cyan
+Write-Host "Monitoring duration: $DurationSeconds seconds" -ForegroundColor Gray
+Write-Host "Sample interval: $SampleInterval second(s)" -ForegroundColor Gray
+Write-Host ""
+
+# Get active adapters
+$Adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
+
+if (-not $Adapters) {
+    Write-Host "✗ No active network adapters found" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Monitoring $($Adapters.Count) active adapter(s)..." -ForegroundColor Yellow
+Write-Host ""
+
+# Capture baseline statistics
+$BaselineStats = @{}
+foreach ($Adapter in $Adapters) {
+    $Stats = Get-NetAdapterStatistics -Name $Adapter.Name -ErrorAction SilentlyContinue
+    if ($Stats) {
+        $BaselineStats[$Adapter.Name] = @{
+            BytesSent = $Stats.SentBytes
+            BytesReceived = $Stats.ReceivedBytes
+            PacketsSent = $Stats.SentUnicastPackets
+            PacketsReceived = $Stats.ReceivedUnicastPackets
+            Errors = $Stats.ReceivedDiscards + $Stats.OutboundDiscards
+        }
+    }
+}
+
+# Wait for monitoring duration
+$StartTime = Get-Date
+Write-Host "Collecting data..." -ForegroundColor Gray
+Start-Sleep -Seconds $DurationSeconds
+$EndTime = Get-Date
+$ActualDuration = ($EndTime - $StartTime).TotalSeconds
+
+# Capture final statistics and calculate deltas
+$Report = foreach ($Adapter in $Adapters) {
+    $Stats = Get-NetAdapterStatistics -Name $Adapter.Name -ErrorAction SilentlyContinue
+    $Baseline = $BaselineStats[$Adapter.Name]
+    
+    if ($Stats -and $Baseline) {
+        $BytesSentDelta = $Stats.SentBytes - $Baseline.BytesSent
+        $BytesReceivedDelta = $Stats.ReceivedBytes - $Baseline.BytesReceived
+        $TotalBytes = $BytesSentDelta + $BytesReceivedDelta
+        
+        # Calculate rates per second
+        $SendRateBps = [math]::Round($BytesSentDelta / $ActualDuration, 2)
+        $ReceiveRateBps = [math]::Round($BytesReceivedDelta / $ActualDuration, 2)
+        
+        # Convert to human-readable format
+        $SendRateFormatted = if ($SendRateBps -ge 1MB) { "$([math]::Round($SendRateBps / 1MB, 2)) MB/s" }
+                             elseif ($SendRateBps -ge 1KB) { "$([math]::Round($SendRateBps / 1KB, 2)) KB/s" }
+                             else { "$SendRateBps B/s" }
+        
+        $ReceiveRateFormatted = if ($ReceiveRateBps -ge 1MB) { "$([math]::Round($ReceiveRateBps / 1MB, 2)) MB/s" }
+                                 elseif ($ReceiveRateBps -ge 1KB) { "$([math]::Round($ReceiveRateBps / 1KB, 2)) KB/s" }
+                                 else { "$ReceiveRateBps B/s" }
+        
+        [PSCustomObject]@{
+            AdapterName = $Adapter.Name
+            LinkSpeed = $Adapter.LinkSpeed
+            BytesSent = $BytesSentDelta
+            BytesReceived = $BytesReceivedDelta
+            TotalBytes = $TotalBytes
+            SendRate = $SendRateFormatted
+            ReceiveRate = $ReceiveRateFormatted
+            PacketsSent = $Stats.SentUnicastPackets - $Baseline.PacketsSent
+            PacketsReceived = $Stats.ReceivedUnicastPackets - $Baseline.PacketsReceived
+            Errors = ($Stats.ReceivedDiscards + $Stats.OutboundDiscards) - $Baseline.Errors
+        }
+    }
+}
+
+# Display results
+Write-Host ""
+Write-Host "Bandwidth Statistics (over $([math]::Round($ActualDuration, 1)) seconds):" -ForegroundColor Cyan
+Write-Host "----------------------------------------------------" -ForegroundColor Gray
+
+$Report | ForEach-Object {
+    Write-Host ""
+    Write-Host "Adapter: $($_.AdapterName)" -ForegroundColor Yellow
+    Write-Host "  Link Speed:     $($_.LinkSpeed)" -ForegroundColor Gray
+    Write-Host "  Send Rate:      $($_.SendRate)" -ForegroundColor Green
+    Write-Host "  Receive Rate:   $($_.ReceiveRate)" -ForegroundColor Green
+    Write-Host "  Packets Sent:   $($_.PacketsSent)" -ForegroundColor Gray
+    Write-Host "  Packets Recv:   $($_.PacketsReceived)" -ForegroundColor Gray
+    if ($_.Errors -gt 0) {
+        Write-Host "  Errors:         $($_.Errors)" -ForegroundColor Red
+    }
+}
+
+# Summary
+Write-Host ""
+Write-Host "Summary:" -ForegroundColor Cyan
+$TotalSent = ($Report | Measure-Object -Property BytesSent -Sum).Sum
+$TotalReceived = ($Report | Measure-Object -Property BytesReceived -Sum).Sum
+$TopAdapter = $Report | Sort-Object TotalBytes -Descending | Select-Object -First 1
+
+$TotalSentFormatted = if ($TotalSent -ge 1MB) { "$([math]::Round($TotalSent / 1MB, 2)) MB" }
+                      elseif ($TotalSent -ge 1KB) { "$([math]::Round($TotalSent / 1KB, 2)) KB" }
+                      else { "$TotalSent B" }
+
+$TotalReceivedFormatted = if ($TotalReceived -ge 1MB) { "$([math]::Round($TotalReceived / 1MB, 2)) MB" }
+                          elseif ($TotalReceived -ge 1KB) { "$([math]::Round($TotalReceived / 1KB, 2)) KB" }
+                          else { "$TotalReceived B" }
+
+Write-Host "  Total Sent:     $TotalSentFormatted" -ForegroundColor Gray
+Write-Host "  Total Received: $TotalReceivedFormatted" -ForegroundColor Gray
+if ($TopAdapter) {
+    Write-Host "  Top Adapter:    $($TopAdapter.AdapterName)" -ForegroundColor Yellow
+}
+
+${exportPath ? `
+# Export to CSV
+$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+
+Write-Host ""
+Write-Host "✓ Bandwidth statistics collection complete" -ForegroundColor Green`;
     }
   },
 ];

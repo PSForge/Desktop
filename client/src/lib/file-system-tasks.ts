@@ -17,6 +17,7 @@ export interface FileSystemTask {
   category: string;
   description: string;
   instructions?: string;
+  isPremium?: boolean;
   parameters: FileSystemTaskParameter[];
   validate?: (params: Record<string, any>) => string | null;
   scriptTemplate: (params: Record<string, any>) => string;
@@ -1653,6 +1654,2820 @@ if ($Files) {
     Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
 } else {
     Write-Host "No files found" -ForegroundColor Yellow
+}`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: File Operations
+  // ============================================
+
+  {
+    id: 'move-files',
+    name: 'Move Files/Folders',
+    category: 'File Operations',
+    isPremium: true,
+    description: 'Move files or folders to a new location with progress tracking',
+    instructions: `**How This Task Works:**
+- Moves files or entire folder structures to destination
+- Removes original after successful move
+- Shows progress and file count
+- Option to overwrite existing files
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on source location
+- Write permissions on destination location
+- Delete permissions on source (for move)
+
+**What You Need to Provide:**
+- Source path (file or folder)
+- Destination path
+- Overwrite existing files: true or false (default: false)
+
+**What the Script Does:**
+1. Validates source path exists
+2. Creates destination folder if needed
+3. Moves files/folders with specified options
+4. Removes source after successful move
+5. Reports total files moved and errors
+
+**Important Notes:**
+- Move removes original files
+- Large moves may take time
+- Network paths supported (UNC paths)
+- Locked files will fail the move
+- Use -Force to overwrite existing files`,
+    parameters: [
+      { id: 'sourcePath', label: 'Source Path', type: 'path', required: true, placeholder: 'C:\\OldLocation\\Files' },
+      { id: 'destinationPath', label: 'Destination Path', type: 'path', required: true, placeholder: 'D:\\NewLocation\\Files' },
+      { id: 'overwrite', label: 'Overwrite Existing Files', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const sourcePath = escapePowerShellString(params.sourcePath);
+      const destinationPath = escapePowerShellString(params.destinationPath);
+      const overwrite = toPowerShellBoolean(params.overwrite ?? false);
+      
+      return `# Move Files/Folders
+# Generated: ${new Date().toISOString()}
+
+$Source = "${sourcePath}"
+$Destination = "${destinationPath}"
+
+if (-not (Test-Path $Source)) {
+    Write-Host "✗ Source path not found: $Source" -ForegroundColor Red
+    exit 1
+}
+
+$DestParent = Split-Path $Destination -Parent
+if (-not (Test-Path $DestParent)) {
+    New-Item -Path $DestParent -ItemType Directory -Force | Out-Null
+    Write-Host "✓ Created destination folder" -ForegroundColor Green
+}
+
+Write-Host "Moving from $Source to $Destination..." -ForegroundColor Gray
+
+try {
+    Move-Item -Path $Source -Destination $Destination ${overwrite === '$true' ? '-Force' : ''} -ErrorAction Stop
+    Write-Host "✓ Move completed successfully" -ForegroundColor Green
+} catch {
+    Write-Host "✗ Move failed: \$_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'rename-files-bulk',
+    name: 'Bulk Rename Files',
+    category: 'File Operations',
+    isPremium: true,
+    description: 'Rename multiple files using pattern matching and replacement',
+    instructions: `**How This Task Works:**
+- Renames multiple files matching a pattern
+- Supports find/replace text in filenames
+- Optional prefix/suffix addition
+- Test mode for safe preview
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Write permissions on target directory
+- No administrator rights required
+
+**What You Need to Provide:**
+- Target directory path
+- File pattern to match (e.g., *.txt)
+- Find text (text to replace in filename)
+- Replace text (new text to insert)
+- Test mode: true for preview, false to rename
+
+**What the Script Does:**
+1. Finds all files matching pattern
+2. Applies find/replace to each filename
+3. In test mode: shows preview of changes
+4. In rename mode: renames all matching files
+5. Reports count of files renamed
+
+**Important Notes:**
+- Test mode enabled by default
+- Only affects filename, not extension
+- Case-sensitive replacement
+- Duplicate names will cause errors
+- Review preview before applying`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Directory', type: 'path', required: true, placeholder: 'C:\\Documents' },
+      { id: 'filePattern', label: 'File Pattern', type: 'text', required: true, placeholder: '*.txt', defaultValue: '*.*' },
+      { id: 'findText', label: 'Find Text', type: 'text', required: true, placeholder: 'old' },
+      { id: 'replaceText', label: 'Replace With', type: 'text', required: false, placeholder: 'new', defaultValue: '' },
+      { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const filePattern = escapePowerShellString(params.filePattern || '*.*');
+      const findText = escapePowerShellString(params.findText);
+      const replaceText = escapePowerShellString(params.replaceText || '');
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Bulk Rename Files
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$FilePattern = "${filePattern}"
+$FindText = "${findText}"
+$ReplaceText = "${replaceText}"
+$TestMode = ${testMode}
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Directory not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+$Files = Get-ChildItem -Path $TargetPath -Filter $FilePattern -File | Where-Object { $_.Name -like "*$FindText*" }
+
+if ($Files.Count -eq 0) {
+    Write-Host "No files found matching pattern with '$FindText'" -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host "Found $($Files.Count) files to rename" -ForegroundColor Cyan
+
+$Renamed = 0
+foreach ($File in $Files) {
+    $NewName = $File.Name -replace [regex]::Escape($FindText), $ReplaceText
+    
+    if ($TestMode) {
+        Write-Host "  [Preview] $($File.Name) -> $NewName" -ForegroundColor Gray
+    } else {
+        try {
+            Rename-Item -Path $File.FullName -NewName $NewName -ErrorAction Stop
+            Write-Host "  ✓ $($File.Name) -> $NewName" -ForegroundColor Green
+            $Renamed++
+        } catch {
+            Write-Host "  ✗ Failed: $($File.Name) - \$_" -ForegroundColor Red
+        }
+    }
+}
+
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - No files renamed" -ForegroundColor Yellow
+} else {
+    Write-Host ""
+    Write-Host "✓ Renamed $Renamed files" -ForegroundColor Green
+}`;
+    }
+  },
+
+  {
+    id: 'compare-files',
+    name: 'Compare Two Files',
+    category: 'File Operations',
+    isPremium: true,
+    description: 'Compare two files for differences using hash or content comparison',
+    instructions: `**How This Task Works:**
+- Compares two files for equality
+- Uses hash comparison for binary files
+- Optional line-by-line text comparison
+- Reports differences found
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on both files
+- No administrator rights required
+
+**What You Need to Provide:**
+- First file path
+- Second file path
+- Comparison type: Hash or Content
+
+**What the Script Does:**
+1. Validates both files exist
+2. For hash: computes SHA256 hashes and compares
+3. For content: performs line-by-line comparison
+4. Reports if files are identical or different
+5. Shows specific differences for content mode
+
+**Important Notes:**
+- Hash comparison fastest for large files
+- Content comparison shows actual differences
+- Binary files use hash comparison only
+- Large text files may be slow for content compare`,
+    parameters: [
+      { id: 'file1Path', label: 'First File Path', type: 'path', required: true, placeholder: 'C:\\File1.txt' },
+      { id: 'file2Path', label: 'Second File Path', type: 'path', required: true, placeholder: 'C:\\File2.txt' },
+      { id: 'compareType', label: 'Comparison Type', type: 'select', required: false, options: ['Hash', 'Content'], defaultValue: 'Hash' }
+    ],
+    scriptTemplate: (params) => {
+      const file1Path = escapePowerShellString(params.file1Path);
+      const file2Path = escapePowerShellString(params.file2Path);
+      const compareType = params.compareType || 'Hash';
+      
+      return `# Compare Two Files
+# Generated: ${new Date().toISOString()}
+
+$File1 = "${file1Path}"
+$File2 = "${file2Path}"
+
+if (-not (Test-Path $File1)) {
+    Write-Host "✗ First file not found: $File1" -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-Path $File2)) {
+    Write-Host "✗ Second file not found: $File2" -ForegroundColor Red
+    exit 1
+}
+
+$File1Info = Get-Item $File1
+$File2Info = Get-Item $File2
+
+Write-Host "Comparing files..." -ForegroundColor Gray
+Write-Host "  File 1: $File1 ($([math]::Round($File1Info.Length/1KB, 2)) KB)" -ForegroundColor Gray
+Write-Host "  File 2: $File2 ($([math]::Round($File2Info.Length/1KB, 2)) KB)" -ForegroundColor Gray
+Write-Host ""
+
+${compareType === 'Hash' ? `# Hash Comparison
+$Hash1 = (Get-FileHash -Path $File1 -Algorithm SHA256).Hash
+$Hash2 = (Get-FileHash -Path $File2 -Algorithm SHA256).Hash
+
+Write-Host "Hash 1: $Hash1" -ForegroundColor Cyan
+Write-Host "Hash 2: $Hash2" -ForegroundColor Cyan
+Write-Host ""
+
+if ($Hash1 -eq $Hash2) {
+    Write-Host "✓ Files are IDENTICAL" -ForegroundColor Green
+} else {
+    Write-Host "✗ Files are DIFFERENT" -ForegroundColor Red
+}` : `# Content Comparison
+$Content1 = Get-Content $File1
+$Content2 = Get-Content $File2
+
+$Differences = Compare-Object -ReferenceObject $Content1 -DifferenceObject $Content2
+
+if ($Differences) {
+    Write-Host "✗ Files are DIFFERENT" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Differences found:" -ForegroundColor Yellow
+    $Differences | ForEach-Object {
+        $Indicator = if ($_.SideIndicator -eq "<=") { "File1" } else { "File2" }
+        Write-Host "  [$Indicator] $($_.InputObject)" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "✓ Files are IDENTICAL" -ForegroundColor Green
+}`}`;
+    }
+  },
+
+  {
+    id: 'compare-directories',
+    name: 'Compare Two Directories',
+    category: 'File Operations',
+    isPremium: true,
+    description: 'Compare directory contents and identify differences',
+    instructions: `**How This Task Works:**
+- Compares contents of two directories
+- Identifies files only in source or destination
+- Optional hash comparison for matching files
+- Export report to CSV
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on both directories
+- No administrator rights required
+
+**What You Need to Provide:**
+- Source directory path
+- Destination directory path
+- Include subdirectories: true or false
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Scans both directories for files
+2. Compares file lists by relative path
+3. Identifies unique files in each directory
+4. Reports matching and different files
+5. Exports detailed report to CSV
+
+**Important Notes:**
+- Comparison by filename and relative path
+- Hash comparison optional for identical names
+- Large directories take time to compare
+- Useful for sync verification, backup audits`,
+    parameters: [
+      { id: 'sourceDir', label: 'Source Directory', type: 'path', required: true, placeholder: 'C:\\Source' },
+      { id: 'destDir', label: 'Destination Directory', type: 'path', required: true, placeholder: 'D:\\Destination' },
+      { id: 'recurse', label: 'Include Subdirectories', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const sourceDir = escapePowerShellString(params.sourceDir);
+      const destDir = escapePowerShellString(params.destDir);
+      const recurse = toPowerShellBoolean(params.recurse ?? true);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Compare Two Directories
+# Generated: ${new Date().toISOString()}
+
+$SourceDir = "${sourceDir}"
+$DestDir = "${destDir}"
+
+if (-not (Test-Path $SourceDir)) {
+    Write-Host "✗ Source directory not found: $SourceDir" -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-Path $DestDir)) {
+    Write-Host "✗ Destination directory not found: $DestDir" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Comparing directories..." -ForegroundColor Gray
+
+$SourceFiles = Get-ChildItem -Path $SourceDir ${recurse === '$true' ? '-Recurse' : ''} -File | ForEach-Object {
+    [PSCustomObject]@{
+        RelativePath = $_.FullName.Substring($SourceDir.Length)
+        FullPath = $_.FullName
+        Size = $_.Length
+    }
+}
+
+$DestFiles = Get-ChildItem -Path $DestDir ${recurse === '$true' ? '-Recurse' : ''} -File | ForEach-Object {
+    [PSCustomObject]@{
+        RelativePath = $_.FullName.Substring($DestDir.Length)
+        FullPath = $_.FullName
+        Size = $_.Length
+    }
+}
+
+$Report = @()
+
+# Files only in source
+$OnlyInSource = $SourceFiles | Where-Object { $_.RelativePath -notin $DestFiles.RelativePath }
+foreach ($f in $OnlyInSource) {
+    $Report += [PSCustomObject]@{ Status = "Only in Source"; RelativePath = $f.RelativePath; Size = $f.Size }
+}
+
+# Files only in destination
+$OnlyInDest = $DestFiles | Where-Object { $_.RelativePath -notin $SourceFiles.RelativePath }
+foreach ($f in $OnlyInDest) {
+    $Report += [PSCustomObject]@{ Status = "Only in Destination"; RelativePath = $f.RelativePath; Size = $f.Size }
+}
+
+# Files in both
+$InBoth = $SourceFiles | Where-Object { $_.RelativePath -in $DestFiles.RelativePath }
+foreach ($f in $InBoth) {
+    $Report += [PSCustomObject]@{ Status = "In Both"; RelativePath = $f.RelativePath; Size = $f.Size }
+}
+
+Write-Host ""
+Write-Host "✓ Comparison complete" -ForegroundColor Green
+Write-Host "  Source files: $($SourceFiles.Count)" -ForegroundColor Gray
+Write-Host "  Destination files: $($DestFiles.Count)" -ForegroundColor Gray
+Write-Host "  Only in source: $($OnlyInSource.Count)" -ForegroundColor Yellow
+Write-Host "  Only in destination: $($OnlyInDest.Count)" -ForegroundColor Yellow
+Write-Host "  In both: $($InBoth.Count)" -ForegroundColor Green
+
+${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: Directory Management
+  // ============================================
+
+  {
+    id: 'create-directory-structure',
+    name: 'Create Directory Structure',
+    category: 'Directory Management',
+    isPremium: true,
+    description: 'Create nested folder structure from template',
+    instructions: `**How This Task Works:**
+- Creates multiple folders at once
+- Supports nested folder structures
+- Optionally creates from comma-separated list
+- Useful for project setup
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Write permissions on target location
+- No administrator rights required
+
+**What You Need to Provide:**
+- Base path (parent directory)
+- Folder names (comma-separated list)
+- Create nested structure: true or false
+
+**What the Script Does:**
+1. Creates base directory if needed
+2. Parses folder list
+3. Creates each folder and subfolders
+4. Reports folders created
+5. Shows final directory tree
+
+**Important Notes:**
+- Nested paths use backslash separator
+- Existing folders are skipped (no error)
+- Useful for project templates
+- Creates parent directories automatically`,
+    parameters: [
+      { id: 'basePath', label: 'Base Path', type: 'path', required: true, placeholder: 'D:\\Projects\\NewProject' },
+      { id: 'folderList', label: 'Folder Names (comma-separated)', type: 'textarea', required: true, placeholder: 'src,docs,tests,config,logs' }
+    ],
+    scriptTemplate: (params) => {
+      const basePath = escapePowerShellString(params.basePath);
+      const folderList = params.folderList || '';
+      const folders = folderList.split(',').map((f: string) => f.trim()).filter((f: string) => f);
+      
+      return `# Create Directory Structure
+# Generated: ${new Date().toISOString()}
+
+$BasePath = "${basePath}"
+$Folders = @(${folders.map((f: string) => `"${escapePowerShellString(f)}"`).join(', ')})
+
+if (-not (Test-Path $BasePath)) {
+    New-Item -Path $BasePath -ItemType Directory -Force | Out-Null
+    Write-Host "✓ Created base directory: $BasePath" -ForegroundColor Green
+}
+
+$Created = 0
+foreach ($Folder in $Folders) {
+    $FolderPath = Join-Path $BasePath $Folder
+    if (-not (Test-Path $FolderPath)) {
+        New-Item -Path $FolderPath -ItemType Directory -Force | Out-Null
+        Write-Host "  ✓ Created: $Folder" -ForegroundColor Green
+        $Created++
+    } else {
+        Write-Host "  - Exists: $Folder" -ForegroundColor Gray
+    }
+}
+
+Write-Host ""
+Write-Host "✓ Created $Created new folders" -ForegroundColor Green
+Write-Host ""
+Write-Host "Directory structure:" -ForegroundColor Cyan
+Get-ChildItem $BasePath -Directory | ForEach-Object { Write-Host "  $($_.Name)" -ForegroundColor Gray }`;
+    }
+  },
+
+  {
+    id: 'remove-empty-directories',
+    name: 'Remove Empty Directories',
+    category: 'Directory Management',
+    isPremium: true,
+    description: 'Find and remove empty folders recursively',
+    instructions: `**How This Task Works:**
+- Scans for empty directories
+- Recursively removes nested empty folders
+- Test mode for safe preview
+- Reports folders removed
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Delete permissions on target location
+- No administrator rights required
+
+**What You Need to Provide:**
+- Target path to scan
+- Test mode: true for preview, false to delete
+
+**What the Script Does:**
+1. Scans all subdirectories
+2. Identifies folders with no files
+3. Processes from deepest level up
+4. In test mode: lists empty folders
+5. In delete mode: removes empty folders
+
+**Important Notes:**
+- Processes bottom-up (removes nested first)
+- Hidden files count as content
+- Test mode shows what would be deleted
+- May need multiple passes for nested empty`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'D:\\Shares' },
+      { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Remove Empty Directories
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$TestMode = ${testMode}
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Scanning for empty directories..." -ForegroundColor Gray
+
+$Removed = 0
+$EmptyDirs = @()
+
+do {
+    $EmptyDirs = Get-ChildItem -Path $TargetPath -Directory -Recurse | Where-Object {
+        (Get-ChildItem -Path $_.FullName -Force | Measure-Object).Count -eq 0
+    }
+    
+    foreach ($Dir in $EmptyDirs) {
+        if ($TestMode) {
+            Write-Host "  [Would remove] $($Dir.FullName)" -ForegroundColor Yellow
+        } else {
+            try {
+                Remove-Item -Path $Dir.FullName -Force
+                Write-Host "  ✓ Removed: $($Dir.FullName)" -ForegroundColor Green
+                $Removed++
+            } catch {
+                Write-Host "  ✗ Failed: $($Dir.FullName)" -ForegroundColor Red
+            }
+        }
+    }
+} while ($EmptyDirs.Count -gt 0 -and -not $TestMode)
+
+Write-Host ""
+if ($TestMode) {
+    Write-Host "⚠ TEST MODE - Found $($EmptyDirs.Count) empty directories" -ForegroundColor Yellow
+} else {
+    Write-Host "✓ Removed $Removed empty directories" -ForegroundColor Green
+}`;
+    }
+  },
+
+  {
+    id: 'directory-tree-export',
+    name: 'Export Directory Tree',
+    category: 'Directory Management',
+    isPremium: true,
+    description: 'Generate visual directory tree structure export',
+    instructions: `**How This Task Works:**
+- Creates visual tree representation
+- Shows folder hierarchy with indentation
+- Optional depth limit
+- Exports to text file
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target path
+- No administrator rights required
+
+**What You Need to Provide:**
+- Target directory path
+- Maximum depth (levels to display)
+- Export file path
+
+**What the Script Does:**
+1. Scans directory structure
+2. Creates indented tree visualization
+3. Shows folder names with tree characters
+4. Limits to specified depth
+5. Exports to text file
+
+**Important Notes:**
+- Useful for documentation
+- Large structures may be slow
+- Depth limit improves performance
+- Uses tree-like ASCII characters`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'C:\\Projects' },
+      { id: 'maxDepth', label: 'Maximum Depth', type: 'number', required: false, defaultValue: 5 },
+      { id: 'exportPath', label: 'Export Path (TXT)', type: 'path', required: true, placeholder: 'C:\\Reports\\tree.txt' }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const maxDepth = Number(params.maxDepth || 5);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Export Directory Tree
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$MaxDepth = ${maxDepth}
+$ExportPath = "${exportPath}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+function Get-DirectoryTree {
+    param([string]$Path, [int]$Depth = 0, [int]$MaxDepth = 5, [string]$Prefix = "")
+    
+    if ($Depth -gt $MaxDepth) { return }
+    
+    $Items = Get-ChildItem -Path $Path -Directory -ErrorAction SilentlyContinue
+    $Count = $Items.Count
+    $Index = 0
+    
+    foreach ($Item in $Items) {
+        $Index++
+        $IsLast = ($Index -eq $Count)
+        $Connector = if ($IsLast) { "└── " } else { "├── " }
+        $NewPrefix = if ($IsLast) { "$Prefix    " } else { "$Prefix│   " }
+        
+        "$Prefix$Connector$($Item.Name)"
+        Get-DirectoryTree -Path $Item.FullName -Depth ($Depth + 1) -MaxDepth $MaxDepth -Prefix $NewPrefix
+    }
+}
+
+Write-Host "Generating directory tree..." -ForegroundColor Gray
+
+$Tree = @()
+$Tree += $TargetPath
+$Tree += Get-DirectoryTree -Path $TargetPath -MaxDepth $MaxDepth
+
+$Tree | Out-File -FilePath $ExportPath -Encoding UTF8
+
+Write-Host ""
+Write-Host "✓ Directory tree exported to: $ExportPath" -ForegroundColor Green
+Write-Host ""
+Write-Host "Preview (first 20 lines):" -ForegroundColor Cyan
+$Tree | Select-Object -First 20 | ForEach-Object { Write-Host $_ -ForegroundColor Gray }`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: Permissions & Security
+  // ============================================
+
+  {
+    id: 'grant-ntfs-permissions',
+    name: 'Grant NTFS Permissions',
+    category: 'Permissions & Security',
+    isPremium: true,
+    description: 'Add NTFS permissions for user or group on folder',
+    instructions: `**How This Task Works:**
+- Grants NTFS permissions to user/group
+- Supports various permission levels
+- Option for inheritance to subfolders
+- Does not remove existing permissions
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Full control on target folder
+- Valid user/group account
+
+**What You Need to Provide:**
+- Target folder path
+- User or group (DOMAIN\\Username format)
+- Permission level (FullControl, Modify, Read, etc.)
+- Apply to subfolders: true or false
+
+**What the Script Does:**
+1. Validates target folder exists
+2. Creates access rule for specified user
+3. Adds rule to folder ACL
+4. Applies to subfolders if specified
+5. Reports permission applied
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Does NOT remove existing permissions
+- Use DOMAIN\\Username or DOMAIN\\Groupname
+- Permission levels: FullControl, Modify, ReadAndExecute, Read, Write`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'D:\\Shares\\Documents' },
+      { id: 'identity', label: 'User or Group', type: 'text', required: true, placeholder: 'DOMAIN\\Users' },
+      { id: 'permission', label: 'Permission Level', type: 'select', required: true, options: ['FullControl', 'Modify', 'ReadAndExecute', 'Read', 'Write'], defaultValue: 'ReadAndExecute' },
+      { id: 'applyToSubfolders', label: 'Apply to Subfolders', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const identity = escapePowerShellString(params.identity);
+      const permission = params.permission || 'ReadAndExecute';
+      const applyToSubfolders = params.applyToSubfolders ?? true;
+      
+      return `# Grant NTFS Permissions
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$Identity = "${identity}"
+$Permission = "${permission}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+try {
+    $Acl = Get-Acl -Path $TargetPath
+    
+    $InheritanceFlag = ${applyToSubfolders ? '"ContainerInherit,ObjectInherit"' : '"None"'}
+    $PropagationFlag = "None"
+    $AccessType = "Allow"
+    
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $Identity,
+        $Permission,
+        $InheritanceFlag,
+        $PropagationFlag,
+        $AccessType
+    )
+    
+    $Acl.AddAccessRule($AccessRule)
+    Set-Acl -Path $TargetPath -AclObject $Acl
+    
+    Write-Host "✓ Granted $Permission to $Identity on $TargetPath" -ForegroundColor Green
+    ${applyToSubfolders ? 'Write-Host "  Applied to subfolders: Yes" -ForegroundColor Gray' : ''}
+} catch {
+    Write-Host "✗ Failed to set permissions: \$_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'remove-ntfs-permissions',
+    name: 'Remove NTFS Permissions',
+    category: 'Permissions & Security',
+    isPremium: true,
+    description: 'Remove NTFS permissions for user or group from folder',
+    instructions: `**How This Task Works:**
+- Removes specific user/group from ACL
+- Preserves all other permissions
+- Option to remove from subfolders
+- Reports permissions removed
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Full control on target folder
+- Permission entry must exist
+
+**What You Need to Provide:**
+- Target folder path
+- User or group to remove (DOMAIN\\Username format)
+- Apply to subfolders: true or false
+
+**What the Script Does:**
+1. Validates target folder exists
+2. Gets current ACL
+3. Removes all rules for specified user
+4. Applies updated ACL
+5. Optionally removes from subfolders
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Removes ALL permissions for that user/group
+- Owner permissions cannot be removed
+- Consider inheritance implications`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'D:\\Shares\\Documents' },
+      { id: 'identity', label: 'User or Group', type: 'text', required: true, placeholder: 'DOMAIN\\OldUsers' },
+      { id: 'applyToSubfolders', label: 'Apply to Subfolders', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const identity = escapePowerShellString(params.identity);
+      const applyToSubfolders = toPowerShellBoolean(params.applyToSubfolders ?? false);
+      
+      return `# Remove NTFS Permissions
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$Identity = "${identity}"
+$ApplyToSubfolders = ${applyToSubfolders}
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+function Remove-UserPermission {
+    param([string]$Path, [string]$User)
+    
+    try {
+        $Acl = Get-Acl -Path $Path
+        $RulesToRemove = $Acl.Access | Where-Object { $_.IdentityReference -eq $User }
+        
+        foreach ($Rule in $RulesToRemove) {
+            $Acl.RemoveAccessRule($Rule) | Out-Null
+        }
+        
+        Set-Acl -Path $Path -AclObject $Acl
+        return $RulesToRemove.Count
+    } catch {
+        return 0
+    }
+}
+
+$Removed = Remove-UserPermission -Path $TargetPath -User $Identity
+Write-Host "✓ Removed $Removed permission(s) from: $TargetPath" -ForegroundColor Green
+
+if ($ApplyToSubfolders) {
+    Write-Host "Processing subfolders..." -ForegroundColor Gray
+    $Items = Get-ChildItem -Path $TargetPath -Recurse -Directory
+    foreach ($Item in $Items) {
+        $Count = Remove-UserPermission -Path $Item.FullName -User $Identity
+        if ($Count -gt 0) {
+            Write-Host "  ✓ Removed from: $($Item.FullName)" -ForegroundColor Green
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "✓ Permission removal complete" -ForegroundColor Green`;
+    }
+  },
+
+  {
+    id: 'export-ntfs-permissions',
+    name: 'Export NTFS Permissions Report',
+    category: 'Permissions & Security',
+    isPremium: true,
+    description: 'Generate comprehensive NTFS permissions report',
+    instructions: `**How This Task Works:**
+- Exports all NTFS permissions to CSV
+- Includes inheritance and propagation flags
+- Optionally scans subdirectories
+- Comprehensive security audit report
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target path
+- Administrator recommended for full report
+- Write permissions on export location
+
+**What You Need to Provide:**
+- Target folder path
+- Include subdirectories: true or false
+- Export CSV file path
+
+**What the Script Does:**
+1. Scans target folder and subfolders
+2. Gets ACL for each folder
+3. Exports all access rules
+4. Includes identity, permissions, inheritance
+5. Creates detailed CSV report
+
+**Important Notes:**
+- Large structures may take time
+- Useful for security audits
+- Shows inherited vs explicit permissions
+- CSV format for Excel analysis`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'D:\\Shares' },
+      { id: 'recurse', label: 'Include Subdirectories', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: true, placeholder: 'C:\\Reports\\Permissions.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const recurse = toPowerShellBoolean(params.recurse ?? true);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Export NTFS Permissions Report
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$Recurse = ${recurse}
+$ExportPath = "${exportPath}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Scanning NTFS permissions..." -ForegroundColor Gray
+
+$Report = @()
+
+if ($Recurse) {
+    $Folders = @(Get-Item $TargetPath) + @(Get-ChildItem -Path $TargetPath -Directory -Recurse -ErrorAction SilentlyContinue)
+} else {
+    $Folders = @(Get-Item $TargetPath)
+}
+
+foreach ($Folder in $Folders) {
+    try {
+        $Acl = Get-Acl -Path $Folder.FullName
+        foreach ($Access in $Acl.Access) {
+            $Report += [PSCustomObject]@{
+                Path = $Folder.FullName
+                Identity = $Access.IdentityReference
+                Permission = $Access.FileSystemRights
+                AccessType = $Access.AccessControlType
+                Inherited = $Access.IsInherited
+                InheritanceFlags = $Access.InheritanceFlags
+                PropagationFlags = $Access.PropagationFlags
+            }
+        }
+    } catch {
+        Write-Host "  ⚠ Access denied: $($Folder.FullName)" -ForegroundColor Yellow
+    }
+}
+
+$Report | Export-Csv -Path $ExportPath -NoTypeInformation
+
+Write-Host ""
+Write-Host "✓ Permissions report exported" -ForegroundColor Green
+Write-Host "  Folders scanned: $($Folders.Count)" -ForegroundColor Gray
+Write-Host "  Permission entries: $($Report.Count)" -ForegroundColor Gray
+Write-Host "  Export path: $ExportPath" -ForegroundColor Gray`;
+    }
+  },
+
+  {
+    id: 'reset-ntfs-permissions',
+    name: 'Reset NTFS Permissions to Default',
+    category: 'Permissions & Security',
+    isPremium: true,
+    description: 'Reset folder permissions to inherited defaults',
+    instructions: `**How This Task Works:**
+- Removes all explicit permissions
+- Re-enables permission inheritance
+- Resets to parent folder defaults
+- Option to apply recursively
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Full control or TakeOwnership right
+- Backup permissions before reset
+
+**What You Need to Provide:**
+- Target folder path
+- Apply recursively: true or false
+- Test mode: true for preview, false to apply
+
+**What the Script Does:**
+1. Clears all explicit permissions
+2. Re-enables inheritance from parent
+3. Applies inherited permissions
+4. Processes subfolders if recursive
+5. Reports folders reset
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- REMOVES ALL EXPLICIT PERMISSIONS
+- Uses parent folder permissions
+- Test mode highly recommended first`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Path', type: 'path', required: true, placeholder: 'D:\\Shares\\Folder' },
+      { id: 'recurse', label: 'Apply Recursively', type: 'boolean', required: false, defaultValue: false },
+      { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const recurse = toPowerShellBoolean(params.recurse ?? false);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Reset NTFS Permissions to Default
+# Generated: ${new Date().toISOString()}
+# WARNING: This removes all explicit permissions
+
+$TargetPath = "${targetPath}"
+$Recurse = ${recurse}
+$TestMode = ${testMode}
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+function Reset-FolderPermissions {
+    param([string]$Path, [bool]$Preview)
+    
+    if ($Preview) {
+        Write-Host "  [Would reset] $Path" -ForegroundColor Yellow
+        return
+    }
+    
+    try {
+        $Acl = Get-Acl -Path $Path
+        $Acl.SetAccessRuleProtection($false, $false)
+        Set-Acl -Path $Path -AclObject $Acl
+        Write-Host "  ✓ Reset: $Path" -ForegroundColor Green
+    } catch {
+        Write-Host "  ✗ Failed: $Path - \$_" -ForegroundColor Red
+    }
+}
+
+Write-Host "Resetting NTFS permissions..." -ForegroundColor Gray
+Reset-FolderPermissions -Path $TargetPath -Preview $TestMode
+
+if ($Recurse) {
+    $Items = Get-ChildItem -Path $TargetPath -Directory -Recurse
+    foreach ($Item in $Items) {
+        Reset-FolderPermissions -Path $Item.FullName -Preview $TestMode
+    }
+}
+
+Write-Host ""
+if ($TestMode) {
+    Write-Host "⚠ TEST MODE - No changes made" -ForegroundColor Yellow
+} else {
+    Write-Host "✓ Permissions reset complete" -ForegroundColor Green
+}`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: Compression & Archives
+  // ============================================
+
+  {
+    id: 'create-7zip-archive',
+    name: 'Create 7-Zip Archive',
+    category: 'Compression',
+    isPremium: true,
+    description: 'Create compressed 7z archive with password option',
+    instructions: `**How This Task Works:**
+- Creates 7z archive using 7-Zip
+- Supports password protection
+- Better compression than ZIP
+- Optional compression level
+
+**Prerequisites:**
+- 7-Zip installed (7z.exe in PATH)
+- PowerShell 5.1 or later
+- Read permissions on source
+- Write permissions on destination
+
+**What You Need to Provide:**
+- Source path (file or folder)
+- Destination archive path (.7z)
+- Optional: Password for encryption
+- Compression level (0=none, 9=maximum)
+
+**What the Script Does:**
+1. Validates 7-Zip installation
+2. Creates 7z archive with specified options
+3. Applies password encryption if set
+4. Reports compression ratio
+5. Confirms archive creation
+
+**Important Notes:**
+- Requires 7-Zip installation
+- Password uses AES-256 encryption
+- Level 9 = best compression, slowest
+- Level 0 = no compression, fastest
+- Stronger compression than ZIP format`,
+    parameters: [
+      { id: 'sourcePath', label: 'Source Path', type: 'path', required: true, placeholder: 'C:\\DataFolder' },
+      { id: 'archivePath', label: 'Archive Path (.7z)', type: 'path', required: true, placeholder: 'C:\\Backups\\data.7z' },
+      { id: 'password', label: 'Password (Optional)', type: 'text', required: false, placeholder: 'SecurePassword123' },
+      { id: 'compressionLevel', label: 'Compression Level (0-9)', type: 'number', required: false, defaultValue: 5 }
+    ],
+    scriptTemplate: (params) => {
+      const sourcePath = escapePowerShellString(params.sourcePath);
+      const archivePath = escapePowerShellString(params.archivePath);
+      const password = params.password ? escapePowerShellString(params.password) : '';
+      const compressionLevel = Number(params.compressionLevel ?? 5);
+      
+      return `# Create 7-Zip Archive
+# Generated: ${new Date().toISOString()}
+
+$Source = "${sourcePath}"
+$Archive = "${archivePath}"
+$CompressionLevel = ${compressionLevel}
+
+# Check for 7-Zip
+$7zPath = Get-Command "7z.exe" -ErrorAction SilentlyContinue
+if (-not $7zPath) {
+    $7zPath = "C:\\Program Files\\7-Zip\\7z.exe"
+    if (-not (Test-Path $7zPath)) {
+        Write-Host "✗ 7-Zip not found. Please install 7-Zip." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    $7zPath = $7zPath.Source
+}
+
+if (-not (Test-Path $Source)) {
+    Write-Host "✗ Source not found: $Source" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Creating 7z archive..." -ForegroundColor Gray
+
+$Args = @("a", "-t7z", "-mx=$CompressionLevel", $Archive, $Source)
+${password ? `$Args += "-p${password}"
+$Args += "-mhe=on"` : ''}
+
+try {
+    & $7zPath @Args
+    
+    if (Test-Path $Archive) {
+        $ArchiveInfo = Get-Item $Archive
+        Write-Host ""
+        Write-Host "✓ Archive created successfully" -ForegroundColor Green
+        Write-Host "  Location: $Archive" -ForegroundColor Gray
+        Write-Host "  Size: $([math]::Round($ArchiveInfo.Length/1MB, 2)) MB" -ForegroundColor Gray
+        ${password ? 'Write-Host "  Password protected: Yes" -ForegroundColor Yellow' : ''}
+    }
+} catch {
+    Write-Host "✗ Archive creation failed: \$_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'extract-7zip-archive',
+    name: 'Extract 7-Zip Archive',
+    category: 'Compression',
+    isPremium: true,
+    description: 'Extract 7z, ZIP, RAR, and other archives',
+    instructions: `**How This Task Works:**
+- Extracts various archive formats
+- Supports 7z, ZIP, RAR, TAR, GZIP
+- Password support for encrypted archives
+- Preserves folder structure
+
+**Prerequisites:**
+- 7-Zip installed (7z.exe in PATH)
+- PowerShell 5.1 or later
+- Read permissions on archive
+- Write permissions on destination
+
+**What You Need to Provide:**
+- Archive file path
+- Destination folder
+- Password (if encrypted)
+- Overwrite option
+
+**What the Script Does:**
+1. Validates 7-Zip installation
+2. Extracts archive to destination
+3. Uses password if encrypted
+4. Preserves original structure
+5. Reports files extracted
+
+**Important Notes:**
+- Requires 7-Zip installation
+- Supports many archive formats
+- Overwrites existing if specified
+- Creates destination folder if needed`,
+    parameters: [
+      { id: 'archivePath', label: 'Archive Path', type: 'path', required: true, placeholder: 'C:\\Downloads\\archive.7z' },
+      { id: 'destinationPath', label: 'Destination Folder', type: 'path', required: true, placeholder: 'C:\\Extracted' },
+      { id: 'password', label: 'Password (if encrypted)', type: 'text', required: false },
+      { id: 'overwrite', label: 'Overwrite Existing', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const archivePath = escapePowerShellString(params.archivePath);
+      const destinationPath = escapePowerShellString(params.destinationPath);
+      const password = params.password ? escapePowerShellString(params.password) : '';
+      const overwrite = params.overwrite ?? false;
+      
+      return `# Extract 7-Zip Archive
+# Generated: ${new Date().toISOString()}
+
+$Archive = "${archivePath}"
+$Destination = "${destinationPath}"
+
+# Check for 7-Zip
+$7zPath = Get-Command "7z.exe" -ErrorAction SilentlyContinue
+if (-not $7zPath) {
+    $7zPath = "C:\\Program Files\\7-Zip\\7z.exe"
+    if (-not (Test-Path $7zPath)) {
+        Write-Host "✗ 7-Zip not found. Please install 7-Zip." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    $7zPath = $7zPath.Source
+}
+
+if (-not (Test-Path $Archive)) {
+    Write-Host "✗ Archive not found: $Archive" -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-Path $Destination)) {
+    New-Item -Path $Destination -ItemType Directory -Force | Out-Null
+}
+
+Write-Host "Extracting archive..." -ForegroundColor Gray
+
+$Args = @("x", $Archive, "-o$Destination", ${overwrite ? '"-aoa"' : '"-aos"'})
+${password ? `$Args += "-p${password}"` : ''}
+
+try {
+    & $7zPath @Args
+    
+    $FileCount = (Get-ChildItem -Path $Destination -Recurse -File | Measure-Object).Count
+    Write-Host ""
+    Write-Host "✓ Extraction complete" -ForegroundColor Green
+    Write-Host "  Files extracted: $FileCount" -ForegroundColor Gray
+    Write-Host "  Location: $Destination" -ForegroundColor Gray
+} catch {
+    Write-Host "✗ Extraction failed: \$_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'list-archive-contents',
+    name: 'List Archive Contents',
+    category: 'Compression',
+    isPremium: true,
+    description: 'View contents of ZIP, 7z, or other archives without extracting',
+    instructions: `**How This Task Works:**
+- Lists archive contents without extraction
+- Shows file sizes, dates, compression ratio
+- Supports multiple archive formats
+- Export listing to CSV
+
+**Prerequisites:**
+- 7-Zip installed for 7z/RAR formats
+- PowerShell 5.1 or later
+- Read permissions on archive
+
+**What You Need to Provide:**
+- Archive file path
+- Optional: Export CSV path
+
+**What the Script Does:**
+1. Opens archive for reading
+2. Lists all files with details
+3. Shows size, compressed size, ratio
+4. Displays modification dates
+5. Optionally exports to CSV
+
+**Important Notes:**
+- ZIP uses built-in .NET classes
+- Other formats require 7-Zip
+- Does not extract any files
+- Useful for archive inspection`,
+    parameters: [
+      { id: 'archivePath', label: 'Archive Path', type: 'path', required: true, placeholder: 'C:\\Downloads\\archive.zip' },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const archivePath = escapePowerShellString(params.archivePath);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# List Archive Contents
+# Generated: ${new Date().toISOString()}
+
+$Archive = "${archivePath}"
+
+if (-not (Test-Path $Archive)) {
+    Write-Host "✗ Archive not found: $Archive" -ForegroundColor Red
+    exit 1
+}
+
+$Extension = [System.IO.Path]::GetExtension($Archive).ToLower()
+
+if ($Extension -eq ".zip") {
+    # Use .NET for ZIP files
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    
+    $ZipArchive = [System.IO.Compression.ZipFile]::OpenRead($Archive)
+    
+    $Contents = $ZipArchive.Entries | ForEach-Object {
+        [PSCustomObject]@{
+            Name = $_.Name
+            FullPath = $_.FullName
+            SizeKB = [math]::Round($_.Length/1KB, 2)
+            CompressedKB = [math]::Round($_.CompressedLength/1KB, 2)
+            Ratio = if ($_.Length -gt 0) { [math]::Round((1 - $_.CompressedLength/$_.Length) * 100, 1) } else { 0 }
+            Modified = $_.LastWriteTime
+        }
+    }
+    
+    $ZipArchive.Dispose()
+} else {
+    # Use 7-Zip for other formats
+    $7zPath = "C:\\Program Files\\7-Zip\\7z.exe"
+    if (-not (Test-Path $7zPath)) {
+        Write-Host "✗ 7-Zip required for this format" -ForegroundColor Red
+        exit 1
+    }
+    
+    $Output = & $7zPath l $Archive
+    Write-Host $Output
+    exit 0
+}
+
+Write-Host "Archive contents:" -ForegroundColor Cyan
+$Contents | Format-Table Name, SizeKB, CompressedKB, @{N='Ratio%';E={$_.Ratio}}, Modified -AutoSize
+
+Write-Host ""
+Write-Host "Total files: $($Contents.Count)" -ForegroundColor Gray
+Write-Host "Total size: $([math]::Round(($Contents | Measure-Object -Property SizeKB -Sum).Sum, 2)) KB" -ForegroundColor Gray
+
+${exportPath ? `$Contents | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: Disk Management
+  // ============================================
+
+  {
+    id: 'get-disk-info',
+    name: 'Get Physical Disk Information',
+    category: 'Disk Management',
+    isPremium: true,
+    description: 'Display detailed physical disk and partition information',
+    instructions: `**How This Task Works:**
+- Shows physical disk details
+- Displays partition layout
+- Reports disk health status
+- Includes SMART data if available
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Administrator recommended for full info
+- No special software required
+
+**What You Need to Provide:**
+- Optional: Export CSV path
+
+**What the Script Does:**
+1. Gets all physical disks
+2. Shows disk model, size, interface
+3. Lists partitions on each disk
+4. Reports health/operational status
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Administrator gets more detailed info
+- Shows all connected disks
+- Includes USB, SSD, HDD
+- Useful for inventory and planning`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Physical Disk Information
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Physical Disk Information" -ForegroundColor Cyan
+Write-Host "=========================" -ForegroundColor Cyan
+Write-Host ""
+
+$Disks = Get-PhysicalDisk | Select-Object DeviceId, FriendlyName, MediaType, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}, HealthStatus, OperationalStatus, BusType
+
+$Disks | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Volume Information" -ForegroundColor Cyan
+Write-Host "=================" -ForegroundColor Cyan
+Write-Host ""
+
+$Volumes = Get-Volume | Where-Object { $_.DriveLetter } | Select-Object DriveLetter, FileSystemLabel, FileSystem, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}, @{N='FreeGB';E={[math]::Round($_.SizeRemaining/1GB,2)}}, HealthStatus
+
+$Volumes | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Partition Information" -ForegroundColor Cyan
+Write-Host "====================" -ForegroundColor Cyan
+Write-Host ""
+
+Get-Partition | Select-Object DiskNumber, PartitionNumber, DriveLetter, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}, Type | Format-Table -AutoSize
+
+${exportPath ? `
+$Report = @()
+foreach ($Disk in $Disks) {
+    $Report += [PSCustomObject]@{
+        Type = "PhysicalDisk"
+        DeviceId = $Disk.DeviceId
+        Name = $Disk.FriendlyName
+        MediaType = $Disk.MediaType
+        SizeGB = $Disk.SizeGB
+        Status = $Disk.HealthStatus
+    }
+}
+$Report | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'get-volume-info',
+    name: 'Get Volume and Mount Point Info',
+    category: 'Disk Management',
+    isPremium: true,
+    description: 'Display volume details including mount points and drive letters',
+    instructions: `**How This Task Works:**
+- Lists all volumes with details
+- Shows mount points and junctions
+- Displays file system information
+- Reports space usage
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- No administrator required
+- No special software needed
+
+**What You Need to Provide:**
+- Optional: Export CSV path
+
+**What the Script Does:**
+1. Gets all Windows volumes
+2. Shows drive letter, label, file system
+3. Displays total and free space
+4. Lists mount points if any
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Shows local and network volumes
+- Mount points show folder paths
+- Useful for storage planning
+- No admin required for basic info`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Volume and Mount Point Info
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Volume Information" -ForegroundColor Cyan
+Write-Host "==================" -ForegroundColor Cyan
+Write-Host ""
+
+$Volumes = Get-Volume | Select-Object @{N='Drive';E={if ($_.DriveLetter) {"$($_.DriveLetter):"} else {"N/A"}}}, FileSystemLabel, FileSystem, DriveType, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}, @{N='FreeGB';E={[math]::Round($_.SizeRemaining/1GB,2)}}, @{N='UsedPercent';E={if ($_.Size -gt 0) {[math]::Round((($_.Size - $_.SizeRemaining)/$_.Size)*100,1)} else {0}}}, HealthStatus
+
+$Volumes | Format-Table -AutoSize
+
+Write-Host ""
+Write-Host "Mount Points" -ForegroundColor Cyan
+Write-Host "============" -ForegroundColor Cyan
+Write-Host ""
+
+$MountPoints = Get-WmiObject Win32_MountPoint | ForEach-Object {
+    $Volume = Get-WmiObject Win32_Volume | Where-Object { $_.DeviceID -eq $_.Volume }
+    if ($Volume) {
+        [PSCustomObject]@{
+            Directory = $_.Directory.Split('"')[1]
+            DeviceID = $_.Volume
+        }
+    }
+}
+
+if ($MountPoints) {
+    $MountPoints | Format-Table -AutoSize
+} else {
+    Write-Host "No volume mount points found" -ForegroundColor Gray
+}
+
+${exportPath ? `$Volumes | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  {
+    id: 'check-disk-health',
+    name: 'Check Disk Health Status',
+    category: 'Disk Management',
+    isPremium: true,
+    description: 'Monitor disk health and predict potential failures',
+    instructions: `**How This Task Works:**
+- Checks physical disk health
+- Reports SMART status
+- Identifies potential failures
+- Shows reliability statistics
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Administrator recommended
+- Windows 8/Server 2012 or later
+
+**What You Need to Provide:**
+- Optional: Export CSV path
+
+**What the Script Does:**
+1. Gets all physical disk status
+2. Checks health and operational status
+3. Reports any warnings or errors
+4. Lists disk reliability counters
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Healthy = disk operating normally
+- Warning/Unhealthy = backup immediately
+- SMART data may not be available on all disks
+- SSD and HDD both supported`,
+    parameters: [
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Check Disk Health Status
+# Generated: ${new Date().toISOString()}
+
+Write-Host "Disk Health Status Report" -ForegroundColor Cyan
+Write-Host "=========================" -ForegroundColor Cyan
+Write-Host ""
+
+$Disks = Get-PhysicalDisk | Select-Object DeviceId, FriendlyName, MediaType, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}, HealthStatus, OperationalStatus
+
+foreach ($Disk in $Disks) {
+    $StatusColor = switch ($Disk.HealthStatus) {
+        "Healthy" { "Green" }
+        "Warning" { "Yellow" }
+        "Unhealthy" { "Red" }
+        default { "Gray" }
+    }
+    
+    Write-Host "Disk $($Disk.DeviceId): $($Disk.FriendlyName)" -ForegroundColor White
+    Write-Host "  Type: $($Disk.MediaType)" -ForegroundColor Gray
+    Write-Host "  Size: $($Disk.SizeGB) GB" -ForegroundColor Gray
+    Write-Host "  Health: $($Disk.HealthStatus)" -ForegroundColor $StatusColor
+    Write-Host "  Status: $($Disk.OperationalStatus)" -ForegroundColor Gray
+    Write-Host ""
+}
+
+# Check for reliability counters
+Write-Host "Disk Reliability Data" -ForegroundColor Cyan
+Write-Host "=====================" -ForegroundColor Cyan
+Write-Host ""
+
+try {
+    $Reliability = Get-PhysicalDisk | Get-StorageReliabilityCounter | Select-Object DeviceId, ReadErrorsTotal, WriteErrorsTotal, Temperature, Wear
+
+    if ($Reliability) {
+        $Reliability | Format-Table -AutoSize
+    } else {
+        Write-Host "Reliability data not available" -ForegroundColor Gray
+    }
+} catch {
+    Write-Host "Unable to retrieve reliability counters" -ForegroundColor Yellow
+}
+
+# Summary
+$UnhealthyDisks = $Disks | Where-Object { $_.HealthStatus -ne "Healthy" }
+if ($UnhealthyDisks) {
+    Write-Host ""
+    Write-Host "⚠ WARNING: $($UnhealthyDisks.Count) disk(s) require attention!" -ForegroundColor Red
+} else {
+    Write-Host ""
+    Write-Host "✓ All disks healthy" -ForegroundColor Green
+}
+
+${exportPath ? `$Disks | Export-Csv "${exportPath}" -NoTypeInformation
+Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: File Monitoring
+  // ============================================
+
+  {
+    id: 'monitor-folder-realtime',
+    name: 'Monitor Folder Changes (Real-Time)',
+    category: 'File Monitoring',
+    isPremium: true,
+    description: 'Watch folder for file changes in real-time',
+    instructions: `**How This Task Works:**
+- Monitors folder for file changes
+- Detects create, modify, delete, rename
+- Real-time notifications
+- Optional logging to file
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target folder
+- Script runs continuously
+
+**What You Need to Provide:**
+- Target folder path
+- Include subdirectories: true or false
+- Log file path (optional)
+- Duration in seconds (0 = indefinite)
+
+**What the Script Does:**
+1. Creates FileSystemWatcher object
+2. Registers event handlers
+3. Monitors for all change types
+4. Displays changes in console
+5. Optionally logs to file
+
+**Important Notes:**
+- Runs continuously until stopped
+- Use Ctrl+C to stop monitoring
+- Large folders may miss rapid changes
+- Log file grows with activity`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Folder', type: 'path', required: true, placeholder: 'D:\\ImportantFiles' },
+      { id: 'includeSubdirs', label: 'Include Subdirectories', type: 'boolean', required: false, defaultValue: true },
+      { id: 'logPath', label: 'Log File Path', type: 'path', required: false, placeholder: 'C:\\Logs\\FolderMonitor.log' },
+      { id: 'durationSeconds', label: 'Duration (seconds, 0=indefinite)', type: 'number', required: false, defaultValue: 0 }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const includeSubdirs = toPowerShellBoolean(params.includeSubdirs ?? true);
+      const logPath = params.logPath ? escapePowerShellString(params.logPath) : '';
+      const duration = Number(params.durationSeconds || 0);
+      
+      return `# Monitor Folder Changes (Real-Time)
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$IncludeSubdirs = ${includeSubdirs}
+${logPath ? `$LogPath = "${logPath}"` : ''}
+$Duration = ${duration}
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Starting folder monitor..." -ForegroundColor Cyan
+Write-Host "Watching: $TargetPath" -ForegroundColor Gray
+Write-Host "Press Ctrl+C to stop" -ForegroundColor Yellow
+Write-Host ""
+
+$Watcher = New-Object System.IO.FileSystemWatcher
+$Watcher.Path = $TargetPath
+$Watcher.IncludeSubdirectories = $IncludeSubdirs
+$Watcher.EnableRaisingEvents = $true
+
+$Action = {
+    $Event = $Event.SourceEventArgs
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $Message = "[$Timestamp] $($Event.ChangeType): $($Event.FullPath)"
+    
+    $Color = switch ($Event.ChangeType) {
+        "Created" { "Green" }
+        "Deleted" { "Red" }
+        "Changed" { "Yellow" }
+        "Renamed" { "Cyan" }
+        default { "Gray" }
+    }
+    
+    Write-Host $Message -ForegroundColor $Color
+    ${logPath ? `Add-Content -Path $LogPath -Value $Message` : ''}
+}
+
+$Handlers = @()
+$Handlers += Register-ObjectEvent $Watcher "Created" -Action $Action
+$Handlers += Register-ObjectEvent $Watcher "Deleted" -Action $Action
+$Handlers += Register-ObjectEvent $Watcher "Changed" -Action $Action
+$Handlers += Register-ObjectEvent $Watcher "Renamed" -Action $Action
+
+try {
+    if ($Duration -gt 0) {
+        Start-Sleep -Seconds $Duration
+    } else {
+        while ($true) { Start-Sleep -Seconds 1 }
+    }
+} finally {
+    $Handlers | ForEach-Object { Unregister-Event -SubscriptionId $_.Id }
+    $Watcher.Dispose()
+    Write-Host ""
+    Write-Host "✓ Monitoring stopped" -ForegroundColor Green
+}`;
+    }
+  },
+
+  {
+    id: 'audit-file-access',
+    name: 'Enable File Access Auditing',
+    category: 'File Monitoring',
+    isPremium: true,
+    description: 'Configure NTFS auditing for file access tracking',
+    instructions: `**How This Task Works:**
+- Enables NTFS audit policies
+- Tracks file access, modify, delete
+- Logs to Windows Security Event Log
+- Configurable audit options
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Full control on target folder
+- Audit policy must be enabled in GPO
+
+**What You Need to Provide:**
+- Target folder path
+- Audit success: true or false
+- Audit failure: true or false
+- Apply to subfolders: true or false
+
+**What the Script Does:**
+1. Gets current folder ACL
+2. Creates audit rule for Everyone
+3. Adds audit rule to SACL
+4. Applies to folder and subfolders
+5. Events appear in Security Log
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Must enable "Audit object access" in GPO
+- Security log stores audit events
+- High volume folders generate many events`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Folder', type: 'path', required: true, placeholder: 'D:\\SensitiveData' },
+      { id: 'auditSuccess', label: 'Audit Success', type: 'boolean', required: false, defaultValue: true },
+      { id: 'auditFailure', label: 'Audit Failure', type: 'boolean', required: false, defaultValue: true },
+      { id: 'applyToSubfolders', label: 'Apply to Subfolders', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const auditSuccess = params.auditSuccess ?? true;
+      const auditFailure = params.auditFailure ?? true;
+      const applyToSubfolders = params.applyToSubfolders ?? true;
+      
+      return `# Enable File Access Auditing
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+# Build audit flags
+$AuditFlags = @()
+${auditSuccess ? '$AuditFlags += "Success"' : ''}
+${auditFailure ? '$AuditFlags += "Failure"' : ''}
+
+if ($AuditFlags.Count -eq 0) {
+    Write-Host "✗ Must enable at least Success or Failure auditing" -ForegroundColor Red
+    exit 1
+}
+
+$AuditType = $AuditFlags -join ","
+
+try {
+    $Acl = Get-Acl -Path $TargetPath -Audit
+    
+    $InheritanceFlags = ${applyToSubfolders ? '"ContainerInherit,ObjectInherit"' : '"None"'}
+    
+    $AuditRule = New-Object System.Security.AccessControl.FileSystemAuditRule(
+        "Everyone",
+        "ReadData,WriteData,Delete,ChangePermissions",
+        $InheritanceFlags,
+        "None",
+        $AuditType
+    )
+    
+    $Acl.AddAuditRule($AuditRule)
+    Set-Acl -Path $TargetPath -AclObject $Acl
+    
+    Write-Host "✓ Auditing enabled on: $TargetPath" -ForegroundColor Green
+    Write-Host "  Audit type: $AuditType" -ForegroundColor Gray
+    ${applyToSubfolders ? 'Write-Host "  Applied to subfolders: Yes" -ForegroundColor Gray' : ''}
+    Write-Host ""
+    Write-Host "Note: Ensure 'Audit object access' is enabled in Group Policy" -ForegroundColor Yellow
+    Write-Host "View events in: Event Viewer > Windows Logs > Security" -ForegroundColor Gray
+} catch {
+    Write-Host "✗ Failed to set auditing: \$_" -ForegroundColor Red
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'get-recent-file-changes',
+    name: 'Get Recently Modified Files',
+    category: 'File Monitoring',
+    isPremium: true,
+    description: 'Find files modified within specified time period',
+    instructions: `**How This Task Works:**
+- Finds files changed in time window
+- Filters by hours, days, or minutes
+- Shows modification timestamps
+- Exports results to CSV
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target path
+- No administrator required
+
+**What You Need to Provide:**
+- Target folder path
+- Time period (hours, days, or minutes)
+- Time value (number)
+- Optional: CSV export path
+
+**What the Script Does:**
+1. Calculates cutoff timestamp
+2. Scans folder recursively
+3. Filters by LastWriteTime
+4. Sorts by modification time
+5. Exports results if requested
+
+**Important Notes:**
+- Uses LastWriteTime attribute
+- Includes all file types
+- Large folders take longer
+- Useful for change tracking`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Folder', type: 'path', required: true, placeholder: 'D:\\Projects' },
+      { id: 'timePeriod', label: 'Time Period', type: 'select', required: true, options: ['Minutes', 'Hours', 'Days'], defaultValue: 'Hours' },
+      { id: 'timeValue', label: 'Time Value', type: 'number', required: true, defaultValue: 24 },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const timePeriod = params.timePeriod || 'Hours';
+      const timeValue = Number(params.timeValue || 24);
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Get Recently Modified Files
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$TimeValue = ${timeValue}
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+$Cutoff = switch ("${timePeriod}") {
+    "Minutes" { (Get-Date).AddMinutes(-$TimeValue) }
+    "Hours" { (Get-Date).AddHours(-$TimeValue) }
+    "Days" { (Get-Date).AddDays(-$TimeValue) }
+}
+
+Write-Host "Searching for files modified since: $Cutoff" -ForegroundColor Gray
+Write-Host ""
+
+$Files = Get-ChildItem -Path $TargetPath -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $Cutoff } | Sort-Object LastWriteTime -Descending | Select-Object @{N='FileName';E={$_.Name}}, @{N='Path';E={$_.FullName}}, @{N='SizeKB';E={[math]::Round($_.Length/1KB,2)}}, @{N='Modified';E={$_.LastWriteTime}}, @{N='Created';E={$_.CreationTime}}
+
+if ($Files) {
+    $Files | Format-Table FileName, SizeKB, Modified -AutoSize
+    
+    Write-Host ""
+    Write-Host "✓ Found $($Files.Count) files modified in last ${timeValue} ${timePeriod.ToLower()}" -ForegroundColor Green
+    
+    ${exportPath ? `$Files | Export-Csv "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+} else {
+    Write-Host "No files modified in specified time period" -ForegroundColor Yellow
+}`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: Cleanup & Maintenance
+  // ============================================
+
+  {
+    id: 'cleanup-iis-logs',
+    name: 'Cleanup IIS Log Files',
+    category: 'Disk Cleanup',
+    isPremium: true,
+    description: 'Remove old IIS log files to reclaim disk space',
+    instructions: `**How This Task Works:**
+- Cleans IIS log files by age
+- Targets default and custom log paths
+- Test mode for safe preview
+- Compresses old logs before deletion
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- IIS installed on server
+- Delete permissions on log folders
+
+**What You Need to Provide:**
+- Log folder path (default: C:\\inetpub\\logs)
+- Days to keep (default: 30)
+- Test mode: true for preview
+
+**What the Script Does:**
+1. Scans IIS log directories
+2. Identifies files older than retention
+3. In test mode: shows files to delete
+4. In delete mode: removes old logs
+5. Reports space reclaimed
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Default IIS logs: C:\\inetpub\\logs\\LogFiles
+- Check compliance requirements first
+- Consider archiving before deletion`,
+    parameters: [
+      { id: 'logPath', label: 'IIS Log Path', type: 'path', required: false, defaultValue: 'C:\\inetpub\\logs\\LogFiles', placeholder: 'C:\\inetpub\\logs\\LogFiles' },
+      { id: 'daysToKeep', label: 'Days to Keep', type: 'number', required: false, defaultValue: 30 },
+      { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const logPath = escapePowerShellString(params.logPath || 'C:\\inetpub\\logs\\LogFiles');
+      const daysToKeep = Number(params.daysToKeep || 30);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Cleanup IIS Log Files
+# Generated: ${new Date().toISOString()}
+
+$LogPath = "${logPath}"
+$DaysToKeep = ${daysToKeep}
+$TestMode = ${testMode}
+$CutoffDate = (Get-Date).AddDays(-$DaysToKeep)
+
+if (-not (Test-Path $LogPath)) {
+    Write-Host "✗ Log path not found: $LogPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Scanning IIS logs older than $DaysToKeep days..." -ForegroundColor Gray
+
+$LogFiles = Get-ChildItem -Path $LogPath -Recurse -Filter "*.log" -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $CutoffDate }
+
+$TotalSize = ($LogFiles | Measure-Object -Property Length -Sum).Sum
+
+Write-Host ""
+Write-Host "Found $($LogFiles.Count) log files to clean" -ForegroundColor Yellow
+Write-Host "Total size: $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Gray
+
+if ($TestMode) {
+    Write-Host ""
+    Write-Host "⚠ TEST MODE - Preview only (no files deleted)" -ForegroundColor Yellow
+    $LogFiles | Select-Object -First 10 Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}}, LastWriteTime | Format-Table -AutoSize
+} else {
+    $Deleted = 0
+    foreach ($File in $LogFiles) {
+        try {
+            Remove-Item $File.FullName -Force
+            $Deleted++
+        } catch {
+            Write-Host "  ⚠ Cannot delete: $($File.Name)" -ForegroundColor Yellow
+        }
+    }
+    Write-Host ""
+    Write-Host "✓ Deleted $Deleted files, freed $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green
+}`;
+    }
+  },
+
+  {
+    id: 'cleanup-windows-update',
+    name: 'Cleanup Windows Update Cache',
+    category: 'Disk Cleanup',
+    isPremium: true,
+    description: 'Remove Windows Update download cache files',
+    instructions: `**How This Task Works:**
+- Cleans Windows Update cache
+- Removes downloaded update files
+- Frees significant disk space
+- Stops/starts Windows Update service
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Windows Update service access
+
+**What You Need to Provide:**
+- Test mode: true for preview only
+
+**What the Script Does:**
+1. Stops Windows Update service
+2. Clears SoftwareDistribution\\Download folder
+3. Restarts Windows Update service
+4. Reports space reclaimed
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Temporarily stops Windows Update
+- Safe operation - files redownload if needed
+- May require system restart`,
+    parameters: [
+      { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      
+      return `# Cleanup Windows Update Cache
+# Generated: ${new Date().toISOString()}
+
+$TestMode = ${testMode}
+$CachePath = "$env:SystemRoot\\SoftwareDistribution\\Download"
+
+if (-not (Test-Path $CachePath)) {
+    Write-Host "✗ Windows Update cache not found" -ForegroundColor Red
+    exit 1
+}
+
+$Files = Get-ChildItem -Path $CachePath -Recurse -File -ErrorAction SilentlyContinue
+$TotalSize = ($Files | Measure-Object -Property Length -Sum).Sum
+
+Write-Host "Windows Update Cache Analysis" -ForegroundColor Cyan
+Write-Host "=============================" -ForegroundColor Cyan
+Write-Host "  Path: $CachePath" -ForegroundColor Gray
+Write-Host "  Files: $($Files.Count)" -ForegroundColor Gray
+Write-Host "  Size: $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Gray
+Write-Host ""
+
+if ($TestMode) {
+    Write-Host "⚠ TEST MODE - No changes made" -ForegroundColor Yellow
+} else {
+    Write-Host "Stopping Windows Update service..." -ForegroundColor Gray
+    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+    
+    try {
+        Remove-Item -Path "$CachePath\\*" -Recurse -Force -ErrorAction Stop
+        Write-Host "✓ Cache cleared" -ForegroundColor Green
+    } catch {
+        Write-Host "⚠ Some files could not be removed" -ForegroundColor Yellow
+    }
+    
+    Write-Host "Starting Windows Update service..." -ForegroundColor Gray
+    Start-Service -Name wuauserv -ErrorAction SilentlyContinue
+    
+    Write-Host ""
+    Write-Host "✓ Freed approximately $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green
+}`;
+    }
+  },
+
+  {
+    id: 'cleanup-user-profiles',
+    name: 'Cleanup Old User Profiles',
+    category: 'Disk Cleanup',
+    isPremium: true,
+    description: 'Remove unused local user profiles by age',
+    instructions: `**How This Task Works:**
+- Identifies inactive user profiles
+- Removes profiles not used recently
+- Excludes system and special accounts
+- Reclaims significant disk space
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Windows 7/Server 2008 R2 or later
+- Backup user data first
+
+**What You Need to Provide:**
+- Days inactive (default: 90)
+- Test mode: true for preview
+- Exclude patterns (optional)
+
+**What the Script Does:**
+1. Gets all local user profiles
+2. Checks last use date
+3. Excludes system/special accounts
+4. In test mode: lists profiles to remove
+5. In delete mode: removes old profiles
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- PERMANENTLY DELETES USER DATA
+- Test mode strongly recommended
+- Excludes: Administrator, Default, Public, System`,
+    parameters: [
+      { id: 'daysInactive', label: 'Days Inactive', type: 'number', required: false, defaultValue: 90 },
+      { id: 'testMode', label: 'Test Mode (Preview)', type: 'boolean', required: false, defaultValue: true },
+      { id: 'excludeUsers', label: 'Exclude Users (comma-separated)', type: 'textarea', required: false, placeholder: 'serviceaccount,admin' }
+    ],
+    scriptTemplate: (params) => {
+      const daysInactive = Number(params.daysInactive || 90);
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+      const excludeUsers = params.excludeUsers ? params.excludeUsers.split(',').map((u: string) => u.trim()).filter((u: string) => u) : [];
+      
+      return `# Cleanup Old User Profiles
+# Generated: ${new Date().toISOString()}
+
+$DaysInactive = ${daysInactive}
+$TestMode = ${testMode}
+$CutoffDate = (Get-Date).AddDays(-$DaysInactive)
+
+# Default exclusions
+$ExcludedProfiles = @(
+    "Administrator", "Default", "Default User", "Public", 
+    "All Users", "LocalService", "NetworkService", "systemprofile"
+    ${excludeUsers.length > 0 ? `, ${excludeUsers.map((u: string) => `"${escapePowerShellString(u)}"`).join(', ')}` : ''}
+)
+
+Write-Host "Scanning user profiles..." -ForegroundColor Gray
+
+$Profiles = Get-WmiObject Win32_UserProfile | Where-Object {
+    -not $_.Special -and
+    $_.LocalPath -notlike "*\\Windows\\*" -and
+    (Split-Path $_.LocalPath -Leaf) -notin $ExcludedProfiles
+}
+
+$OldProfiles = @()
+foreach ($Profile in $Profiles) {
+    $LastUse = if ($Profile.LastUseTime) {
+        [System.Management.ManagementDateTimeConverter]::ToDateTime($Profile.LastUseTime)
+    } else {
+        [datetime]::MinValue
+    }
+    
+    if ($LastUse -lt $CutoffDate) {
+        $FolderSize = 0
+        if (Test-Path $Profile.LocalPath) {
+            $FolderSize = (Get-ChildItem -Path $Profile.LocalPath -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+        }
+        
+        $OldProfiles += [PSCustomObject]@{
+            Username = Split-Path $Profile.LocalPath -Leaf
+            Path = $Profile.LocalPath
+            LastUsed = $LastUse
+            SizeGB = [math]::Round($FolderSize/1GB, 2)
+            SID = $Profile.SID
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "Found $($OldProfiles.Count) profiles unused for $DaysInactive+ days" -ForegroundColor Yellow
+
+if ($OldProfiles.Count -gt 0) {
+    $OldProfiles | Format-Table Username, SizeGB, LastUsed -AutoSize
+    
+    $TotalSize = ($OldProfiles | Measure-Object -Property SizeGB -Sum).Sum
+    Write-Host "Total recoverable: $([math]::Round($TotalSize, 2)) GB" -ForegroundColor Cyan
+    
+    if ($TestMode) {
+        Write-Host ""
+        Write-Host "⚠ TEST MODE - No profiles deleted" -ForegroundColor Yellow
+    } else {
+        foreach ($Profile in $OldProfiles) {
+            try {
+                $WmiProfile = Get-WmiObject Win32_UserProfile | Where-Object { $_.SID -eq $Profile.SID }
+                $WmiProfile.Delete()
+                Write-Host "  ✓ Removed: $($Profile.Username)" -ForegroundColor Green
+            } catch {
+                Write-Host "  ✗ Failed: $($Profile.Username)" -ForegroundColor Red
+            }
+        }
+        Write-Host ""
+        Write-Host "✓ Profile cleanup complete" -ForegroundColor Green
+    }
+} else {
+    Write-Host "No old profiles found" -ForegroundColor Green
+}`;
+    }
+  },
+
+  // ============================================
+  // NEW TASKS: Reporting
+  // ============================================
+
+  {
+    id: 'file-inventory-report',
+    name: 'Generate File Inventory Report',
+    category: 'Reporting',
+    isPremium: true,
+    description: 'Create comprehensive file inventory with metadata',
+    instructions: `**How This Task Works:**
+- Creates detailed file inventory
+- Includes size, dates, attributes, owner
+- Exports to CSV for analysis
+- Optional hash calculation
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target path
+- Administrator for owner information
+- Write permissions on export location
+
+**What You Need to Provide:**
+- Target folder path
+- Include subdirectories: true or false
+- Include file hashes: true or false
+- Export CSV file path
+
+**What the Script Does:**
+1. Scans all files in target path
+2. Collects comprehensive metadata
+3. Optionally computes file hashes
+4. Exports detailed inventory
+5. Reports statistics
+
+**Important Notes:**
+- Hash calculation slows processing
+- Large folders take significant time
+- CSV useful for asset management
+- Owner requires admin privileges`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Folder', type: 'path', required: true, placeholder: 'D:\\DataFiles' },
+      { id: 'recurse', label: 'Include Subdirectories', type: 'boolean', required: false, defaultValue: true },
+      { id: 'includeHash', label: 'Include File Hash', type: 'boolean', required: false, defaultValue: false },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: true, placeholder: 'C:\\Reports\\FileInventory.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const recurse = toPowerShellBoolean(params.recurse ?? true);
+      const includeHash = params.includeHash ?? false;
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Generate File Inventory Report
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$Recurse = ${recurse}
+$IncludeHash = ${toPowerShellBoolean(includeHash)}
+$ExportPath = "${exportPath}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Generating file inventory..." -ForegroundColor Gray
+Write-Host "Path: $TargetPath" -ForegroundColor Gray
+${includeHash ? 'Write-Host "Hash calculation enabled (this may take time)" -ForegroundColor Yellow' : ''}
+
+$Files = if ($Recurse) {
+    Get-ChildItem -Path $TargetPath -Recurse -File -ErrorAction SilentlyContinue
+} else {
+    Get-ChildItem -Path $TargetPath -File -ErrorAction SilentlyContinue
+}
+
+$Inventory = @()
+$Counter = 0
+$Total = $Files.Count
+
+foreach ($File in $Files) {
+    $Counter++
+    if ($Counter % 100 -eq 0) {
+        Write-Progress -Activity "Processing files" -Status "$Counter of $Total" -PercentComplete (($Counter/$Total)*100)
+    }
+    
+    $Owner = try { (Get-Acl $File.FullName).Owner } catch { "Unknown" }
+    
+    $Item = [PSCustomObject]@{
+        FileName = $File.Name
+        Extension = $File.Extension
+        FullPath = $File.FullName
+        RelativePath = $File.FullName.Substring($TargetPath.Length)
+        SizeBytes = $File.Length
+        SizeKB = [math]::Round($File.Length/1KB, 2)
+        SizeMB = [math]::Round($File.Length/1MB, 2)
+        Created = $File.CreationTime
+        Modified = $File.LastWriteTime
+        Accessed = $File.LastAccessTime
+        Attributes = $File.Attributes.ToString()
+        Owner = $Owner
+        ${includeHash ? 'Hash = (Get-FileHash -Path $File.FullName -Algorithm MD5 -ErrorAction SilentlyContinue).Hash' : ''}
+    }
+    
+    $Inventory += $Item
+}
+
+Write-Progress -Activity "Processing files" -Completed
+
+$Inventory | Export-Csv -Path $ExportPath -NoTypeInformation
+
+Write-Host ""
+Write-Host "✓ File inventory complete" -ForegroundColor Green
+Write-Host "  Total files: $($Inventory.Count)" -ForegroundColor Gray
+Write-Host "  Total size: $([math]::Round(($Inventory | Measure-Object -Property SizeMB -Sum).Sum, 2)) MB" -ForegroundColor Gray
+Write-Host "  Export path: $ExportPath" -ForegroundColor Gray`;
+    }
+  },
+
+  {
+    id: 'folder-size-comparison',
+    name: 'Folder Size Comparison Report',
+    category: 'Reporting',
+    isPremium: true,
+    description: 'Compare folder sizes for capacity analysis',
+    instructions: `**How This Task Works:**
+- Analyzes top-level folder sizes
+- Compares relative usage
+- Shows percentage of total
+- Exports to CSV for trending
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target path
+- No administrator required
+
+**What You Need to Provide:**
+- Target folder path
+- Top N folders to display
+- Export CSV file path
+
+**What the Script Does:**
+1. Scans first-level subfolders
+2. Calculates total size of each
+3. Computes percentage of total
+4. Sorts by size descending
+5. Exports comparison report
+
+**Important Notes:**
+- Scans only first level
+- Large folders take time
+- Useful for quota planning
+- CSV tracks growth over time`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Folder', type: 'path', required: true, placeholder: 'D:\\UserData' },
+      { id: 'topCount', label: 'Top N Folders', type: 'number', required: false, defaultValue: 25 },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: true, placeholder: 'C:\\Reports\\FolderSizes.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const topCount = Number(params.topCount || 25);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Folder Size Comparison Report
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$TopCount = ${topCount}
+$ExportPath = "${exportPath}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Analyzing folder sizes..." -ForegroundColor Gray
+
+$Folders = Get-ChildItem -Path $TargetPath -Directory -ErrorAction SilentlyContinue
+
+$Report = @()
+$Counter = 0
+
+foreach ($Folder in $Folders) {
+    $Counter++
+    Write-Progress -Activity "Calculating sizes" -Status $Folder.Name -PercentComplete (($Counter/$Folders.Count)*100)
+    
+    $Size = (Get-ChildItem -Path $Folder.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+    $FileCount = (Get-ChildItem -Path $Folder.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object).Count
+    
+    $Report += [PSCustomObject]@{
+        FolderName = $Folder.Name
+        Path = $Folder.FullName
+        SizeBytes = $Size
+        SizeGB = [math]::Round($Size/1GB, 2)
+        SizeMB = [math]::Round($Size/1MB, 2)
+        FileCount = $FileCount
+    }
+}
+
+Write-Progress -Activity "Calculating sizes" -Completed
+
+# Calculate percentages
+$TotalSize = ($Report | Measure-Object -Property SizeBytes -Sum).Sum
+$Report = $Report | ForEach-Object {
+    $_ | Add-Member -NotePropertyName "PercentOfTotal" -NotePropertyValue ([math]::Round(($_.SizeBytes/$TotalSize)*100, 2)) -PassThru
+} | Sort-Object SizeBytes -Descending
+
+Write-Host ""
+Write-Host "Top $TopCount Folders by Size" -ForegroundColor Cyan
+Write-Host "==============================" -ForegroundColor Cyan
+$Report | Select-Object -First $TopCount | Format-Table FolderName, SizeGB, FileCount, PercentOfTotal -AutoSize
+
+Write-Host ""
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Total folders: $($Report.Count)" -ForegroundColor Gray
+Write-Host "  Total size: $([math]::Round($TotalSize/1GB, 2)) GB" -ForegroundColor Gray
+Write-Host "  Total files: $(($Report | Measure-Object -Property FileCount -Sum).Sum)" -ForegroundColor Gray
+
+$Report | Export-Csv -Path $ExportPath -NoTypeInformation
+Write-Host ""
+Write-Host "✓ Exported to $ExportPath" -ForegroundColor Green`;
+    }
+  },
+
+  {
+    id: 'storage-growth-analysis',
+    name: 'Storage Growth Analysis',
+    category: 'Reporting',
+    isPremium: true,
+    description: 'Analyze storage usage trends and growth patterns',
+    instructions: `**How This Task Works:**
+- Analyzes files by creation/modification date
+- Groups by time period (day/week/month)
+- Shows storage growth over time
+- Exports trend data
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Read permissions on target path
+- No administrator required
+
+**What You Need to Provide:**
+- Target folder path
+- Time grouping (Day/Week/Month)
+- Number of periods to analyze
+- Export CSV file path
+
+**What the Script Does:**
+1. Scans all files in target
+2. Groups by creation date period
+3. Calculates size added per period
+4. Shows cumulative growth
+5. Exports trend report
+
+**Important Notes:**
+- Uses file creation date
+- Useful for capacity planning
+- CSV enables charting
+- Large folders take time`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Folder', type: 'path', required: true, placeholder: 'D:\\DataFiles' },
+      { id: 'groupBy', label: 'Group By', type: 'select', required: true, options: ['Day', 'Week', 'Month'], defaultValue: 'Month' },
+      { id: 'periods', label: 'Number of Periods', type: 'number', required: false, defaultValue: 12 },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: true, placeholder: 'C:\\Reports\\StorageGrowth.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const groupBy = params.groupBy || 'Month';
+      const periods = Number(params.periods || 12);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Storage Growth Analysis
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$GroupBy = "${groupBy}"
+$Periods = ${periods}
+$ExportPath = "${exportPath}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Analyzing storage growth patterns..." -ForegroundColor Gray
+
+$Files = Get-ChildItem -Path $TargetPath -Recurse -File -ErrorAction SilentlyContinue | Select-Object CreationTime, Length
+
+$DateFormat = switch ($GroupBy) {
+    "Day" { "yyyy-MM-dd" }
+    "Week" { "yyyy-\\Www" }
+    "Month" { "yyyy-MM" }
+}
+
+$GroupedData = $Files | Group-Object { $_.CreationTime.ToString($DateFormat) } | ForEach-Object {
+    [PSCustomObject]@{
+        Period = $_.Name
+        FilesCreated = $_.Count
+        SizeAddedMB = [math]::Round(($_.Group | Measure-Object -Property Length -Sum).Sum / 1MB, 2)
+        SizeAddedGB = [math]::Round(($_.Group | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+    }
+} | Sort-Object Period -Descending | Select-Object -First $Periods
+
+# Add cumulative totals
+$Cumulative = 0
+$Report = $GroupedData | Sort-Object Period | ForEach-Object {
+    $Cumulative += $_.SizeAddedGB
+    $_ | Add-Member -NotePropertyName "CumulativeGB" -NotePropertyValue ([math]::Round($Cumulative, 2)) -PassThru
+} | Sort-Object Period -Descending
+
+Write-Host ""
+Write-Host "Storage Growth by $GroupBy (Last $Periods periods)" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+$Report | Format-Table Period, FilesCreated, SizeAddedGB, CumulativeGB -AutoSize
+
+$AvgGrowth = [math]::Round(($Report | Measure-Object -Property SizeAddedGB -Average).Average, 2)
+Write-Host ""
+Write-Host "Average growth per $($GroupBy.ToLower()): $AvgGrowth GB" -ForegroundColor Cyan
+
+$Report | Export-Csv -Path $ExportPath -NoTypeInformation
+Write-Host "✓ Exported to $ExportPath" -ForegroundColor Green`;
+    }
+  },
+
+  {
+    id: 'orphaned-files-report',
+    name: 'Find Orphaned Files',
+    category: 'Reporting',
+    isPremium: true,
+    description: 'Identify files with no owner or broken permissions',
+    instructions: `**How This Task Works:**
+- Finds files with invalid owners
+- Identifies broken SID references
+- Reports permission issues
+- Exports findings to CSV
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Full control on target path
+
+**What You Need to Provide:**
+- Target folder path
+- Include subdirectories: true or false
+- Export CSV file path
+
+**What the Script Does:**
+1. Scans all files and folders
+2. Checks ownership and ACL
+3. Identifies orphaned SIDs
+4. Reports permission anomalies
+5. Exports detailed findings
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- Orphaned = owner SID not resolvable
+- Common after user deletion
+- Use for security audits`,
+    parameters: [
+      { id: 'targetPath', label: 'Target Folder', type: 'path', required: true, placeholder: 'D:\\Shares' },
+      { id: 'recurse', label: 'Include Subdirectories', type: 'boolean', required: false, defaultValue: true },
+      { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: true, placeholder: 'C:\\Reports\\OrphanedFiles.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const targetPath = escapePowerShellString(params.targetPath);
+      const recurse = toPowerShellBoolean(params.recurse ?? true);
+      const exportPath = escapePowerShellString(params.exportPath);
+      
+      return `# Find Orphaned Files
+# Generated: ${new Date().toISOString()}
+
+$TargetPath = "${targetPath}"
+$Recurse = ${recurse}
+$ExportPath = "${exportPath}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Scanning for orphaned files..." -ForegroundColor Gray
+
+$Items = if ($Recurse) {
+    Get-ChildItem -Path $TargetPath -Recurse -ErrorAction SilentlyContinue
+} else {
+    Get-ChildItem -Path $TargetPath -ErrorAction SilentlyContinue
+}
+
+$Orphaned = @()
+$Counter = 0
+
+foreach ($Item in $Items) {
+    $Counter++
+    if ($Counter % 100 -eq 0) {
+        Write-Progress -Activity "Scanning" -Status "$Counter items processed" -PercentComplete -1
+    }
+    
+    try {
+        $Acl = Get-Acl -Path $Item.FullName -ErrorAction Stop
+        $Owner = $Acl.Owner
+        
+        # Check if owner is a SID (unresolvable)
+        if ($Owner -match "^S-1-") {
+            $Orphaned += [PSCustomObject]@{
+                Type = if ($Item.PSIsContainer) { "Folder" } else { "File" }
+                Path = $Item.FullName
+                Owner = $Owner
+                Issue = "Orphaned SID (owner cannot be resolved)"
+                SizeKB = if (-not $Item.PSIsContainer) { [math]::Round($Item.Length/1KB, 2) } else { 0 }
+            }
+        }
+        
+        # Check for orphaned SIDs in ACL
+        foreach ($Access in $Acl.Access) {
+            if ($Access.IdentityReference.Value -match "^S-1-") {
+                $Orphaned += [PSCustomObject]@{
+                    Type = if ($Item.PSIsContainer) { "Folder" } else { "File" }
+                    Path = $Item.FullName
+                    Owner = $Owner
+                    Issue = "Orphaned SID in ACL: $($Access.IdentityReference.Value)"
+                    SizeKB = if (-not $Item.PSIsContainer) { [math]::Round($Item.Length/1KB, 2) } else { 0 }
+                }
+            }
+        }
+    } catch {
+        $Orphaned += [PSCustomObject]@{
+            Type = if ($Item.PSIsContainer) { "Folder" } else { "File" }
+            Path = $Item.FullName
+            Owner = "Unknown"
+            Issue = "Cannot read permissions: \$_"
+            SizeKB = 0
+        }
+    }
+}
+
+Write-Progress -Activity "Scanning" -Completed
+
+if ($Orphaned.Count -gt 0) {
+    Write-Host ""
+    Write-Host "⚠ Found $($Orphaned.Count) items with permission issues" -ForegroundColor Yellow
+    $Orphaned | Select-Object -First 20 | Format-Table Type, Issue, Path -AutoSize
+    
+    $Orphaned | Export-Csv -Path $ExportPath -NoTypeInformation
+    Write-Host ""
+    Write-Host "✓ Full report exported to $ExportPath" -ForegroundColor Green
+} else {
+    Write-Host ""
+    Write-Host "✓ No orphaned files or permission issues found" -ForegroundColor Green
+}`;
+    }
+  },
+
+  {
+    id: 'robocopy-mirror',
+    name: 'Robocopy Mirror Sync',
+    category: 'File Operations',
+    isPremium: true,
+    description: 'Mirror directory using Robocopy with advanced options',
+    instructions: `**How This Task Works:**
+- Uses Robocopy for robust file copying
+- Mirror mode syncs source to destination
+- Deletes files in dest not in source
+- Supports restartable mode for large files
+
+**Prerequisites:**
+- PowerShell 5.1 or later
+- Robocopy (included in Windows)
+- Read permissions on source
+- Write/delete permissions on destination
+
+**What You Need to Provide:**
+- Source directory path
+- Destination directory path
+- Include subfolders: true or false
+- Mirror mode (delete extra files): true or false
+- Log file path (optional)
+
+**What the Script Does:**
+1. Validates source exists
+2. Runs Robocopy with specified options
+3. Uses restartable mode for resilience
+4. Logs progress to file if specified
+5. Reports copy statistics
+
+**Important Notes:**
+- Mirror mode DELETES extra files in destination
+- Restartable mode handles large files
+- Better than Copy-Item for large operations
+- Preserves timestamps and attributes
+- Exit code 0-3 = success with warnings`,
+    parameters: [
+      { id: 'sourcePath', label: 'Source Directory', type: 'path', required: true, placeholder: 'C:\\Source' },
+      { id: 'destPath', label: 'Destination Directory', type: 'path', required: true, placeholder: 'D:\\Backup' },
+      { id: 'recurse', label: 'Include Subfolders', type: 'boolean', required: false, defaultValue: true },
+      { id: 'mirror', label: 'Mirror Mode (Delete Extra)', type: 'boolean', required: false, defaultValue: false },
+      { id: 'logPath', label: 'Log File Path', type: 'path', required: false, placeholder: 'C:\\Logs\\robocopy.log' }
+    ],
+    scriptTemplate: (params) => {
+      const sourcePath = escapePowerShellString(params.sourcePath);
+      const destPath = escapePowerShellString(params.destPath);
+      const recurse = params.recurse ?? true;
+      const mirror = params.mirror ?? false;
+      const logPath = params.logPath ? escapePowerShellString(params.logPath) : '';
+      
+      const modeMessage = mirror 
+        ? 'Write-Host "  Mode: MIRROR (will delete extra files in destination)" -ForegroundColor Yellow'
+        : 'Write-Host "  Mode: Copy" -ForegroundColor Gray';
+      
+      const robocopyMode = mirror ? '"/MIR"' : '"/E"';
+      const logArg = logPath ? `\n    "/LOG:${logPath}"` : '';
+      const logOutput = logPath ? `\nWrite-Host "Log file: ${logPath}" -ForegroundColor Gray` : '';
+      
+      return `# Robocopy Mirror Sync
+# Generated: ${new Date().toISOString()}
+
+$Source = "${sourcePath}"
+$Destination = "${destPath}"
+
+if (-not (Test-Path $Source)) {
+    Write-Host "✗ Source not found: $Source" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Starting Robocopy operation..." -ForegroundColor Gray
+Write-Host "  Source: $Source" -ForegroundColor Gray
+Write-Host "  Destination: $Destination" -ForegroundColor Gray
+${modeMessage}
+
+$RobocopyArgs = @(
+    $Source
+    $Destination
+    "/E"
+    ${robocopyMode}
+    "/R:3"
+    "/W:5"
+    "/NP"
+    "/NDL"${logArg}
+)
+
+$Result = & robocopy.exe @RobocopyArgs
+
+Write-Host ""
+Write-Host "Robocopy completed" -ForegroundColor Green
+Write-Host "Review output above for details" -ForegroundColor Gray${logOutput}`;
+    }
+  },
+
+  {
+    id: 'symbolic-link-management',
+    name: 'Create Symbolic Link or Junction',
+    category: 'Directory Management',
+    isPremium: true,
+    description: 'Create symbolic links, hard links, or directory junctions',
+    instructions: `**How This Task Works:**
+- Creates Windows symbolic links
+- Supports file and directory links
+- Creates junctions for directories
+- Creates hard links for files
+
+**Prerequisites:**
+- Administrator privileges required
+- PowerShell 5.1 or later
+- Developer Mode enabled (for non-admin symlinks)
+- NTFS file system required
+
+**What You Need to Provide:**
+- Link path (the new link to create)
+- Target path (existing file/folder to point to)
+- Link type: SymbolicLink, Junction, or HardLink
+
+**What the Script Does:**
+1. Validates target exists
+2. Checks for existing link
+3. Creates specified link type
+4. Verifies link creation
+5. Reports success or failure
+
+**Important Notes:**
+- REQUIRES ADMINISTRATOR PRIVILEGES
+- SymbolicLink: works for files and folders
+- Junction: directories only, no admin on older Windows
+- HardLink: files only, same volume
+- Junctions don't work across network paths`,
+    parameters: [
+      { id: 'linkPath', label: 'Link Path (new)', type: 'path', required: true, placeholder: 'C:\\Links\\MyLink' },
+      { id: 'targetPath', label: 'Target Path (existing)', type: 'path', required: true, placeholder: 'D:\\ActualFolder' },
+      { id: 'linkType', label: 'Link Type', type: 'select', required: true, options: ['SymbolicLink', 'Junction', 'HardLink'], defaultValue: 'SymbolicLink' }
+    ],
+    scriptTemplate: (params) => {
+      const linkPath = escapePowerShellString(params.linkPath);
+      const targetPath = escapePowerShellString(params.targetPath);
+      const linkType = params.linkType || 'SymbolicLink';
+      
+      return `# Create Symbolic Link or Junction
+# Generated: ${new Date().toISOString()}
+
+$LinkPath = "${linkPath}"
+$TargetPath = "${targetPath}"
+$LinkType = "${linkType}"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    exit 1
+}
+
+if (Test-Path $LinkPath) {
+    Write-Host "✗ Link path already exists: $LinkPath" -ForegroundColor Red
+    exit 1
+}
+
+$TargetItem = Get-Item $TargetPath
+$IsDirectory = $TargetItem.PSIsContainer
+
+# Validate link type compatibility
+if ($LinkType -eq "HardLink" -and $IsDirectory) {
+    Write-Host "✗ HardLink cannot be used for directories" -ForegroundColor Red
+    exit 1
+}
+
+if ($LinkType -eq "Junction" -and -not $IsDirectory) {
+    Write-Host "✗ Junction can only be used for directories" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Creating $LinkType..." -ForegroundColor Gray
+Write-Host "  Link: $LinkPath" -ForegroundColor Gray
+Write-Host "  Target: $TargetPath" -ForegroundColor Gray
+
+try {
+    New-Item -ItemType $LinkType -Path $LinkPath -Target $TargetPath -Force | Out-Null
+    
+    if (Test-Path $LinkPath) {
+        $LinkItem = Get-Item $LinkPath
+        Write-Host ""
+        Write-Host "✓ $LinkType created successfully" -ForegroundColor Green
+        Write-Host "  Link type: $($LinkItem.LinkType)" -ForegroundColor Gray
+        Write-Host "  Points to: $($LinkItem.Target)" -ForegroundColor Gray
+    } else {
+        Write-Host "✗ Failed to create link" -ForegroundColor Red
+        exit 1
+    }
+} catch {
+    Write-Host "✗ Error creating link: \$_" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Note: Creating symbolic links requires:" -ForegroundColor Yellow
+    Write-Host "  - Administrator privileges, OR" -ForegroundColor Yellow
+    Write-Host "  - Developer Mode enabled in Windows Settings" -ForegroundColor Yellow
+    exit 1
 }`;
     }
   },

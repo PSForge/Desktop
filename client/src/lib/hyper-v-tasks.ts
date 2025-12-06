@@ -2617,7 +2617,7 @@ try {
 
   {
     id: 'hyperv-export-config',
-    name: 'Export VM Configuration',
+    title: 'Export VM Configuration',
     category: 'Reporting',
     isPremium: true,
     description: 'Backup VM settings to XML',
@@ -2654,8 +2654,8 @@ try {
 - Use for configuration backup, not full VM backup
 - Consider regular exports for critical VMs`,
     parameters: [
-      { id: 'vmName', label: 'VM Name', type: 'text', required: true, placeholder: 'ProductionVM01' },
-      { id: 'exportPath', label: 'Export Path', type: 'path', required: true, placeholder: 'C:\\VMConfigs' }
+      { name: 'vmName', label: 'VM Name', type: 'text', required: true, placeholder: 'ProductionVM01' },
+      { name: 'exportPath', label: 'Export Path', type: 'text', required: true, placeholder: 'C:\\VMConfigs' }
     ],
     scriptTemplate: (params) => {
       const vmName = escapePowerShellString(params.vmName);
@@ -2678,7 +2678,7 @@ try {
 
   {
     id: 'hyperv-configure-replication',
-    name: 'Configure VM Replication',
+    title: 'Configure VM Replication',
     category: 'High Availability',
     isPremium: true,
     description: 'Setup Hyper-V Replica for disaster recovery',
@@ -2718,14 +2718,14 @@ try {
 - Typical use: disaster recovery, business continuity
 - Monitor replication health regularly`,
     parameters: [
-      { id: 'vmName', label: 'VM Name', type: 'text', required: true, placeholder: 'ProductionVM01' },
-      { id: 'replicaServer', label: 'Replica Server', type: 'text', required: true, placeholder: 'HV-REPLICA01' },
+      { name: 'vmName', label: 'VM Name', type: 'text', required: true, placeholder: 'ProductionVM01' },
+      { name: 'replicaServer', label: 'Replica Server', type: 'text', required: true, placeholder: 'HV-REPLICA01' },
       { 
-        id: 'replicationFrequency', 
+        name: 'replicationFrequency', 
         label: 'Replication Frequency', 
         type: 'select', 
         required: true,
-        options: ['30', '300', '900'],
+        options: [{ value: '30', label: '30 seconds' }, { value: '300', label: '5 minutes' }, { value: '900', label: '15 minutes' }],
         defaultValue: '300'
       }
     ],
@@ -3810,6 +3810,1240 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
     Write-Error "Failed to export performance report: $_"
 }`;
     }
+  },
+
+  // ==================== Additional VM Management ====================
+  {
+    id: 'hyperv-import-vm',
+    title: 'Import Virtual Machine',
+    description: 'Import a previously exported VM from a backup or another host',
+    category: 'VM Lifecycle',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script imports Hyper-V virtual machines from previously exported configurations for migration, disaster recovery, or cloning.
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- Exported VM configuration files available
+- Sufficient storage for VM files
+
+**What You Need to Provide:**
+- Path to exported VM configuration folder
+- Destination path for VM files
+- Import type (Register, Copy, or Generate New ID)
+
+**What the Script Does:**
+- Validates export configuration exists
+- Imports VM with specified copy type
+- Handles ID conflicts appropriately
+- Reports import success
+- Displays imported VM details
+
+**Important Notes:**
+- Essential for VM migration and disaster recovery
+- Register: uses existing VHD files in place
+- Copy: copies VHD files to new location
+- Generate New ID: creates new VM ID (avoids conflicts)
+- Use Copy when moving VMs to new storage
+- Use Register when VM files already on local storage
+- Use Generate New ID to avoid duplicate VM IDs
+- Import time depends on VHD size for Copy operation`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export Configuration Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\VMExports\\VM-WEB01',
+        helpText: 'Path to exported VM folder containing VMCX/XML files'
+      },
+      {
+        name: 'destinationPath',
+        label: 'Destination Path',
+        type: 'text',
+        required: false,
+        placeholder: 'C:\\Hyper-V\\VMs',
+        helpText: 'New location for VM files (required for Copy type)'
+      },
+      {
+        name: 'importType',
+        label: 'Import Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Register', label: 'Register (use in place)' },
+          { value: 'Copy', label: 'Copy (duplicate files)' },
+          { value: 'GenerateNewId', label: 'Generate New ID (avoid conflicts)' }
+        ],
+        defaultValue: 'Copy',
+        helpText: 'How to handle VM files during import'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+      const destPath = params.destinationPath ? escapePowerShellString(params.destinationPath) : '';
+      const importType = params.importType || 'Copy';
+
+      return `# Import Virtual Machine
+# Generated by PSForge
+
+try {
+    Write-Host "Importing VM from: ${exportPath}" -ForegroundColor Cyan
+    
+    # Find VM configuration file
+    $VmcxFile = Get-ChildItem -Path "${exportPath}" -Filter "*.vmcx" -Recurse | Select-Object -First 1
+    $XmlFile = Get-ChildItem -Path "${exportPath}" -Filter "*.xml" -Recurse | Where-Object { $_.Name -notlike "*.vmcx.xml" } | Select-Object -First 1
+    
+    $ConfigPath = if ($VmcxFile) { $VmcxFile.FullName } else { $XmlFile.FullName }
+    
+    if (-not $ConfigPath) {
+        throw "No VM configuration file found in ${exportPath}"
+    }
+    
+    Write-Host "Configuration: $ConfigPath" -ForegroundColor Yellow
+    
+    ${importType === 'Register' ? `
+    $ImportedVM = Import-VM -Path $ConfigPath -Register
+    ` : importType === 'Copy' && destPath ? `
+    $VhdPath = "${destPath}\\Virtual Hard Disks"
+    $VmPath = "${destPath}"
+    
+    if (-not (Test-Path $VmPath)) {
+        New-Item -ItemType Directory -Path $VmPath -Force | Out-Null
+    }
+    
+    $ImportedVM = Import-VM -Path $ConfigPath -Copy -VhdDestinationPath $VhdPath -VirtualMachinePath $VmPath -GenerateNewId
+    ` : `
+    $ImportedVM = Import-VM -Path $ConfigPath -GenerateNewId
+    `}
+    
+    Write-Host "✓ VM imported successfully" -ForegroundColor Green
+    
+    $ImportedVM | Select-Object Name, State, Generation, ProcessorCount | Format-List
+    
+} catch {
+    Write-Error "Failed to import VM: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-test-replication-failover',
+    title: 'Test Replication Failover',
+    description: 'Perform a test failover to verify disaster recovery readiness',
+    category: 'Backup & Recovery',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script performs a test failover of a replicated VM to verify disaster recovery readiness without affecting production or primary replication.
+
+**Prerequisites:**
+- Hyper-V Replica configured and healthy
+- Administrator credentials on replica server
+- Replication in normal state
+- Available recovery points
+
+**What You Need to Provide:**
+- VM name to test
+- Optional: specific recovery point (default: latest)
+
+**What the Script Does:**
+- Verifies replication is healthy
+- Creates test failover VM from recovery point
+- Test VM is isolated (no network by default)
+- Reports test failover success
+- Displays test VM details
+
+**Important Notes:**
+- Essential for validating disaster recovery plans
+- Test failover creates isolated copy (no production impact)
+- Primary VM and replication continue normally
+- Test VM has "-Test" suffix appended to name
+- Stop and delete test VM after validation
+- Run test failovers monthly to verify DR readiness
+- Test applications and connectivity in isolated environment
+- Document test results for compliance`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-DC01',
+        helpText: 'Replicated VM to test'
+      },
+      {
+        name: 'recoveryPointType',
+        label: 'Recovery Point',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Latest', label: 'Latest Recovery Point' },
+          { value: 'LatestApplicationConsistent', label: 'Latest Application Consistent' }
+        ],
+        defaultValue: 'Latest',
+        helpText: 'Which recovery point to use'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const recoveryType = params.recoveryPointType || 'Latest';
+
+      return `# Test Replication Failover
+# Generated by PSForge
+
+try {
+    Write-Host "Starting test failover for: ${vmName}" -ForegroundColor Cyan
+    
+    # Check replication status
+    $Replication = Get-VMReplication -VMName "${vmName}"
+    
+    if (-not $Replication) {
+        throw "VM is not configured for replication"
+    }
+    
+    Write-Host "Replication Health: $($Replication.Health)" -ForegroundColor Yellow
+    Write-Host "Recovery Point: ${recoveryType}" -ForegroundColor Yellow
+    
+    # Get recovery point
+    ${recoveryType === 'LatestApplicationConsistent' ? `
+    $RecoveryPoint = Get-VMReplicationRecoveryPoint -VMName "${vmName}" | Where-Object { $_.ReplicaServerName } | Sort-Object CreationTime -Descending | Select-Object -First 1
+    Start-VMFailover -VMName "${vmName}" -AsTest -VMRecoverySnapshot $RecoveryPoint
+    ` : `
+    Start-VMFailover -VMName "${vmName}" -AsTest
+    `}
+    
+    Write-Host "✓ Test failover initiated successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Test VM created: ${vmName}-Test" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "  1. Verify test VM boots correctly"
+    Write-Host "  2. Test application functionality"
+    Write-Host "  3. When complete, run: Stop-VMFailover -VMName '${vmName}' -AsTest"
+    
+} catch {
+    Write-Error "Failed to start test failover: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-planned-failover',
+    title: 'Perform Planned Failover',
+    description: 'Execute a planned failover to replica server with zero data loss',
+    category: 'Backup & Recovery',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script performs a planned failover to the replica server with zero data loss, typically used during scheduled maintenance or datacenter migrations.
+
+**Prerequisites:**
+- Hyper-V Replica configured and healthy
+- Administrator credentials on both servers
+- Primary VM must be shut down first
+- Replication in normal synchronized state
+
+**What You Need to Provide:**
+- VM name to failover
+- Confirmation to proceed
+
+**What the Script Does:**
+- Verifies primary VM is stopped
+- Synchronizes final changes to replica
+- Initiates planned failover
+- Completes failover on replica server
+- Reports failover success
+
+**Important Notes:**
+- Essential for datacenter migrations and maintenance
+- Zero data loss when properly executed
+- Primary VM must be shut down before failover
+- After failover, replica becomes primary
+- Configure reverse replication for protection
+- Coordinate with application owners
+- Test network connectivity after failover
+- Update DNS/load balancers as needed`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-DC01',
+        helpText: 'Replicated VM to failover'
+      },
+      {
+        name: 'confirmFailover',
+        label: 'Confirm Planned Failover',
+        type: 'checkbox',
+        required: true,
+        defaultValue: false,
+        helpText: 'Check to confirm you want to perform planned failover'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const confirmed = params.confirmFailover === true;
+
+      return `# Perform Planned Failover
+# Generated by PSForge
+
+try {
+    ${!confirmed ? `
+    Write-Error "Planned failover not confirmed. Check the confirmation box to proceed."
+    exit 1
+    ` : `
+    Write-Host "Starting planned failover for: ${vmName}" -ForegroundColor Cyan
+    
+    # Verify VM is stopped
+    $VM = Get-VM -Name "${vmName}" -ErrorAction SilentlyContinue
+    
+    if ($VM -and $VM.State -ne "Off") {
+        Write-Host "Stopping primary VM..." -ForegroundColor Yellow
+        Stop-VM -Name "${vmName}" -Force
+        Start-Sleep -Seconds 5
+    }
+    
+    # Check replication status
+    $Replication = Get-VMReplication -VMName "${vmName}"
+    
+    if (-not $Replication) {
+        throw "VM is not configured for replication"
+    }
+    
+    Write-Host "Replication State: $($Replication.State)" -ForegroundColor Yellow
+    
+    # Start planned failover
+    Write-Host "Initiating planned failover..." -ForegroundColor Cyan
+    Start-VMFailover -VMName "${vmName}" -Prepare
+    
+    Write-Host "✓ Planned failover prepared" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Complete failover on replica server:" -ForegroundColor Yellow
+    Write-Host "  1. Connect to replica server: $($Replication.ReplicaServer)"
+    Write-Host "  2. Run: Start-VMFailover -VMName '${vmName}'"
+    Write-Host "  3. Run: Complete-VMFailover -VMName '${vmName}'"
+    Write-Host "  4. Start the VM: Start-VM -VMName '${vmName}'"
+    Write-Host ""
+    Write-Host "After failover, configure reverse replication for protection" -ForegroundColor Cyan
+    `}
+    
+} catch {
+    Write-Error "Failed to perform planned failover: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-reverse-replication',
+    title: 'Configure Reverse Replication',
+    description: 'Set up reverse replication after failover for continued protection',
+    category: 'Backup & Recovery',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures reverse replication after a failover to protect the now-primary VM by replicating back to the original server.
+
+**Prerequisites:**
+- Successful failover completed
+- Original primary server operational
+- Network connectivity between servers
+- Administrator credentials on both servers
+
+**What You Need to Provide:**
+- VM name (now running on former replica)
+- Original server name (new replica target)
+
+**What the Script Does:**
+- Verifies VM is running on current server
+- Completes failover if needed
+- Configures reverse replication to original server
+- Starts initial reverse replication
+- Reports configuration success
+
+**Important Notes:**
+- Essential for restoring DR protection after failover
+- Original primary becomes new replica
+- Use after planned or unplanned failover
+- Reverse replication uses same settings as original
+- Initial sync can take time based on changes
+- Verify replication health after configuration
+- Critical for maintaining business continuity
+- Plan for eventual failback when ready`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-DC01',
+        helpText: 'VM now running on former replica server'
+      },
+      {
+        name: 'originalServer',
+        label: 'Original Server (New Replica Target)',
+        type: 'text',
+        required: true,
+        placeholder: 'HV-PRIMARY01',
+        helpText: 'Original primary server to replicate to'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const originalServer = escapePowerShellString(params.originalServer);
+
+      return `# Configure Reverse Replication
+# Generated by PSForge
+
+try {
+    Write-Host "Configuring reverse replication for: ${vmName}" -ForegroundColor Cyan
+    Write-Host "Target server: ${originalServer}" -ForegroundColor Yellow
+    
+    # Check current replication state
+    $Replication = Get-VMReplication -VMName "${vmName}"
+    
+    if ($Replication.Mode -eq "Primary") {
+        Write-Host "Completing failover..." -ForegroundColor Cyan
+        Complete-VMFailover -VMName "${vmName}"
+    }
+    
+    # Set reverse replication
+    Write-Host "Enabling reverse replication..." -ForegroundColor Cyan
+    
+    Set-VMReplication -VMName "${vmName}" -Reverse -ReplicaServerName "${originalServer}" -ReplicaServerPort 80 -AuthenticationType Kerberos -CompressionEnabled $true
+    
+    Write-Host "Starting reverse replication sync..." -ForegroundColor Cyan
+    Start-VMInitialReplication -VMName "${vmName}"
+    
+    Write-Host "✓ Reverse replication configured successfully" -ForegroundColor Green
+    
+    # Display replication status
+    Get-VMReplication -VMName "${vmName}" | Select-Object VMName, State, Mode, Health, ReplicaServer | Format-List
+    
+    Write-Host ""
+    Write-Host "Reverse replication is syncing to: ${originalServer}" -ForegroundColor Yellow
+    Write-Host "Monitor with: Get-VMReplication -VMName '${vmName}'" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to configure reverse replication: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-monitor-replication-health',
+    title: 'Monitor Replication Health',
+    description: 'Check Hyper-V Replica health status and replication statistics',
+    category: 'Reporting',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script monitors Hyper-V Replica health across all replicated VMs, identifies issues, and generates a health report for proactive maintenance.
+
+**Prerequisites:**
+- Hyper-V Replica configured
+- Administrator credentials
+- VMs configured for replication
+
+**What You Need to Provide:**
+- Optional: CSV export path for detailed report
+
+**What the Script Does:**
+- Queries replication status for all replicated VMs
+- Checks replication health (Normal, Warning, Critical)
+- Reports pending replication data size
+- Identifies VMs with replication issues
+- Exports detailed report if path specified
+
+**Important Notes:**
+- Essential for DR readiness monitoring
+- Health states: Normal, Warning, Critical
+- Warning indicates replication delays
+- Critical requires immediate attention
+- Monitor daily for production environments
+- Large pending bytes indicate sync issues
+- Investigate network/storage for Critical VMs
+- Set up alerts for Critical replication status`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path (optional)',
+        type: 'text',
+        required: false,
+        placeholder: 'C:\\Reports\\ReplicationHealth.csv',
+        helpText: 'Optional path for detailed CSV report'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+
+      return `# Monitor Replication Health
+# Generated by PSForge
+
+try {
+    Write-Host "Checking Hyper-V Replication Health..." -ForegroundColor Cyan
+    
+    $ReplicatedVMs = Get-VMReplication
+    
+    if (-not $ReplicatedVMs) {
+        Write-Host "No VMs are configured for replication" -ForegroundColor Yellow
+        exit
+    }
+    
+    Write-Host "Found $($ReplicatedVMs.Count) replicated VMs" -ForegroundColor Yellow
+    Write-Host ""
+    
+    $HealthReport = foreach ($Rep in $ReplicatedVMs) {
+        $Stats = Measure-VMReplication -VMName $Rep.VMName -ErrorAction SilentlyContinue
+        
+        [PSCustomObject]@{
+            VMName             = $Rep.VMName
+            State              = $Rep.State
+            Health             = $Rep.Health
+            Mode               = $Rep.Mode
+            ReplicaServer      = $Rep.ReplicaServer
+            FrequencySec       = $Rep.FrequencySec
+            LastReplicationTime = $Rep.LastReplicationTime
+            PendingReplicationMB = if ($Stats) { [math]::Round($Stats.PendingReplication / 1MB, 2) } else { "N/A" }
+            AverageLatency     = if ($Stats) { $Stats.AverageReplicationLatency } else { "N/A" }
+            MissedCount        = if ($Stats) { $Stats.MissedReplicationCount } else { "N/A" }
+        }
+    }
+    
+    # Display summary by health status
+    Write-Host "=== Replication Health Summary ===" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $NormalCount = ($HealthReport | Where-Object { $_.Health -eq "Normal" }).Count
+    $WarningCount = ($HealthReport | Where-Object { $_.Health -eq "Warning" }).Count
+    $CriticalCount = ($HealthReport | Where-Object { $_.Health -eq "Critical" }).Count
+    
+    Write-Host "  Normal:   $NormalCount" -ForegroundColor Green
+    Write-Host "  Warning:  $WarningCount" -ForegroundColor Yellow
+    Write-Host "  Critical: $CriticalCount" -ForegroundColor Red
+    Write-Host ""
+    
+    # Show VMs with issues
+    $IssueVMs = $HealthReport | Where-Object { $_.Health -ne "Normal" }
+    
+    if ($IssueVMs) {
+        Write-Host "=== VMs Requiring Attention ===" -ForegroundColor Yellow
+        $IssueVMs | Format-Table VMName, Health, State, LastReplicationTime -AutoSize
+    }
+    
+    ${exportPath ? `
+    # Export detailed report
+    $HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    Write-Host "Detailed report exported to: ${exportPath}" -ForegroundColor Green
+    ` : ''}
+    
+    # Display all VMs
+    Write-Host "=== All Replicated VMs ===" -ForegroundColor Cyan
+    $HealthReport | Format-Table VMName, Health, State, FrequencySec, LastReplicationTime -AutoSize
+    
+} catch {
+    Write-Error "Failed to check replication health: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-add-passthrough-disk',
+    title: 'Add Pass-Through Disk',
+    description: 'Attach a physical disk directly to a VM for high-performance storage',
+    category: 'Storage',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script attaches physical disks directly to VMs (pass-through) for high-performance storage scenarios like databases or clustered shared volumes.
+
+**Prerequisites:**
+- Hyper-V role installed
+- Physical disk must be offline on host
+- Administrator credentials
+- VM must be Generation 1 or 2
+
+**What You Need to Provide:**
+- VM name to attach disk to
+- Physical disk number (from Get-Disk)
+
+**What the Script Does:**
+- Verifies disk is offline and available
+- Attaches physical disk to VM as pass-through
+- Configures SCSI controller for attachment
+- Reports attachment success
+- Displays disk and controller information
+
+**Important Notes:**
+- Essential for high-performance database VMs
+- Physical disk must be offline on host first
+- Pass-through provides near-native disk performance
+- Cannot use checkpoints with pass-through disks
+- Disk is exclusively used by VM (no host access)
+- Use for SQL Server, Exchange, or high IOPS workloads
+- Disk number from Get-Disk cmdlet on host
+- Consider VHDX for most scenarios unless IOPS critical`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-SQL01',
+        helpText: 'Virtual machine to attach disk to'
+      },
+      {
+        name: 'diskNumber',
+        label: 'Physical Disk Number',
+        type: 'number',
+        required: true,
+        placeholder: '2',
+        helpText: 'Disk number from Get-Disk (must be offline)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const diskNumber = params.diskNumber;
+
+      return `# Add Pass-Through Disk
+# Generated by PSForge
+
+try {
+    Write-Host "Adding pass-through disk to: ${vmName}" -ForegroundColor Cyan
+    
+    # Get the physical disk
+    $Disk = Get-Disk -Number ${diskNumber}
+    
+    if (-not $Disk) {
+        throw "Disk ${diskNumber} not found"
+    }
+    
+    Write-Host "Disk: $($Disk.FriendlyName)" -ForegroundColor Yellow
+    Write-Host "Size: $([math]::Round($Disk.Size / 1GB, 2)) GB" -ForegroundColor Yellow
+    
+    # Ensure disk is offline
+    if ($Disk.OperationalStatus -ne "Offline") {
+        Write-Host "Setting disk offline..." -ForegroundColor Cyan
+        Set-Disk -Number ${diskNumber} -IsOffline $true
+    }
+    
+    # Get SCSI controller or add one
+    $Controller = Get-VMScsiController -VMName "${vmName}" | Select-Object -First 1
+    
+    if (-not $Controller) {
+        Write-Host "Adding SCSI controller..." -ForegroundColor Cyan
+        Add-VMScsiController -VMName "${vmName}"
+        $Controller = Get-VMScsiController -VMName "${vmName}" | Select-Object -First 1
+    }
+    
+    # Find available location on controller
+    $UsedLocations = Get-VMHardDiskDrive -VMName "${vmName}" -ControllerType SCSI -ControllerNumber $Controller.ControllerNumber | Select-Object -ExpandProperty ControllerLocation
+    $NextLocation = 0
+    while ($UsedLocations -contains $NextLocation) { $NextLocation++ }
+    
+    # Add pass-through disk
+    Add-VMHardDiskDrive -VMName "${vmName}" -ControllerType SCSI -ControllerNumber $Controller.ControllerNumber -ControllerLocation $NextLocation -DiskNumber ${diskNumber}
+    
+    Write-Host "✓ Pass-through disk attached successfully" -ForegroundColor Green
+    Write-Host "  Controller: SCSI $($Controller.ControllerNumber)" -ForegroundColor Yellow
+    Write-Host "  Location: $NextLocation" -ForegroundColor Yellow
+    
+    Write-Host ""
+    Write-Host "⚠ Note: Checkpoints are not supported with pass-through disks" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to add pass-through disk: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-create-differencing-disk',
+    title: 'Create Differencing Disk',
+    description: 'Create a differencing VHDX based on a parent disk for testing or branching',
+    category: 'Storage',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates differencing VHDX disks that store only changes from a parent disk, ideal for testing, development, or rapid VM provisioning.
+
+**Prerequisites:**
+- Hyper-V role installed
+- Parent VHDX disk exists
+- Administrator credentials
+- Parent disk should not change after creating differencing disk
+
+**What You Need to Provide:**
+- Path for new differencing VHDX
+- Path to parent VHDX file
+
+**What the Script Does:**
+- Verifies parent disk exists and is accessible
+- Creates differencing disk linked to parent
+- Reports disk creation success
+- Displays parent-child relationship
+
+**Important Notes:**
+- Essential for dev/test environments and rapid provisioning
+- Only stores changes from parent (space efficient)
+- Parent disk must remain unchanged (read-only recommended)
+- Chain of differencing disks impacts performance
+- Use for testing patches on copy of production VM
+- Use for creating multiple similar VMs from template
+- Maximum chain depth: 64 disks (avoid deep chains)
+- Merge differencing disk to flatten when done testing`,
+    parameters: [
+      {
+        name: 'childPath',
+        label: 'Differencing Disk Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Hyper-V\\Disks\\VM-Test-Diff.vhdx',
+        helpText: 'Full path for new differencing VHDX'
+      },
+      {
+        name: 'parentPath',
+        label: 'Parent Disk Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Hyper-V\\Templates\\Win2022-Base.vhdx',
+        helpText: 'Path to parent/base VHDX file'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const childPath = escapePowerShellString(params.childPath);
+      const parentPath = escapePowerShellString(params.parentPath);
+
+      return `# Create Differencing Disk
+# Generated by PSForge
+
+try {
+    Write-Host "Creating differencing disk..." -ForegroundColor Cyan
+    
+    # Verify parent exists
+    if (-not (Test-Path "${parentPath}")) {
+        throw "Parent disk not found: ${parentPath}"
+    }
+    
+    # Get parent disk info
+    $ParentVHD = Get-VHD -Path "${parentPath}"
+    Write-Host "Parent Disk: ${parentPath}" -ForegroundColor Yellow
+    Write-Host "Parent Size: $([math]::Round($ParentVHD.Size / 1GB, 2)) GB" -ForegroundColor Yellow
+    
+    # Create directory if needed
+    $DiffDir = Split-Path "${childPath}" -Parent
+    if (-not (Test-Path $DiffDir)) {
+        New-Item -ItemType Directory -Path $DiffDir -Force | Out-Null
+    }
+    
+    # Create differencing disk
+    New-VHD -Path "${childPath}" -ParentPath "${parentPath}" -Differencing
+    
+    Write-Host "✓ Differencing disk created successfully" -ForegroundColor Green
+    
+    $ChildVHD = Get-VHD -Path "${childPath}"
+    Write-Host ""
+    Write-Host "Differencing Disk Details:" -ForegroundColor Cyan
+    Write-Host "  Path: ${childPath}" -ForegroundColor Yellow
+    Write-Host "  Type: $($ChildVHD.VhdType)" -ForegroundColor Yellow
+    Write-Host "  Parent: $($ChildVHD.ParentPath)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "⚠ Important: Do not modify the parent disk" -ForegroundColor Yellow
+    Write-Host "  The differencing disk depends on parent remaining unchanged" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create differencing disk: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-configure-bandwidth-management',
+    title: 'Configure Network Bandwidth Management',
+    description: 'Set minimum and maximum bandwidth limits on VM network adapters',
+    category: 'Networking',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures bandwidth management on VM network adapters to guarantee minimum bandwidth and limit maximum bandwidth for QoS control.
+
+**Prerequisites:**
+- Hyper-V role installed
+- Windows Server 2012 R2 or later
+- Administrator credentials
+- VM with network adapter connected to virtual switch
+
+**What You Need to Provide:**
+- VM name
+- Minimum bandwidth in Mbps (guaranteed)
+- Maximum bandwidth in Mbps (limit)
+
+**What the Script Does:**
+- Retrieves VM network adapter
+- Configures minimum guaranteed bandwidth
+- Sets maximum bandwidth limit
+- Reports configuration success
+- Displays bandwidth settings
+
+**Important Notes:**
+- Essential for multi-tenant and SLA-based environments
+- Minimum bandwidth guarantees VM receives specified throughput
+- Maximum prevents VM from consuming excessive bandwidth
+- Bandwidth values in Mbps
+- Minimum cannot exceed maximum
+- Use for preventing noisy neighbor problems
+- Typical web server: 10-100 Mbps min, 1000 Mbps max
+- Database replication: higher minimum for consistency`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-WEB01',
+        helpText: 'Virtual machine name'
+      },
+      {
+        name: 'minBandwidthMbps',
+        label: 'Minimum Bandwidth (Mbps)',
+        type: 'number',
+        required: true,
+        defaultValue: 10,
+        helpText: 'Guaranteed minimum bandwidth in Mbps'
+      },
+      {
+        name: 'maxBandwidthMbps',
+        label: 'Maximum Bandwidth (Mbps)',
+        type: 'number',
+        required: true,
+        defaultValue: 1000,
+        helpText: 'Maximum bandwidth limit in Mbps'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const minBw = params.minBandwidthMbps || 10;
+      const maxBw = params.maxBandwidthMbps || 1000;
+
+      return `# Configure Network Bandwidth Management
+# Generated by PSForge
+
+try {
+    Write-Host "Configuring bandwidth for: ${vmName}" -ForegroundColor Cyan
+    
+    # Validate bandwidth values
+    if (${minBw} -gt ${maxBw}) {
+        throw "Minimum bandwidth cannot exceed maximum bandwidth"
+    }
+    
+    # Get VM network adapter
+    $Adapter = Get-VMNetworkAdapter -VMName "${vmName}" | Select-Object -First 1
+    
+    if (-not $Adapter) {
+        throw "No network adapter found on VM"
+    }
+    
+    Write-Host "Network Adapter: $($Adapter.Name)" -ForegroundColor Yellow
+    Write-Host "Switch: $($Adapter.SwitchName)" -ForegroundColor Yellow
+    
+    # Convert to bits per second (PowerShell uses absolute bandwidth)
+    $MinBandwidthAbsolute = ${minBw} * 1000000  # Mbps to bps
+    $MaxBandwidthAbsolute = ${maxBw} * 1000000  # Mbps to bps
+    
+    # Set bandwidth limits
+    Set-VMNetworkAdapter -VMName "${vmName}" -MinimumBandwidthAbsolute $MinBandwidthAbsolute -MaximumBandwidth $MaxBandwidthAbsolute
+    
+    Write-Host "✓ Bandwidth configured successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Bandwidth Settings:" -ForegroundColor Cyan
+    Write-Host "  Minimum (Guaranteed): ${minBw} Mbps" -ForegroundColor Yellow
+    Write-Host "  Maximum (Limit): ${maxBw} Mbps" -ForegroundColor Yellow
+    
+    # Verify settings
+    $UpdatedAdapter = Get-VMNetworkAdapter -VMName "${vmName}" | Select-Object -First 1
+    Write-Host ""
+    Write-Host "Current Configuration:" -ForegroundColor Cyan
+    Write-Host "  Min Bandwidth: $([math]::Round($UpdatedAdapter.BandwidthSetting.MinimumBandwidthAbsolute / 1000000, 2)) Mbps"
+    Write-Host "  Max Bandwidth: $([math]::Round($UpdatedAdapter.BandwidthSetting.MaximumBandwidth / 1000000, 2)) Mbps"
+    
+} catch {
+    Write-Error "Failed to configure bandwidth: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-get-vm-health-report',
+    title: 'Generate VM Health Report',
+    description: 'Create comprehensive health report for all VMs including integration services and heartbeat',
+    category: 'Reporting',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script generates a comprehensive health report for all VMs including integration services status, heartbeat, resource usage, and potential issues.
+
+**Prerequisites:**
+- Hyper-V role installed
+- Administrator credentials
+- Access to Hyper-V host
+
+**What You Need to Provide:**
+- Optional: CSV export path for detailed report
+
+**What the Script Does:**
+- Queries all VMs on host
+- Checks integration services status and version
+- Monitors heartbeat status for running VMs
+- Reports resource allocation and usage
+- Identifies VMs with potential issues
+- Exports detailed report if path specified
+
+**Important Notes:**
+- Essential for proactive infrastructure monitoring
+- Heartbeat indicates guest OS is responsive
+- Integration services enable host-guest communication
+- Outdated integration services should be updated
+- VMs without heartbeat may need investigation
+- Run daily/weekly for infrastructure health visibility
+- Use for SLA compliance documentation
+- Identify VMs requiring attention before issues occur`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path (optional)',
+        type: 'text',
+        required: false,
+        placeholder: 'C:\\Reports\\VMHealth.csv',
+        helpText: 'Optional path for detailed CSV report'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+
+      return `# Generate VM Health Report
+# Generated by PSForge
+
+try {
+    Write-Host "Generating VM Health Report..." -ForegroundColor Cyan
+    
+    $VMs = Get-VM
+    
+    if (-not $VMs) {
+        Write-Host "No VMs found on this host" -ForegroundColor Yellow
+        exit
+    }
+    
+    Write-Host "Analyzing $($VMs.Count) virtual machines..." -ForegroundColor Yellow
+    
+    $HealthReport = foreach ($VM in $VMs) {
+        # Get integration services status
+        $IntegrationServices = Get-VMIntegrationService -VMName $VM.Name
+        $HeartbeatService = $IntegrationServices | Where-Object { $_.Name -eq "Heartbeat" }
+        
+        # Determine health status
+        $HealthStatus = "Healthy"
+        $Issues = @()
+        
+        if ($VM.State -eq "Running") {
+            if ($HeartbeatService.PrimaryStatusDescription -ne "OK") {
+                $HealthStatus = "Warning"
+                $Issues += "Heartbeat not OK"
+            }
+            
+            if (-not $VM.IntegrationServicesVersion) {
+                $HealthStatus = "Warning"
+                $Issues += "Integration services not detected"
+            }
+        }
+        
+        if ($VM.State -eq "Off" -and $VM.AutomaticStartAction -eq "Start") {
+            $Issues += "Configured to auto-start but currently off"
+        }
+        
+        [PSCustomObject]@{
+            VMName                    = $VM.Name
+            State                     = $VM.State
+            HealthStatus              = $HealthStatus
+            ProcessorCount            = $VM.ProcessorCount
+            MemoryAssignedGB          = [math]::Round($VM.MemoryAssigned / 1GB, 2)
+            MemoryStartupGB           = [math]::Round($VM.MemoryStartup / 1GB, 2)
+            DynamicMemory             = $VM.DynamicMemoryEnabled
+            Uptime                    = if ($VM.State -eq "Running") { $VM.Uptime.ToString() } else { "N/A" }
+            Heartbeat                 = if ($HeartbeatService) { $HeartbeatService.PrimaryStatusDescription } else { "N/A" }
+            IntegrationServicesVersion = if ($VM.IntegrationServicesVersion) { $VM.IntegrationServicesVersion.ToString() } else { "Not Detected" }
+            Generation                = $VM.Generation
+            ReplicationState          = (Get-VMReplication -VMName $VM.Name -ErrorAction SilentlyContinue).State
+            Issues                    = if ($Issues) { $Issues -join "; " } else { "None" }
+        }
+    }
+    
+    # Summary
+    Write-Host ""
+    Write-Host "=== VM Health Summary ===" -ForegroundColor Cyan
+    
+    $HealthyCount = ($HealthReport | Where-Object { $_.HealthStatus -eq "Healthy" }).Count
+    $WarningCount = ($HealthReport | Where-Object { $_.HealthStatus -eq "Warning" }).Count
+    $RunningCount = ($HealthReport | Where-Object { $_.State -eq "Running" }).Count
+    $OffCount = ($HealthReport | Where-Object { $_.State -eq "Off" }).Count
+    
+    Write-Host ""
+    Write-Host "Health Status:" -ForegroundColor Yellow
+    Write-Host "  Healthy: $HealthyCount" -ForegroundColor Green
+    Write-Host "  Warning: $WarningCount" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Power State:" -ForegroundColor Yellow
+    Write-Host "  Running: $RunningCount"
+    Write-Host "  Off: $OffCount"
+    
+    # Show VMs with issues
+    $IssueVMs = $HealthReport | Where-Object { $_.Issues -ne "None" }
+    
+    if ($IssueVMs) {
+        Write-Host ""
+        Write-Host "=== VMs With Issues ===" -ForegroundColor Yellow
+        $IssueVMs | Format-Table VMName, State, HealthStatus, Issues -AutoSize -Wrap
+    }
+    
+    ${exportPath ? `
+    # Export detailed report
+    $HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    Write-Host ""
+    Write-Host "Detailed report exported to: ${exportPath}" -ForegroundColor Green
+    ` : ''}
+    
+    # Display all VMs
+    Write-Host ""
+    Write-Host "=== All VMs ===" -ForegroundColor Cyan
+    $HealthReport | Format-Table VMName, State, HealthStatus, ProcessorCount, MemoryAssignedGB, Heartbeat -AutoSize
+    
+} catch {
+    Write-Error "Failed to generate health report: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-configure-secure-boot',
+    title: 'Configure Secure Boot',
+    description: 'Enable or disable Secure Boot on Generation 2 VMs for security hardening',
+    category: 'Host Configuration',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script configures Secure Boot on Generation 2 VMs to prevent unauthorized boot loaders and protect against rootkit and bootkit malware.
+
+**Prerequisites:**
+- Hyper-V role installed
+- Generation 2 VM (Secure Boot not available on Gen 1)
+- VM must be powered off
+- Administrator credentials
+
+**What You Need to Provide:**
+- VM name
+- Enable or disable Secure Boot
+- Secure Boot template (Microsoft Windows or Microsoft UEFI Certificate Authority)
+
+**What the Script Does:**
+- Verifies VM is Generation 2
+- Stops VM if running
+- Enables or disables Secure Boot
+- Sets appropriate Secure Boot template
+- Reports configuration success
+
+**Important Notes:**
+- Essential for security hardening and compliance
+- Secure Boot only available on Generation 2 VMs
+- Microsoft Windows template: for Windows OS
+- Microsoft UEFI CA template: for Linux and other OSes
+- Disable Secure Boot for some Linux distributions
+- VM must be off to change Secure Boot settings
+- Required for Shielded VMs
+- Recommended for all production Windows VMs`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-WEB01',
+        helpText: 'Generation 2 virtual machine name'
+      },
+      {
+        name: 'enableSecureBoot',
+        label: 'Enable Secure Boot',
+        type: 'checkbox',
+        required: false,
+        defaultValue: true,
+        helpText: 'Enable or disable Secure Boot'
+      },
+      {
+        name: 'secureBootTemplate',
+        label: 'Secure Boot Template',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'MicrosoftWindows', label: 'Microsoft Windows (for Windows OS)' },
+          { value: 'MicrosoftUEFICertificateAuthority', label: 'Microsoft UEFI CA (for Linux)' }
+        ],
+        defaultValue: 'MicrosoftWindows',
+        helpText: 'Certificate template for Secure Boot'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const enableSecureBoot = params.enableSecureBoot !== false;
+      const template = params.secureBootTemplate || 'MicrosoftWindows';
+
+      return `# Configure Secure Boot
+# Generated by PSForge
+
+try {
+    Write-Host "Configuring Secure Boot for: ${vmName}" -ForegroundColor Cyan
+    
+    # Get VM
+    $VM = Get-VM -Name "${vmName}"
+    
+    # Verify Generation 2
+    if ($VM.Generation -ne 2) {
+        throw "Secure Boot is only available on Generation 2 VMs. This VM is Generation $($VM.Generation)."
+    }
+    
+    # Stop VM if running
+    if ($VM.State -ne "Off") {
+        Write-Host "Stopping VM..." -ForegroundColor Yellow
+        Stop-VM -Name "${vmName}" -Force
+        Start-Sleep -Seconds 5
+    }
+    
+    # Configure Secure Boot
+    ${enableSecureBoot ? `
+    Write-Host "Enabling Secure Boot with template: ${template}" -ForegroundColor Cyan
+    Set-VMFirmware -VMName "${vmName}" -EnableSecureBoot On -SecureBootTemplate "${template}"
+    Write-Host "✓ Secure Boot enabled" -ForegroundColor Green
+    ` : `
+    Write-Host "Disabling Secure Boot..." -ForegroundColor Cyan
+    Set-VMFirmware -VMName "${vmName}" -EnableSecureBoot Off
+    Write-Host "✓ Secure Boot disabled" -ForegroundColor Yellow
+    `}
+    
+    # Display current settings
+    $Firmware = Get-VMFirmware -VMName "${vmName}"
+    Write-Host ""
+    Write-Host "Current Firmware Settings:" -ForegroundColor Cyan
+    Write-Host "  Secure Boot: $($Firmware.SecureBoot)" -ForegroundColor Yellow
+    Write-Host "  Template: $($Firmware.SecureBootTemplate)" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to configure Secure Boot: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'hyperv-live-migration',
+    title: 'Perform Live Migration',
+    description: 'Move a running VM to another Hyper-V host without downtime',
+    category: 'VM Lifecycle',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script performs live migration of running VMs to another Hyper-V host in a cluster or with shared storage, with zero downtime.
+
+**Prerequisites:**
+- Hyper-V role installed on both hosts
+- Cluster membership or configured live migration between hosts
+- Shared storage or SMB storage accessible from both hosts
+- Network connectivity between hosts
+- Administrator credentials on both servers
+
+**What You Need to Provide:**
+- VM name to migrate
+- Destination Hyper-V host name
+- Optional: destination storage path
+
+**What the Script Does:**
+- Verifies VM exists and is running
+- Validates destination host is available
+- Performs live migration with memory and storage
+- Reports migration progress and success
+- Displays new VM location
+
+**Important Notes:**
+- Essential for cluster load balancing and host maintenance
+- Zero downtime during migration (brief pause possible)
+- Requires compatible processor configurations
+- Shared storage simplifies migration (no storage copy needed)
+- Use for host patching, hardware maintenance, load balancing
+- Migration time depends on VM memory size and network speed
+- Monitor migration progress for large VMs
+- Configure Kerberos authentication for cross-host migration`,
+    parameters: [
+      {
+        name: 'vmName',
+        label: 'VM Name',
+        type: 'text',
+        required: true,
+        placeholder: 'VM-WEB01',
+        helpText: 'Running VM to migrate'
+      },
+      {
+        name: 'destinationHost',
+        label: 'Destination Host',
+        type: 'text',
+        required: true,
+        placeholder: 'HV-HOST02',
+        helpText: 'Target Hyper-V host for migration'
+      },
+      {
+        name: 'destinationStoragePath',
+        label: 'Destination Storage Path (optional)',
+        type: 'text',
+        required: false,
+        placeholder: 'C:\\Hyper-V\\VMs',
+        helpText: 'Storage path on destination (for storage migration)'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const vmName = escapePowerShellString(params.vmName);
+      const destHost = escapePowerShellString(params.destinationHost);
+      const destStorage = params.destinationStoragePath ? escapePowerShellString(params.destinationStoragePath) : '';
+
+      return `# Perform Live Migration
+# Generated by PSForge
+
+try {
+    Write-Host "Starting Live Migration for: ${vmName}" -ForegroundColor Cyan
+    Write-Host "Destination Host: ${destHost}" -ForegroundColor Yellow
+    
+    # Verify VM exists
+    $VM = Get-VM -Name "${vmName}"
+    
+    if (-not $VM) {
+        throw "VM not found: ${vmName}"
+    }
+    
+    Write-Host "VM State: $($VM.State)" -ForegroundColor Yellow
+    
+    if ($VM.State -ne "Running") {
+        Write-Warning "VM is not running. Live migration works best with running VMs."
+    }
+    
+    # Perform migration
+    Write-Host "Initiating live migration (this may take several minutes)..." -ForegroundColor Cyan
+    
+    ${destStorage ? `
+    # Migrate VM and storage
+    Move-VM -Name "${vmName}" -DestinationHost "${destHost}" -DestinationStoragePath "${destStorage}" -IncludeStorage
+    ` : `
+    # Migrate VM only (shared storage)
+    Move-VM -Name "${vmName}" -DestinationHost "${destHost}"
+    `}
+    
+    Write-Host "✓ Live migration completed successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "VM ${vmName} is now running on: ${destHost}" -ForegroundColor Yellow
+    
+    # Verify on destination
+    Write-Host ""
+    Write-Host "Verify VM on destination with:" -ForegroundColor Cyan
+    Write-Host "  Invoke-Command -ComputerName '${destHost}' -ScriptBlock { Get-VM -Name '${vmName}' }"
+    
+} catch {
+    Write-Error "Failed to perform live migration: $_"
+}`;
+    }
   }
 ];
 
@@ -3818,6 +5052,9 @@ export const hyperVCategories = [
   'VM Lifecycle',
   'Storage',
   'Checkpoints',
+  'Networking',
+  'Backup & Recovery',
   'Reporting',
+  'Performance',
   'Common Admin Tasks'
 ];

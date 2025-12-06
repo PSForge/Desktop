@@ -3230,5 +3230,1545 @@ try {
     exit 1
 }`;
     }
+  },
+
+  // ========================================
+  // MAILBOX MANAGEMENT - QUOTAS
+  // ========================================
+  {
+    id: 'set-mailbox-quota-limits',
+    name: 'Set Mailbox Quota Limits',
+    category: 'Mailboxes & Users',
+    isPremium: true,
+    description: 'Configure mailbox storage quotas including warning, prohibit send, and prohibit send/receive limits',
+    instructions: `**How This Task Works:**
+This script configures storage quota limits for Exchange mailboxes to manage storage consumption and enforce retention policies.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Mailbox must exist
+
+**What You Need to Provide:**
+- Mailbox identity (email address)
+- Issue Warning At quota (in MB)
+- Prohibit Send At quota (in MB)
+- Prohibit Send Receive At quota (in MB)
+- Use database defaults: true or false
+
+**What the Script Does:**
+1. Verifies mailbox exists
+2. Configures individual quota limits or uses database defaults
+3. Sets warning, prohibit send, and prohibit send/receive thresholds
+4. Displays current quota configuration
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Quotas are in MB (1024 MB = 1 GB)
+- Issue Warning: user receives warning email
+- Prohibit Send: user cannot send new mail
+- Prohibit Send Receive: user cannot send or receive mail
+- Typical use: storage management, user discipline, compliance
+- Set quotas progressively (Warning < ProhibitSend < ProhibitSendReceive)`,
+    parameters: [
+      { id: 'mailboxIdentity', label: 'Mailbox Identity', type: 'email', required: true, placeholder: 'user@contoso.com' },
+      { id: 'issueWarningMB', label: 'Issue Warning At (MB)', type: 'number', required: true, placeholder: '1800', defaultValue: 1800 },
+      { id: 'prohibitSendMB', label: 'Prohibit Send At (MB)', type: 'number', required: true, placeholder: '1900', defaultValue: 1900 },
+      { id: 'prohibitSendReceiveMB', label: 'Prohibit Send Receive At (MB)', type: 'number', required: true, placeholder: '2000', defaultValue: 2000 },
+      { id: 'useDatabaseDefaults', label: 'Use Database Defaults', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const mailboxIdentity = escapePowerShellString(params.mailboxIdentity);
+      const issueWarning = params.issueWarningMB || 1800;
+      const prohibitSend = params.prohibitSendMB || 1900;
+      const prohibitSendReceive = params.prohibitSendReceiveMB || 2000;
+      const useDefaults = toPowerShellBoolean(params.useDatabaseDefaults ?? false);
+
+      return `# Set Mailbox Quota Limits
+# Generated: ${new Date().toISOString()}
+
+$MailboxIdentity = "${mailboxIdentity}"
+$IssueWarningMB = ${issueWarning}
+$ProhibitSendMB = ${prohibitSend}
+$ProhibitSendReceiveMB = ${prohibitSendReceive}
+$UseDatabaseDefaults = ${useDefaults}
+
+try {
+    # Verify mailbox exists
+    $Mailbox = Get-Mailbox -Identity $MailboxIdentity -ErrorAction Stop
+    Write-Host "✓ Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    
+    if ($UseDatabaseDefaults) {
+        # Use database default quotas
+        Set-Mailbox -Identity $MailboxIdentity -UseDatabaseQuotaDefaults $true
+        Write-Host "✓ Mailbox set to use database default quotas" -ForegroundColor Green
+    } else {
+        # Set individual quotas
+        Set-Mailbox -Identity $MailboxIdentity \`
+            -UseDatabaseQuotaDefaults $false \`
+            -IssueWarningQuota "$($IssueWarningMB)MB" \`
+            -ProhibitSendQuota "$($ProhibitSendMB)MB" \`
+            -ProhibitSendReceiveQuota "$($ProhibitSendReceiveMB)MB"
+        
+        Write-Host "✓ Mailbox quotas configured" -ForegroundColor Green
+        Write-Host "  Issue Warning At: $IssueWarningMB MB" -ForegroundColor Gray
+        Write-Host "  Prohibit Send At: $ProhibitSendMB MB" -ForegroundColor Gray
+        Write-Host "  Prohibit Send Receive At: $ProhibitSendReceiveMB MB" -ForegroundColor Gray
+    }
+    
+    # Display current settings
+    $Updated = Get-Mailbox -Identity $MailboxIdentity
+    Write-Host ""
+    Write-Host "Current Quota Settings:" -ForegroundColor Cyan
+    Write-Host "  Use Database Defaults: $($Updated.UseDatabaseQuotaDefaults)" -ForegroundColor Gray
+    Write-Host "  Issue Warning: $($Updated.IssueWarningQuota)" -ForegroundColor Gray
+    Write-Host "  Prohibit Send: $($Updated.ProhibitSendQuota)" -ForegroundColor Gray
+    Write-Host "  Prohibit Send Receive: $($Updated.ProhibitSendReceiveQuota)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to set mailbox quotas: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // MAILBOX MANAGEMENT - PERMISSIONS
+  // ========================================
+  {
+    id: 'grant-mailbox-full-access',
+    name: 'Grant Full Access Mailbox Permissions',
+    category: 'Mailboxes & Users',
+    isPremium: true,
+    description: 'Grant Full Access and/or Send As permissions to a mailbox for another user',
+    instructions: `**How This Task Works:**
+This script grants mailbox permissions allowing one user to access another user's mailbox with Full Access and optionally Send As rights.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Both mailboxes must exist
+
+**What You Need to Provide:**
+- Target mailbox identity (mailbox to access)
+- Trustee (user receiving permissions)
+- Grant Full Access: true or false
+- Grant Send As: true or false
+- Enable automapping (auto-add to Outlook)
+
+**What the Script Does:**
+1. Verifies target mailbox and trustee exist
+2. Grants Full Access permission if enabled
+3. Grants Send As permission if enabled
+4. Configures automapping for Outlook client
+5. Reports permissions granted
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Full Access: complete mailbox access (read/write/delete)
+- Send As: send mail appearing from target mailbox
+- Automapping: mailbox appears automatically in Outlook
+- Typical use: executive assistants, shared mailbox access, departing employees
+- Permissions may take up to 60 minutes to propagate
+- User must restart Outlook to see automapped mailbox`,
+    parameters: [
+      { id: 'targetMailbox', label: 'Target Mailbox', type: 'email', required: true, placeholder: 'target@contoso.com' },
+      { id: 'trustee', label: 'Trustee (User to Grant Access)', type: 'email', required: true, placeholder: 'user@contoso.com' },
+      { id: 'grantFullAccess', label: 'Grant Full Access', type: 'boolean', required: false, defaultValue: true },
+      { id: 'grantSendAs', label: 'Grant Send As', type: 'boolean', required: false, defaultValue: false },
+      { id: 'automapping', label: 'Enable Automapping', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetMailbox = escapePowerShellString(params.targetMailbox);
+      const trustee = escapePowerShellString(params.trustee);
+      const grantFullAccess = toPowerShellBoolean(params.grantFullAccess ?? true);
+      const grantSendAs = toPowerShellBoolean(params.grantSendAs ?? false);
+      const automapping = toPowerShellBoolean(params.automapping ?? true);
+
+      return `# Grant Mailbox Permissions
+# Generated: ${new Date().toISOString()}
+
+$TargetMailbox = "${targetMailbox}"
+$Trustee = "${trustee}"
+$GrantFullAccess = ${grantFullAccess}
+$GrantSendAs = ${grantSendAs}
+$Automapping = ${automapping}
+
+try {
+    # Verify target mailbox exists
+    $Target = Get-Mailbox -Identity $TargetMailbox -ErrorAction Stop
+    Write-Host "✓ Target Mailbox: $($Target.DisplayName)" -ForegroundColor Green
+    
+    # Verify trustee exists
+    $User = Get-Mailbox -Identity $Trustee -ErrorAction Stop
+    Write-Host "✓ Trustee: $($User.DisplayName)" -ForegroundColor Green
+    
+    if ($GrantFullAccess) {
+        Add-MailboxPermission -Identity $TargetMailbox \`
+            -User $Trustee \`
+            -AccessRights FullAccess \`
+            -InheritanceType All \`
+            -AutoMapping $Automapping
+        
+        Write-Host "✓ Full Access granted" -ForegroundColor Green
+        Write-Host "  Automapping: $Automapping" -ForegroundColor Gray
+    }
+    
+    if ($GrantSendAs) {
+        Add-ADPermission -Identity $Target.DistinguishedName \`
+            -User $Trustee \`
+            -AccessRights ExtendedRight \`
+            -ExtendedRights "Send As"
+        
+        Write-Host "✓ Send As permission granted" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+    Write-Host "Permission Summary:" -ForegroundColor Cyan
+    Write-Host "  Target: $TargetMailbox" -ForegroundColor Gray
+    Write-Host "  Trustee: $Trustee" -ForegroundColor Gray
+    Write-Host "  Full Access: $GrantFullAccess" -ForegroundColor Gray
+    Write-Host "  Send As: $GrantSendAs" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠️ Permissions may take up to 60 minutes to propagate" -ForegroundColor Yellow
+    Write-Host "  User should restart Outlook to see changes" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to grant permissions: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // MAILBOX MANAGEMENT - EXPORT
+  // ========================================
+  {
+    id: 'export-mailbox-pst',
+    name: 'Export Mailbox to PST File',
+    category: 'Mailboxes & Users',
+    isPremium: true,
+    description: 'Export a mailbox or specific folders to a PST file for backup or migration',
+    instructions: `**How This Task Works:**
+This script creates a mailbox export request to export mailbox contents to a PST file on a network share.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges (or Mailbox Import Export role)
+- PowerShell with Exchange Management Shell loaded
+- Network share accessible from Exchange server
+- Write permissions on export path
+
+**What You Need to Provide:**
+- Mailbox identity (email address)
+- Export path (UNC path to network share)
+- Include folders (optional, leave blank for entire mailbox)
+- Content filter date range (optional)
+
+**What the Script Does:**
+1. Verifies mailbox exists
+2. Creates asynchronous mailbox export request
+3. Configures folder filter if specified
+4. Configures date range filter if specified
+5. Reports export request status and monitoring command
+
+**Important Notes:**
+- Mailbox Import Export management role required
+- Export path must be UNC path (\\\\server\\share\\file.pst)
+- Exchange server must have write access to network share
+- Typical use: legal discovery, offboarding, backup, migration
+- Export is asynchronous and may take hours for large mailboxes
+- Monitor with Get-MailboxExportRequest cmdlet
+- Date range format: MM/DD/YYYY
+- Folder filter: #Inbox#, #SentItems#, etc.`,
+    parameters: [
+      { id: 'mailboxIdentity', label: 'Mailbox Identity', type: 'email', required: true, placeholder: 'user@contoso.com' },
+      { id: 'exportPath', label: 'Export Path (UNC)', type: 'path', required: true, placeholder: '\\\\server\\exports\\user.pst' },
+      { id: 'includeFolders', label: 'Include Folders (Optional)', type: 'text', required: false, placeholder: '#Inbox#, #SentItems#' },
+      { id: 'startDate', label: 'Start Date (Optional)', type: 'text', required: false, placeholder: '01/01/2024' },
+      { id: 'endDate', label: 'End Date (Optional)', type: 'text', required: false, placeholder: '12/31/2024' }
+    ],
+    scriptTemplate: (params) => {
+      const mailboxIdentity = escapePowerShellString(params.mailboxIdentity);
+      const exportPath = escapePowerShellString(params.exportPath);
+      const includeFolders = params.includeFolders ? escapePowerShellString(params.includeFolders) : '';
+      const startDate = params.startDate ? escapePowerShellString(params.startDate) : '';
+      const endDate = params.endDate ? escapePowerShellString(params.endDate) : '';
+
+      return `# Export Mailbox to PST
+# Generated: ${new Date().toISOString()}
+
+$MailboxIdentity = "${mailboxIdentity}"
+$ExportPath = "${exportPath}"
+${includeFolders ? `$IncludeFolders = "${includeFolders}"` : ''}
+${startDate ? `$StartDate = "${startDate}"` : ''}
+${endDate ? `$EndDate = "${endDate}"` : ''}
+
+try {
+    # Verify mailbox exists
+    $Mailbox = Get-Mailbox -Identity $MailboxIdentity -ErrorAction Stop
+    Write-Host "✓ Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    
+    # Build export request parameters
+    $params = @{
+        Mailbox = $MailboxIdentity
+        FilePath = $ExportPath
+    }
+    
+    ${includeFolders ? `
+    # Add folder filter
+    $params.IncludeFolders = $IncludeFolders.Split(',').Trim()
+    Write-Host "  Folders: $IncludeFolders" -ForegroundColor Gray` : ''}
+    
+    ${startDate && endDate ? `
+    # Add date filter
+    $params.ContentFilter = "(Received -ge '$StartDate') -and (Received -le '$EndDate')"
+    Write-Host "  Date Range: $StartDate to $EndDate" -ForegroundColor Gray` : ''}
+    
+    # Create export request
+    Write-Host ""
+    Write-Host "Creating mailbox export request..." -ForegroundColor Cyan
+    
+    $Request = New-MailboxExportRequest @params
+    
+    Write-Host "✓ Export request created" -ForegroundColor Green
+    Write-Host "  Request Name: $($Request.Name)" -ForegroundColor Gray
+    Write-Host "  Status: $($Request.Status)" -ForegroundColor Gray
+    Write-Host "  Export Path: $ExportPath" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Monitor progress with:" -ForegroundColor Yellow
+    Write-Host "  Get-MailboxExportRequest -Identity '$MailboxIdentity\\$($Request.Name)' | Get-MailboxExportRequestStatistics" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Remove completed request with:" -ForegroundColor Yellow
+    Write-Host "  Get-MailboxExportRequest -Identity '$MailboxIdentity\\$($Request.Name)' | Remove-MailboxExportRequest" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create export request: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // DATABASE MANAGEMENT - CREATE DATABASE
+  // ========================================
+  {
+    id: 'create-mailbox-database',
+    name: 'Create New Mailbox Database',
+    category: 'Database Management',
+    isPremium: true,
+    description: 'Create a new mailbox database with specified paths and mount options',
+    instructions: `**How This Task Works:**
+This script creates a new mailbox database on an Exchange server with configurable file paths and mount settings.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Sufficient disk space for database and logs
+- Target paths must exist on server
+
+**What You Need to Provide:**
+- Database name
+- Server name
+- EDB file path
+- Log folder path
+- Mount database after creation (true/false)
+
+**What the Script Does:**
+1. Verifies server exists
+2. Creates new mailbox database with specified paths
+3. Mounts database if requested
+4. Configures circular logging if specified
+5. Reports database creation details
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- EDB file path: location for database file (.edb)
+- Log folder path: location for transaction logs
+- Best practice: separate disks for EDB and logs
+- Typical use: expanding capacity, balancing load, new sites
+- Database name must be unique across organization
+- Paths must be local to the server (not network shares)
+- Mount may fail if paths are incorrect or inaccessible`,
+    parameters: [
+      { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'DB03' },
+      { id: 'serverName', label: 'Server Name', type: 'text', required: true, placeholder: 'EXCH01' },
+      { id: 'edbFilePath', label: 'EDB File Path', type: 'path', required: true, placeholder: 'E:\\Databases\\DB03\\DB03.edb' },
+      { id: 'logFolderPath', label: 'Log Folder Path', type: 'path', required: true, placeholder: 'L:\\Logs\\DB03' },
+      { id: 'mountDatabase', label: 'Mount After Creation', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const databaseName = escapePowerShellString(params.databaseName);
+      const serverName = escapePowerShellString(params.serverName);
+      const edbFilePath = escapePowerShellString(params.edbFilePath);
+      const logFolderPath = escapePowerShellString(params.logFolderPath);
+      const mountDatabase = toPowerShellBoolean(params.mountDatabase ?? true);
+
+      return `# Create Mailbox Database
+# Generated: ${new Date().toISOString()}
+
+$DatabaseName = "${databaseName}"
+$ServerName = "${serverName}"
+$EdbFilePath = "${edbFilePath}"
+$LogFolderPath = "${logFolderPath}"
+$MountDatabase = ${mountDatabase}
+
+try {
+    # Verify server exists
+    $Server = Get-ExchangeServer -Identity $ServerName -ErrorAction Stop
+    Write-Host "✓ Server: $($Server.Name)" -ForegroundColor Green
+    
+    # Check if database already exists
+    $Existing = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction SilentlyContinue
+    if ($Existing) {
+        Write-Host "⚠ Database already exists: $DatabaseName" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    # Create database
+    Write-Host ""
+    Write-Host "Creating mailbox database..." -ForegroundColor Cyan
+    
+    New-MailboxDatabase -Name $DatabaseName \`
+        -Server $ServerName \`
+        -EdbFilePath $EdbFilePath \`
+        -LogFolderPath $LogFolderPath
+    
+    Write-Host "✓ Database created: $DatabaseName" -ForegroundColor Green
+    
+    if ($MountDatabase) {
+        Write-Host "Mounting database..." -ForegroundColor Cyan
+        Mount-Database -Identity $DatabaseName
+        Write-Host "✓ Database mounted" -ForegroundColor Green
+    }
+    
+    # Get database status
+    $DB = Get-MailboxDatabase -Identity $DatabaseName -Status
+    
+    Write-Host ""
+    Write-Host "Database Details:" -ForegroundColor Cyan
+    Write-Host "  Name: $($DB.Name)" -ForegroundColor Gray
+    Write-Host "  Server: $($DB.Server)" -ForegroundColor Gray
+    Write-Host "  EDB Path: $($DB.EdbFilePath)" -ForegroundColor Gray
+    Write-Host "  Log Path: $($DB.LogFolderPath)" -ForegroundColor Gray
+    Write-Host "  Mounted: $($DB.Mounted)" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to create database: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // DATABASE MANAGEMENT - MAINTENANCE
+  // ========================================
+  {
+    id: 'configure-database-maintenance',
+    name: 'Configure Database Maintenance Schedule',
+    category: 'Database Management',
+    isPremium: true,
+    description: 'Configure the online database maintenance schedule window for a mailbox database',
+    instructions: `**How This Task Works:**
+This script configures the maintenance schedule for mailbox database background maintenance (online defragmentation, content indexing, etc.).
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Database must exist
+
+**What You Need to Provide:**
+- Database name
+- Maintenance start day (Sunday-Saturday)
+- Maintenance start hour (0-23)
+- Maintenance duration in hours (1-24)
+
+**What the Script Does:**
+1. Verifies database exists
+2. Calculates maintenance window from start day/hour and duration
+3. Configures MaintenanceSchedule property
+4. Displays current maintenance configuration
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Maintenance window: background database tasks run during this time
+- Tasks include: online defragmentation, content indexing, background housekeeping
+- Best practice: schedule during off-peak hours
+- Typical window: 4-8 hours overnight
+- Maintenance still runs if window missed, but during busy hours
+- Too short a window may cause incomplete maintenance cycles
+- Exchange 2010+: schedule is in 15-minute increments`,
+    parameters: [
+      { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'DB01' },
+      { id: 'startDay', label: 'Start Day', type: 'select', required: true, options: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], defaultValue: 'Sunday' },
+      { id: 'startHour', label: 'Start Hour (0-23)', type: 'number', required: true, placeholder: '1', defaultValue: 1 },
+      { id: 'durationHours', label: 'Duration (Hours)', type: 'number', required: true, placeholder: '6', defaultValue: 6 }
+    ],
+    scriptTemplate: (params) => {
+      const databaseName = escapePowerShellString(params.databaseName);
+      const startDay = params.startDay || 'Sunday';
+      const startHour = params.startHour ?? 1;
+      const durationHours = params.durationHours || 6;
+
+      return `# Configure Database Maintenance Schedule
+# Generated: ${new Date().toISOString()}
+
+$DatabaseName = "${databaseName}"
+$StartDay = "${startDay}"
+$StartHour = ${startHour}
+$DurationHours = ${durationHours}
+
+try {
+    # Verify database exists
+    $Database = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction Stop
+    Write-Host "✓ Database: $($Database.Name)" -ForegroundColor Green
+    
+    # Build maintenance schedule
+    # Format: Day.StartTime-Day.EndTime
+    $EndHour = ($StartHour + $DurationHours) % 24
+    $EndDay = $StartDay
+    
+    # Adjust end day if we cross midnight
+    if (($StartHour + $DurationHours) -ge 24) {
+        $DaysOfWeek = @('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
+        $StartDayIndex = $DaysOfWeek.IndexOf($StartDay)
+        $EndDayIndex = ($StartDayIndex + 1) % 7
+        $EndDay = $DaysOfWeek[$EndDayIndex]
+    }
+    
+    $StartTime = "{0:D2}:00" -f $StartHour
+    $EndTime = "{0:D2}:00" -f $EndHour
+    
+    $Schedule = "$StartDay.$StartTime-$EndDay.$EndTime"
+    
+    Write-Host ""
+    Write-Host "Configuring maintenance schedule..." -ForegroundColor Cyan
+    Write-Host "  Window: $Schedule" -ForegroundColor Gray
+    
+    Set-MailboxDatabase -Identity $DatabaseName -MaintenanceSchedule $Schedule
+    
+    Write-Host "✓ Maintenance schedule configured" -ForegroundColor Green
+    
+    # Display current settings
+    $Updated = Get-MailboxDatabase -Identity $DatabaseName
+    Write-Host ""
+    Write-Host "Maintenance Configuration:" -ForegroundColor Cyan
+    Write-Host "  Database: $DatabaseName" -ForegroundColor Gray
+    Write-Host "  Start: $StartDay at $StartTime" -ForegroundColor Gray
+    Write-Host "  Duration: $DurationHours hours" -ForegroundColor Gray
+    Write-Host "  End: $EndDay at $EndTime" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "ℹ️ Maintenance includes:" -ForegroundColor Yellow
+    Write-Host "  - Online defragmentation" -ForegroundColor Gray
+    Write-Host "  - Content indexing updates" -ForegroundColor Gray
+    Write-Host "  - Background housekeeping" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure maintenance schedule: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // TRANSPORT RULES - JOURNALING
+  // ========================================
+  {
+    id: 'configure-journaling-rule',
+    name: 'Configure Email Journaling Rule',
+    category: 'Mail Flow & Transport Rules',
+    isPremium: true,
+    description: 'Create a journaling rule to capture copies of email for compliance and legal requirements',
+    instructions: `**How This Task Works:**
+This script creates a journal rule to capture copies of email messages sent to or from specific recipients for compliance, legal, or archival purposes.
+
+**Prerequisites:**
+- Exchange Server Organization Management role
+- PowerShell with Exchange Management Shell loaded
+- Journaling mailbox already configured
+- Understanding of compliance requirements
+
+**What You Need to Provide:**
+- Rule name
+- Journal recipient email (where copies are sent)
+- Scope: Internal (within org), External (outside org), or Global (all)
+- Target recipient (optional, leave blank for all recipients)
+
+**What the Script Does:**
+1. Verifies journal recipient mailbox exists
+2. Creates journal rule with specified scope
+3. Targets specific recipient if specified, otherwise all mail
+4. Enables the journal rule
+5. Reports rule configuration
+
+**Important Notes:**
+- Organization Management role required
+- Journal recipient: mailbox/address where copies are delivered
+- Scope determines which messages are journaled
+- Global: all internal and external messages
+- Typical use: legal compliance (SEC, HIPAA, SOX), e-discovery, archival
+- Journal mailbox should have large quota or archiving configured
+- Journal reports contain original message as attachment
+- High volume environments may need dedicated journal mailbox`,
+    parameters: [
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'All Mail Journaling' },
+      { id: 'journalRecipient', label: 'Journal Recipient Email', type: 'email', required: true, placeholder: 'journal@contoso.com' },
+      { id: 'scope', label: 'Scope', type: 'select', required: true, options: ['Internal', 'External', 'Global'], defaultValue: 'Global' },
+      { id: 'targetRecipient', label: 'Target Recipient (Optional)', type: 'email', required: false, placeholder: 'Leave blank for all recipients' }
+    ],
+    scriptTemplate: (params) => {
+      const ruleName = escapePowerShellString(params.ruleName);
+      const journalRecipient = escapePowerShellString(params.journalRecipient);
+      const scope = params.scope || 'Global';
+      const targetRecipient = params.targetRecipient ? escapePowerShellString(params.targetRecipient) : '';
+
+      return `# Configure Journaling Rule
+# Generated: ${new Date().toISOString()}
+
+$RuleName = "${ruleName}"
+$JournalRecipient = "${journalRecipient}"
+$Scope = "${scope}"
+${targetRecipient ? `$TargetRecipient = "${targetRecipient}"` : ''}
+
+try {
+    # Verify journal recipient exists
+    $JournalMbx = Get-Mailbox -Identity $JournalRecipient -ErrorAction SilentlyContinue
+    if (-not $JournalMbx) {
+        Write-Host "⚠ Journal recipient mailbox not found, will use as external address" -ForegroundColor Yellow
+    } else {
+        Write-Host "✓ Journal Recipient: $($JournalMbx.DisplayName)" -ForegroundColor Green
+    }
+    
+    # Check if rule exists
+    $Existing = Get-JournalRule -Identity $RuleName -ErrorAction SilentlyContinue
+    if ($Existing) {
+        Write-Host "⚠ Journal rule already exists: $RuleName" -ForegroundColor Yellow
+        Write-Host "  Updating existing rule..." -ForegroundColor Gray
+        
+        ${targetRecipient ? `
+        Set-JournalRule -Identity $RuleName \`
+            -JournalEmailAddress $JournalRecipient \`
+            -Scope $Scope \`
+            -Recipient $TargetRecipient \`
+            -Enabled $true` : `
+        Set-JournalRule -Identity $RuleName \`
+            -JournalEmailAddress $JournalRecipient \`
+            -Scope $Scope \`
+            -Enabled $true`}
+    } else {
+        # Create new journal rule
+        Write-Host ""
+        Write-Host "Creating journal rule..." -ForegroundColor Cyan
+        
+        ${targetRecipient ? `
+        New-JournalRule -Name $RuleName \`
+            -JournalEmailAddress $JournalRecipient \`
+            -Scope $Scope \`
+            -Recipient $TargetRecipient \`
+            -Enabled $true` : `
+        New-JournalRule -Name $RuleName \`
+            -JournalEmailAddress $JournalRecipient \`
+            -Scope $Scope \`
+            -Enabled $true`}
+    }
+    
+    Write-Host "✓ Journal rule configured" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Journal Rule Settings:" -ForegroundColor Cyan
+    Write-Host "  Name: $RuleName" -ForegroundColor Gray
+    Write-Host "  Journal To: $JournalRecipient" -ForegroundColor Gray
+    Write-Host "  Scope: $Scope" -ForegroundColor Gray
+    ${targetRecipient ? 'Write-Host "  Target: $TargetRecipient" -ForegroundColor Gray' : 'Write-Host "  Target: All Recipients" -ForegroundColor Gray'}
+    Write-Host ""
+    Write-Host "⚠️ Ensure journal mailbox has adequate quota" -ForegroundColor Yellow
+    Write-Host "  High volume can quickly fill journal mailbox" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to configure journaling: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // TRANSPORT RULES - DLP
+  // ========================================
+  {
+    id: 'create-dlp-transport-rule',
+    name: 'Create Data Loss Prevention (DLP) Transport Rule',
+    category: 'Mail Flow & Transport Rules',
+    isPremium: true,
+    description: 'Create a transport rule to detect and block sensitive information like credit card or SSN data',
+    instructions: `**How This Task Works:**
+This script creates a transport rule to detect sensitive information patterns (credit cards, SSNs, etc.) in email messages and take action to prevent data loss.
+
+**Prerequisites:**
+- Exchange Server Organization Management role
+- PowerShell with Exchange Management Shell loaded
+- Understanding of sensitive data types
+- Compliance requirements defined
+
+**What You Need to Provide:**
+- Rule name
+- Sensitive data type: CreditCard, SSN, or CustomRegex
+- Custom regex pattern (if CustomRegex selected)
+- Action: Notify, Reject, or Moderate
+- Notify recipient email (for notifications)
+
+**What the Script Does:**
+1. Creates transport rule with sensitive information detection
+2. Configures pattern matching for specified data type
+3. Sets action (notify, reject, or moderate)
+4. Configures notification recipient if specified
+5. Reports rule configuration
+
+**Important Notes:**
+- Organization Management role required
+- Credit Card pattern matches major card formats (Visa, MC, Amex, etc.)
+- SSN pattern matches ###-##-#### format
+- Reject blocks message with NDR to sender
+- Moderate holds message for approval
+- Notify sends copy to compliance team
+- Typical use: PCI-DSS compliance, privacy protection, data governance
+- Test rules before production deployment
+- May cause false positives, tune patterns as needed`,
+    parameters: [
+      { id: 'ruleName', label: 'Rule Name', type: 'text', required: true, placeholder: 'Block Credit Card Numbers' },
+      { id: 'dataType', label: 'Sensitive Data Type', type: 'select', required: true, options: ['CreditCard', 'SSN', 'CustomRegex'], defaultValue: 'CreditCard' },
+      { id: 'customPattern', label: 'Custom Regex Pattern', type: 'text', required: false, placeholder: '\\b\\d{4}-\\d{4}-\\d{4}-\\d{4}\\b' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Notify', 'Reject', 'Moderate'], defaultValue: 'Notify' },
+      { id: 'notifyRecipient', label: 'Notify Recipient', type: 'email', required: false, placeholder: 'compliance@contoso.com' }
+    ],
+    scriptTemplate: (params) => {
+      const ruleName = escapePowerShellString(params.ruleName);
+      const dataType = params.dataType || 'CreditCard';
+      const customPattern = params.customPattern ? escapePowerShellString(params.customPattern) : '';
+      const action = params.action || 'Notify';
+      const notifyRecipient = params.notifyRecipient ? escapePowerShellString(params.notifyRecipient) : '';
+
+      return `# Create DLP Transport Rule
+# Generated: ${new Date().toISOString()}
+
+$RuleName = "${ruleName}"
+$DataType = "${dataType}"
+${customPattern ? `$CustomPattern = "${customPattern}"` : ''}
+$Action = "${action}"
+${notifyRecipient ? `$NotifyRecipient = "${notifyRecipient}"` : ''}
+
+# Define patterns for sensitive data
+$Patterns = @{
+    "CreditCard" = "\\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\\b"
+    "SSN" = "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+    "CustomRegex" = ${customPattern ? `"${customPattern}"` : '""'}
+}
+
+try {
+    $Pattern = $Patterns[$DataType]
+    
+    if (-not $Pattern) {
+        Write-Error "Invalid pattern selected"
+        exit 1
+    }
+    
+    Write-Host "Creating DLP transport rule..." -ForegroundColor Cyan
+    Write-Host "  Pattern Type: $DataType" -ForegroundColor Gray
+    
+    # Build rule parameters
+    $params = @{
+        Name = $RuleName
+        SubjectOrBodyMatchesPatterns = $Pattern
+    }
+    
+    switch ($Action) {
+        "Notify" {
+            ${notifyRecipient ? `
+            $params.BlindCopyTo = $NotifyRecipient
+            $params.SetAuditSeverity = "High"
+            Write-Host "  Action: Notify $NotifyRecipient" -ForegroundColor Gray` : `
+            $params.SetAuditSeverity = "High"
+            Write-Host "  Action: Audit only (no recipient specified)" -ForegroundColor Yellow`}
+        }
+        "Reject" {
+            $params.RejectMessageReasonText = "This message contains sensitive information that cannot be sent externally."
+            Write-Host "  Action: Reject with NDR" -ForegroundColor Gray
+        }
+        "Moderate" {
+            ${notifyRecipient ? `
+            $params.ModerateMessageByUser = $NotifyRecipient` : `
+            Write-Error "Moderate action requires a notify recipient"
+            exit 1`}
+            Write-Host "  Action: Moderate by $NotifyRecipient" -ForegroundColor Gray
+        }
+    }
+    
+    New-TransportRule @params
+    
+    Write-Host ""
+    Write-Host "✓ DLP transport rule created" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Rule Configuration:" -ForegroundColor Cyan
+    Write-Host "  Name: $RuleName" -ForegroundColor Gray
+    Write-Host "  Data Type: $DataType" -ForegroundColor Gray
+    Write-Host "  Action: $Action" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "⚠️ Test the rule before production deployment" -ForegroundColor Yellow
+    Write-Host "  Use -Mode Enforce or -Mode Audit as needed" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create DLP rule: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // CLIENT ACCESS - OWA POLICY
+  // ========================================
+  {
+    id: 'configure-owa-policy',
+    name: 'Configure OWA Mailbox Policy',
+    category: 'Client Access',
+    isPremium: true,
+    description: 'Create or modify OWA policies to control Outlook Web App features and settings',
+    instructions: `**How This Task Works:**
+This script creates or modifies Outlook Web App (OWA) mailbox policies to control which features are available to users accessing email via web browser.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Understanding of OWA features
+
+**What You Need to Provide:**
+- Policy name
+- Feature settings for various OWA capabilities
+- Whether to set as default policy
+
+**What the Script Does:**
+1. Checks if OWA policy exists (creates or updates)
+2. Configures enabled/disabled features
+3. Sets as default policy if specified
+4. Reports policy configuration summary
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Policies control OWA features (calendar, tasks, contacts, attachments)
+- Typical use: security hardening, user experience customization, compliance
+- DirectFileAccess: download attachments to local machine
+- PublicFolders: access to public folders via OWA
+- Apply policy to users with Set-CASMailbox -OwaMailboxPolicy
+- Default policy applies to new mailboxes automatically`,
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'Restricted OWA Policy' },
+      { id: 'directFileAccess', label: 'Allow Direct File Access', type: 'boolean', required: false, defaultValue: true },
+      { id: 'publicFolders', label: 'Allow Public Folders', type: 'boolean', required: false, defaultValue: true },
+      { id: 'calendar', label: 'Allow Calendar', type: 'boolean', required: false, defaultValue: true },
+      { id: 'contacts', label: 'Allow Contacts', type: 'boolean', required: false, defaultValue: true },
+      { id: 'tasks', label: 'Allow Tasks', type: 'boolean', required: false, defaultValue: true },
+      { id: 'setAsDefault', label: 'Set as Default Policy', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const directFileAccess = toPowerShellBoolean(params.directFileAccess ?? true);
+      const publicFolders = toPowerShellBoolean(params.publicFolders ?? true);
+      const calendar = toPowerShellBoolean(params.calendar ?? true);
+      const contacts = toPowerShellBoolean(params.contacts ?? true);
+      const tasks = toPowerShellBoolean(params.tasks ?? true);
+      const setAsDefault = toPowerShellBoolean(params.setAsDefault ?? false);
+
+      return `# Configure OWA Mailbox Policy
+# Generated: ${new Date().toISOString()}
+
+$PolicyName = "${policyName}"
+$DirectFileAccess = ${directFileAccess}
+$PublicFolders = ${publicFolders}
+$Calendar = ${calendar}
+$Contacts = ${contacts}
+$Tasks = ${tasks}
+$SetAsDefault = ${setAsDefault}
+
+try {
+    # Check if policy exists
+    $Existing = Get-OwaMailboxPolicy -Identity $PolicyName -ErrorAction SilentlyContinue
+    
+    $params = @{
+        DirectFileAccessOnPublicComputersEnabled = $DirectFileAccess
+        DirectFileAccessOnPrivateComputersEnabled = $DirectFileAccess
+        PublicFoldersEnabled = $PublicFolders
+        CalendarEnabled = $Calendar
+        ContactsEnabled = $Contacts
+        TasksEnabled = $Tasks
+    }
+    
+    if ($Existing) {
+        Write-Host "Updating existing OWA policy..." -ForegroundColor Yellow
+        Set-OwaMailboxPolicy -Identity $PolicyName @params
+    } else {
+        Write-Host "Creating new OWA policy..." -ForegroundColor Cyan
+        New-OwaMailboxPolicy -Name $PolicyName
+        Set-OwaMailboxPolicy -Identity $PolicyName @params
+    }
+    
+    if ($SetAsDefault) {
+        Set-OwaMailboxPolicy -Identity $PolicyName -IsDefault $true
+        Write-Host "✓ Set as default policy" -ForegroundColor Green
+    }
+    
+    Write-Host "✓ OWA policy configured" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Policy Settings:" -ForegroundColor Cyan
+    Write-Host "  Name: $PolicyName" -ForegroundColor Gray
+    Write-Host "  Direct File Access: $DirectFileAccess" -ForegroundColor Gray
+    Write-Host "  Public Folders: $PublicFolders" -ForegroundColor Gray
+    Write-Host "  Calendar: $Calendar" -ForegroundColor Gray
+    Write-Host "  Contacts: $Contacts" -ForegroundColor Gray
+    Write-Host "  Tasks: $Tasks" -ForegroundColor Gray
+    Write-Host "  Default Policy: $SetAsDefault" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Apply to users with:" -ForegroundColor Yellow
+    Write-Host "  Set-CASMailbox -Identity <user> -OwaMailboxPolicy '$PolicyName'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure OWA policy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // CLIENT ACCESS - ACTIVESYNC POLICY
+  // ========================================
+  {
+    id: 'configure-activesync-policy',
+    name: 'Configure ActiveSync Device Policy',
+    category: 'Client Access',
+    isPremium: true,
+    description: 'Create or modify mobile device policies for Exchange ActiveSync security and compliance',
+    instructions: `**How This Task Works:**
+This script creates or modifies ActiveSync mailbox policies to control mobile device security settings and features.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Understanding of mobile device security requirements
+
+**What You Need to Provide:**
+- Policy name
+- Password requirements (required, length, complexity)
+- Device encryption requirement
+- Attachment download settings
+- Whether to set as default policy
+
+**What the Script Does:**
+1. Checks if ActiveSync policy exists (creates or updates)
+2. Configures password requirements
+3. Configures device encryption
+4. Sets attachment download limits
+5. Sets as default policy if specified
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Device Password: requires PIN/password on mobile device
+- Device Encryption: requires device storage encryption
+- Typical use: security compliance, corporate device policy, BYOD policy
+- Stricter policies may cause compatibility issues with older devices
+- Apply policy to users with Set-CASMailbox -ActiveSyncMailboxPolicy
+- Default policy applies to new mailboxes automatically`,
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'Corporate Mobile Policy' },
+      { id: 'requirePassword', label: 'Require Device Password', type: 'boolean', required: false, defaultValue: true },
+      { id: 'minPasswordLength', label: 'Minimum Password Length', type: 'number', required: false, defaultValue: 6, placeholder: '6' },
+      { id: 'requireEncryption', label: 'Require Device Encryption', type: 'boolean', required: false, defaultValue: true },
+      { id: 'allowAttachments', label: 'Allow Attachment Download', type: 'boolean', required: false, defaultValue: true },
+      { id: 'maxAttachmentSizeMB', label: 'Max Attachment Size (MB)', type: 'number', required: false, defaultValue: 10, placeholder: '10' },
+      { id: 'setAsDefault', label: 'Set as Default Policy', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const requirePassword = toPowerShellBoolean(params.requirePassword ?? true);
+      const minPasswordLength = params.minPasswordLength || 6;
+      const requireEncryption = toPowerShellBoolean(params.requireEncryption ?? true);
+      const allowAttachments = toPowerShellBoolean(params.allowAttachments ?? true);
+      const maxAttachmentSize = params.maxAttachmentSizeMB || 10;
+      const setAsDefault = toPowerShellBoolean(params.setAsDefault ?? false);
+
+      return `# Configure ActiveSync Device Policy
+# Generated: ${new Date().toISOString()}
+
+$PolicyName = "${policyName}"
+$RequirePassword = ${requirePassword}
+$MinPasswordLength = ${minPasswordLength}
+$RequireEncryption = ${requireEncryption}
+$AllowAttachments = ${allowAttachments}
+$MaxAttachmentSizeMB = ${maxAttachmentSize}
+$SetAsDefault = ${setAsDefault}
+
+try {
+    # Check if policy exists
+    $Existing = Get-MobileDeviceMailboxPolicy -Identity $PolicyName -ErrorAction SilentlyContinue
+    
+    $params = @{
+        DevicePasswordEnabled = $RequirePassword
+        MinDevicePasswordLength = $MinPasswordLength
+        RequireDeviceEncryption = $RequireEncryption
+        AttachmentsEnabled = $AllowAttachments
+        MaxAttachmentSize = "$($MaxAttachmentSizeMB)MB"
+        AllowSimpleDevicePassword = $false
+        AlphanumericDevicePasswordRequired = $false
+    }
+    
+    if ($Existing) {
+        Write-Host "Updating existing ActiveSync policy..." -ForegroundColor Yellow
+        Set-MobileDeviceMailboxPolicy -Identity $PolicyName @params
+    } else {
+        Write-Host "Creating new ActiveSync policy..." -ForegroundColor Cyan
+        New-MobileDeviceMailboxPolicy -Name $PolicyName @params
+    }
+    
+    if ($SetAsDefault) {
+        Set-MobileDeviceMailboxPolicy -Identity $PolicyName -IsDefault $true
+        Write-Host "✓ Set as default policy" -ForegroundColor Green
+    }
+    
+    Write-Host "✓ ActiveSync policy configured" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Policy Settings:" -ForegroundColor Cyan
+    Write-Host "  Name: $PolicyName" -ForegroundColor Gray
+    Write-Host "  Require Password: $RequirePassword" -ForegroundColor Gray
+    Write-Host "  Min Password Length: $MinPasswordLength" -ForegroundColor Gray
+    Write-Host "  Require Encryption: $RequireEncryption" -ForegroundColor Gray
+    Write-Host "  Allow Attachments: $AllowAttachments" -ForegroundColor Gray
+    Write-Host "  Max Attachment Size: $MaxAttachmentSizeMB MB" -ForegroundColor Gray
+    Write-Host "  Default Policy: $SetAsDefault" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Apply to users with:" -ForegroundColor Yellow
+    Write-Host "  Set-CASMailbox -Identity <user> -ActiveSyncMailboxPolicy '$PolicyName'" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to configure ActiveSync policy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // HIGH AVAILABILITY - DAG FAILOVER
+  // ========================================
+  {
+    id: 'initiate-dag-failover',
+    name: 'Initiate DAG Database Failover',
+    category: 'High Availability',
+    isPremium: true,
+    description: 'Manually failover a mailbox database to another DAG member server',
+    instructions: `**How This Task Works:**
+This script manually triggers a database failover to move the active database copy from one DAG member to another.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Database must be part of a DAG with healthy copies
+- Target server must have a healthy copy of the database
+
+**What You Need to Provide:**
+- Database name
+- Target server (where to activate the database)
+- Mount dial override (optional, for forcing mount)
+
+**What the Script Does:**
+1. Verifies database exists and is in a DAG
+2. Checks health of copy on target server
+3. Moves active database to target server
+4. Verifies successful activation
+5. Reports failover status
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Target server must have Healthy database copy
+- Failover may cause brief client reconnection
+- Use BestAvailability for automatic server selection
+- Use Lossless to prevent potential data loss
+- Typical use: planned maintenance, load balancing, testing DR
+- -MountDialOverride: use GoodAvailability or BestEffort for forced mount
+- Monitor with Get-MailboxDatabaseCopyStatus after failover`,
+    parameters: [
+      { id: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'DB01' },
+      { id: 'targetServer', label: 'Target Server', type: 'text', required: true, placeholder: 'EXCH02' },
+      { id: 'mountDialOverride', label: 'Mount Dial Override', type: 'select', required: false, options: ['None', 'Lossless', 'GoodAvailability', 'BestAvailability', 'BestEffort'], defaultValue: 'None' }
+    ],
+    scriptTemplate: (params) => {
+      const databaseName = escapePowerShellString(params.databaseName);
+      const targetServer = escapePowerShellString(params.targetServer);
+      const mountDialOverride = params.mountDialOverride || 'None';
+
+      return `# Initiate DAG Database Failover
+# Generated: ${new Date().toISOString()}
+
+$DatabaseName = "${databaseName}"
+$TargetServer = "${targetServer}"
+$MountDialOverride = "${mountDialOverride}"
+
+try {
+    # Verify database exists
+    $Database = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction Stop
+    Write-Host "✓ Database: $($Database.Name)" -ForegroundColor Green
+    
+    # Get current status
+    $CurrentStatus = Get-MailboxDatabaseCopyStatus -Identity "$DatabaseName\\*" | Where-Object { $_.Status -eq "Mounted" }
+    Write-Host "  Currently mounted on: $($CurrentStatus.MailboxServer)" -ForegroundColor Gray
+    
+    # Check target copy status
+    $TargetStatus = Get-MailboxDatabaseCopyStatus -Identity "$DatabaseName\\$TargetServer" -ErrorAction Stop
+    Write-Host "  Target copy status: $($TargetStatus.Status)" -ForegroundColor Gray
+    
+    if ($TargetStatus.Status -ne "Healthy") {
+        Write-Host "⚠ Warning: Target copy is not Healthy ($($TargetStatus.Status))" -ForegroundColor Yellow
+    }
+    
+    Write-Host ""
+    Write-Host "Initiating failover to $TargetServer..." -ForegroundColor Cyan
+    
+    # Build move command
+    $params = @{
+        Identity = $DatabaseName
+        ActivateOnServer = $TargetServer
+        Confirm = $false
+    }
+    
+    if ($MountDialOverride -ne "None") {
+        $params.MountDialOverride = $MountDialOverride
+        Write-Host "  Mount dial override: $MountDialOverride" -ForegroundColor Gray
+    }
+    
+    Move-ActiveMailboxDatabase @params
+    
+    # Verify new status
+    Start-Sleep -Seconds 5
+    $NewStatus = Get-MailboxDatabaseCopyStatus -Identity "$DatabaseName\\*" | Where-Object { $_.Status -eq "Mounted" }
+    
+    Write-Host ""
+    Write-Host "✓ Failover completed" -ForegroundColor Green
+    Write-Host "  Database: $DatabaseName" -ForegroundColor Gray
+    Write-Host "  Now mounted on: $($NewStatus.MailboxServer)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Verify all copies with:" -ForegroundColor Yellow
+    Write-Host "  Get-MailboxDatabaseCopyStatus -Identity '$DatabaseName\\*' | ft Name, Status, CopyQueueLength, ReplayQueueLength" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to initiate failover: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // REPORTING - MESSAGE TRACKING
+  // ========================================
+  {
+    id: 'track-message-delivery',
+    name: 'Track Message Delivery',
+    category: 'Reporting & Inventory',
+    isPremium: true,
+    description: 'Search message tracking logs to trace email delivery and identify issues',
+    instructions: `**How This Task Works:**
+This script searches Exchange message tracking logs to trace email delivery path and identify any delivery issues.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Message tracking logs enabled (default)
+- Search within log retention period (default 30 days)
+
+**What You Need to Provide:**
+- Sender email address (optional)
+- Recipient email address (optional)
+- Subject contains text (optional)
+- Start and end date range
+- Output CSV path for results
+
+**What the Script Does:**
+1. Searches message tracking logs with specified criteria
+2. Retrieves event types (Receive, Send, Deliver, Fail, etc.)
+3. Exports results to CSV for analysis
+4. Displays summary of found messages
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- At least one search criteria required (sender, recipient, or subject)
+- Date range limited by log retention (default 30 days)
+- Typical use: troubleshooting delivery, compliance, user requests
+- Event types: RECEIVE, SEND, DELIVER, FAIL, RESOLVE, EXPAND
+- Search all Hub Transport servers for complete tracking
+- Large date ranges may take significant time to process`,
+    parameters: [
+      { id: 'sender', label: 'Sender Email (Optional)', type: 'email', required: false, placeholder: 'sender@contoso.com' },
+      { id: 'recipient', label: 'Recipient Email (Optional)', type: 'email', required: false, placeholder: 'recipient@contoso.com' },
+      { id: 'subjectContains', label: 'Subject Contains (Optional)', type: 'text', required: false, placeholder: 'Meeting Request' },
+      { id: 'startDate', label: 'Start Date', type: 'text', required: true, placeholder: '01/01/2024' },
+      { id: 'endDate', label: 'End Date', type: 'text', required: true, placeholder: '01/31/2024' },
+      { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\MessageTracking.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const sender = params.sender ? escapePowerShellString(params.sender) : '';
+      const recipient = params.recipient ? escapePowerShellString(params.recipient) : '';
+      const subjectContains = params.subjectContains ? escapePowerShellString(params.subjectContains) : '';
+      const startDate = escapePowerShellString(params.startDate);
+      const endDate = escapePowerShellString(params.endDate);
+      const outputPath = escapePowerShellString(params.outputPath);
+
+      return `# Track Message Delivery
+# Generated: ${new Date().toISOString()}
+
+${sender ? `$Sender = "${sender}"` : ''}
+${recipient ? `$Recipient = "${recipient}"` : ''}
+${subjectContains ? `$SubjectContains = "${subjectContains}"` : ''}
+$StartDate = "${startDate}"
+$EndDate = "${endDate}"
+$OutputPath = "${outputPath}"
+
+try {
+    Write-Host "Searching message tracking logs..." -ForegroundColor Cyan
+    Write-Host "  Date Range: $StartDate to $EndDate" -ForegroundColor Gray
+    ${sender ? 'Write-Host "  Sender: $Sender" -ForegroundColor Gray' : ''}
+    ${recipient ? 'Write-Host "  Recipient: $Recipient" -ForegroundColor Gray' : ''}
+    ${subjectContains ? 'Write-Host "  Subject Contains: $SubjectContains" -ForegroundColor Gray' : ''}
+    
+    # Build search parameters
+    $params = @{
+        Start = $StartDate
+        End = $EndDate
+        ResultSize = "Unlimited"
+    }
+    
+    ${sender ? '$params.Sender = $Sender' : ''}
+    ${recipient ? '$params.Recipients = $Recipient' : ''}
+    ${subjectContains ? '$params.MessageSubject = $SubjectContains' : ''}
+    
+    # Search message tracking logs
+    $Results = Get-MessageTrackingLog @params | Select-Object \`
+        Timestamp, \`
+        EventId, \`
+        Source, \`
+        Sender, \`
+        @{N='Recipients';E={\$_.Recipients -join '; '}}, \`
+        MessageSubject, \`
+        TotalBytes, \`
+        SourceContext, \`
+        ServerHostname, \`
+        RecipientStatus
+    
+    Write-Host ""
+    Write-Host "✓ Found $($Results.Count) message tracking entries" -ForegroundColor Green
+    
+    if ($Results.Count -gt 0) {
+        # Export to CSV
+        $Results | Export-Csv -Path $OutputPath -NoTypeInformation
+        Write-Host "  Exported to: $OutputPath" -ForegroundColor Gray
+        
+        # Show event summary
+        Write-Host ""
+        Write-Host "Event Summary:" -ForegroundColor Cyan
+        $Results | Group-Object EventId | ForEach-Object {
+            Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor Gray
+        }
+        
+        # Show first few results
+        Write-Host ""
+        Write-Host "Recent Messages:" -ForegroundColor Cyan
+        $Results | Select-Object -First 5 | ForEach-Object {
+            Write-Host "  [$($_.Timestamp)] $($_.EventId): $($_.MessageSubject)" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host "⚠ No messages found matching criteria" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Failed to search message tracking: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // REPORTING - MAILBOX STATISTICS
+  // ========================================
+  {
+    id: 'generate-mailbox-statistics-report',
+    name: 'Generate Mailbox Statistics Report',
+    category: 'Reporting & Inventory',
+    isPremium: true,
+    description: 'Generate comprehensive mailbox statistics report including size, item count, and last logon',
+    instructions: `**How This Task Works:**
+This script generates a detailed report of mailbox statistics for capacity planning, usage analysis, and administration.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Write permissions on output path
+
+**What You Need to Provide:**
+- Database filter (optional, to limit scope)
+- Include disconnected mailboxes: true or false
+- Output CSV path for report
+
+**What the Script Does:**
+1. Retrieves all mailboxes (or filtered by database)
+2. Collects statistics for each mailbox
+3. Gathers size, item count, last logon time
+4. Exports comprehensive report to CSV
+5. Displays summary statistics
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- Large organizations may take significant time to process
+- Statistics include: size, item count, deleted items, last logon
+- Typical use: capacity planning, license audit, inactive mailbox detection
+- Last logon helps identify inactive accounts
+- Filter by database to reduce scope and processing time
+- Disconnected mailboxes are those pending deletion`,
+    parameters: [
+      { id: 'databaseFilter', label: 'Database Filter (Optional)', type: 'text', required: false, placeholder: 'DB01' },
+      { id: 'includeDisconnected', label: 'Include Disconnected Mailboxes', type: 'boolean', required: false, defaultValue: false },
+      { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\MailboxStatistics.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const databaseFilter = params.databaseFilter ? escapePowerShellString(params.databaseFilter) : '';
+      const includeDisconnected = toPowerShellBoolean(params.includeDisconnected ?? false);
+      const outputPath = escapePowerShellString(params.outputPath);
+
+      return `# Generate Mailbox Statistics Report
+# Generated: ${new Date().toISOString()}
+
+${databaseFilter ? `$DatabaseFilter = "${databaseFilter}"` : ''}
+$IncludeDisconnected = ${includeDisconnected}
+$OutputPath = "${outputPath}"
+$Results = @()
+
+try {
+    Write-Host "Generating mailbox statistics report..." -ForegroundColor Cyan
+    
+    # Get mailboxes
+    ${databaseFilter ? `
+    $Mailboxes = Get-Mailbox -Database $DatabaseFilter -ResultSize Unlimited` : `
+    $Mailboxes = Get-Mailbox -ResultSize Unlimited`}
+    
+    Write-Host "  Processing $($Mailboxes.Count) mailboxes..." -ForegroundColor Gray
+    
+    $Count = 0
+    foreach ($Mailbox in $Mailboxes) {
+        $Count++
+        if ($Count % 50 -eq 0) {
+            Write-Host "    Processed $Count of $($Mailboxes.Count)..." -ForegroundColor Gray
+        }
+        
+        try {
+            $Stats = Get-MailboxStatistics -Identity $Mailbox.Identity -ErrorAction SilentlyContinue
+            
+            $Results += [PSCustomObject]@{
+                DisplayName = $Mailbox.DisplayName
+                PrimarySmtpAddress = $Mailbox.PrimarySmtpAddress
+                Database = $Mailbox.Database
+                MailboxType = $Mailbox.RecipientTypeDetails
+                TotalItemSizeMB = if ($Stats) { [Math]::Round($Stats.TotalItemSize.Value.ToMB(), 2) } else { 0 }
+                ItemCount = if ($Stats) { $Stats.ItemCount } else { 0 }
+                DeletedItemSizeMB = if ($Stats) { [Math]::Round($Stats.TotalDeletedItemSize.Value.ToMB(), 2) } else { 0 }
+                DeletedItemCount = if ($Stats) { $Stats.DeletedItemCount } else { 0 }
+                LastLogonTime = if ($Stats) { $Stats.LastLogonTime } else { "Never" }
+                LastLogoffTime = if ($Stats) { $Stats.LastLogoffTime } else { "Never" }
+                IsArchiveMailbox = $Mailbox.ArchiveStatus
+                ProhibitSendQuota = $Mailbox.ProhibitSendQuota
+            }
+        } catch {
+            Write-Host "    ⚠ Failed to get stats for: $($Mailbox.DisplayName)" -ForegroundColor Yellow
+        }
+    }
+    
+    ${params.includeDisconnected ? `
+    # Get disconnected mailboxes if requested
+    if ($IncludeDisconnected) {
+        Write-Host "  Checking for disconnected mailboxes..." -ForegroundColor Gray
+        ${databaseFilter ? `
+        $Disconnected = Get-MailboxStatistics -Database $DatabaseFilter | Where-Object { $_.DisconnectReason -ne $null }` : `
+        $Databases = Get-MailboxDatabase
+        $Disconnected = @()
+        foreach ($DB in $Databases) {
+            $Disconnected += Get-MailboxStatistics -Database $DB.Name | Where-Object { $_.DisconnectReason -ne $null }
+        }`}
+        
+        foreach ($Disc in $Disconnected) {
+            $Results += [PSCustomObject]@{
+                DisplayName = $Disc.DisplayName + " (DISCONNECTED)"
+                PrimarySmtpAddress = "N/A"
+                Database = $Disc.DatabaseName
+                MailboxType = "Disconnected"
+                TotalItemSizeMB = [Math]::Round($Disc.TotalItemSize.Value.ToMB(), 2)
+                ItemCount = $Disc.ItemCount
+                DeletedItemSizeMB = 0
+                DeletedItemCount = 0
+                LastLogonTime = $Disc.DisconnectDate
+                LastLogoffTime = "N/A"
+                IsArchiveMailbox = "N/A"
+                ProhibitSendQuota = "N/A"
+            }
+        }
+        Write-Host "    Found $($Disconnected.Count) disconnected mailboxes" -ForegroundColor Gray
+    }` : ''}
+    
+    # Export report
+    $Results | Export-Csv -Path $OutputPath -NoTypeInformation
+    
+    Write-Host ""
+    Write-Host "✓ Report generated successfully" -ForegroundColor Green
+    Write-Host "  Total Mailboxes: $($Results.Count)" -ForegroundColor Gray
+    Write-Host "  Output: $OutputPath" -ForegroundColor Gray
+    
+    # Calculate summary
+    $TotalSizeGB = [Math]::Round(($Results | Measure-Object -Property TotalItemSizeMB -Sum).Sum / 1024, 2)
+    $TotalItems = ($Results | Measure-Object -Property ItemCount -Sum).Sum
+    
+    Write-Host ""
+    Write-Host "Summary Statistics:" -ForegroundColor Cyan
+    Write-Host "  Total Size: $TotalSizeGB GB" -ForegroundColor Gray
+    Write-Host "  Total Items: $TotalItems" -ForegroundColor Gray
+    Write-Host "  Average Size: $([Math]::Round($TotalSizeGB * 1024 / $Results.Count, 2)) MB" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to generate report: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // DATABASE MANAGEMENT - BACKUP STATUS
+  // ========================================
+  {
+    id: 'check-database-backup-status',
+    name: 'Check Database Backup Status',
+    category: 'Database Management',
+    isPremium: true,
+    description: 'Check the last backup status and age for all mailbox databases to identify backup gaps',
+    instructions: `**How This Task Works:**
+This script checks the backup status of all mailbox databases to identify databases that haven't been backed up recently.
+
+**Prerequisites:**
+- Exchange Server Administrator privileges
+- PowerShell with Exchange Management Shell loaded
+- Database must exist and be mounted
+
+**What You Need to Provide:**
+- Warning threshold in hours (default: 24)
+- Critical threshold in hours (default: 48)
+- Output CSV path for report
+
+**What the Script Does:**
+1. Retrieves all mailbox databases with status
+2. Checks last full backup and last incremental backup timestamps
+3. Calculates backup age in hours
+4. Flags databases exceeding warning/critical thresholds
+5. Exports report with backup status for each database
+
+**Important Notes:**
+- Exchange Server Administrator role required
+- LastFullBackup: timestamp of last full (normal) backup
+- LastIncrementalBackup: timestamp of last incremental backup
+- Typical use: backup monitoring, compliance verification, DR planning
+- Databases without recent backups should be investigated
+- Best practice: full backup at least weekly, incremental daily
+- Backup status helps ensure recoverability
+- Consider circular logging impact on backup requirements`,
+    parameters: [
+      { id: 'warningThresholdHours', label: 'Warning Threshold (Hours)', type: 'number', required: false, defaultValue: 24, placeholder: '24' },
+      { id: 'criticalThresholdHours', label: 'Critical Threshold (Hours)', type: 'number', required: false, defaultValue: 48, placeholder: '48' },
+      { id: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\BackupStatus.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const warningHours = params.warningThresholdHours || 24;
+      const criticalHours = params.criticalThresholdHours || 48;
+      const outputPath = escapePowerShellString(params.outputPath);
+
+      return `# Check Database Backup Status
+# Generated: ${new Date().toISOString()}
+
+$WarningThresholdHours = ${warningHours}
+$CriticalThresholdHours = ${criticalHours}
+$OutputPath = "${outputPath}"
+$Results = @()
+
+try {
+    Write-Host "Checking database backup status..." -ForegroundColor Cyan
+    Write-Host "  Warning Threshold: $WarningThresholdHours hours" -ForegroundColor Gray
+    Write-Host "  Critical Threshold: $CriticalThresholdHours hours" -ForegroundColor Gray
+    Write-Host ""
+    
+    $Databases = Get-MailboxDatabase -Status
+    
+    foreach ($Database in $Databases) {
+        $LastFullBackup = $Database.LastFullBackup
+        $LastIncrementalBackup = $Database.LastIncrementalBackup
+        
+        # Calculate backup age
+        $FullBackupAge = if ($LastFullBackup) {
+            [Math]::Round(((Get-Date) - $LastFullBackup).TotalHours, 1)
+        } else { -1 }
+        
+        $IncrementalBackupAge = if ($LastIncrementalBackup) {
+            [Math]::Round(((Get-Date) - $LastIncrementalBackup).TotalHours, 1)
+        } else { -1 }
+        
+        # Determine status
+        $Status = "OK"
+        $Color = "Green"
+        
+        if ($FullBackupAge -eq -1 -or $FullBackupAge -gt $CriticalThresholdHours) {
+            $Status = "CRITICAL"
+            $Color = "Red"
+        } elseif ($FullBackupAge -gt $WarningThresholdHours) {
+            $Status = "WARNING"
+            $Color = "Yellow"
+        }
+        
+        $Results += [PSCustomObject]@{
+            DatabaseName = $Database.Name
+            Server = $Database.Server
+            Mounted = $Database.Mounted
+            LastFullBackup = if ($LastFullBackup) { $LastFullBackup } else { "Never" }
+            FullBackupAgeHours = if ($FullBackupAge -eq -1) { "Never" } else { $FullBackupAge }
+            LastIncrementalBackup = if ($LastIncrementalBackup) { $LastIncrementalBackup } else { "Never" }
+            IncrementalBackupAgeHours = if ($IncrementalBackupAge -eq -1) { "Never" } else { $IncrementalBackupAge }
+            CircularLogging = $Database.CircularLoggingEnabled
+            Status = $Status
+        }
+        
+        Write-Host "$($Database.Name): $Status" -ForegroundColor $Color
+        Write-Host "  Last Full Backup: $(if ($LastFullBackup) { $LastFullBackup.ToString() } else { 'Never' })" -ForegroundColor Gray
+    }
+    
+    # Export report
+    $Results | Export-Csv -Path $OutputPath -NoTypeInformation
+    
+    Write-Host ""
+    Write-Host "✓ Backup status report generated" -ForegroundColor Green
+    Write-Host "  Total Databases: $($Results.Count)" -ForegroundColor Gray
+    Write-Host "  Output: $OutputPath" -ForegroundColor Gray
+    
+    # Summary
+    $Critical = ($Results | Where-Object { $_.Status -eq "CRITICAL" }).Count
+    $Warning = ($Results | Where-Object { $_.Status -eq "WARNING" }).Count
+    $OK = ($Results | Where-Object { $_.Status -eq "OK" }).Count
+    
+    Write-Host ""
+    Write-Host "Summary:" -ForegroundColor Cyan
+    Write-Host "  OK: $OK" -ForegroundColor Green
+    Write-Host "  Warning: $Warning" -ForegroundColor Yellow
+    Write-Host "  Critical: $Critical" -ForegroundColor Red
+    
+    if ($Critical -gt 0) {
+        Write-Host ""
+        Write-Host "⚠️ $Critical database(s) require immediate backup attention!" -ForegroundColor Red
+    }
+    
+} catch {
+    Write-Error "Failed to check backup status: \$_"
+    exit 1
+}`;
+    }
   }
 ];

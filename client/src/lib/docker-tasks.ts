@@ -1373,5 +1373,1912 @@ try {
 }`;
     },
     isPremium: true
+  },
+
+  // Container Management Tasks
+  {
+    id: 'docker-container-logs',
+    name: 'View Container Logs',
+    category: 'Container Management',
+    description: 'Stream and analyze container logs with filtering options',
+    parameters: [
+      { id: 'containerName', label: 'Container Name', type: 'text', required: true, placeholder: 'my-container' },
+      { id: 'tailLines', label: 'Tail Lines', type: 'number', required: false, defaultValue: 100, placeholder: '100' },
+      { id: 'follow', label: 'Follow Logs', type: 'boolean', required: false, defaultValue: false },
+      { id: 'since', label: 'Since (e.g., 1h, 30m, 2023-01-01)', type: 'text', required: false, placeholder: '1h' },
+      { id: 'exportPath', label: 'Export to File (optional)', type: 'path', required: false, placeholder: 'C:\\Logs\\container.log' }
+    ],
+    scriptTemplate: (params) => {
+      const containerName = escapePowerShellString(params.containerName);
+      const tailLines = params.tailLines || 100;
+      const follow = params.follow;
+      const since = params.since ? escapePowerShellString(params.since) : '';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Docker Container Logs
+# Generated: ${new Date().toISOString()}
+
+$ContainerName = "${containerName}"
+
+try {
+    Write-Host "Fetching logs for container: $ContainerName..." -ForegroundColor Cyan
+    
+    $LogArgs = @("logs", $ContainerName, "--tail", "${tailLines}")
+    
+    ${since ? `$LogArgs += @("--since", "${since}")` : ''}
+    ${follow ? `$LogArgs += "--follow"` : ''}
+    
+    ${exportPath ? `
+    Write-Host "Exporting logs to: ${exportPath}" -ForegroundColor Yellow
+    docker @LogArgs | Out-File -FilePath "${exportPath}" -Encoding UTF8
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Logs exported successfully!" -ForegroundColor Green
+        Write-Host "  File: ${exportPath}" -ForegroundColor Cyan
+        Write-Host "  Size: $((Get-Item '${exportPath}').Length / 1KB) KB" -ForegroundColor Cyan
+    }
+    ` : `
+    docker @LogArgs
+    `}
+    
+} catch {
+    Write-Error "Failed to fetch logs: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-container-exec',
+    name: 'Execute Command in Container',
+    category: 'Container Management',
+    description: 'Run commands or open interactive shell inside a running container',
+    parameters: [
+      { id: 'containerName', label: 'Container Name', type: 'text', required: true, placeholder: 'my-container' },
+      { id: 'command', label: 'Command', type: 'text', required: true, placeholder: '/bin/bash or ls -la /app' },
+      { id: 'interactive', label: 'Interactive Mode', type: 'boolean', required: false, defaultValue: true },
+      { id: 'user', label: 'Run as User (optional)', type: 'text', required: false, placeholder: 'root' },
+      { id: 'workdir', label: 'Working Directory', type: 'text', required: false, placeholder: '/app' }
+    ],
+    scriptTemplate: (params) => {
+      const containerName = escapePowerShellString(params.containerName);
+      const command = escapePowerShellString(params.command);
+      const interactive = params.interactive;
+      const user = params.user ? escapePowerShellString(params.user) : '';
+      const workdir = params.workdir ? escapePowerShellString(params.workdir) : '';
+      
+      return `# Docker Container Exec
+# Generated: ${new Date().toISOString()}
+
+$ContainerName = "${containerName}"
+
+try {
+    Write-Host "Executing command in container: $ContainerName..." -ForegroundColor Cyan
+    
+    $ExecArgs = @("exec")
+    
+    ${interactive ? `$ExecArgs += @("-it")` : ''}
+    ${user ? `$ExecArgs += @("-u", "${user}")` : ''}
+    ${workdir ? `$ExecArgs += @("-w", "${workdir}")` : ''}
+    
+    $ExecArgs += $ContainerName
+    $ExecArgs += "${command}".Split(" ")
+    
+    Write-Host "Running: docker $($ExecArgs -join ' ')" -ForegroundColor Yellow
+    docker @ExecArgs
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Command executed successfully!" -ForegroundColor Green
+    } else {
+        Write-Host "Command exited with code: $LASTEXITCODE" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Failed to execute command: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-container-inspect',
+    name: 'Inspect Container Details',
+    category: 'Container Management',
+    description: 'Get detailed information about container configuration and state',
+    parameters: [
+      { id: 'containerName', label: 'Container Name', type: 'text', required: true, placeholder: 'my-container' },
+      { id: 'format', label: 'Output Format', type: 'select', required: true, options: ['Full JSON', 'Network Info', 'Mount Info', 'Environment', 'Health Status'], defaultValue: 'Full JSON' }
+    ],
+    scriptTemplate: (params) => {
+      const containerName = escapePowerShellString(params.containerName);
+      const format = params.format;
+      
+      return `# Docker Container Inspect
+# Generated: ${new Date().toISOString()}
+
+$ContainerName = "${containerName}"
+
+try {
+    Write-Host "Inspecting container: $ContainerName..." -ForegroundColor Cyan
+    
+    ${format === 'Full JSON' ? `
+    docker inspect $ContainerName | ConvertFrom-Json | ConvertTo-Json -Depth 10
+    ` : format === 'Network Info' ? `
+    Write-Host "Network Configuration:" -ForegroundColor Yellow
+    $Info = docker inspect $ContainerName | ConvertFrom-Json
+    $Networks = $Info.NetworkSettings.Networks
+    
+    foreach ($Network in $Networks.PSObject.Properties) {
+        Write-Host "  Network: $($Network.Name)" -ForegroundColor Cyan
+        Write-Host "    IP Address: $($Network.Value.IPAddress)" -ForegroundColor White
+        Write-Host "    Gateway: $($Network.Value.Gateway)" -ForegroundColor White
+        Write-Host "    MAC: $($Network.Value.MacAddress)" -ForegroundColor White
+    }
+    
+    Write-Host ""
+    Write-Host "Port Mappings:" -ForegroundColor Yellow
+    $Info.NetworkSettings.Ports.PSObject.Properties | ForEach-Object {
+        Write-Host "  $($_.Name) -> $($_.Value.HostPort)" -ForegroundColor White
+    }
+    ` : format === 'Mount Info' ? `
+    Write-Host "Volume Mounts:" -ForegroundColor Yellow
+    $Info = docker inspect $ContainerName | ConvertFrom-Json
+    
+    $Info.Mounts | ForEach-Object {
+        Write-Host "  Type: $($_.Type)" -ForegroundColor Cyan
+        Write-Host "    Source: $($_.Source)" -ForegroundColor White
+        Write-Host "    Destination: $($_.Destination)" -ForegroundColor White
+        Write-Host "    Mode: $($_.Mode)" -ForegroundColor White
+        Write-Host ""
+    }
+    ` : format === 'Environment' ? `
+    Write-Host "Environment Variables:" -ForegroundColor Yellow
+    $Info = docker inspect $ContainerName | ConvertFrom-Json
+    
+    $Info.Config.Env | ForEach-Object {
+        $Parts = $_ -split "=", 2
+        Write-Host "  $($Parts[0]): $($Parts[1])" -ForegroundColor White
+    }
+    ` : `
+    Write-Host "Health Status:" -ForegroundColor Yellow
+    $Info = docker inspect $ContainerName | ConvertFrom-Json
+    
+    if ($Info.State.Health) {
+        Write-Host "  Status: $($Info.State.Health.Status)" -ForegroundColor $(if ($Info.State.Health.Status -eq 'healthy') { 'Green' } else { 'Red' })
+        Write-Host "  Failing Streak: $($Info.State.Health.FailingStreak)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  Recent Logs:" -ForegroundColor Cyan
+        $Info.State.Health.Log | Select-Object -Last 5 | ForEach-Object {
+            Write-Host "    [$($_.Start)] Exit: $($_.ExitCode) - $($_.Output)" -ForegroundColor White
+        }
+    } else {
+        Write-Host "  No health check configured" -ForegroundColor Yellow
+    }
+    `}
+    
+    Write-Host ""
+    Write-Host "✓ Inspection completed!" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to inspect container: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-container-stats',
+    name: 'Monitor Container Resource Usage',
+    category: 'Container Management',
+    description: 'Display real-time CPU, memory, network, and I/O statistics',
+    parameters: [
+      { id: 'containerNames', label: 'Container Names (comma-separated, leave empty for all)', type: 'textarea', required: false, placeholder: 'web-app, database' },
+      { id: 'noStream', label: 'Snapshot Only (no live updates)', type: 'boolean', required: false, defaultValue: false },
+      { id: 'exportPath', label: 'Export CSV Path (optional)', type: 'path', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const containerNames = params.containerNames ? (params.containerNames as string).split(',').map((n: string) => n.trim()).filter((n: string) => n) : [];
+      const noStream = params.noStream;
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      
+      return `# Docker Container Stats
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Monitoring container resource usage..." -ForegroundColor Cyan
+    
+    ${containerNames.length > 0 ? `
+    $Containers = @(${containerNames.map(c => `"${escapePowerShellString(c)}"`).join(', ')})
+    ` : `
+    $Containers = @()
+    `}
+    
+    ${exportPath ? `
+    Write-Host "Collecting stats snapshot for export..." -ForegroundColor Yellow
+    
+    $StatsOutput = if ($Containers.Count -gt 0) {
+        docker stats --no-stream --format "{{.Container}},{{.Name}},{{.CPUPerc}},{{.MemUsage}},{{.MemPerc}},{{.NetIO}},{{.BlockIO}},{{.PIDs}}" $Containers
+    } else {
+        docker stats --no-stream --format "{{.Container}},{{.Name}},{{.CPUPerc}},{{.MemUsage}},{{.MemPerc}},{{.NetIO}},{{.BlockIO}},{{.PIDs}}"
+    }
+    
+    $Results = @()
+    $Results += "ContainerID,Name,CPU%,MemUsage,Mem%,NetIO,BlockIO,PIDs"
+    $Results += $StatsOutput
+    
+    $Results | Out-File -FilePath "${exportPath}" -Encoding UTF8
+    
+    Write-Host "✓ Stats exported to: ${exportPath}" -ForegroundColor Green
+    
+    # Also display the stats
+    $StatsOutput | ForEach-Object {
+        $Parts = $_ -split ","
+        Write-Host "Container: $($Parts[1])" -ForegroundColor Cyan
+        Write-Host "  CPU: $($Parts[2]) | Memory: $($Parts[3]) ($($Parts[4]))" -ForegroundColor White
+    }
+    ` : `
+    ${noStream ? `
+    if ($Containers.Count -gt 0) {
+        docker stats --no-stream $Containers
+    } else {
+        docker stats --no-stream
+    }
+    ` : `
+    Write-Host "Press Ctrl+C to stop monitoring..." -ForegroundColor Yellow
+    Write-Host ""
+    
+    if ($Containers.Count -gt 0) {
+        docker stats $Containers
+    } else {
+        docker stats
+    }
+    `}
+    `}
+    
+} catch {
+    Write-Error "Failed to get stats: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-container-rename',
+    name: 'Rename Container',
+    category: 'Container Management',
+    description: 'Rename an existing Docker container',
+    parameters: [
+      { id: 'currentName', label: 'Current Container Name', type: 'text', required: true, placeholder: 'old-name' },
+      { id: 'newName', label: 'New Container Name', type: 'text', required: true, placeholder: 'new-name' }
+    ],
+    scriptTemplate: (params) => {
+      const currentName = escapePowerShellString(params.currentName);
+      const newName = escapePowerShellString(params.newName);
+      
+      return `# Docker Rename Container
+# Generated: ${new Date().toISOString()}
+
+$CurrentName = "${currentName}"
+$NewName = "${newName}"
+
+try {
+    Write-Host "Renaming container from '$CurrentName' to '$NewName'..." -ForegroundColor Cyan
+    
+    # Verify container exists
+    $Container = docker ps -a --filter "name=$CurrentName" --format "{{.Names}}"
+    
+    if (-not $Container) {
+        Write-Error "Container '$CurrentName' not found"
+        exit 1
+    }
+    
+    docker rename $CurrentName $NewName
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Container renamed successfully!" -ForegroundColor Green
+        Write-Host "  Old name: $CurrentName" -ForegroundColor Yellow
+        Write-Host "  New name: $NewName" -ForegroundColor Green
+        
+        docker ps -a --filter "name=$NewName"
+    } else {
+        Write-Error "Rename failed"
+    }
+    
+} catch {
+    Write-Error "Failed to rename container: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-container-copy',
+    name: 'Copy Files To/From Container',
+    category: 'Container Management',
+    description: 'Copy files between host and container',
+    parameters: [
+      { id: 'containerName', label: 'Container Name', type: 'text', required: true, placeholder: 'my-container' },
+      { id: 'direction', label: 'Copy Direction', type: 'select', required: true, options: ['Host to Container', 'Container to Host'], defaultValue: 'Host to Container' },
+      { id: 'hostPath', label: 'Host Path', type: 'path', required: true, placeholder: 'C:\\Files\\data' },
+      { id: 'containerPath', label: 'Container Path', type: 'text', required: true, placeholder: '/app/data' }
+    ],
+    scriptTemplate: (params) => {
+      const containerName = escapePowerShellString(params.containerName);
+      const direction = params.direction;
+      const hostPath = escapePowerShellString(params.hostPath);
+      const containerPath = escapePowerShellString(params.containerPath);
+      
+      return `# Docker Copy Files
+# Generated: ${new Date().toISOString()}
+
+$ContainerName = "${containerName}"
+$HostPath = "${hostPath}"
+$ContainerPath = "${containerPath}"
+
+try {
+    ${direction === 'Host to Container' ? `
+    Write-Host "Copying from host to container..." -ForegroundColor Cyan
+    Write-Host "  Source: $HostPath" -ForegroundColor Yellow
+    Write-Host "  Destination: ${containerName}:$ContainerPath" -ForegroundColor Yellow
+    
+    if (-not (Test-Path $HostPath)) {
+        Write-Error "Source path does not exist: $HostPath"
+        exit 1
+    }
+    
+    docker cp $HostPath ${containerName}:$ContainerPath
+    ` : `
+    Write-Host "Copying from container to host..." -ForegroundColor Cyan
+    Write-Host "  Source: ${containerName}:$ContainerPath" -ForegroundColor Yellow
+    Write-Host "  Destination: $HostPath" -ForegroundColor Yellow
+    
+    # Ensure destination directory exists
+    $DestDir = Split-Path -Parent $HostPath
+    if ($DestDir -and -not (Test-Path $DestDir)) {
+        New-Item -ItemType Directory -Path $DestDir -Force | Out-Null
+    }
+    
+    docker cp ${containerName}:$ContainerPath $HostPath
+    `}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Files copied successfully!" -ForegroundColor Green
+    } else {
+        Write-Error "Copy operation failed"
+    }
+    
+} catch {
+    Write-Error "Failed to copy files: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  // Image Management Tasks
+  {
+    id: 'docker-image-build',
+    name: 'Build Docker Image',
+    category: 'Image Management',
+    description: 'Build a Docker image from a Dockerfile',
+    parameters: [
+      { id: 'contextPath', label: 'Build Context Path', type: 'path', required: true, placeholder: 'C:\\Projects\\myapp' },
+      { id: 'imageName', label: 'Image Name', type: 'text', required: true, placeholder: 'myapp' },
+      { id: 'tag', label: 'Tag', type: 'text', required: false, defaultValue: 'latest', placeholder: 'latest' },
+      { id: 'dockerfile', label: 'Dockerfile Path (optional)', type: 'text', required: false, placeholder: 'Dockerfile.prod' },
+      { id: 'buildArgs', label: 'Build Arguments (KEY=VALUE, comma-separated)', type: 'textarea', required: false, placeholder: 'NODE_ENV=production, VERSION=1.0.0' },
+      { id: 'noCache', label: 'No Cache', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const contextPath = escapePowerShellString(params.contextPath);
+      const imageName = escapePowerShellString(params.imageName);
+      const tag = escapePowerShellString(params.tag || 'latest');
+      const dockerfile = params.dockerfile ? escapePowerShellString(params.dockerfile) : '';
+      const buildArgs = params.buildArgs ? (params.buildArgs as string).split(',').map((a: string) => a.trim()).filter((a: string) => a) : [];
+      const noCache = params.noCache;
+      
+      return `# Docker Image Build
+# Generated: ${new Date().toISOString()}
+
+$ContextPath = "${contextPath}"
+$ImageName = "${imageName}:${tag}"
+
+try {
+    Write-Host "Building Docker image: $ImageName..." -ForegroundColor Cyan
+    
+    $BuildArgs = @("build", "-t", $ImageName)
+    
+    ${dockerfile ? `$BuildArgs += @("-f", "${dockerfile}")` : ''}
+    ${noCache ? `$BuildArgs += "--no-cache"` : ''}
+    ${buildArgs.map(arg => `$BuildArgs += @("--build-arg", "${escapePowerShellString(arg)}")`).join('\n    ')}
+    
+    $BuildArgs += $ContextPath
+    
+    Write-Host "Running: docker $($BuildArgs -join ' ')" -ForegroundColor Yellow
+    Write-Host ""
+    
+    $StartTime = Get-Date
+    docker @BuildArgs
+    $EndTime = Get-Date
+    
+    if ($LASTEXITCODE -eq 0) {
+        $Duration = $EndTime - $StartTime
+        Write-Host ""
+        Write-Host "✓ Image built successfully!" -ForegroundColor Green
+        Write-Host "  Image: $ImageName" -ForegroundColor Cyan
+        Write-Host "  Build time: $($Duration.TotalSeconds.ToString('F2')) seconds" -ForegroundColor Cyan
+        
+        # Show image details
+        docker images $ImageName
+    } else {
+        Write-Error "Build failed"
+    }
+    
+} catch {
+    Write-Error "Failed to build image: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-image-tag',
+    name: 'Tag Docker Image',
+    category: 'Image Management',
+    description: 'Create a tag for an existing Docker image',
+    parameters: [
+      { id: 'sourceImage', label: 'Source Image', type: 'text', required: true, placeholder: 'myapp:latest' },
+      { id: 'targetImage', label: 'Target Image (with registry)', type: 'text', required: true, placeholder: 'registry.example.com/myapp:v1.0.0' }
+    ],
+    scriptTemplate: (params) => {
+      const sourceImage = escapePowerShellString(params.sourceImage);
+      const targetImage = escapePowerShellString(params.targetImage);
+      
+      return `# Docker Image Tag
+# Generated: ${new Date().toISOString()}
+
+$SourceImage = "${sourceImage}"
+$TargetImage = "${targetImage}"
+
+try {
+    Write-Host "Tagging Docker image..." -ForegroundColor Cyan
+    Write-Host "  Source: $SourceImage" -ForegroundColor Yellow
+    Write-Host "  Target: $TargetImage" -ForegroundColor Yellow
+    
+    # Verify source image exists
+    $Exists = docker images -q $SourceImage
+    if (-not $Exists) {
+        Write-Error "Source image not found: $SourceImage"
+        exit 1
+    }
+    
+    docker tag $SourceImage $TargetImage
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Image tagged successfully!" -ForegroundColor Green
+        docker images | Select-String -Pattern ($TargetImage -replace ":", "\\s+")
+    } else {
+        Write-Error "Tagging failed"
+    }
+    
+} catch {
+    Write-Error "Failed to tag image: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-image-export',
+    name: 'Export Docker Image',
+    category: 'Image Management',
+    description: 'Save a Docker image to a tar archive file',
+    parameters: [
+      { id: 'imageName', label: 'Image Name', type: 'text', required: true, placeholder: 'myapp:latest' },
+      { id: 'outputPath', label: 'Output File Path', type: 'path', required: true, placeholder: 'C:\\Backups\\myapp.tar' },
+      { id: 'compress', label: 'Compress with gzip', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const imageName = escapePowerShellString(params.imageName);
+      const outputPath = escapePowerShellString(params.outputPath);
+      const compress = params.compress;
+      
+      return `# Docker Image Export
+# Generated: ${new Date().toISOString()}
+
+$ImageName = "${imageName}"
+$OutputPath = "${outputPath}"
+
+try {
+    Write-Host "Exporting Docker image: $ImageName..." -ForegroundColor Cyan
+    
+    # Verify image exists
+    $Exists = docker images -q $ImageName
+    if (-not $Exists) {
+        Write-Error "Image not found: $ImageName"
+        exit 1
+    }
+    
+    # Ensure output directory exists
+    $OutputDir = Split-Path -Parent $OutputPath
+    if ($OutputDir -and -not (Test-Path $OutputDir)) {
+        New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+    }
+    
+    ${compress ? `
+    Write-Host "Exporting and compressing..." -ForegroundColor Yellow
+    $TempFile = "$OutputPath.tmp"
+    docker save $ImageName -o $TempFile
+    
+    if ($LASTEXITCODE -eq 0) {
+        # Compress the file
+        $CompressedPath = if ($OutputPath -notmatch '\\.gz$') { "$OutputPath.gz" } else { $OutputPath }
+        
+        # Use .NET compression
+        $InputStream = [System.IO.File]::OpenRead($TempFile)
+        $OutputStream = [System.IO.File]::Create($CompressedPath)
+        $GzipStream = [System.IO.Compression.GzipStream]::new($OutputStream, [System.IO.Compression.CompressionMode]::Compress)
+        
+        $InputStream.CopyTo($GzipStream)
+        
+        $GzipStream.Close()
+        $OutputStream.Close()
+        $InputStream.Close()
+        
+        Remove-Item $TempFile -Force
+        
+        $FileSize = (Get-Item $CompressedPath).Length / 1MB
+        Write-Host "✓ Image exported and compressed!" -ForegroundColor Green
+        Write-Host "  File: $CompressedPath" -ForegroundColor Cyan
+        Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
+    }
+    ` : `
+    docker save $ImageName -o $OutputPath
+    
+    if ($LASTEXITCODE -eq 0) {
+        $FileSize = (Get-Item $OutputPath).Length / 1MB
+        Write-Host "✓ Image exported successfully!" -ForegroundColor Green
+        Write-Host "  File: $OutputPath" -ForegroundColor Cyan
+        Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
+    } else {
+        Write-Error "Export failed"
+    }
+    `}
+    
+} catch {
+    Write-Error "Failed to export image: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-image-import',
+    name: 'Import Docker Image',
+    category: 'Image Management',
+    description: 'Load a Docker image from a tar archive file',
+    parameters: [
+      { id: 'inputPath', label: 'Input File Path', type: 'path', required: true, placeholder: 'C:\\Backups\\myapp.tar' }
+    ],
+    scriptTemplate: (params) => {
+      const inputPath = escapePowerShellString(params.inputPath);
+      
+      return `# Docker Image Import
+# Generated: ${new Date().toISOString()}
+
+$InputPath = "${inputPath}"
+
+try {
+    Write-Host "Importing Docker image from: $InputPath..." -ForegroundColor Cyan
+    
+    if (-not (Test-Path $InputPath)) {
+        Write-Error "File not found: $InputPath"
+        exit 1
+    }
+    
+    $FileSize = (Get-Item $InputPath).Length / 1MB
+    Write-Host "  File size: $($FileSize.ToString('F2')) MB" -ForegroundColor Yellow
+    
+    # Check if gzip compressed
+    if ($InputPath -match '\\.gz$') {
+        Write-Host "Decompressing gzip archive..." -ForegroundColor Yellow
+        
+        $TempFile = $InputPath -replace '\\.gz$', ''
+        
+        $InputStream = [System.IO.File]::OpenRead($InputPath)
+        $GzipStream = [System.IO.Compression.GzipStream]::new($InputStream, [System.IO.Compression.CompressionMode]::Decompress)
+        $OutputStream = [System.IO.File]::Create($TempFile)
+        
+        $GzipStream.CopyTo($OutputStream)
+        
+        $OutputStream.Close()
+        $GzipStream.Close()
+        $InputStream.Close()
+        
+        docker load -i $TempFile
+        Remove-Item $TempFile -Force
+    } else {
+        docker load -i $InputPath
+    }
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Image imported successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Available images:" -ForegroundColor Yellow
+        docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
+    } else {
+        Write-Error "Import failed"
+    }
+    
+} catch {
+    Write-Error "Failed to import image: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-image-inspect',
+    name: 'Inspect Docker Image',
+    category: 'Image Management',
+    description: 'Display detailed information about a Docker image',
+    parameters: [
+      { id: 'imageName', label: 'Image Name', type: 'text', required: true, placeholder: 'nginx:latest' },
+      { id: 'infoType', label: 'Information Type', type: 'select', required: true, options: ['Full Details', 'Layers', 'Environment', 'Ports', 'Labels'], defaultValue: 'Full Details' }
+    ],
+    scriptTemplate: (params) => {
+      const imageName = escapePowerShellString(params.imageName);
+      const infoType = params.infoType;
+      
+      return `# Docker Image Inspect
+# Generated: ${new Date().toISOString()}
+
+$ImageName = "${imageName}"
+
+try {
+    Write-Host "Inspecting image: $ImageName..." -ForegroundColor Cyan
+    
+    $ImageInfo = docker inspect $ImageName | ConvertFrom-Json
+    
+    if (-not $ImageInfo) {
+        Write-Error "Image not found: $ImageName"
+        exit 1
+    }
+    
+    ${infoType === 'Full Details' ? `
+    $ImageInfo | ConvertTo-Json -Depth 10
+    ` : infoType === 'Layers' ? `
+    Write-Host "Image Layers:" -ForegroundColor Yellow
+    Write-Host "  Created: $($ImageInfo.Created)" -ForegroundColor White
+    Write-Host "  Size: $(($ImageInfo.Size / 1MB).ToString('F2')) MB" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Layer History:" -ForegroundColor Cyan
+    
+    docker history $ImageName --no-trunc --format "{{.CreatedBy}}" | ForEach-Object {
+        $Line = $_ -replace '/bin/sh -c #\\(nop\\)\\s+', ''
+        $Line = $Line -replace '/bin/sh -c ', 'RUN '
+        if ($Line.Length -gt 100) {
+            $Line = $Line.Substring(0, 97) + "..."
+        }
+        Write-Host "  $Line" -ForegroundColor White
+    }
+    ` : infoType === 'Environment' ? `
+    Write-Host "Environment Variables:" -ForegroundColor Yellow
+    $ImageInfo.Config.Env | ForEach-Object {
+        $Parts = $_ -split "=", 2
+        Write-Host "  $($Parts[0]) = $($Parts[1])" -ForegroundColor White
+    }
+    ` : infoType === 'Ports' ? `
+    Write-Host "Exposed Ports:" -ForegroundColor Yellow
+    if ($ImageInfo.Config.ExposedPorts) {
+        $ImageInfo.Config.ExposedPorts.PSObject.Properties | ForEach-Object {
+            Write-Host "  $($_.Name)" -ForegroundColor White
+        }
+    } else {
+        Write-Host "  No ports exposed" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "Entrypoint:" -ForegroundColor Yellow
+    Write-Host "  $($ImageInfo.Config.Entrypoint -join ' ')" -ForegroundColor White
+    
+    Write-Host ""
+    Write-Host "Default Command:" -ForegroundColor Yellow
+    Write-Host "  $($ImageInfo.Config.Cmd -join ' ')" -ForegroundColor White
+    ` : `
+    Write-Host "Image Labels:" -ForegroundColor Yellow
+    if ($ImageInfo.Config.Labels) {
+        $ImageInfo.Config.Labels.PSObject.Properties | ForEach-Object {
+            Write-Host "  $($_.Name): $($_.Value)" -ForegroundColor White
+        }
+    } else {
+        Write-Host "  No labels defined" -ForegroundColor Gray
+    }
+    `}
+    
+    Write-Host ""
+    Write-Host "✓ Inspection completed!" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to inspect image: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-image-history',
+    name: 'View Image Build History',
+    category: 'Image Management',
+    description: 'Display the history of an image including all layers',
+    parameters: [
+      { id: 'imageName', label: 'Image Name', type: 'text', required: true, placeholder: 'myapp:latest' },
+      { id: 'showFull', label: 'Show Full Commands', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const imageName = escapePowerShellString(params.imageName);
+      const showFull = params.showFull;
+      
+      return `# Docker Image History
+# Generated: ${new Date().toISOString()}
+
+$ImageName = "${imageName}"
+
+try {
+    Write-Host "Image build history for: $ImageName" -ForegroundColor Cyan
+    Write-Host ""
+    
+    ${showFull ? `
+    docker history $ImageName --no-trunc --format "table {{.CreatedSince}}\t{{.Size}}\t{{.CreatedBy}}"
+    ` : `
+    docker history $ImageName --format "table {{.CreatedSince}}\t{{.Size}}\t{{.CreatedBy}}"
+    `}
+    
+    Write-Host ""
+    Write-Host "Total image size:" -ForegroundColor Yellow
+    docker images $ImageName --format "  {{.Size}}"
+    
+    Write-Host ""
+    Write-Host "✓ History displayed!" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to get image history: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  // Network Management Tasks
+  {
+    id: 'docker-network-connect',
+    name: 'Connect Container to Network',
+    category: 'Network Management',
+    description: 'Connect a running container to a Docker network',
+    parameters: [
+      { id: 'networkName', label: 'Network Name', type: 'text', required: true, placeholder: 'my-network' },
+      { id: 'containerName', label: 'Container Name', type: 'text', required: true, placeholder: 'my-container' },
+      { id: 'ipAddress', label: 'IP Address (optional)', type: 'text', required: false, placeholder: '172.18.0.10' },
+      { id: 'alias', label: 'Network Alias (optional)', type: 'text', required: false, placeholder: 'webserver' }
+    ],
+    scriptTemplate: (params) => {
+      const networkName = escapePowerShellString(params.networkName);
+      const containerName = escapePowerShellString(params.containerName);
+      const ipAddress = params.ipAddress ? escapePowerShellString(params.ipAddress) : '';
+      const alias = params.alias ? escapePowerShellString(params.alias) : '';
+      
+      return `# Docker Network Connect
+# Generated: ${new Date().toISOString()}
+
+$NetworkName = "${networkName}"
+$ContainerName = "${containerName}"
+
+try {
+    Write-Host "Connecting container to network..." -ForegroundColor Cyan
+    Write-Host "  Container: $ContainerName" -ForegroundColor Yellow
+    Write-Host "  Network: $NetworkName" -ForegroundColor Yellow
+    
+    $ConnectArgs = @("network", "connect")
+    
+    ${ipAddress ? `$ConnectArgs += @("--ip", "${ipAddress}")` : ''}
+    ${alias ? `$ConnectArgs += @("--alias", "${alias}")` : ''}
+    
+    $ConnectArgs += @($NetworkName, $ContainerName)
+    
+    docker @ConnectArgs
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Container connected to network!" -ForegroundColor Green
+        
+        # Show network details
+        Write-Host ""
+        Write-Host "Network configuration:" -ForegroundColor Yellow
+        $Info = docker inspect $ContainerName | ConvertFrom-Json
+        $NetworkInfo = $Info.NetworkSettings.Networks.$NetworkName
+        Write-Host "  IP Address: $($NetworkInfo.IPAddress)" -ForegroundColor White
+        Write-Host "  Gateway: $($NetworkInfo.Gateway)" -ForegroundColor White
+        ${alias ? `Write-Host "  Alias: ${alias}" -ForegroundColor White` : ''}
+    } else {
+        Write-Error "Connection failed"
+    }
+    
+} catch {
+    Write-Error "Failed to connect container: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-network-disconnect',
+    name: 'Disconnect Container from Network',
+    category: 'Network Management',
+    description: 'Disconnect a container from a Docker network',
+    parameters: [
+      { id: 'networkName', label: 'Network Name', type: 'text', required: true, placeholder: 'my-network' },
+      { id: 'containerName', label: 'Container Name', type: 'text', required: true, placeholder: 'my-container' },
+      { id: 'force', label: 'Force Disconnect', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const networkName = escapePowerShellString(params.networkName);
+      const containerName = escapePowerShellString(params.containerName);
+      const force = params.force;
+      
+      return `# Docker Network Disconnect
+# Generated: ${new Date().toISOString()}
+
+$NetworkName = "${networkName}"
+$ContainerName = "${containerName}"
+
+try {
+    Write-Host "Disconnecting container from network..." -ForegroundColor Cyan
+    Write-Host "  Container: $ContainerName" -ForegroundColor Yellow
+    Write-Host "  Network: $NetworkName" -ForegroundColor Yellow
+    
+    ${force ? `
+    docker network disconnect --force $NetworkName $ContainerName
+    ` : `
+    docker network disconnect $NetworkName $ContainerName
+    `}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Container disconnected from network!" -ForegroundColor Green
+        
+        # Show remaining networks
+        Write-Host ""
+        Write-Host "Remaining network connections:" -ForegroundColor Yellow
+        $Info = docker inspect $ContainerName | ConvertFrom-Json
+        $Info.NetworkSettings.Networks.PSObject.Properties | ForEach-Object {
+            Write-Host "  - $($_.Name): $($_.Value.IPAddress)" -ForegroundColor White
+        }
+    } else {
+        Write-Error "Disconnect failed"
+    }
+    
+} catch {
+    Write-Error "Failed to disconnect container: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  // Volume Management Tasks
+  {
+    id: 'docker-volume-backup',
+    name: 'Backup Docker Volume',
+    category: 'Volume Management',
+    description: 'Create a backup of a Docker volume to a tar file',
+    parameters: [
+      { id: 'volumeName', label: 'Volume Name', type: 'text', required: true, placeholder: 'my-volume' },
+      { id: 'backupPath', label: 'Backup File Path', type: 'path', required: true, placeholder: 'C:\\Backups\\volume-backup.tar' },
+      { id: 'compress', label: 'Compress Backup', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const volumeName = escapePowerShellString(params.volumeName);
+      const backupPath = escapePowerShellString(params.backupPath);
+      const compress = params.compress;
+      
+      return `# Docker Volume Backup
+# Generated: ${new Date().toISOString()}
+
+$VolumeName = "${volumeName}"
+$BackupPath = "${backupPath}"
+
+try {
+    Write-Host "Backing up Docker volume: $VolumeName..." -ForegroundColor Cyan
+    
+    # Verify volume exists
+    $VolumeExists = docker volume ls -q -f "name=$VolumeName"
+    if (-not $VolumeExists) {
+        Write-Error "Volume not found: $VolumeName"
+        exit 1
+    }
+    
+    # Ensure backup directory exists
+    $BackupDir = Split-Path -Parent $BackupPath
+    if ($BackupDir -and -not (Test-Path $BackupDir)) {
+        New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
+    }
+    
+    Write-Host "Creating backup..." -ForegroundColor Yellow
+    
+    ${compress ? `
+    $TempBackup = "$BackupPath.tmp"
+    docker run --rm -v ${volumeName}:/source -v ${backupPath.replace(/[^\\\/]+$/, '')}:/backup alpine tar -cf /backup/backup.tar -C /source .
+    
+    if ($LASTEXITCODE -eq 0) {
+        # Compress
+        $SourceFile = Join-Path (Split-Path $BackupPath -Parent) "backup.tar"
+        $CompressedPath = if ($BackupPath -notmatch '\\.gz$') { "$BackupPath.gz" } else { $BackupPath }
+        
+        $InputStream = [System.IO.File]::OpenRead($SourceFile)
+        $OutputStream = [System.IO.File]::Create($CompressedPath)
+        $GzipStream = [System.IO.Compression.GzipStream]::new($OutputStream, [System.IO.Compression.CompressionMode]::Compress)
+        
+        $InputStream.CopyTo($GzipStream)
+        
+        $GzipStream.Close()
+        $OutputStream.Close()
+        $InputStream.Close()
+        
+        Remove-Item $SourceFile -Force
+        
+        $FileSize = (Get-Item $CompressedPath).Length / 1MB
+        Write-Host "✓ Volume backed up and compressed!" -ForegroundColor Green
+        Write-Host "  File: $CompressedPath" -ForegroundColor Cyan
+        Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
+    }
+    ` : `
+    docker run --rm -v ${volumeName}:/source -v ${backupPath.replace(/[^\\\/]+$/, '')}:/backup alpine tar -cf /backup/$(Split-Path $BackupPath -Leaf) -C /source .
+    
+    if ($LASTEXITCODE -eq 0) {
+        $FileSize = (Get-Item $BackupPath).Length / 1MB
+        Write-Host "✓ Volume backed up successfully!" -ForegroundColor Green
+        Write-Host "  File: $BackupPath" -ForegroundColor Cyan
+        Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
+    } else {
+        Write-Error "Backup failed"
+    }
+    `}
+    
+} catch {
+    Write-Error "Failed to backup volume: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-volume-restore',
+    name: 'Restore Docker Volume',
+    category: 'Volume Management',
+    description: 'Restore a Docker volume from a tar backup file',
+    parameters: [
+      { id: 'volumeName', label: 'Volume Name', type: 'text', required: true, placeholder: 'my-volume' },
+      { id: 'backupPath', label: 'Backup File Path', type: 'path', required: true, placeholder: 'C:\\Backups\\volume-backup.tar' },
+      { id: 'createVolume', label: 'Create Volume if Not Exists', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const volumeName = escapePowerShellString(params.volumeName);
+      const backupPath = escapePowerShellString(params.backupPath);
+      const createVolume = params.createVolume;
+      
+      return `# Docker Volume Restore
+# Generated: ${new Date().toISOString()}
+
+$VolumeName = "${volumeName}"
+$BackupPath = "${backupPath}"
+
+try {
+    Write-Host "Restoring Docker volume: $VolumeName..." -ForegroundColor Cyan
+    
+    if (-not (Test-Path $BackupPath)) {
+        Write-Error "Backup file not found: $BackupPath"
+        exit 1
+    }
+    
+    ${createVolume ? `
+    # Create volume if it doesn't exist
+    $VolumeExists = docker volume ls -q -f "name=$VolumeName"
+    if (-not $VolumeExists) {
+        Write-Host "Creating volume: $VolumeName" -ForegroundColor Yellow
+        docker volume create $VolumeName
+    }
+    ` : ''}
+    
+    # Check if backup is compressed
+    if ($BackupPath -match '\\.gz$') {
+        Write-Host "Decompressing backup..." -ForegroundColor Yellow
+        
+        $TempFile = $BackupPath -replace '\\.gz$', ''
+        
+        $InputStream = [System.IO.File]::OpenRead($BackupPath)
+        $GzipStream = [System.IO.Compression.GzipStream]::new($InputStream, [System.IO.Compression.CompressionMode]::Decompress)
+        $OutputStream = [System.IO.File]::Create($TempFile)
+        
+        $GzipStream.CopyTo($OutputStream)
+        
+        $OutputStream.Close()
+        $GzipStream.Close()
+        $InputStream.Close()
+        
+        $BackupPath = $TempFile
+        $CleanupTemp = $true
+    } else {
+        $CleanupTemp = $false
+    }
+    
+    Write-Host "Restoring data..." -ForegroundColor Yellow
+    
+    $BackupDir = Split-Path $BackupPath -Parent
+    $BackupFile = Split-Path $BackupPath -Leaf
+    
+    docker run --rm -v ${volumeName}:/target -v ${backupPath.replace(/[^\\\/]+$/, '')}:/backup alpine sh -c "rm -rf /target/* && tar -xf /backup/$BackupFile -C /target"
+    
+    if ($CleanupTemp) {
+        Remove-Item $BackupPath -Force
+    }
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Volume restored successfully!" -ForegroundColor Green
+        
+        # Show volume info
+        Write-Host ""
+        Write-Host "Volume details:" -ForegroundColor Yellow
+        docker volume inspect $VolumeName
+    } else {
+        Write-Error "Restore failed"
+    }
+    
+} catch {
+    Write-Error "Failed to restore volume: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-volume-list-contents',
+    name: 'List Volume Contents',
+    category: 'Volume Management',
+    description: 'Display files and directories inside a Docker volume',
+    parameters: [
+      { id: 'volumeName', label: 'Volume Name', type: 'text', required: true, placeholder: 'my-volume' },
+      { id: 'path', label: 'Path Inside Volume', type: 'text', required: false, defaultValue: '/', placeholder: '/' },
+      { id: 'recursive', label: 'Recursive Listing', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const volumeName = escapePowerShellString(params.volumeName);
+      const path = escapePowerShellString(params.path || '/');
+      const recursive = params.recursive;
+      
+      return `# Docker Volume List Contents
+# Generated: ${new Date().toISOString()}
+
+$VolumeName = "${volumeName}"
+
+try {
+    Write-Host "Listing contents of volume: $VolumeName" -ForegroundColor Cyan
+    Write-Host "Path: ${path}" -ForegroundColor Yellow
+    Write-Host ""
+    
+    ${recursive ? `
+    docker run --rm -v ${volumeName}:/data alpine find /data${path === '/' ? '' : path} -type f -o -type d | ForEach-Object {
+        Write-Host $_ -ForegroundColor White
+    }
+    ` : `
+    docker run --rm -v ${volumeName}:/data alpine ls -la /data${path === '/' ? '' : path}
+    `}
+    
+    Write-Host ""
+    Write-Host "✓ Listing completed!" -ForegroundColor Green
+    
+    # Show volume size
+    Write-Host ""
+    Write-Host "Volume size:" -ForegroundColor Yellow
+    docker run --rm -v ${volumeName}:/data alpine du -sh /data
+    
+} catch {
+    Write-Error "Failed to list volume contents: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  // Docker Compose Tasks
+  {
+    id: 'docker-compose-down',
+    name: 'Stop Docker Compose Stack',
+    category: 'Docker Compose',
+    description: 'Stop and remove containers, networks, and optionally volumes',
+    parameters: [
+      { id: 'composePath', label: 'Docker Compose File Path', type: 'path', required: true, placeholder: 'C:\\Projects\\app\\docker-compose.yml' },
+      { id: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'myapp' },
+      { id: 'removeVolumes', label: 'Remove Volumes', type: 'boolean', required: false, defaultValue: false },
+      { id: 'removeImages', label: 'Remove Images', type: 'select', required: false, options: ['none', 'local', 'all'], defaultValue: 'none' }
+    ],
+    scriptTemplate: (params) => {
+      const composePath = escapePowerShellString(params.composePath);
+      const projectName = escapePowerShellString(params.projectName);
+      const removeVolumes = params.removeVolumes;
+      const removeImages = params.removeImages || 'none';
+      
+      return `# Docker Compose Down
+# Generated: ${new Date().toISOString()}
+
+$ComposePath = "${composePath}"
+$ProjectName = "${projectName}"
+
+try {
+    Write-Host "Stopping Docker Compose stack: $ProjectName..." -ForegroundColor Cyan
+    
+    $DownArgs = @("-f", $ComposePath, "-p", $ProjectName, "down")
+    
+    ${removeVolumes ? `$DownArgs += "-v"` : ''}
+    ${removeImages !== 'none' ? `$DownArgs += @("--rmi", "${removeImages}")` : ''}
+    
+    docker-compose @DownArgs
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Stack stopped successfully!" -ForegroundColor Green
+        ${removeVolumes ? `Write-Host "  Volumes removed" -ForegroundColor Yellow` : ''}
+        ${removeImages !== 'none' ? `Write-Host "  Images removed: ${removeImages}" -ForegroundColor Yellow` : ''}
+    } else {
+        Write-Error "Failed to stop stack"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-compose-scale',
+    name: 'Scale Docker Compose Services',
+    category: 'Docker Compose',
+    description: 'Scale specific services to multiple replicas',
+    parameters: [
+      { id: 'composePath', label: 'Docker Compose File Path', type: 'path', required: true, placeholder: 'C:\\Projects\\app\\docker-compose.yml' },
+      { id: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'myapp' },
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: true, placeholder: 'web' },
+      { id: 'replicas', label: 'Number of Replicas', type: 'number', required: true, defaultValue: 3 }
+    ],
+    scriptTemplate: (params) => {
+      const composePath = escapePowerShellString(params.composePath);
+      const projectName = escapePowerShellString(params.projectName);
+      const serviceName = escapePowerShellString(params.serviceName);
+      const replicas = params.replicas || 3;
+      
+      return `# Docker Compose Scale
+# Generated: ${new Date().toISOString()}
+
+$ComposePath = "${composePath}"
+$ProjectName = "${projectName}"
+$ServiceName = "${serviceName}"
+
+try {
+    Write-Host "Scaling service '$ServiceName' to ${replicas} replicas..." -ForegroundColor Cyan
+    
+    docker-compose -f $ComposePath -p $ProjectName up -d --scale $ServiceName=${replicas}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Service scaled successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Running containers:" -ForegroundColor Yellow
+        docker-compose -f $ComposePath -p $ProjectName ps
+    } else {
+        Write-Error "Scaling failed"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-compose-logs',
+    name: 'View Docker Compose Logs',
+    category: 'Docker Compose',
+    description: 'Stream logs from all or specific services in a compose stack',
+    parameters: [
+      { id: 'composePath', label: 'Docker Compose File Path', type: 'path', required: true, placeholder: 'C:\\Projects\\app\\docker-compose.yml' },
+      { id: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'myapp' },
+      { id: 'serviceName', label: 'Service Name (optional, leave empty for all)', type: 'text', required: false },
+      { id: 'tailLines', label: 'Tail Lines', type: 'number', required: false, defaultValue: 100 },
+      { id: 'follow', label: 'Follow Logs', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const composePath = escapePowerShellString(params.composePath);
+      const projectName = escapePowerShellString(params.projectName);
+      const serviceName = params.serviceName ? escapePowerShellString(params.serviceName) : '';
+      const tailLines = params.tailLines || 100;
+      const follow = params.follow;
+      
+      return `# Docker Compose Logs
+# Generated: ${new Date().toISOString()}
+
+$ComposePath = "${composePath}"
+$ProjectName = "${projectName}"
+
+try {
+    Write-Host "Fetching logs for stack: $ProjectName..." -ForegroundColor Cyan
+    
+    $LogArgs = @("-f", $ComposePath, "-p", $ProjectName, "logs", "--tail", "${tailLines}")
+    
+    ${follow ? `$LogArgs += "-f"` : ''}
+    ${serviceName ? `$LogArgs += "${serviceName}"` : ''}
+    
+    ${follow ? `Write-Host "Press Ctrl+C to stop following logs..." -ForegroundColor Yellow
+    Write-Host ""` : ''}
+    
+    docker-compose @LogArgs
+    
+} catch {
+    Write-Error "Failed to get logs: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-compose-ps',
+    name: 'List Docker Compose Services',
+    category: 'Docker Compose',
+    description: 'Display status of all services in a compose stack',
+    parameters: [
+      { id: 'composePath', label: 'Docker Compose File Path', type: 'path', required: true, placeholder: 'C:\\Projects\\app\\docker-compose.yml' },
+      { id: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'myapp' },
+      { id: 'showAll', label: 'Show All (including stopped)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const composePath = escapePowerShellString(params.composePath);
+      const projectName = escapePowerShellString(params.projectName);
+      const showAll = params.showAll;
+      
+      return `# Docker Compose PS
+# Generated: ${new Date().toISOString()}
+
+$ComposePath = "${composePath}"
+$ProjectName = "${projectName}"
+
+try {
+    Write-Host "Services in stack: $ProjectName" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $PsArgs = @("-f", $ComposePath, "-p", $ProjectName, "ps")
+    ${showAll ? `$PsArgs += "-a"` : ''}
+    
+    docker-compose @PsArgs
+    
+    Write-Host ""
+    Write-Host "Service health summary:" -ForegroundColor Yellow
+    
+    $Services = docker-compose -f $ComposePath -p $ProjectName ps -q
+    $Running = ($Services | Where-Object { docker inspect --format '{{.State.Running}}' $_ -eq 'true' }).Count
+    $Total = ($Services | Measure-Object).Count
+    
+    Write-Host "  Running: $Running / $Total" -ForegroundColor $(if ($Running -eq $Total) { 'Green' } else { 'Yellow' })
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-compose-build',
+    name: 'Build Docker Compose Services',
+    category: 'Docker Compose',
+    description: 'Build or rebuild services defined in docker-compose',
+    parameters: [
+      { id: 'composePath', label: 'Docker Compose File Path', type: 'path', required: true, placeholder: 'C:\\Projects\\app\\docker-compose.yml' },
+      { id: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'myapp' },
+      { id: 'serviceName', label: 'Service Name (optional)', type: 'text', required: false },
+      { id: 'noCache', label: 'No Cache', type: 'boolean', required: false, defaultValue: false },
+      { id: 'parallel', label: 'Parallel Build', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const composePath = escapePowerShellString(params.composePath);
+      const projectName = escapePowerShellString(params.projectName);
+      const serviceName = params.serviceName ? escapePowerShellString(params.serviceName) : '';
+      const noCache = params.noCache;
+      const parallel = params.parallel;
+      
+      return `# Docker Compose Build
+# Generated: ${new Date().toISOString()}
+
+$ComposePath = "${composePath}"
+$ProjectName = "${projectName}"
+
+try {
+    Write-Host "Building services for stack: $ProjectName..." -ForegroundColor Cyan
+    
+    $BuildArgs = @("-f", $ComposePath, "-p", $ProjectName, "build")
+    
+    ${noCache ? `$BuildArgs += "--no-cache"` : ''}
+    ${parallel ? `$BuildArgs += "--parallel"` : ''}
+    ${serviceName ? `$BuildArgs += "${serviceName}"` : ''}
+    
+    $StartTime = Get-Date
+    docker-compose @BuildArgs
+    $EndTime = Get-Date
+    
+    if ($LASTEXITCODE -eq 0) {
+        $Duration = $EndTime - $StartTime
+        Write-Host ""
+        Write-Host "✓ Build completed successfully!" -ForegroundColor Green
+        Write-Host "  Duration: $($Duration.TotalSeconds.ToString('F2')) seconds" -ForegroundColor Cyan
+        
+        Write-Host ""
+        Write-Host "Built images:" -ForegroundColor Yellow
+        docker images --filter "reference=${projectName}*" --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
+    } else {
+        Write-Error "Build failed"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  // Docker Swarm Tasks
+  {
+    id: 'docker-swarm-init',
+    name: 'Initialize Docker Swarm',
+    category: 'Docker Swarm',
+    description: 'Initialize a new Docker Swarm cluster',
+    parameters: [
+      { id: 'advertiseAddr', label: 'Advertise Address (IP:Port)', type: 'text', required: false, placeholder: '192.168.1.10:2377' },
+      { id: 'listenAddr', label: 'Listen Address', type: 'text', required: false, placeholder: '0.0.0.0:2377' }
+    ],
+    scriptTemplate: (params) => {
+      const advertiseAddr = params.advertiseAddr ? escapePowerShellString(params.advertiseAddr) : '';
+      const listenAddr = params.listenAddr ? escapePowerShellString(params.listenAddr) : '';
+      
+      return `# Docker Swarm Init
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Initializing Docker Swarm..." -ForegroundColor Cyan
+    
+    $InitArgs = @("swarm", "init")
+    
+    ${advertiseAddr ? `$InitArgs += @("--advertise-addr", "${advertiseAddr}")` : ''}
+    ${listenAddr ? `$InitArgs += @("--listen-addr", "${listenAddr}")` : ''}
+    
+    docker @InitArgs
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Swarm initialized successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Swarm status:" -ForegroundColor Yellow
+        docker info --format '{{.Swarm.LocalNodeState}}'
+        
+        Write-Host ""
+        Write-Host "To add workers, run on worker nodes:" -ForegroundColor Cyan
+        docker swarm join-token worker
+        
+        Write-Host ""
+        Write-Host "To add managers, run on manager nodes:" -ForegroundColor Cyan
+        docker swarm join-token manager
+    } else {
+        Write-Error "Swarm initialization failed"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-swarm-join',
+    name: 'Join Docker Swarm',
+    category: 'Docker Swarm',
+    description: 'Join a node to an existing Docker Swarm cluster',
+    parameters: [
+      { id: 'joinToken', label: 'Join Token', type: 'text', required: true, placeholder: 'SWMTKN-1-xxxxx' },
+      { id: 'managerAddr', label: 'Manager Address (IP:Port)', type: 'text', required: true, placeholder: '192.168.1.10:2377' }
+    ],
+    scriptTemplate: (params) => {
+      const joinToken = escapePowerShellString(params.joinToken);
+      const managerAddr = escapePowerShellString(params.managerAddr);
+      
+      return `# Docker Swarm Join
+# Generated: ${new Date().toISOString()}
+
+$JoinToken = "${joinToken}"
+$ManagerAddr = "${managerAddr}"
+
+try {
+    Write-Host "Joining Docker Swarm..." -ForegroundColor Cyan
+    Write-Host "  Manager: $ManagerAddr" -ForegroundColor Yellow
+    
+    docker swarm join --token $JoinToken $ManagerAddr
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Successfully joined the Swarm!" -ForegroundColor Green
+        
+        Write-Host ""
+        Write-Host "Node information:" -ForegroundColor Yellow
+        docker info --format 'Node ID: {{.Swarm.NodeID}}'
+        docker info --format 'Is Manager: {{.Swarm.ControlAvailable}}'
+    } else {
+        Write-Error "Failed to join Swarm"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-swarm-services',
+    name: 'Manage Swarm Services',
+    category: 'Docker Swarm',
+    description: 'Create, list, update, or remove Swarm services',
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['List', 'Create', 'Update', 'Remove', 'Scale'], defaultValue: 'List' },
+      { id: 'serviceName', label: 'Service Name', type: 'text', required: false, placeholder: 'my-service' },
+      { id: 'image', label: 'Image (for Create/Update)', type: 'text', required: false, placeholder: 'nginx:latest' },
+      { id: 'replicas', label: 'Replicas', type: 'number', required: false, defaultValue: 1 },
+      { id: 'ports', label: 'Port Mapping (for Create)', type: 'text', required: false, placeholder: '80:80' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const serviceName = params.serviceName ? escapePowerShellString(params.serviceName) : '';
+      const image = params.image ? escapePowerShellString(params.image) : '';
+      const replicas = params.replicas || 1;
+      const ports = params.ports ? escapePowerShellString(params.ports) : '';
+      
+      return `# Docker Swarm Services
+# Generated: ${new Date().toISOString()}
+
+try {
+    ${action === 'List' ? `
+    Write-Host "Listing Swarm services..." -ForegroundColor Cyan
+    docker service ls
+    
+    Write-Host ""
+    Write-Host "Service tasks:" -ForegroundColor Yellow
+    docker service ps $(docker service ls -q) 2>$null
+    ` : action === 'Create' ? `
+    ${serviceName && image ? `
+    Write-Host "Creating service: ${serviceName}..." -ForegroundColor Cyan
+    
+    $CreateArgs = @("service", "create", "--name", "${serviceName}", "--replicas", "${replicas}")
+    ${ports ? `$CreateArgs += @("-p", "${ports}")` : ''}
+    $CreateArgs += "${image}"
+    
+    docker @CreateArgs
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Service created successfully!" -ForegroundColor Green
+        docker service ps ${serviceName}
+    }
+    ` : `
+    Write-Host "Error: Service name and image are required for Create" -ForegroundColor Red
+    exit 1
+    `}
+    ` : action === 'Update' ? `
+    ${serviceName ? `
+    Write-Host "Updating service: ${serviceName}..." -ForegroundColor Cyan
+    
+    $UpdateArgs = @("service", "update")
+    ${image ? `$UpdateArgs += @("--image", "${image}")` : ''}
+    $UpdateArgs += @("--replicas", "${replicas}")
+    $UpdateArgs += "${serviceName}"
+    
+    docker @UpdateArgs
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Service updated successfully!" -ForegroundColor Green
+        docker service ps ${serviceName}
+    }
+    ` : `
+    Write-Host "Error: Service name is required for Update" -ForegroundColor Red
+    exit 1
+    `}
+    ` : action === 'Remove' ? `
+    ${serviceName ? `
+    $Confirm = Read-Host "Remove service ${serviceName}? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Removing service: ${serviceName}..." -ForegroundColor Cyan
+        docker service rm ${serviceName}
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Service removed!" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+    }
+    ` : `
+    Write-Host "Error: Service name is required for Remove" -ForegroundColor Red
+    exit 1
+    `}
+    ` : `
+    ${serviceName ? `
+    Write-Host "Scaling service: ${serviceName} to ${replicas} replicas..." -ForegroundColor Cyan
+    docker service scale ${serviceName}=${replicas}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Service scaled successfully!" -ForegroundColor Green
+        docker service ps ${serviceName}
+    }
+    ` : `
+    Write-Host "Error: Service name is required for Scale" -ForegroundColor Red
+    exit 1
+    `}
+    `}
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-swarm-stacks',
+    name: 'Deploy Swarm Stack',
+    category: 'Docker Swarm',
+    description: 'Deploy a stack from a Docker Compose file to Swarm',
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Deploy', 'Remove', 'List', 'Services'], defaultValue: 'Deploy' },
+      { id: 'stackName', label: 'Stack Name', type: 'text', required: true, placeholder: 'mystack' },
+      { id: 'composePath', label: 'Compose File (for Deploy)', type: 'path', required: false, placeholder: 'C:\\Projects\\docker-compose.yml' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const stackName = escapePowerShellString(params.stackName);
+      const composePath = params.composePath ? escapePowerShellString(params.composePath) : '';
+      
+      return `# Docker Swarm Stacks
+# Generated: ${new Date().toISOString()}
+
+$StackName = "${stackName}"
+
+try {
+    ${action === 'Deploy' ? `
+    ${composePath ? `
+    Write-Host "Deploying stack: $StackName..." -ForegroundColor Cyan
+    docker stack deploy -c "${composePath}" $StackName
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Stack deployed successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Stack services:" -ForegroundColor Yellow
+        docker stack services $StackName
+    }
+    ` : `
+    Write-Host "Error: Compose file path is required for Deploy" -ForegroundColor Red
+    exit 1
+    `}
+    ` : action === 'Remove' ? `
+    $Confirm = Read-Host "Remove stack $StackName? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Removing stack: $StackName..." -ForegroundColor Cyan
+        docker stack rm $StackName
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Stack removed!" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+    }
+    ` : action === 'List' ? `
+    Write-Host "Listing stacks..." -ForegroundColor Cyan
+    docker stack ls
+    ` : `
+    Write-Host "Services in stack: $StackName" -ForegroundColor Cyan
+    docker stack services $StackName
+    
+    Write-Host ""
+    Write-Host "Stack tasks:" -ForegroundColor Yellow
+    docker stack ps $StackName
+    `}
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-swarm-secrets',
+    name: 'Manage Swarm Secrets',
+    category: 'Docker Swarm',
+    description: 'Create, list, and remove Docker Swarm secrets',
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create', 'List', 'Remove', 'Inspect'], defaultValue: 'List' },
+      { id: 'secretName', label: 'Secret Name', type: 'text', required: false, placeholder: 'my-secret' },
+      { id: 'secretValue', label: 'Secret Value (for Create)', type: 'text', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const secretName = params.secretName ? escapePowerShellString(params.secretName) : '';
+      const secretValue = params.secretValue ? escapePowerShellString(params.secretValue) : '';
+      
+      return `# Docker Swarm Secrets
+# Generated: ${new Date().toISOString()}
+
+try {
+    ${action === 'List' ? `
+    Write-Host "Listing Swarm secrets..." -ForegroundColor Cyan
+    docker secret ls
+    ` : action === 'Create' ? `
+    ${secretName ? `
+    Write-Host "Creating secret: ${secretName}..." -ForegroundColor Cyan
+    
+    ${secretValue ? `
+    echo "${secretValue}" | docker secret create ${secretName} -
+    ` : `
+    $SecretValue = Read-Host -AsSecureString -Prompt "Enter secret value"
+    $ValuePlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecretValue))
+    echo $ValuePlain | docker secret create ${secretName} -
+    `}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Secret created!" -ForegroundColor Green
+        docker secret ls
+    }
+    ` : `
+    Write-Host "Error: Secret name is required" -ForegroundColor Red
+    exit 1
+    `}
+    ` : action === 'Remove' ? `
+    ${secretName ? `
+    $Confirm = Read-Host "Remove secret ${secretName}? Type 'YES' to confirm"
+    if ($Confirm -eq 'YES') {
+        Write-Host "Removing secret: ${secretName}..." -ForegroundColor Cyan
+        docker secret rm ${secretName}
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Secret removed!" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Yellow
+    }
+    ` : `
+    Write-Host "Error: Secret name is required" -ForegroundColor Red
+    exit 1
+    `}
+    ` : `
+    ${secretName ? `
+    Write-Host "Inspecting secret: ${secretName}..." -ForegroundColor Cyan
+    docker secret inspect ${secretName}
+    ` : `
+    Write-Host "Error: Secret name is required" -ForegroundColor Red
+    exit 1
+    `}
+    `}
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  // Monitoring Tasks
+  {
+    id: 'docker-container-events',
+    name: 'Monitor Docker Events',
+    category: 'Monitoring',
+    description: 'Stream real-time Docker events from containers, images, and volumes',
+    parameters: [
+      { id: 'eventTypes', label: 'Event Types', type: 'select', required: true, options: ['all', 'container', 'image', 'volume', 'network'], defaultValue: 'all' },
+      { id: 'since', label: 'Since (e.g., 1h, 30m)', type: 'text', required: false, placeholder: '1h' },
+      { id: 'until', label: 'Until (for historical)', type: 'text', required: false },
+      { id: 'filterName', label: 'Filter by Name', type: 'text', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const eventTypes = params.eventTypes === 'all' ? '' : params.eventTypes;
+      const since = params.since ? escapePowerShellString(params.since) : '';
+      const until = params.until ? escapePowerShellString(params.until) : '';
+      const filterName = params.filterName ? escapePowerShellString(params.filterName) : '';
+      
+      return `# Docker Events Monitor
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Monitoring Docker events..." -ForegroundColor Cyan
+    ${since || until ? '' : `Write-Host "Press Ctrl+C to stop monitoring..." -ForegroundColor Yellow`}
+    Write-Host ""
+    
+    $EventArgs = @("events")
+    
+    ${eventTypes ? `$EventArgs += @("--filter", "type=${eventTypes}")` : ''}
+    ${since ? `$EventArgs += @("--since", "${since}")` : ''}
+    ${until ? `$EventArgs += @("--until", "${until}")` : ''}
+    ${filterName ? `$EventArgs += @("--filter", "name=${filterName}")` : ''}
+    
+    $EventArgs += @("--format", "{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}}")
+    
+    docker @EventArgs | ForEach-Object {
+        $Parts = $_ -split " ", 4
+        $Time = $Parts[0]
+        $Type = $Parts[1]
+        $Action = $Parts[2]
+        $Name = $Parts[3]
+        
+        $Color = switch ($Action) {
+            { $_ -in @('start', 'create', 'attach') } { 'Green' }
+            { $_ -in @('stop', 'kill', 'die', 'destroy') } { 'Red' }
+            { $_ -in @('pause', 'unpause') } { 'Yellow' }
+            default { 'White' }
+        }
+        
+        Write-Host "[$Time] " -NoNewline -ForegroundColor Gray
+        Write-Host "$Type " -NoNewline -ForegroundColor Cyan
+        Write-Host "$Action " -NoNewline -ForegroundColor $Color
+        Write-Host "$Name" -ForegroundColor White
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-healthcheck-report',
+    name: 'Container Health Check Report',
+    category: 'Monitoring',
+    description: 'Generate a health status report for all containers',
+    parameters: [
+      { id: 'exportPath', label: 'Export CSV Path (optional)', type: 'path', required: false },
+      { id: 'onlyUnhealthy', label: 'Show Only Unhealthy', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+      const onlyUnhealthy = params.onlyUnhealthy;
+      
+      return `# Docker Container Health Check Report
+# Generated: ${new Date().toISOString()}
+
+try {
+    Write-Host "Generating container health report..." -ForegroundColor Cyan
+    Write-Host ""
+    
+    $Containers = docker ps -a --format "{{.Names}}" | ForEach-Object {
+        $Name = $_
+        $Info = docker inspect $Name | ConvertFrom-Json
+        
+        $HealthStatus = if ($Info.State.Health) {
+            $Info.State.Health.Status
+        } else {
+            "no healthcheck"
+        }
+        
+        $FailingStreak = if ($Info.State.Health) {
+            $Info.State.Health.FailingStreak
+        } else {
+            0
+        }
+        
+        [PSCustomObject]@{
+            Name = $Name
+            Status = $Info.State.Status
+            Health = $HealthStatus
+            FailingStreak = $FailingStreak
+            Uptime = if ($Info.State.StartedAt) {
+                $Start = [DateTime]::Parse($Info.State.StartedAt)
+                $Duration = (Get-Date) - $Start
+                "$($Duration.Days)d $($Duration.Hours)h $($Duration.Minutes)m"
+            } else { "N/A" }
+        }
+    }
+    
+    ${onlyUnhealthy ? `
+    $Containers = $Containers | Where-Object { $_.Health -notin @('healthy', 'no healthcheck') -or $_.Status -ne 'running' }
+    ` : ''}
+    
+    ${exportPath ? `
+    $Containers | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host ""
+    ` : ''}
+    
+    Write-Host "Container Health Status:" -ForegroundColor Yellow
+    Write-Host ""
+    
+    $Containers | ForEach-Object {
+        $HealthColor = switch ($_.Health) {
+            'healthy' { 'Green' }
+            'unhealthy' { 'Red' }
+            'starting' { 'Yellow' }
+            default { 'Gray' }
+        }
+        
+        $StatusColor = if ($_.Status -eq 'running') { 'Green' } else { 'Red' }
+        
+        Write-Host "  $($_.Name)" -NoNewline -ForegroundColor White
+        Write-Host " [" -NoNewline
+        Write-Host "$($_.Status)" -NoNewline -ForegroundColor $StatusColor
+        Write-Host "] " -NoNewline
+        Write-Host "$($_.Health)" -NoNewline -ForegroundColor $HealthColor
+        if ($_.FailingStreak -gt 0) {
+            Write-Host " (failing: $($_.FailingStreak))" -NoNewline -ForegroundColor Red
+        }
+        Write-Host " - Uptime: $($_.Uptime)" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    $Healthy = ($Containers | Where-Object { $_.Health -eq 'healthy' }).Count
+    $Unhealthy = ($Containers | Where-Object { $_.Health -eq 'unhealthy' }).Count
+    $NoCheck = ($Containers | Where-Object { $_.Health -eq 'no healthcheck' }).Count
+    
+    Write-Host "Summary:" -ForegroundColor Cyan
+    Write-Host "  Healthy: $Healthy" -ForegroundColor Green
+    Write-Host "  Unhealthy: $Unhealthy" -ForegroundColor $(if ($Unhealthy -gt 0) { 'Red' } else { 'Green' })
+    Write-Host "  No Healthcheck: $NoCheck" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+  {
+    id: 'docker-resource-limits',
+    name: 'Set Container Resource Limits',
+    category: 'Monitoring',
+    description: 'Update CPU and memory limits for running containers',
+    parameters: [
+      { id: 'containerName', label: 'Container Name', type: 'text', required: true, placeholder: 'my-container' },
+      { id: 'cpuLimit', label: 'CPU Limit (cores, e.g., 0.5, 2)', type: 'text', required: false, placeholder: '1.0' },
+      { id: 'memoryLimit', label: 'Memory Limit (e.g., 512m, 2g)', type: 'text', required: false, placeholder: '512m' },
+      { id: 'memoryReservation', label: 'Memory Reservation (e.g., 256m)', type: 'text', required: false }
+    ],
+    scriptTemplate: (params) => {
+      const containerName = escapePowerShellString(params.containerName);
+      const cpuLimit = params.cpuLimit ? escapePowerShellString(params.cpuLimit) : '';
+      const memoryLimit = params.memoryLimit ? escapePowerShellString(params.memoryLimit) : '';
+      const memoryReservation = params.memoryReservation ? escapePowerShellString(params.memoryReservation) : '';
+      
+      return `# Docker Container Resource Limits
+# Generated: ${new Date().toISOString()}
+
+$ContainerName = "${containerName}"
+
+try {
+    Write-Host "Updating resource limits for: $ContainerName..." -ForegroundColor Cyan
+    
+    # Verify container exists
+    $Exists = docker ps -a --filter "name=$ContainerName" --format "{{.Names}}"
+    if (-not $Exists) {
+        Write-Error "Container not found: $ContainerName"
+        exit 1
+    }
+    
+    $UpdateArgs = @("update")
+    
+    ${cpuLimit ? `
+    Write-Host "  CPU Limit: ${cpuLimit} cores" -ForegroundColor Yellow
+    $UpdateArgs += @("--cpus", "${cpuLimit}")
+    ` : ''}
+    
+    ${memoryLimit ? `
+    Write-Host "  Memory Limit: ${memoryLimit}" -ForegroundColor Yellow
+    $UpdateArgs += @("--memory", "${memoryLimit}")
+    ` : ''}
+    
+    ${memoryReservation ? `
+    Write-Host "  Memory Reservation: ${memoryReservation}" -ForegroundColor Yellow
+    $UpdateArgs += @("--memory-reservation", "${memoryReservation}")
+    ` : ''}
+    
+    $UpdateArgs += $ContainerName
+    
+    docker @UpdateArgs
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Resource limits updated!" -ForegroundColor Green
+        
+        Write-Host ""
+        Write-Host "Current resource configuration:" -ForegroundColor Yellow
+        $Info = docker inspect $ContainerName | ConvertFrom-Json
+        Write-Host "  CPU Quota: $($Info.HostConfig.CpuQuota)" -ForegroundColor White
+        Write-Host "  CPU Period: $($Info.HostConfig.CpuPeriod)" -ForegroundColor White
+        Write-Host "  Memory: $(($Info.HostConfig.Memory / 1MB).ToString('F0')) MB" -ForegroundColor White
+        Write-Host "  Memory Reservation: $(($Info.HostConfig.MemoryReservation / 1MB).ToString('F0')) MB" -ForegroundColor White
+    } else {
+        Write-Error "Failed to update resource limits"
+    }
+    
+} catch {
+    Write-Error "Failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

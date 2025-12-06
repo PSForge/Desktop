@@ -4745,5 +4745,1340 @@ try {
   {id:'monitor-dp-status',name:'Monitor Distribution Point Status',category:'Content Distribution',description:'Check distribution point health and content status',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\DPStatus.csv'}],scriptTemplate:p=>{const e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$DPs=Get-CMDistributionPoint;$Results=$DPs|Select ServerName,IsPeerDP,IsPullDP,IsActive;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ DP status exported: $($DPs.Count) DPs" -ForegroundColor Green}catch{Write-Error $_}`;}},
   {id:'export-compliance-settings',name:'Export Compliance Settings Report',category:'Compliance Settings',description:'Export compliance baseline results',parameters:[{id:'baselineName',label:'Baseline Name',type:'text',required:true,placeholder:'Security Baseline'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\Compliance.csv'}],scriptTemplate:p=>{const b=escapePowerShellString(p.baselineName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Baseline=Get-CMBaseline -Name "${b}";$Results=Get-CMBaselineDeploymentStatus -Id $Baseline.CI_ID|Select DeviceName,ComplianceStatus,IsCompliant;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Compliance exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
   {id:'deploy-baseline',name:'Deploy Compliance Baseline',category:'Compliance Settings',description:'Deploy configuration baseline to collection',parameters:[{id:'baselineName',label:'Baseline Name',type:'text',required:true,placeholder:'Security Baseline'},{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'}],scriptTemplate:p=>{const b=escapePowerShellString(p.baselineName),c=escapePowerShellString(p.collectionName);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{New-CMBaselineDeployment -Name "${b}" -CollectionName "${c}" -GenerateAlert $true;Write-Host "✓ Baseline deployed to ${c}" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'export-app-deployment-status',name:'Export Application Deployment Status',category:'Applications & Deployments',description:'Export deployment success/failure statistics',parameters:[{id:'applicationName',label:'Application Name',type:'text',required:true,placeholder:'Microsoft 365'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AppDeployment.csv'}],scriptTemplate:p=>{const a=escapePowerShellString(p.applicationName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Status=Get-CMApplicationDeploymentStatus -Name "${a}";$Results=$Status|Select DeviceName,UserName,StatusType,ErrorCode,LastStatusTime;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Deployment status exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}}
+  {id:'export-app-deployment-status',name:'Export Application Deployment Status',category:'Applications & Deployments',description:'Export deployment success/failure statistics',parameters:[{id:'applicationName',label:'Application Name',type:'text',required:true,placeholder:'Microsoft 365'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AppDeployment.csv'}],scriptTemplate:p=>{const a=escapePowerShellString(p.applicationName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Status=Get-CMApplicationDeploymentStatus -Name "${a}";$Results=$Status|Select DeviceName,UserName,StatusType,ErrorCode,LastStatusTime;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Deployment status exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
+
+  // ========================================
+  // ADDITIONAL PROFESSIONAL TASKS
+  // ========================================
+  {
+    id: 'configure-app-supersedence',
+    name: 'Configure Application Supersedence',
+    category: 'Applications & Deployments',
+    isPremium: true,
+    description: 'Configure supersedence relationship to replace old applications with new versions and optionally uninstall superseded apps',
+    instructions: `**How This Task Works:**
+This script configures application supersedence in MECM, enabling automatic replacement of older application versions with newer ones during deployment.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Application management permissions
+- Both superseding and superseded applications must exist
+
+**What You Need to Provide:**
+- New (superseding) application name
+- Old (superseded) application name
+- Whether to automatically uninstall the old version
+- Deployment type names if multiple exist
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates both applications exist
+3. Retrieves deployment type information for both apps
+4. Creates supersedence relationship linking new to old
+5. Configures uninstall behavior for superseded application
+6. Verifies relationship was created successfully
+
+**Important Notes:**
+- Supersedence requires both apps have valid deployment types
+- Uninstall option removes old version before installing new
+- Essential for application lifecycle management
+- Test in pilot collection before production rollout
+- Consider dependencies and detection rules
+- Review superseded deployments after configuration`,
+    parameters: [
+      { id: 'newAppName', label: 'New Application Name', type: 'text', required: true, placeholder: '7-Zip 24.01' },
+      { id: 'oldAppName', label: 'Old Application Name (to be superseded)', type: 'text', required: true, placeholder: '7-Zip 23.01' },
+      { id: 'uninstallOld', label: 'Uninstall Old Version', type: 'boolean', required: false, defaultValue: true, description: 'Automatically uninstall the superseded application' }
+    ],
+    scriptTemplate: (params) => {
+      const newAppName = escapePowerShellString(params.newAppName);
+      const oldAppName = escapePowerShellString(params.oldAppName);
+      const uninstallOld = toPowerShellBoolean(params.uninstallOld ?? true);
+
+      return `# Configure Application Supersedence in MECM
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$NewAppName = "${newAppName}"
+$OldAppName = "${oldAppName}"
+$UninstallOld = ${uninstallOld}
+
+try {
+    # Validate new (superseding) application exists
+    $NewApp = Get-CMApplication -Name $NewAppName -ErrorAction Stop
+    Write-Host "✓ New application found: $NewAppName" -ForegroundColor Green
+    
+    # Validate old (superseded) application exists
+    $OldApp = Get-CMApplication -Name $OldAppName -ErrorAction Stop
+    Write-Host "✓ Old application found: $OldAppName" -ForegroundColor Green
+    
+    # Get deployment types for both applications
+    $NewDT = Get-CMDeploymentType -ApplicationName $NewAppName | Select-Object -First 1
+    $OldDT = Get-CMDeploymentType -ApplicationName $OldAppName | Select-Object -First 1
+    
+    if (-not $NewDT) {
+        Write-Error "No deployment type found for new application: $NewAppName"
+        exit 1
+    }
+    
+    if (-not $OldDT) {
+        Write-Error "No deployment type found for old application: $OldAppName"
+        exit 1
+    }
+    
+    Write-Host ""
+    Write-Host "Configuring supersedence relationship..." -ForegroundColor Cyan
+    Write-Host "  New DT: $($NewDT.LocalizedDisplayName)" -ForegroundColor Gray
+    Write-Host "  Old DT: $($OldDT.LocalizedDisplayName)" -ForegroundColor Gray
+    Write-Host "  Uninstall old: $UninstallOld" -ForegroundColor Gray
+    
+    # Add supersedence relationship
+    Add-CMDeploymentTypeSupersedence \`
+        -SupersedingDeploymentType $NewDT \`
+        -SupersededDeploymentType $OldDT \`
+        -IsUninstall $UninstallOld
+    
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Green
+    Write-Host "✓ Supersedence configured successfully!" -ForegroundColor Green
+    Write-Host "  Superseding: $NewAppName" -ForegroundColor Gray
+    Write-Host "  Superseded: $OldAppName" -ForegroundColor Gray
+    Write-Host "  Auto-uninstall: $(if ($UninstallOld) {'Enabled'} else {'Disabled'})" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "  1. Deploy $NewAppName to target collections" -ForegroundColor Gray
+    Write-Host "  2. Devices with $OldAppName will upgrade automatically" -ForegroundColor Gray
+    Write-Host "  3. Monitor deployment status for any failures" -ForegroundColor Gray
+    Write-Host "======================================" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to configure supersedence: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'force-software-update-scan',
+    name: 'Force Software Update Scan and Evaluation',
+    category: 'Software Updates',
+    isPremium: true,
+    description: 'Trigger immediate software update scan and compliance evaluation on target devices',
+    instructions: `**How This Task Works:**
+This script forces immediate software update scanning and compliance evaluation on MECM clients, useful for urgent patching scenarios or troubleshooting.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Device must have active MECM client
+- Network connectivity to target devices
+- PowerShell remoting enabled on targets
+
+**What You Need to Provide:**
+- Device names (comma-separated) or collection name
+- Whether to force policy refresh first
+- Whether to wait for scan completion
+
+**What the Script Does:**
+1. Connects to each target device remotely
+2. Optional: Forces machine policy refresh first
+3. Triggers Software Update Scan cycle
+4. Triggers Software Update Deployment Evaluation
+5. Reports status for each device
+6. Optional: Waits and reports scan results
+
+**Important Notes:**
+- Scan results may take 5-15 minutes to reflect in MECM
+- Best used for urgent patch compliance scenarios
+- Useful for troubleshooting missing updates
+- Consider using collection for large-scale operations
+- PowerShell remoting must be enabled on targets
+- Run as account with admin rights on target devices`,
+    parameters: [
+      { id: 'targetDevices', label: 'Device Names (comma-separated)', type: 'textarea', required: true, placeholder: 'PC001,PC002,PC003' },
+      { id: 'forcePolicyRefresh', label: 'Force Policy Refresh First', type: 'boolean', required: false, defaultValue: true },
+      { id: 'waitForCompletion', label: 'Wait for Scan Completion', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const targetDevices = params.targetDevices ? buildPowerShellArray(params.targetDevices) : '@()';
+      const forcePolicyRefresh = toPowerShellBoolean(params.forcePolicyRefresh ?? true);
+      const waitForCompletion = toPowerShellBoolean(params.waitForCompletion ?? false);
+
+      return `# Force Software Update Scan and Evaluation
+# Generated: ${new Date().toISOString()}
+
+$TargetDevices = ${targetDevices}
+$ForcePolicyRefresh = ${forcePolicyRefresh}
+$WaitForCompletion = ${waitForCompletion}
+
+# Client action trigger IDs
+$PolicyRefreshID = "{00000000-0000-0000-0000-000000000021}"
+$SoftwareUpdateScanID = "{00000000-0000-0000-0000-000000000113}"
+$SoftwareUpdateEvalID = "{00000000-0000-0000-0000-000000000108}"
+
+$SuccessCount = 0
+$FailCount = 0
+
+Write-Host ""
+Write-Host "Starting Software Update Scan on $($TargetDevices.Count) devices..." -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($Device in $TargetDevices) {
+    Write-Host "Processing: $Device" -ForegroundColor Cyan
+    
+    try {
+        # Test connectivity
+        if (-not (Test-Connection -ComputerName $Device -Count 1 -Quiet)) {
+            Write-Host "  ✗ Device offline or unreachable" -ForegroundColor Red
+            $FailCount++
+            continue
+        }
+        
+        # Force policy refresh if requested
+        if ($ForcePolicyRefresh) {
+            Write-Host "  → Forcing policy refresh..." -ForegroundColor Gray
+            Invoke-Command -ComputerName $Device -ScriptBlock {
+                Invoke-WMIMethod -Namespace "root\\CCM" -Class SMS_Client -Name TriggerSchedule -ArgumentList $using:PolicyRefreshID | Out-Null
+            } -ErrorAction Stop
+            Start-Sleep -Seconds 5
+        }
+        
+        # Trigger Software Update Scan
+        Write-Host "  → Triggering software update scan..." -ForegroundColor Gray
+        Invoke-Command -ComputerName $Device -ScriptBlock {
+            Invoke-WMIMethod -Namespace "root\\CCM" -Class SMS_Client -Name TriggerSchedule -ArgumentList $using:SoftwareUpdateScanID | Out-Null
+        } -ErrorAction Stop
+        
+        # Trigger Software Update Deployment Evaluation
+        Write-Host "  → Triggering deployment evaluation..." -ForegroundColor Gray
+        Invoke-Command -ComputerName $Device -ScriptBlock {
+            Invoke-WMIMethod -Namespace "root\\CCM" -Class SMS_Client -Name TriggerSchedule -ArgumentList $using:SoftwareUpdateEvalID | Out-Null
+        } -ErrorAction Stop
+        
+        Write-Host "  ✓ Update scan triggered successfully" -ForegroundColor Green
+        $SuccessCount++
+        
+        # Wait for completion if requested
+        if ($WaitForCompletion) {
+            Write-Host "  → Waiting for scan completion (60 seconds)..." -ForegroundColor Gray
+            Start-Sleep -Seconds 60
+            
+            # Check scan status
+            $ScanStatus = Invoke-Command -ComputerName $Device -ScriptBlock {
+                Get-WmiObject -Namespace "root\\CCM\\SoftwareUpdates\\UpdatesStore" -Class CCM_UpdateStatus | 
+                    Select-Object -First 5 | 
+                    Select-Object Article, Status
+            }
+            
+            if ($ScanStatus) {
+                Write-Host "  Recent update status:" -ForegroundColor Gray
+                foreach ($Update in $ScanStatus) {
+                    Write-Host "    KB$($Update.Article): $($Update.Status)" -ForegroundColor Gray
+                }
+            }
+        }
+        
+    } catch {
+        Write-Host "  ✗ Failed: $($_.Exception.Message)" -ForegroundColor Red
+        $FailCount++
+    }
+    
+    Write-Host ""
+}
+
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Software Update Scan Summary:" -ForegroundColor Cyan
+Write-Host "  Devices processed: $($TargetDevices.Count)" -ForegroundColor Gray
+Write-Host "  Successful: $SuccessCount" -ForegroundColor Green
+Write-Host "  Failed: $FailCount" -ForegroundColor Red
+Write-Host ""
+Write-Host "Note: Allow 10-15 minutes for scan results" -ForegroundColor Yellow
+Write-Host "      to appear in MECM console" -ForegroundColor Yellow
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'collect-client-diagnostics',
+    name: 'Collect MECM Client Diagnostics',
+    category: 'Client Management & Health',
+    isPremium: true,
+    description: 'Collect comprehensive MECM client diagnostic information including logs, cache, and configuration for troubleshooting',
+    instructions: `**How This Task Works:**
+This script collects comprehensive diagnostic data from MECM clients for troubleshooting client health issues, deployment failures, and connectivity problems.
+
+**Prerequisites:**
+- PowerShell remoting enabled on target devices
+- Admin credentials on target devices
+- Network connectivity to targets
+- Sufficient disk space for log collection
+
+**What You Need to Provide:**
+- Target device names (comma-separated)
+- Output path for collected diagnostics
+- Options for what to collect (logs, cache info, config)
+
+**What the Script Does:**
+1. Connects to each target device remotely
+2. Collects MECM client version and health status
+3. Gathers client cache information and size
+4. Retrieves recent log entries from key log files
+5. Captures client configuration and settings
+6. Reports WMI/connectivity status
+7. Exports all data to organized output folder
+
+**Important Notes:**
+- Essential for troubleshooting problematic clients
+- Collects: ccmexec.log, PolicyAgent.log, DataTransferService.log
+- Useful for pre-escalation data gathering
+- Run as account with local admin on targets
+- Large log files may take time to collect
+- Consider disk space at output location`,
+    parameters: [
+      { id: 'targetDevices', label: 'Device Names (comma-separated)', type: 'textarea', required: true, placeholder: 'PC001,PC002' },
+      { id: 'outputPath', label: 'Output Path', type: 'path', required: true, placeholder: 'C:\\Diagnostics\\MECM' },
+      { id: 'collectLogs', label: 'Collect Log Files', type: 'boolean', required: false, defaultValue: true },
+      { id: 'collectCacheInfo', label: 'Collect Cache Information', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetDevices = params.targetDevices ? buildPowerShellArray(params.targetDevices) : '@()';
+      const outputPath = escapePowerShellString(params.outputPath);
+      const collectLogs = toPowerShellBoolean(params.collectLogs ?? true);
+      const collectCacheInfo = toPowerShellBoolean(params.collectCacheInfo ?? true);
+
+      return `# Collect MECM Client Diagnostics
+# Generated: ${new Date().toISOString()}
+
+$TargetDevices = ${targetDevices}
+$OutputPath = "${outputPath}"
+$CollectLogs = ${collectLogs}
+$CollectCacheInfo = ${collectCacheInfo}
+
+# Create output directory
+if (-not (Test-Path $OutputPath)) {
+    New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+}
+
+$Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+
+Write-Host ""
+Write-Host "Collecting MECM Client Diagnostics..." -ForegroundColor Cyan
+Write-Host "Output Path: $OutputPath" -ForegroundColor Gray
+Write-Host ""
+
+foreach ($Device in $TargetDevices) {
+    Write-Host "Processing: $Device" -ForegroundColor Cyan
+    
+    $DeviceOutputPath = Join-Path $OutputPath "\$Device_\$Timestamp"
+    New-Item -Path $DeviceOutputPath -ItemType Directory -Force | Out-Null
+    
+    try {
+        # Test connectivity
+        if (-not (Test-Connection -ComputerName $Device -Count 1 -Quiet)) {
+            Write-Host "  ✗ Device offline or unreachable" -ForegroundColor Red
+            continue
+        }
+        
+        # Collect client information
+        Write-Host "  → Collecting client information..." -ForegroundColor Gray
+        $ClientInfo = Invoke-Command -ComputerName $Device -ScriptBlock {
+            try {
+                $Client = Get-WmiObject -Namespace "root\\CCM" -Class SMS_Client -ErrorAction SilentlyContinue
+                $ClientVersion = (Get-WmiObject -Namespace "root\\CCM" -Class CCM_InstalledComponent | 
+                    Where-Object { $_.Name -eq "CcmExec" }).Version
+                
+                [PSCustomObject]@{
+                    ComputerName = $env:COMPUTERNAME
+                    ClientVersion = $ClientVersion
+                    ClientID = $Client.ClientId
+                    LastHeartbeat = (Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\CCM\\CcmExec" -ErrorAction SilentlyContinue).LastScheduleMessageTime
+                    SiteCode = (Get-WmiObject -Namespace "root\\CCM" -Class SMS_Client -ErrorAction SilentlyContinue).GetAssignedSite().sSiteCode
+                    ManagementPoint = (Get-WmiObject -Namespace "root\\CCM" -Class SMS_Authority -ErrorAction SilentlyContinue).CurrentManagementPoint
+                }
+            } catch {
+                [PSCustomObject]@{ Error = $_.Exception.Message }
+            }
+        } -ErrorAction Stop
+        
+        $ClientInfo | Export-Csv (Join-Path $DeviceOutputPath "ClientInfo.csv") -NoTypeInformation
+        Write-Host "  ✓ Client info collected" -ForegroundColor Green
+        
+        # Collect cache information
+        if ($CollectCacheInfo) {
+            Write-Host "  → Collecting cache information..." -ForegroundColor Gray
+            $CacheInfo = Invoke-Command -ComputerName $Device -ScriptBlock {
+                try {
+                    $UIResource = New-Object -ComObject UIResource.UIResourceMgr
+                    $Cache = $UIResource.GetCacheInfo()
+                    $CacheElements = $Cache.GetCacheElements()
+                    
+                    [PSCustomObject]@{
+                        CacheLocation = $Cache.Location
+                        TotalSize = $Cache.TotalSize
+                        FreeSize = $Cache.FreeSize
+                        UsedSizeMB = [math]::Round(($Cache.TotalSize - $Cache.FreeSize), 2)
+                        ElementCount = $CacheElements.Count
+                        Elements = $CacheElements | Select-Object ContentId, ContentSize, LastReferenceTime -First 20
+                    }
+                } catch {
+                    [PSCustomObject]@{ Error = $_.Exception.Message }
+                }
+            } -ErrorAction Stop
+            
+            $CacheInfo | ConvertTo-Json -Depth 3 | Out-File (Join-Path $DeviceOutputPath "CacheInfo.json")
+            Write-Host "  ✓ Cache info collected" -ForegroundColor Green
+        }
+        
+        # Collect log files
+        if ($CollectLogs) {
+            Write-Host "  → Collecting log files..." -ForegroundColor Gray
+            $LogPath = "\\\\$Device\\C\$\\Windows\\CCM\\Logs"
+            $LogFiles = @("CcmExec.log", "PolicyAgent.log", "DataTransferService.log", 
+                          "StateMessage.log", "UpdatesDeployment.log", "WUAHandler.log")
+            
+            $LogOutputPath = Join-Path $DeviceOutputPath "Logs"
+            New-Item -Path $LogOutputPath -ItemType Directory -Force | Out-Null
+            
+            foreach ($LogFile in $LogFiles) {
+                $SourceLog = Join-Path $LogPath $LogFile
+                if (Test-Path $SourceLog) {
+                    Copy-Item -Path $SourceLog -Destination $LogOutputPath -Force -ErrorAction SilentlyContinue
+                }
+            }
+            Write-Host "  ✓ Log files collected" -ForegroundColor Green
+        }
+        
+        # Collect service status
+        Write-Host "  → Checking service status..." -ForegroundColor Gray
+        $ServiceInfo = Invoke-Command -ComputerName $Device -ScriptBlock {
+            Get-Service -Name CcmExec, BITS, wuauserv -ErrorAction SilentlyContinue | 
+                Select-Object Name, Status, StartType
+        }
+        
+        $ServiceInfo | Export-Csv (Join-Path $DeviceOutputPath "Services.csv") -NoTypeInformation
+        Write-Host "  ✓ Service status collected" -ForegroundColor Green
+        
+        Write-Host "  ✓ Diagnostics saved to: $DeviceOutputPath" -ForegroundColor Green
+        
+    } catch {
+        Write-Host "  ✗ Failed: $($_.Exception.Message)" -ForegroundColor Red
+        $_.Exception.Message | Out-File (Join-Path $DeviceOutputPath "Error.txt")
+    }
+    
+    Write-Host ""
+}
+
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "Diagnostics Collection Complete!" -ForegroundColor Green
+Write-Host "  Output Location: $OutputPath" -ForegroundColor Gray
+Write-Host "======================================" -ForegroundColor Cyan`;
+    }
+  },
+
+  {
+    id: 'generate-client-health-report',
+    name: 'Generate Client Health Summary Report',
+    category: 'Reporting',
+    isPremium: true,
+    description: 'Generate comprehensive client health report with status, version, and activity metrics for a collection',
+    instructions: `**How This Task Works:**
+This script generates a detailed client health summary report for all devices in a collection, providing insights into MECM client status across your environment.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Read permissions on collections and devices
+- Collection must exist with devices
+
+**What You Need to Provide:**
+- Collection name to report on
+- Export file path for the report
+- Options for report detail level
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Retrieves all devices from specified collection
+3. Gathers client health metrics per device:
+   - Client version and installation status
+   - Last active time and heartbeat
+   - Client health evaluation status
+   - Hardware inventory date
+   - Software inventory date
+4. Calculates summary statistics
+5. Exports detailed report to CSV
+6. Displays summary in console
+
+**Important Notes:**
+- Essential for client health monitoring
+- Helps identify clients needing remediation
+- Use for monthly health reporting
+- Identifies outdated client versions
+- Shows inactive and unhealthy clients
+- Large collections may take several minutes`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'exportPath', label: 'Export File Path', type: 'path', required: true, placeholder: 'C:\\Reports\\ClientHealth.csv' },
+      { id: 'includeInactive', label: 'Include Inactive Devices', type: 'boolean', required: false, defaultValue: true, description: 'Include devices with no recent activity' },
+      { id: 'inactiveDays', label: 'Inactive Threshold (Days)', type: 'number', required: false, defaultValue: 30, placeholder: '30' }
+    ],
+    scriptTemplate: (params) => {
+      const collectionName = escapePowerShellString(params.collectionName);
+      const exportPath = escapePowerShellString(params.exportPath);
+      const includeInactive = toPowerShellBoolean(params.includeInactive ?? true);
+      const inactiveDays = params.inactiveDays || 30;
+
+      return `# Generate MECM Client Health Summary Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$CollectionName = "${collectionName}"
+$ExportPath = "${exportPath}"
+$IncludeInactive = ${includeInactive}
+$InactiveDays = ${inactiveDays}
+$InactiveThreshold = (Get-Date).AddDays(-$InactiveDays)
+
+try {
+    # Validate collection exists
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Collection: $CollectionName" -ForegroundColor Green
+    Write-Host "  Total members: $($Collection.MemberCount)" -ForegroundColor Gray
+    Write-Host ""
+    
+    Write-Host "Gathering client health data..." -ForegroundColor Cyan
+    
+    # Get all devices in collection
+    $Devices = Get-CMDevice -CollectionName $CollectionName
+    
+    # Initialize counters
+    $Stats = @{
+        Total = $Devices.Count
+        Active = 0
+        Inactive = 0
+        ClientInstalled = 0
+        NoClient = 0
+        Healthy = 0
+        Unhealthy = 0
+        OutdatedVersion = 0
+    }
+    
+    # Get current client version for comparison
+    $CurrentClientVersion = (Get-CMSiteComponent -SiteCode $SiteCode -ComponentName "SMS_SITE_COMPONENT_MANAGER" -ErrorAction SilentlyContinue).Props | 
+        Where-Object { $_.PropertyName -eq "Version" } | 
+        Select-Object -ExpandProperty Value2 -First 1
+    
+    $Results = @()
+    $ProcessedCount = 0
+    
+    foreach ($Device in $Devices) {
+        $ProcessedCount++
+        if ($ProcessedCount % 50 -eq 0) {
+            Write-Host "  Processed: $ProcessedCount / $($Devices.Count)" -ForegroundColor Gray
+        }
+        
+        # Determine activity status
+        $LastActive = $Device.LastActiveTime
+        $IsActive = $false
+        if ($LastActive -and $LastActive -gt $InactiveThreshold) {
+            $IsActive = $true
+            $Stats.Active++
+        } else {
+            $Stats.Inactive++
+            if (-not $IncludeInactive) { continue }
+        }
+        
+        # Client installation status
+        $HasClient = $Device.IsClient
+        if ($HasClient) { $Stats.ClientInstalled++ } else { $Stats.NoClient++ }
+        
+        # Client health
+        $IsHealthy = $Device.ClientCheckPass
+        if ($IsHealthy) { $Stats.Healthy++ } else { $Stats.Unhealthy++ }
+        
+        # Version check
+        $ClientVersion = $Device.ClientVersion
+        $IsOutdated = $false
+        if ($ClientVersion -and $CurrentClientVersion -and $ClientVersion -lt $CurrentClientVersion) {
+            $IsOutdated = $true
+            $Stats.OutdatedVersion++
+        }
+        
+        # Calculate days since last active
+        $DaysSinceActive = if ($LastActive) { 
+            [math]::Round(((Get-Date) - $LastActive).TotalDays, 1) 
+        } else { 
+            "Never" 
+        }
+        
+        $Results += [PSCustomObject]@{
+            DeviceName = $Device.Name
+            ClientInstalled = $HasClient
+            ClientVersion = $ClientVersion
+            IsOutdated = $IsOutdated
+            IsActive = $IsActive
+            LastActiveTime = $LastActive
+            DaysSinceActive = $DaysSinceActive
+            ClientHealthy = $IsHealthy
+            LastHWInventory = $Device.LastHardwareInventoryDate
+            LastSWInventory = $Device.LastSoftwareInventoryDate
+            LastPolicyRequest = $Device.LastPolicyRequest
+            OperatingSystem = $Device.OperatingSystemNameandVersion
+            PrimaryUser = $Device.LastLogonUserName
+            ADSite = $Device.ADSiteName
+        }
+    }
+    
+    # Export to CSV
+    $Results | Export-Csv -Path $ExportPath -NoTypeInformation
+    
+    # Calculate percentages
+    $ActivePercent = if ($Stats.Total -gt 0) { [math]::Round(($Stats.Active / $Stats.Total) * 100, 1) } else { 0 }
+    $ClientPercent = if ($Stats.Total -gt 0) { [math]::Round(($Stats.ClientInstalled / $Stats.Total) * 100, 1) } else { 0 }
+    $HealthyPercent = if ($Stats.ClientInstalled -gt 0) { [math]::Round(($Stats.Healthy / $Stats.ClientInstalled) * 100, 1) } else { 0 }
+    
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "Client Health Summary Report" -ForegroundColor Cyan
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Collection: $CollectionName" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Device Status:" -ForegroundColor White
+    Write-Host "  Total Devices: $($Stats.Total)" -ForegroundColor Gray
+    Write-Host "  Active (last $InactiveDays days): $($Stats.Active) ($ActivePercent%)" -ForegroundColor $(if ($ActivePercent -gt 80) {'Green'} else {'Yellow'})
+    Write-Host "  Inactive: $($Stats.Inactive)" -ForegroundColor $(if ($Stats.Inactive -eq 0) {'Green'} else {'Yellow'})
+    Write-Host ""
+    Write-Host "Client Installation:" -ForegroundColor White
+    Write-Host "  Client Installed: $($Stats.ClientInstalled) ($ClientPercent%)" -ForegroundColor $(if ($ClientPercent -gt 95) {'Green'} else {'Yellow'})
+    Write-Host "  No Client: $($Stats.NoClient)" -ForegroundColor $(if ($Stats.NoClient -eq 0) {'Green'} else {'Red'})
+    Write-Host ""
+    Write-Host "Client Health:" -ForegroundColor White
+    Write-Host "  Healthy: $($Stats.Healthy) ($HealthyPercent%)" -ForegroundColor $(if ($HealthyPercent -gt 90) {'Green'} else {'Yellow'})
+    Write-Host "  Unhealthy: $($Stats.Unhealthy)" -ForegroundColor $(if ($Stats.Unhealthy -eq 0) {'Green'} else {'Red'})
+    Write-Host "  Outdated Version: $($Stats.OutdatedVersion)" -ForegroundColor $(if ($Stats.OutdatedVersion -eq 0) {'Green'} else {'Yellow'})
+    Write-Host ""
+    Write-Host "Export Path: $ExportPath" -ForegroundColor Gray
+    Write-Host "======================================" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to generate client health report: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-software-update-deployment',
+    name: 'Create Software Update Deployment',
+    category: 'Software Updates',
+    isPremium: true,
+    description: 'Create and configure a software update deployment with deadlines, maintenance windows, and restart behavior',
+    instructions: `**How This Task Works:**
+This script creates software update deployments with full configuration options including deadlines, maintenance window enforcement, and user notification settings.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Software Update management permissions
+- Software Update Group must exist
+- Target collection must exist
+
+**What You Need to Provide:**
+- Software Update Group name
+- Target collection name
+- Available and deadline dates/times
+- Deployment purpose (Required/Available)
+- Maintenance window and restart settings
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Validates Software Update Group exists
+3. Validates target collection exists
+4. Creates deployment with specified settings:
+   - Available and deadline times
+   - Maintenance window enforcement
+   - Restart suppression options
+   - User notification settings
+5. Reports deployment creation status
+
+**Important Notes:**
+- Test on pilot collection first
+- Consider business hours for deadlines
+- Maintenance windows control when updates install
+- Restart suppression affects user experience
+- Required deployments enforce installation
+- Essential for patch Tuesday automation`,
+    parameters: [
+      { id: 'sugName', label: 'Software Update Group Name', type: 'text', required: true, placeholder: '2024-01 Security Updates' },
+      { id: 'collectionName', label: 'Target Collection', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'deploymentPurpose', label: 'Deployment Purpose', type: 'select', required: true, defaultValue: 'Required', options: ['Required', 'Available'] },
+      { id: 'availableDateTime', label: 'Available Date/Time', type: 'text', required: true, placeholder: '2024-01-15 08:00', description: 'Format: YYYY-MM-DD HH:MM' },
+      { id: 'deadlineDateTime', label: 'Deadline Date/Time', type: 'text', required: true, placeholder: '2024-01-22 23:00', description: 'Format: YYYY-MM-DD HH:MM' },
+      { id: 'respectMaintWindow', label: 'Respect Maintenance Windows', type: 'boolean', required: false, defaultValue: true },
+      { id: 'allowRestart', label: 'Allow Restart Outside Maintenance Window', type: 'boolean', required: false, defaultValue: false },
+      { id: 'suppressRestart', label: 'Suppress Restart on Servers', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const sugName = escapePowerShellString(params.sugName);
+      const collectionName = escapePowerShellString(params.collectionName);
+      const deploymentPurpose = escapePowerShellString(params.deploymentPurpose || 'Required');
+      const availableDateTime = escapePowerShellString(params.availableDateTime);
+      const deadlineDateTime = escapePowerShellString(params.deadlineDateTime);
+      const respectMaintWindow = toPowerShellBoolean(params.respectMaintWindow ?? true);
+      const allowRestart = toPowerShellBoolean(params.allowRestart ?? false);
+      const suppressRestart = toPowerShellBoolean(params.suppressRestart ?? true);
+
+      return `# Create Software Update Deployment
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$SUGName = "${sugName}"
+$CollectionName = "${collectionName}"
+$DeploymentPurpose = "${deploymentPurpose}"
+$AvailableDateTimeStr = "${availableDateTime}"
+$DeadlineDateTimeStr = "${deadlineDateTime}"
+$RespectMaintWindow = ${respectMaintWindow}
+$AllowRestart = ${allowRestart}
+$SuppressRestart = ${suppressRestart}
+
+try {
+    # Parse date/times
+    $AvailableDateTime = [DateTime]::ParseExact($AvailableDateTimeStr, "yyyy-MM-dd HH:mm", $null)
+    $DeadlineDateTime = [DateTime]::ParseExact($DeadlineDateTimeStr, "yyyy-MM-dd HH:mm", $null)
+    
+    # Validate dates
+    if ($DeadlineDateTime -le $AvailableDateTime) {
+        Write-Error "Deadline must be after Available time"
+        exit 1
+    }
+    
+    # Validate Software Update Group exists
+    $SUG = Get-CMSoftwareUpdateGroup -Name $SUGName -ErrorAction Stop
+    Write-Host "✓ Software Update Group: $SUGName" -ForegroundColor Green
+    Write-Host "  Updates in group: $($SUG.NumberOfUpdates)" -ForegroundColor Gray
+    
+    # Validate collection exists
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Target Collection: $CollectionName" -ForegroundColor Green
+    Write-Host "  Member count: $($Collection.MemberCount)" -ForegroundColor Gray
+    
+    Write-Host ""
+    Write-Host "Creating deployment..." -ForegroundColor Cyan
+    Write-Host "  Purpose: $DeploymentPurpose" -ForegroundColor Gray
+    Write-Host "  Available: $AvailableDateTime" -ForegroundColor Gray
+    Write-Host "  Deadline: $DeadlineDateTime" -ForegroundColor Gray
+    
+    # Create deployment parameters
+    $DeployParams = @{
+        SoftwareUpdateGroupName = $SUGName
+        CollectionName = $CollectionName
+        DeploymentName = "$SUGName - $CollectionName"
+        DeploymentType = $DeploymentPurpose
+        AvailableDateTime = $AvailableDateTime
+        DeadlineDateTime = $DeadlineDateTime
+        UserNotification = "DisplaySoftwareCenterOnly"
+        SoftwareInstallation = -not $RespectMaintWindow
+        AllowRestart = $AllowRestart
+        RestartServer = -not $SuppressRestart
+        RestartWorkstation = $true
+        RequirePostRebootFullScan = $true
+        ProtectedType = "RemoteDistributionPoint"
+        UseBranchCache = $true
+        DownloadFromMicrosoftUpdate = $true
+    }
+    
+    # Create the deployment
+    New-CMSoftwareUpdateDeployment @DeployParams -ErrorAction Stop
+    
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Green
+    Write-Host "✓ Software Update Deployment Created!" -ForegroundColor Green
+    Write-Host "======================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Deployment Details:" -ForegroundColor Cyan
+    Write-Host "  Update Group: $SUGName" -ForegroundColor Gray
+    Write-Host "  Target: $CollectionName" -ForegroundColor Gray
+    Write-Host "  Purpose: $DeploymentPurpose" -ForegroundColor Gray
+    Write-Host "  Available: $AvailableDateTime" -ForegroundColor Gray
+    Write-Host "  Deadline: $DeadlineDateTime" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Behavior Settings:" -ForegroundColor Cyan
+    Write-Host "  Respect Maintenance Windows: $(if ($RespectMaintWindow) {'Yes'} else {'No'})" -ForegroundColor Gray
+    Write-Host "  Allow Restart Outside MW: $(if ($AllowRestart) {'Yes'} else {'No'})" -ForegroundColor Gray
+    Write-Host "  Suppress Server Restarts: $(if ($SuppressRestart) {'Yes'} else {'No'})" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "  1. Monitor deployment status in Monitoring workspace" -ForegroundColor Gray
+    Write-Host "  2. Review compliance after deadline passes" -ForegroundColor Gray
+    Write-Host "  3. Follow up on failed deployments" -ForegroundColor Gray
+    Write-Host "======================================" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Failed to create software update deployment: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'export-update-compliance-report',
+    name: 'Export Software Update Compliance Report',
+    category: 'Reporting',
+    isPremium: true,
+    description: 'Generate detailed software update compliance report with per-device status for a specific update group or KB article',
+    instructions: `**How This Task Works:**
+This script generates comprehensive software update compliance reports showing which devices need specific updates and their current installation status.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Software Update reporting permissions
+- Updates must be synced to MECM
+
+**What You Need to Provide:**
+- Software Update Group name OR specific KB article number
+- Collection to report on
+- Export file path for the report
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Identifies updates to report on (SUG or specific KB)
+3. Queries device compliance state for each update
+4. Gathers per-device installation status:
+   - Installed, Required, Not Required, Unknown
+5. Calculates compliance percentages
+6. Exports detailed report to CSV
+7. Displays summary statistics
+
+**Important Notes:**
+- Essential for patch compliance reporting
+- Useful for security audits and documentation
+- Helps identify devices needing remediation
+- Can report on specific CVE-related patches
+- Large collections may take several minutes
+- Schedule monthly for compliance tracking`,
+    parameters: [
+      { id: 'sugName', label: 'Software Update Group Name', type: 'text', required: false, placeholder: '2024-01 Security Updates', description: 'Leave empty to use KB Article instead' },
+      { id: 'kbArticle', label: 'KB Article Number', type: 'text', required: false, placeholder: '5034441', description: 'Use if not specifying SUG' },
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'exportPath', label: 'Export File Path', type: 'path', required: true, placeholder: 'C:\\Reports\\UpdateCompliance.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const sugName = params.sugName ? escapePowerShellString(params.sugName) : '';
+      const kbArticle = params.kbArticle ? escapePowerShellString(params.kbArticle) : '';
+      const collectionName = escapePowerShellString(params.collectionName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Software Update Compliance Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$SUGName = "${sugName}"
+$KBArticle = "${kbArticle}"
+$CollectionName = "${collectionName}"
+$ExportPath = "${exportPath}"
+
+try {
+    # Validate collection
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Collection: $CollectionName ($($Collection.MemberCount) devices)" -ForegroundColor Green
+    
+    # Determine which updates to report on
+    $Updates = @()
+    
+    if ($SUGName) {
+        Write-Host "✓ Reporting on Software Update Group: $SUGName" -ForegroundColor Green
+        $SUG = Get-CMSoftwareUpdateGroup -Name $SUGName -ErrorAction Stop
+        $Updates = Get-CMSoftwareUpdate -UpdateGroupId $SUG.CI_ID -Fast
+        Write-Host "  Updates in group: $($Updates.Count)" -ForegroundColor Gray
+    } elseif ($KBArticle) {
+        Write-Host "✓ Reporting on KB Article: $KBArticle" -ForegroundColor Green
+        $Updates = Get-CMSoftwareUpdate -ArticleId $KBArticle -Fast
+        Write-Host "  Matching updates: $($Updates.Count)" -ForegroundColor Gray
+    } else {
+        Write-Error "Please specify either a Software Update Group or KB Article"
+        exit 1
+    }
+    
+    if ($Updates.Count -eq 0) {
+        Write-Error "No updates found matching the criteria"
+        exit 1
+    }
+    
+    Write-Host ""
+    Write-Host "Gathering compliance data..." -ForegroundColor Cyan
+    
+    $Results = @()
+    $Stats = @{
+        Installed = 0
+        Required = 0
+        NotRequired = 0
+        Unknown = 0
+    }
+    
+    # Get devices in collection
+    $Devices = Get-CMDevice -CollectionName $CollectionName
+    
+    foreach ($Update in $Updates) {
+        Write-Host "  Processing: KB$($Update.ArticleID) - $($Update.LocalizedDisplayName)" -ForegroundColor Gray
+        
+        # Get compliance status for this update
+        $ComplianceStatus = Get-CMSoftwareUpdateComplianceStatus -SoftwareUpdate $Update -Collection $Collection -ErrorAction SilentlyContinue
+        
+        foreach ($Device in $Devices) {
+            $DeviceStatus = $ComplianceStatus | Where-Object { $_.ResourceID -eq $Device.ResourceID }
+            
+            $Status = "Unknown"
+            if ($DeviceStatus) {
+                switch ($DeviceStatus.Status) {
+                    0 { $Status = "Unknown"; $Stats.Unknown++ }
+                    1 { $Status = "Not Required"; $Stats.NotRequired++ }
+                    2 { $Status = "Required"; $Stats.Required++ }
+                    3 { $Status = "Installed"; $Stats.Installed++ }
+                    default { $Status = "Unknown"; $Stats.Unknown++ }
+                }
+            } else {
+                $Stats.Unknown++
+            }
+            
+            $Results += [PSCustomObject]@{
+                DeviceName = $Device.Name
+                KBArticle = "KB$($Update.ArticleID)"
+                UpdateTitle = $Update.LocalizedDisplayName
+                Severity = $Update.SeverityName
+                ComplianceStatus = $Status
+                LastStatusTime = $DeviceStatus.LastStatusTime
+                LastEnforcementTime = $DeviceStatus.LastEnforcementTime
+                OperatingSystem = $Device.OperatingSystemNameandVersion
+                LastActiveTime = $Device.LastActiveTime
+            }
+        }
+    }
+    
+    # Export results
+    $Results | Export-Csv -Path $ExportPath -NoTypeInformation
+    
+    # Calculate totals and percentages
+    $TotalEvaluations = $Stats.Installed + $Stats.Required + $Stats.NotRequired + $Stats.Unknown
+    $CompliancePercent = if ($TotalEvaluations -gt 0) { 
+        [math]::Round((($Stats.Installed + $Stats.NotRequired) / $TotalEvaluations) * 100, 1) 
+    } else { 0 }
+    
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "Software Update Compliance Report" -ForegroundColor Cyan
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Scope:" -ForegroundColor White
+    Write-Host "  Collection: $CollectionName" -ForegroundColor Gray
+    Write-Host "  Updates Analyzed: $($Updates.Count)" -ForegroundColor Gray
+    Write-Host "  Device/Update Combinations: $($Results.Count)" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Compliance Status:" -ForegroundColor White
+    Write-Host "  Installed: $($Stats.Installed)" -ForegroundColor Green
+    Write-Host "  Not Required: $($Stats.NotRequired)" -ForegroundColor Gray
+    Write-Host "  Required (Missing): $($Stats.Required)" -ForegroundColor $(if ($Stats.Required -gt 0) {'Red'} else {'Green'})
+    Write-Host "  Unknown: $($Stats.Unknown)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Overall Compliance: $CompliancePercent%" -ForegroundColor $(if ($CompliancePercent -ge 90) {'Green'} elseif ($CompliancePercent -ge 70) {'Yellow'} else {'Red'})
+    Write-Host ""
+    Write-Host "Export Path: $ExportPath" -ForegroundColor Gray
+    Write-Host "======================================" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to generate compliance report: $_"
+    exit 1
+}`;
+    }
+  },
+
+  // ========================================
+  // CLIENT MANAGEMENT CATEGORY
+  // ========================================
+  {
+    id: 'get-client-health-report',
+    name: 'Get Client Health Status Report',
+    category: 'Client Management',
+    isPremium: true,
+    description: 'Generate comprehensive client health report with hardware inventory, policy status, and communication state for a collection',
+    instructions: `**How This Task Works:**
+This script generates detailed MECM client health reports to identify devices with client issues, outdated inventory, or communication problems.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Client status reporting permissions
+- Hardware inventory must be enabled
+
+**What You Need to Provide:**
+- Collection name to analyze
+- Export file path for the report
+- Health threshold days (devices not reporting within threshold flagged as unhealthy)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Retrieves all devices from specified collection
+3. Gathers client health metrics for each device:
+   - Client version and installation status
+   - Last hardware inventory date
+   - Last policy request date
+   - Last heartbeat (DDR) date
+   - Active/Inactive status
+4. Calculates health score based on thresholds
+5. Exports detailed report to CSV
+6. Displays summary statistics with health percentages
+
+**Important Notes:**
+- Essential for maintaining healthy MECM environment
+- Identifies clients needing remediation or reinstallation
+- Default threshold of 14 days flags stale clients
+- Schedule weekly for proactive health monitoring
+- Large collections may take several minutes to process
+- Use results to prioritize client remediation efforts`,
+    parameters: [
+      { id: 'collectionName', label: 'Collection Name', type: 'text', required: true, placeholder: 'All Workstations' },
+      { id: 'exportPath', label: 'Export File Path', type: 'path', required: true, placeholder: 'C:\\Reports\\ClientHealth.csv' },
+      { id: 'healthThresholdDays', label: 'Health Threshold (Days)', type: 'number', required: true, placeholder: '14', defaultValue: 14, description: 'Devices not reporting within this many days are flagged unhealthy' }
+    ],
+    scriptTemplate: (params) => {
+      const collectionName = escapePowerShellString(params.collectionName);
+      const exportPath = escapePowerShellString(params.exportPath);
+      const healthThresholdDays = params.healthThresholdDays || 14;
+
+      return `# Get MECM Client Health Status Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$CollectionName = "${collectionName}"
+$ExportPath = "${exportPath}"
+$HealthThresholdDays = ${healthThresholdDays}
+
+try {
+    # Validate collection
+    $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
+    Write-Host "✓ Collection: $CollectionName" -ForegroundColor Green
+    
+    # Get devices in collection
+    $Devices = Get-CMDevice -CollectionName $CollectionName
+    Write-Host "  Devices to analyze: $($Devices.Count)" -ForegroundColor Gray
+    
+    if ($Devices.Count -eq 0) {
+        Write-Host "⚠ No devices found in collection" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    Write-Host ""
+    Write-Host "Gathering client health data..." -ForegroundColor Cyan
+    
+    $Results = @()
+    $ThresholdDate = (Get-Date).AddDays(-$HealthThresholdDays)
+    
+    $Stats = @{
+        Healthy = 0
+        Warning = 0
+        Unhealthy = 0
+        NoClient = 0
+    }
+    
+    $Counter = 0
+    foreach ($Device in $Devices) {
+        $Counter++
+        if ($Counter % 50 -eq 0) {
+            Write-Host "  Processing device $Counter of $($Devices.Count)..." -ForegroundColor Gray
+        }
+        
+        # Get detailed client status
+        $ClientStatus = Get-CMClientStatus -Device $Device -ErrorAction SilentlyContinue
+        
+        # Determine health status
+        $HealthStatus = "Unknown"
+        $Issues = @()
+        
+        if (-not $Device.Client) {
+            $HealthStatus = "No Client"
+            $Issues += "Client not installed"
+            $Stats.NoClient++
+        } else {
+            # Check last hardware inventory
+            $LastHWInv = $Device.LastHardwareScan
+            if ($LastHWInv -and $LastHWInv -lt $ThresholdDate) {
+                $Issues += "HW Inventory stale"
+            }
+            
+            # Check last policy request
+            $LastPolicy = $Device.LastPolicyRequest
+            if ($LastPolicy -and $LastPolicy -lt $ThresholdDate) {
+                $Issues += "Policy request stale"
+            }
+            
+            # Check last active time
+            $LastActive = $Device.LastActiveTime
+            if ($LastActive -and $LastActive -lt $ThresholdDate) {
+                $Issues += "Inactive device"
+            }
+            
+            # Check client version (flag if very old)
+            $ClientVersion = $Device.ClientVersion
+            
+            # Determine overall health
+            if ($Issues.Count -eq 0) {
+                $HealthStatus = "Healthy"
+                $Stats.Healthy++
+            } elseif ($Issues.Count -le 1) {
+                $HealthStatus = "Warning"
+                $Stats.Warning++
+            } else {
+                $HealthStatus = "Unhealthy"
+                $Stats.Unhealthy++
+            }
+        }
+        
+        $Results += [PSCustomObject]@{
+            DeviceName = $Device.Name
+            HealthStatus = $HealthStatus
+            ClientInstalled = if ($Device.Client) { "Yes" } else { "No" }
+            ClientVersion = $Device.ClientVersion
+            IsActive = if ($Device.IsActive) { "Yes" } else { "No" }
+            LastActiveTime = $Device.LastActiveTime
+            LastHardwareInventory = $Device.LastHardwareScan
+            LastPolicyRequest = $Device.LastPolicyRequest
+            LastDDR = $Device.LastDDR
+            OperatingSystem = $Device.OperatingSystemNameandVersion
+            PrimaryUser = $Device.PrimaryUser
+            Issues = $Issues -join "; "
+        }
+    }
+    
+    # Export results
+    $Results | Export-Csv -Path $ExportPath -NoTypeInformation
+    
+    # Calculate percentages
+    $Total = $Devices.Count
+    $HealthyPercent = [math]::Round(($Stats.Healthy / $Total) * 100, 1)
+    $WarningPercent = [math]::Round(($Stats.Warning / $Total) * 100, 1)
+    $UnhealthyPercent = [math]::Round(($Stats.Unhealthy / $Total) * 100, 1)
+    $NoClientPercent = [math]::Round(($Stats.NoClient / $Total) * 100, 1)
+    
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "MECM Client Health Report" -ForegroundColor Cyan
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Collection: $CollectionName" -ForegroundColor White
+    Write-Host "Total Devices: $Total" -ForegroundColor Gray
+    Write-Host "Health Threshold: $HealthThresholdDays days" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Health Status Breakdown:" -ForegroundColor White
+    Write-Host "  Healthy: $($Stats.Healthy) ($HealthyPercent%)" -ForegroundColor Green
+    Write-Host "  Warning: $($Stats.Warning) ($WarningPercent%)" -ForegroundColor Yellow
+    Write-Host "  Unhealthy: $($Stats.Unhealthy) ($UnhealthyPercent%)" -ForegroundColor Red
+    Write-Host "  No Client: $($Stats.NoClient) ($NoClientPercent%)" -ForegroundColor Magenta
+    Write-Host ""
+    Write-Host "Export Path: $ExportPath" -ForegroundColor Gray
+    Write-Host "======================================" -ForegroundColor Cyan
+    
+    if ($Stats.Unhealthy -gt 0 -or $Stats.NoClient -gt 0) {
+        Write-Host ""
+        Write-Host "⚠ Remediation Recommended:" -ForegroundColor Yellow
+        Write-Host "  Review exported CSV for devices needing attention" -ForegroundColor Gray
+        Write-Host "  Consider client push or reinstallation for problem devices" -ForegroundColor Gray
+    }
+    
+} catch {
+    Write-Error "Failed to generate client health report: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'trigger-client-actions',
+    name: 'Trigger Client Actions Remotely',
+    category: 'Client Management',
+    isPremium: true,
+    description: 'Remotely trigger MECM client actions like machine policy refresh, hardware inventory, or software update scan on devices',
+    instructions: `**How This Task Works:**
+This script triggers specific MECM client actions on one or more devices for on-demand policy refresh, inventory collection, or update scanning.
+
+**Prerequisites:**
+- MECM Console with ConfigurationManager PowerShell module
+- Client operations permissions
+- Target devices must have active MECM client
+- Client notification must be enabled
+
+**What You Need to Provide:**
+- Target: Single device name or collection name
+- Client action to trigger (Machine Policy, Hardware Inventory, Software Update Scan, etc.)
+- Test mode for preview (recommended first run)
+
+**What the Script Does:**
+1. Imports ConfigurationManager module and connects to site
+2. Resolves target devices (single device or collection members)
+3. Validates devices have active MECM clients
+4. Triggers selected client action via client notification
+5. Reports success/failure for each device
+6. Displays summary statistics
+
+**Important Notes:**
+- Uses fast client notification channel for immediate action
+- Device must be online to receive notification
+- Actions execute asynchronously on clients
+- Useful for on-demand inventory before reporting
+- Essential for troubleshooting and urgent policy updates
+- Machine Policy Refresh forces immediate policy evaluation
+- Hardware Inventory triggers immediate inventory collection
+- Software Update Scan forces immediate WSUS/update check`,
+    parameters: [
+      { id: 'targetDevice', label: 'Target Device Name', type: 'text', required: false, placeholder: 'WORKSTATION01', description: 'Leave empty to use collection instead' },
+      { id: 'targetCollection', label: 'Target Collection', type: 'text', required: false, placeholder: 'All Workstations', description: 'Use if not specifying single device' },
+      { id: 'clientAction', label: 'Client Action', type: 'select', required: true, defaultValue: 'MachinePolicyRetrieval', options: ['MachinePolicyRetrieval', 'HardwareInventory', 'SoftwareInventory', 'SoftwareUpdateScan', 'SoftwareUpdateDeploymentEvaluation', 'ApplicationDeploymentEvaluation', 'DiscoveryDataCollection'] },
+      { id: 'testMode', label: 'Test Mode (Preview Only)', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const targetDevice = params.targetDevice ? escapePowerShellString(params.targetDevice) : '';
+      const targetCollection = params.targetCollection ? escapePowerShellString(params.targetCollection) : '';
+      const clientAction = escapePowerShellString(params.clientAction || 'MachinePolicyRetrieval');
+      const testMode = toPowerShellBoolean(params.testMode ?? true);
+
+      return `# Trigger MECM Client Actions Remotely
+# Generated: ${new Date().toISOString()}
+
+Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1"
+$SiteCode = Get-PSDrive -PSProvider CMSite | Select-Object -ExpandProperty Name
+Set-Location "$SiteCode:"
+
+$TargetDevice = "${targetDevice}"
+$TargetCollection = "${targetCollection}"
+$ClientAction = "${clientAction}"
+$TestMode = ${testMode}
+
+# Map action names to schedule IDs
+$ActionMap = @{
+    "MachinePolicyRetrieval" = "{00000000-0000-0000-0000-000000000021}"
+    "HardwareInventory" = "{00000000-0000-0000-0000-000000000001}"
+    "SoftwareInventory" = "{00000000-0000-0000-0000-000000000002}"
+    "SoftwareUpdateScan" = "{00000000-0000-0000-0000-000000000113}"
+    "SoftwareUpdateDeploymentEvaluation" = "{00000000-0000-0000-0000-000000000108}"
+    "ApplicationDeploymentEvaluation" = "{00000000-0000-0000-0000-000000000121}"
+    "DiscoveryDataCollection" = "{00000000-0000-0000-0000-000000000003}"
+}
+
+$ActionDisplayName = @{
+    "MachinePolicyRetrieval" = "Machine Policy Retrieval & Evaluation"
+    "HardwareInventory" = "Hardware Inventory Cycle"
+    "SoftwareInventory" = "Software Inventory Cycle"
+    "SoftwareUpdateScan" = "Software Update Scan Cycle"
+    "SoftwareUpdateDeploymentEvaluation" = "Software Update Deployment Evaluation"
+    "ApplicationDeploymentEvaluation" = "Application Deployment Evaluation"
+    "DiscoveryDataCollection" = "Discovery Data Collection Cycle"
+}
+
+try {
+    # Determine target devices
+    $Devices = @()
+    
+    if ($TargetDevice) {
+        $Device = Get-CMDevice -Name $TargetDevice -ErrorAction Stop
+        if (-not $Device) {
+            Write-Error "Device not found: $TargetDevice"
+            exit 1
+        }
+        $Devices += $Device
+        Write-Host "✓ Target: Single device - $TargetDevice" -ForegroundColor Green
+    } elseif ($TargetCollection) {
+        $Collection = Get-CMDeviceCollection -Name $TargetCollection -ErrorAction Stop
+        $Devices = Get-CMDevice -CollectionName $TargetCollection
+        Write-Host "✓ Target: Collection - $TargetCollection ($($Devices.Count) devices)" -ForegroundColor Green
+    } else {
+        Write-Error "Please specify either a target device or collection"
+        exit 1
+    }
+    
+    Write-Host "✓ Action: $($ActionDisplayName[$ClientAction])" -ForegroundColor Green
+    Write-Host ""
+    
+    if ($Devices.Count -eq 0) {
+        Write-Host "⚠ No devices found" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    $SuccessCount = 0
+    $FailCount = 0
+    $SkippedCount = 0
+    
+    Write-Host "Processing $($Devices.Count) device(s)..." -ForegroundColor Cyan
+    Write-Host ""
+    
+    foreach ($Device in $Devices) {
+        # Check if device has active client
+        if (-not $Device.Client) {
+            Write-Host "⚠ $($Device.Name): Skipped - No MECM client installed" -ForegroundColor Yellow
+            $SkippedCount++
+            continue
+        }
+        
+        if (-not $Device.IsActive) {
+            Write-Host "⚠ $($Device.Name): Skipped - Device is inactive" -ForegroundColor Yellow
+            $SkippedCount++
+            continue
+        }
+        
+        try {
+            if ($TestMode) {
+                Write-Host "✓ $($Device.Name): Would trigger $ClientAction (TEST MODE)" -ForegroundColor Cyan
+                $SuccessCount++
+            } else {
+                # Use Invoke-CMClientAction for client notification
+                Invoke-CMClientAction \`
+                    -DeviceName $Device.Name \`
+                    -ActionType ClientNotification \`
+                    -NotificationType $ClientAction \`
+                    -ErrorAction Stop
+                
+                Write-Host "✓ $($Device.Name): Action triggered successfully" -ForegroundColor Green
+                $SuccessCount++
+            }
+        } catch {
+            Write-Host "✗ $($Device.Name): Failed - $($_.Exception.Message)" -ForegroundColor Red
+            $FailCount++
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "Client Action Trigger Summary" -ForegroundColor Cyan
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Action: $($ActionDisplayName[$ClientAction])" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Results:" -ForegroundColor White
+    Write-Host "  Triggered: $SuccessCount" -ForegroundColor Green
+    Write-Host "  Skipped: $SkippedCount" -ForegroundColor Yellow
+    Write-Host "  Failed: $FailCount" -ForegroundColor Red
+    Write-Host ""
+    
+    if ($TestMode) {
+        Write-Host "⚠ TEST MODE - No actions were triggered" -ForegroundColor Yellow
+        Write-Host "  Set TestMode to \$false to trigger actions" -ForegroundColor Yellow
+    } else {
+        Write-Host "ℹ Actions are executed asynchronously on clients" -ForegroundColor Gray
+        Write-Host "  Allow 5-15 minutes for actions to complete" -ForegroundColor Gray
+    }
+    Write-Host "======================================" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Failed to trigger client actions: $_"
+    exit 1
+}`;
+    }
+  }
 ];

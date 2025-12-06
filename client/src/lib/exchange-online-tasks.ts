@@ -2147,8 +2147,8 @@ try {
         Enabled = \\$true
     }
     
-    ${senderDomains.length > 0 ? `$ConnectorParams.SenderDomains = @(${senderDomains.map(d => `"${d}"`).join(', ')})` : ''}
-    ${senderIPs.length > 0 ? `$ConnectorParams.SenderIPAddresses = @(${senderIPs.map(ip => `"${ip}"`).join(', ')})` : ''}
+    ${senderDomains.length > 0 ? `$ConnectorParams.SenderDomains = @(${senderDomains.map((d: string) => `"${d}"`).join(', ')})` : ''}
+    ${senderIPs.length > 0 ? `$ConnectorParams.SenderIPAddresses = @(${senderIPs.map((ip: string) => `"${ip}"`).join(', ')})` : ''}
     
     New-InboundConnector @ConnectorParams
     
@@ -2428,7 +2428,7 @@ try {
     
     ${members.length > 0 ? `
     # Add case members
-    foreach ($Member in @(${members.map(m => `"${m}"`).join(', ')})) {
+    foreach ($Member in @(${members.map((m: string) => `"${m}"`).join(', ')})) {
         Add-ComplianceCaseMember -Case "${caseName}" -Member $Member
         Write-Host "  Added member: $Member" -ForegroundColor Gray
     }
@@ -4122,6 +4122,1087 @@ try {
     Write-Error "Failed to enable litigation hold: $_"
     exit 1
 }`;
+    }
+  },
+
+  // ========================================
+  // ADDITIONAL MAIL FLOW & SECURITY TASKS
+  // ========================================
+  {
+    id: 'manage-quarantine-messages',
+    name: 'Manage Quarantine Messages',
+    category: 'Mail Flow',
+    isPremium: true,
+    description: 'Review, release, or delete quarantined messages from Exchange Online Protection',
+    instructions: `**How This Task Works:**
+This script helps administrators manage messages held in quarantine by Exchange Online Protection (EOP), allowing review, release, or deletion of suspicious emails.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Security Administrator or Quarantine Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Action (List, Release, Delete)
+- Optional: Sender email filter
+- Optional: Subject filter
+- Optional: Date range
+- For Release/Delete: Message IDs
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Queries quarantine based on filters
+3. Lists quarantined messages with details
+4. Releases or deletes specified messages
+5. Reports action results
+
+**Important Notes:**
+- Quarantine holds spam, phishing, malware, and policy-blocked emails
+- Released messages are delivered to original recipients
+- Deleting removes messages permanently
+- Messages auto-expire after 30 days (default)
+- Use -AllowSender to whitelist sender when releasing
+- Review carefully before releasing potential threats
+- Can filter by quarantine type: Spam, Phish, Malware, HighConfPhish`,
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['List', 'Release', 'Delete'], defaultValue: 'List' },
+      { id: 'senderFilter', label: 'Sender Email Filter', type: 'email', required: false, placeholder: 'sender@external.com', description: 'Filter by sender address' },
+      { id: 'subjectFilter', label: 'Subject Contains', type: 'text', required: false, placeholder: 'Invoice', description: 'Filter by subject keyword' },
+      { id: 'quarantineType', label: 'Quarantine Type', type: 'select', required: false, options: ['All', 'Spam', 'Phish', 'HighConfPhish', 'Malware', 'TransportRule'], defaultValue: 'All' },
+      { id: 'daysBack', label: 'Days Back to Search', type: 'number', required: false, defaultValue: 7, placeholder: '7' },
+      { id: 'messageIds', label: 'Message IDs (for Release/Delete)', type: 'textarea', required: false, placeholder: 'msg-id-1, msg-id-2', description: 'Comma-separated message IDs from List action' },
+      { id: 'allowSender', label: 'Allow Sender (on Release)', type: 'boolean', required: false, defaultValue: false, description: 'Add sender to allowed list when releasing' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action || 'List';
+      const senderFilter = params.senderFilter ? escapePowerShellString(params.senderFilter) : '';
+      const subjectFilter = params.subjectFilter ? escapePowerShellString(params.subjectFilter) : '';
+      const quarantineType = params.quarantineType || 'All';
+      const daysBack = params.daysBack || 7;
+      const messageIds = params.messageIds ? escapePowerShellString(params.messageIds) : '';
+      const allowSender = toPowerShellBoolean(params.allowSender ?? false);
+
+      return `# Manage Quarantine Messages
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $Action = "${action}"
+    $DaysBack = ${daysBack}
+    $StartDate = (Get-Date).AddDays(-$DaysBack)
+    $EndDate = Get-Date
+    ${senderFilter ? `$SenderFilter = "${senderFilter}"` : '$SenderFilter = $null'}
+    ${subjectFilter ? `$SubjectFilter = "${subjectFilter}"` : '$SubjectFilter = $null'}
+    $QuarantineType = "${quarantineType}"
+    ${messageIds ? `$MessageIds = "${messageIds}" -split ',' | ForEach-Object { $_.Trim() }` : '$MessageIds = @()'}
+    $AllowSender = ${allowSender}
+    
+    Write-Host "Quarantine Management - Action: $Action" -ForegroundColor Cyan
+    Write-Host "Date Range: $($StartDate.ToString('yyyy-MM-dd')) to $($EndDate.ToString('yyyy-MM-dd'))" -ForegroundColor Gray
+    Write-Host ""
+    
+    if ($Action -eq "List") {
+        # Build filter parameters
+        $FilterParams = @{
+            StartReceivedDate = $StartDate
+            EndReceivedDate = $EndDate
+            PageSize = 100
+        }
+        
+        if ($QuarantineType -ne "All") {
+            $FilterParams.QuarantineTypes = $QuarantineType
+        }
+        
+        if ($SenderFilter) {
+            $FilterParams.SenderAddress = $SenderFilter
+        }
+        
+        # Get quarantine messages
+        $Messages = Get-QuarantineMessage @FilterParams
+        
+        if ($SubjectFilter) {
+            $Messages = $Messages | Where-Object { $_.Subject -like "*$SubjectFilter*" }
+        }
+        
+        if ($Messages.Count -eq 0) {
+            Write-Host "No quarantined messages found matching criteria." -ForegroundColor Yellow
+        } else {
+            Write-Host "Found $($Messages.Count) quarantined messages:" -ForegroundColor Green
+            Write-Host ""
+            
+            $Messages | ForEach-Object {
+                Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor DarkGray
+                Write-Host "Message ID: $($_.Identity)" -ForegroundColor White
+                Write-Host "  Subject: $($_.Subject)" -ForegroundColor Gray
+                Write-Host "  Sender: $($_.SenderAddress)" -ForegroundColor Gray
+                Write-Host "  Recipient: $($_.RecipientAddress)" -ForegroundColor Gray
+                Write-Host "  Received: $($_.ReceivedTime)" -ForegroundColor Gray
+                Write-Host "  Type: $($_.QuarantineTypes)" -ForegroundColor Gray
+                Write-Host "  Expires: $($_.Expires)" -ForegroundColor Gray
+            }
+            
+            Write-Host ""
+            Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor DarkGray
+            Write-Host "To release or delete, copy Message ID and run with Release/Delete action" -ForegroundColor Cyan
+        }
+        
+    } elseif ($Action -eq "Release") {
+        if ($MessageIds.Count -eq 0) {
+            Write-Error "No Message IDs provided. Run List action first to get IDs."
+            exit 1
+        }
+        
+        Write-Host "Releasing $($MessageIds.Count) messages..." -ForegroundColor Cyan
+        
+        $SuccessCount = 0
+        foreach ($MsgId in $MessageIds) {
+            try {
+                $ReleaseParams = @{
+                    Identity = $MsgId
+                    ReleaseToAll = $true
+                }
+                
+                if ($AllowSender) {
+                    $ReleaseParams.AllowSender = $true
+                    Write-Host "  ↳ Sender will be added to allowed list" -ForegroundColor Gray
+                }
+                
+                Release-QuarantineMessage @ReleaseParams
+                Write-Host "✓ Released: $MsgId" -ForegroundColor Green
+                $SuccessCount++
+            } catch {
+                Write-Host "✗ Failed to release $MsgId : $_" -ForegroundColor Red
+            }
+        }
+        
+        Write-Host ""
+        Write-Host "Released $SuccessCount of $($MessageIds.Count) messages" -ForegroundColor Green
+        
+    } elseif ($Action -eq "Delete") {
+        if ($MessageIds.Count -eq 0) {
+            Write-Error "No Message IDs provided. Run List action first to get IDs."
+            exit 1
+        }
+        
+        Write-Host "Deleting $($MessageIds.Count) messages..." -ForegroundColor Cyan
+        
+        $SuccessCount = 0
+        foreach ($MsgId in $MessageIds) {
+            try {
+                Delete-QuarantineMessage -Identity $MsgId -Confirm:\$false
+                Write-Host "✓ Deleted: $MsgId" -ForegroundColor Green
+                $SuccessCount++
+            } catch {
+                Write-Host "✗ Failed to delete $MsgId : $_" -ForegroundColor Red
+            }
+        }
+        
+        Write-Host ""
+        Write-Host "Deleted $SuccessCount of $($MessageIds.Count) messages" -ForegroundColor Green
+    }
+    
+} catch {
+    Write-Error "Failed to manage quarantine: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-dkim-dmarc',
+    name: 'Configure DKIM and DMARC Settings',
+    category: 'Security & Compliance',
+    isPremium: true,
+    description: 'Enable DKIM signing and configure DMARC policies for email authentication',
+    instructions: `**How This Task Works:**
+This script configures DKIM (DomainKeys Identified Mail) signing and helps set up DMARC (Domain-based Message Authentication) for your domains to improve email deliverability and prevent spoofing.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator role
+- DNS access for DKIM CNAME records
+- Domain verified in Microsoft 365
+
+**What You Need to Provide:**
+- Domain name
+- Action (Enable DKIM, Get DKIM Status, Get DMARC Setup Info)
+- DMARC policy preference
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Creates/enables DKIM signing configuration
+3. Retrieves CNAME records for DNS setup
+4. Provides DMARC TXT record for DNS
+5. Verifies configuration status
+
+**Important Notes:**
+- DKIM signs outgoing emails cryptographically
+- DMARC tells receivers how to handle failed authentication
+- Add DKIM CNAME records to DNS before enabling
+- DMARC requires SPF and DKIM to be configured first
+- DNS propagation takes 24-48 hours
+- Start with DMARC policy p=none for monitoring
+- Gradually move to p=quarantine then p=reject
+- DKIM key rotation happens automatically`,
+    parameters: [
+      { id: 'domain', label: 'Domain Name', type: 'text', required: true, placeholder: 'contoso.com' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['GetDKIMStatus', 'EnableDKIM', 'DisableDKIM', 'GetDMARCInfo'], defaultValue: 'GetDKIMStatus' },
+      { id: 'dmarcPolicy', label: 'DMARC Policy (for GetDMARCInfo)', type: 'select', required: false, options: ['none', 'quarantine', 'reject'], defaultValue: 'none', description: 'Recommended: Start with none for monitoring' },
+      { id: 'dmarcRua', label: 'DMARC Report Email (RUA)', type: 'email', required: false, placeholder: 'dmarc-reports@contoso.com', description: 'Email to receive aggregate reports' }
+    ],
+    scriptTemplate: (params) => {
+      const domain = escapePowerShellString(params.domain);
+      const action = params.action || 'GetDKIMStatus';
+      const dmarcPolicy = params.dmarcPolicy || 'none';
+      const dmarcRua = params.dmarcRua ? escapePowerShellString(params.dmarcRua) : '';
+
+      return `# Configure DKIM and DMARC Settings
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $Domain = "${domain}"
+    $Action = "${action}"
+    $DMARCPolicy = "${dmarcPolicy}"
+    ${dmarcRua ? `$DMARCRua = "${dmarcRua}"` : '$DMARCRua = $null'}
+    
+    Write-Host "DKIM/DMARC Configuration for: $Domain" -ForegroundColor Cyan
+    Write-Host "Action: $Action" -ForegroundColor Gray
+    Write-Host ""
+    
+    switch ($Action) {
+        "GetDKIMStatus" {
+            Write-Host "Checking DKIM status..." -ForegroundColor Cyan
+            
+            $DkimConfig = Get-DkimSigningConfig -Identity $Domain -ErrorAction SilentlyContinue
+            
+            if (-not $DkimConfig) {
+                Write-Host "⚠ DKIM not configured for $Domain" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "To enable DKIM:" -ForegroundColor Cyan
+                Write-Host "1. Run this script with 'EnableDKIM' action to create config" -ForegroundColor Gray
+                Write-Host "2. Add the CNAME records to your DNS" -ForegroundColor Gray
+                Write-Host "3. Run 'EnableDKIM' again to activate signing" -ForegroundColor Gray
+            } else {
+                Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor DarkGray
+                Write-Host "DKIM Configuration:" -ForegroundColor Green
+                Write-Host "  Domain: $($DkimConfig.Domain)" -ForegroundColor Gray
+                Write-Host "  Enabled: $($DkimConfig.Enabled)" -ForegroundColor $(if ($DkimConfig.Enabled) { 'Green' } else { 'Yellow' })
+                Write-Host "  Status: $($DkimConfig.Status)" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "CNAME Records Required:" -ForegroundColor Cyan
+                Write-Host "  Selector1: selector1._domainkey.$Domain" -ForegroundColor Gray
+                Write-Host "    → $($DkimConfig.Selector1CNAME)" -ForegroundColor White
+                Write-Host "  Selector2: selector2._domainkey.$Domain" -ForegroundColor Gray
+                Write-Host "    → $($DkimConfig.Selector2CNAME)" -ForegroundColor White
+                Write-Host ""
+                
+                if ($DkimConfig.Enabled) {
+                    Write-Host "✓ DKIM signing is ACTIVE" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ DKIM is configured but NOT enabled" -ForegroundColor Yellow
+                    Write-Host "  Add CNAME records above to DNS, wait for propagation, then enable" -ForegroundColor Gray
+                }
+            }
+        }
+        
+        "EnableDKIM" {
+            Write-Host "Enabling DKIM signing..." -ForegroundColor Cyan
+            
+            # Check if config exists
+            $DkimConfig = Get-DkimSigningConfig -Identity $Domain -ErrorAction SilentlyContinue
+            
+            if (-not $DkimConfig) {
+                Write-Host "Creating new DKIM configuration..." -ForegroundColor Cyan
+                $DkimConfig = New-DkimSigningConfig -DomainName $Domain -Enabled \$false
+                Write-Host "✓ DKIM configuration created" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "CNAME Records to add to DNS:" -ForegroundColor Yellow
+                Write-Host "  Selector1: selector1._domainkey.$Domain" -ForegroundColor Gray
+                Write-Host "    → $($DkimConfig.Selector1CNAME)" -ForegroundColor White
+                Write-Host "  Selector2: selector2._domainkey.$Domain" -ForegroundColor Gray
+                Write-Host "    → $($DkimConfig.Selector2CNAME)" -ForegroundColor White
+                Write-Host ""
+                Write-Host "⚠ Add these CNAME records to DNS, wait 24-48 hours, then run EnableDKIM again" -ForegroundColor Yellow
+            } else {
+                try {
+                    Set-DkimSigningConfig -Identity $Domain -Enabled \$true
+                    Write-Host "✓ DKIM signing enabled for $Domain" -ForegroundColor Green
+                } catch {
+                    Write-Host "✗ Failed to enable DKIM" -ForegroundColor Red
+                    Write-Host "  Ensure CNAME records are in DNS and propagated" -ForegroundColor Yellow
+                    Write-Host "  Error: $_" -ForegroundColor Red
+                }
+            }
+        }
+        
+        "DisableDKIM" {
+            Write-Host "Disabling DKIM signing..." -ForegroundColor Cyan
+            Set-DkimSigningConfig -Identity $Domain -Enabled \$false
+            Write-Host "✓ DKIM signing disabled for $Domain" -ForegroundColor Green
+            Write-Host "⚠ Outgoing emails will no longer be DKIM signed" -ForegroundColor Yellow
+        }
+        
+        "GetDMARCInfo" {
+            Write-Host "DMARC Setup Information" -ForegroundColor Cyan
+            Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "DMARC requires SPF and DKIM to be configured first!" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "Add this TXT record to your DNS:" -ForegroundColor Cyan
+            Write-Host "  Host: _dmarc.$Domain" -ForegroundColor Gray
+            Write-Host "  Type: TXT" -ForegroundColor Gray
+            
+            $DmarcRecord = "v=DMARC1; p=$DMARCPolicy"
+            if ($DMARCRua) {
+                $DmarcRecord += "; rua=mailto:$DMARCRua"
+            }
+            $DmarcRecord += "; pct=100; adkim=s; aspf=s"
+            
+            Write-Host "  Value: $DmarcRecord" -ForegroundColor White
+            Write-Host ""
+            Write-Host "Policy Explanation:" -ForegroundColor Cyan
+            Write-Host "  p=none      → Monitor only, don't take action (start here)" -ForegroundColor Gray
+            Write-Host "  p=quarantine → Send failing emails to spam" -ForegroundColor Gray
+            Write-Host "  p=reject    → Block failing emails completely" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "Recommended progression:" -ForegroundColor Cyan
+            Write-Host "  1. Start with p=none to monitor" -ForegroundColor Gray
+            Write-Host "  2. Review reports for 2-4 weeks" -ForegroundColor Gray
+            Write-Host "  3. Move to p=quarantine" -ForegroundColor Gray
+            Write-Host "  4. After confidence, move to p=reject" -ForegroundColor Gray
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to configure DKIM/DMARC: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'message-trace-report',
+    name: 'Generate Message Trace Report',
+    category: 'Reporting & Auditing',
+    isPremium: true,
+    description: 'Run detailed message trace to track email delivery status and troubleshoot mail flow issues',
+    instructions: `**How This Task Works:**
+This script performs message tracing to track the delivery status of emails through Exchange Online, helping troubleshoot delivery issues and audit mail flow.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Exchange Administrator or Compliance Management role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Date range (up to 10 days for real-time, up to 90 days for historical)
+- Optional: Sender/recipient filters
+- Optional: Subject filter
+- Optional: Delivery status filter
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Queries message trace data
+3. Filters by specified criteria
+4. Displays delivery status and details
+5. Optionally exports to CSV
+
+**Important Notes:**
+- Real-time trace: Last 10 days, results within seconds
+- Historical trace: 10-90 days, may take hours to complete
+- Message trace data retained for 90 days
+- Useful for delivery failures, delays, spam/phishing analysis
+- Status types: Delivered, Failed, Pending, Expanded, Quarantined
+- Large date ranges or no filters may return many results
+- Export to CSV for large result sets`,
+    parameters: [
+      { id: 'startDate', label: 'Start Date (yyyy-MM-dd)', type: 'text', required: true, placeholder: '2024-01-01', description: 'Start of date range' },
+      { id: 'endDate', label: 'End Date (yyyy-MM-dd)', type: 'text', required: true, placeholder: '2024-01-07', description: 'End of date range' },
+      { id: 'senderAddress', label: 'Sender Email', type: 'email', required: false, placeholder: 'sender@contoso.com' },
+      { id: 'recipientAddress', label: 'Recipient Email', type: 'email', required: false, placeholder: 'recipient@external.com' },
+      { id: 'subjectFilter', label: 'Subject Contains', type: 'text', required: false, placeholder: 'Important' },
+      { id: 'status', label: 'Delivery Status', type: 'select', required: false, options: ['All', 'Delivered', 'Failed', 'Pending', 'Expanded', 'Quarantined', 'FilteredAsSpam'], defaultValue: 'All' },
+      { id: 'exportPath', label: 'Export to CSV Path', type: 'path', required: false, placeholder: 'C:\\Reports\\MessageTrace.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const startDate = escapePowerShellString(params.startDate);
+      const endDate = escapePowerShellString(params.endDate);
+      const senderAddress = params.senderAddress ? escapePowerShellString(params.senderAddress) : '';
+      const recipientAddress = params.recipientAddress ? escapePowerShellString(params.recipientAddress) : '';
+      const subjectFilter = params.subjectFilter ? escapePowerShellString(params.subjectFilter) : '';
+      const status = params.status || 'All';
+      const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
+
+      return `# Generate Message Trace Report
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $StartDate = [DateTime]"${startDate}"
+    $EndDate = [DateTime]"${endDate}"
+    ${senderAddress ? `$SenderAddress = "${senderAddress}"` : '$SenderAddress = $null'}
+    ${recipientAddress ? `$RecipientAddress = "${recipientAddress}"` : '$RecipientAddress = $null'}
+    ${subjectFilter ? `$SubjectFilter = "${subjectFilter}"` : '$SubjectFilter = $null'}
+    $Status = "${status}"
+    ${exportPath ? `$ExportPath = "${exportPath}"` : '$ExportPath = $null'}
+    
+    Write-Host "Message Trace Report" -ForegroundColor Cyan
+    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor DarkGray
+    Write-Host "Date Range: $($StartDate.ToString('yyyy-MM-dd')) to $($EndDate.ToString('yyyy-MM-dd'))" -ForegroundColor Gray
+    ${senderAddress ? `Write-Host "Sender: $SenderAddress" -ForegroundColor Gray` : ''}
+    ${recipientAddress ? `Write-Host "Recipient: $RecipientAddress" -ForegroundColor Gray` : ''}
+    ${subjectFilter ? `Write-Host "Subject Contains: $SubjectFilter" -ForegroundColor Gray` : ''}
+    if ($Status -ne "All") { Write-Host "Status Filter: $Status" -ForegroundColor Gray }
+    Write-Host ""
+    
+    # Check if within real-time range (10 days)
+    $DaysDiff = ($EndDate - $StartDate).Days
+    if ($DaysDiff -gt 10) {
+        Write-Host "⚠ Date range > 10 days. Using historical message trace (may take time)..." -ForegroundColor Yellow
+    }
+    
+    # Build trace parameters
+    $TraceParams = @{
+        StartDate = $StartDate
+        EndDate = $EndDate
+        PageSize = 5000
+    }
+    
+    if ($SenderAddress) { $TraceParams.SenderAddress = $SenderAddress }
+    if ($RecipientAddress) { $TraceParams.RecipientAddress = $RecipientAddress }
+    if ($Status -ne "All") { $TraceParams.Status = $Status }
+    
+    Write-Host "Running message trace..." -ForegroundColor Cyan
+    $Messages = Get-MessageTrace @TraceParams
+    
+    # Apply subject filter if specified
+    if ($SubjectFilter) {
+        $Messages = $Messages | Where-Object { $_.Subject -like "*$SubjectFilter*" }
+    }
+    
+    if ($Messages.Count -eq 0) {
+        Write-Host "No messages found matching criteria." -ForegroundColor Yellow
+    } else {
+        Write-Host "✓ Found $($Messages.Count) messages" -ForegroundColor Green
+        Write-Host ""
+        
+        # Group by status for summary
+        Write-Host "Status Summary:" -ForegroundColor Cyan
+        $Messages | Group-Object Status | ForEach-Object {
+            $StatusColor = switch ($_.Name) {
+                'Delivered' { 'Green' }
+                'Failed' { 'Red' }
+                'Pending' { 'Yellow' }
+                'Quarantined' { 'Magenta' }
+                default { 'Gray' }
+            }
+            Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor $StatusColor
+        }
+        Write-Host ""
+        
+        # Display details (limit to first 50 in console)
+        $DisplayCount = [Math]::Min($Messages.Count, 50)
+        Write-Host "Showing first $DisplayCount messages:" -ForegroundColor Cyan
+        Write-Host ""
+        
+        $Messages | Select-Object -First $DisplayCount | ForEach-Object {
+            $StatusColor = switch ($_.Status) {
+                'Delivered' { 'Green' }
+                'Failed' { 'Red' }
+                'Pending' { 'Yellow' }
+                default { 'Gray' }
+            }
+            Write-Host "───────────────────────────────────────────────────────" -ForegroundColor DarkGray
+            Write-Host "Subject: $($_.Subject)" -ForegroundColor White
+            Write-Host "  From: $($_.SenderAddress)" -ForegroundColor Gray
+            Write-Host "  To: $($_.RecipientAddress)" -ForegroundColor Gray
+            Write-Host "  Date: $($_.Received)" -ForegroundColor Gray
+            Write-Host "  Status: $($_.Status)" -ForegroundColor $StatusColor
+            Write-Host "  Message ID: $($_.MessageId)" -ForegroundColor DarkGray
+        }
+        
+        # Export to CSV if path specified
+        if ($ExportPath) {
+            $Messages | Export-Csv -Path $ExportPath -NoTypeInformation
+            Write-Host ""
+            Write-Host "✓ Exported $($Messages.Count) messages to: $ExportPath" -ForegroundColor Green
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to run message trace: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'export-mailbox-audit-logs',
+    name: 'Export Mailbox Audit Logs',
+    category: 'Reporting & Auditing',
+    isPremium: true,
+    description: 'Search and export mailbox audit logs for security investigations and compliance',
+    instructions: `**How This Task Works:**
+This script searches the unified audit log for mailbox-related activities, helping investigate security incidents and meet compliance requirements.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Compliance Administrator or Audit Log role
+- Mailbox auditing enabled on target mailboxes
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Date range for search
+- Optional: Specific user to audit
+- Optional: Operation types to filter
+- Export path for results
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Searches unified audit log
+3. Filters by operations and users
+4. Parses and formats audit data
+5. Exports detailed report to CSV
+
+**Important Notes:**
+- Mailbox auditing enabled by default since 2019
+- Audit logs retained for 90 days (E3) or 1 year (E5)
+- Common operations: MailItemsAccessed, Send, MoveToDeletedItems
+- Large searches may take several minutes
+- Max 50,000 results per search
+- Use date ranges < 7 days for best performance
+- For investigating breaches, check MailItemsAccessed
+- For data exfiltration, check Send and Forward activities`,
+    parameters: [
+      { id: 'startDate', label: 'Start Date (yyyy-MM-dd)', type: 'text', required: true, placeholder: '2024-01-01' },
+      { id: 'endDate', label: 'End Date (yyyy-MM-dd)', type: 'text', required: true, placeholder: '2024-01-07' },
+      { id: 'userIds', label: 'User(s) to Audit', type: 'textarea', required: false, placeholder: 'user1@contoso.com, user2@contoso.com', description: 'Leave blank for all users' },
+      { id: 'operations', label: 'Operations to Search', type: 'select', required: false, options: ['All', 'MailItemsAccessed', 'Send', 'MoveToDeletedItems', 'SoftDelete', 'HardDelete', 'SendAs', 'SendOnBehalf', 'Create', 'Update', 'FolderBind'], defaultValue: 'All' },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\MailboxAudit.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const startDate = escapePowerShellString(params.startDate);
+      const endDate = escapePowerShellString(params.endDate);
+      const userIds = params.userIds ? escapePowerShellString(params.userIds) : '';
+      const operations = params.operations || 'All';
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Mailbox Audit Logs
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $StartDate = [DateTime]"${startDate}"
+    $EndDate = [DateTime]"${endDate}"
+    ${userIds ? `$UserIds = "${userIds}" -split ',' | ForEach-Object { $_.Trim() }` : '$UserIds = $null'}
+    $Operations = "${operations}"
+    $ExportPath = "${exportPath}"
+    
+    Write-Host "Mailbox Audit Log Search" -ForegroundColor Cyan
+    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor DarkGray
+    Write-Host "Date Range: $($StartDate.ToString('yyyy-MM-dd')) to $($EndDate.ToString('yyyy-MM-dd'))" -ForegroundColor Gray
+    ${userIds ? `Write-Host "Users: $($UserIds -join ', ')" -ForegroundColor Gray` : `Write-Host "Users: All" -ForegroundColor Gray`}
+    Write-Host "Operations: $Operations" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Build search parameters
+    $SearchParams = @{
+        StartDate = $StartDate
+        EndDate = $EndDate
+        RecordType = "ExchangeItemAudit"
+        ResultSize = 5000
+    }
+    
+    if ($UserIds) {
+        $SearchParams.UserIds = $UserIds
+    }
+    
+    if ($Operations -ne "All") {
+        $SearchParams.Operations = $Operations
+    }
+    
+    Write-Host "Searching audit logs (this may take several minutes)..." -ForegroundColor Cyan
+    
+    $AllResults = @()
+    $SessionId = [Guid]::NewGuid().ToString()
+    $Complete = $false
+    $Page = 1
+    
+    while (-not $Complete) {
+        Write-Host "  Fetching page $Page..." -ForegroundColor Gray
+        
+        $Results = Search-UnifiedAuditLog @SearchParams -SessionId $SessionId -SessionCommand ReturnLargeSet
+        
+        if ($Results.Count -eq 0) {
+            $Complete = $true
+        } else {
+            $AllResults += $Results
+            $Page++
+            
+            if ($Results.Count -lt 5000) {
+                $Complete = $true
+            }
+        }
+    }
+    
+    if ($AllResults.Count -eq 0) {
+        Write-Host "⚠ No audit records found for the specified criteria." -ForegroundColor Yellow
+        Write-Host "  Ensure mailbox auditing is enabled for target users." -ForegroundColor Gray
+        exit 0
+    }
+    
+    Write-Host "✓ Found $($AllResults.Count) audit records" -ForegroundColor Green
+    Write-Host ""
+    
+    # Parse and format results
+    Write-Host "Parsing audit data..." -ForegroundColor Cyan
+    
+    $ParsedResults = $AllResults | ForEach-Object {
+        $AuditData = $_.AuditData | ConvertFrom-Json
+        
+        [PSCustomObject]@{
+            CreationTime = $_.CreationDate
+            User = $_.UserIds
+            Operation = $_.Operations
+            ResultStatus = $_.ResultStatus
+            Workload = $AuditData.Workload
+            ClientIP = $AuditData.ClientIP
+            ClientInfoString = $AuditData.ClientInfoString
+            ItemSubject = $AuditData.AffectedItems.Subject -join "; "
+            DestFolder = $AuditData.DestFolder
+            LogonType = $AuditData.LogonType
+            ExternalAccess = $AuditData.ExternalAccess
+        }
+    }
+    
+    # Display summary
+    Write-Host ""
+    Write-Host "Operation Summary:" -ForegroundColor Cyan
+    $ParsedResults | Group-Object Operation | Sort-Object Count -Descending | ForEach-Object {
+        Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+    Write-Host "User Summary:" -ForegroundColor Cyan
+    $ParsedResults | Group-Object User | Sort-Object Count -Descending | Select-Object -First 10 | ForEach-Object {
+        Write-Host "  $($_.Name): $($_.Count) operations" -ForegroundColor Gray
+    }
+    
+    # Export to CSV
+    $ParsedResults | Export-Csv -Path $ExportPath -NoTypeInformation
+    Write-Host ""
+    Write-Host "✓ Exported $($ParsedResults.Count) records to: $ExportPath" -ForegroundColor Green
+    
+    Write-Host ""
+    Write-Host "Important Notes:" -ForegroundColor Yellow
+    Write-Host "  - Review 'ExternalAccess=True' for potential compromises" -ForegroundColor Gray
+    Write-Host "  - Check ClientIP for unusual locations" -ForegroundColor Gray
+    Write-Host "  - 'MailItemsAccessed' indicates email content was read" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to export audit logs: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'configure-anti-spam-policy',
+    name: 'Configure Anti-Spam Policy',
+    category: 'Security & Compliance',
+    isPremium: true,
+    description: 'Create or modify anti-spam policies with custom thresholds and actions',
+    instructions: `**How This Task Works:**
+This script creates or modifies Exchange Online Protection (EOP) anti-spam policies to control spam filtering behavior for your organization.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module
+- Security Administrator role
+- Connected to Exchange Online
+
+**What You Need to Provide:**
+- Policy name
+- Spam action thresholds
+- Actions for spam/high-confidence spam
+- Optional: Allow/Block lists
+
+**What the Script Does:**
+1. Connects to Exchange Online
+2. Creates new or modifies existing anti-spam policy
+3. Configures spam detection thresholds
+4. Sets actions for different spam types
+5. Optionally configures allow/block lists
+
+**Important Notes:**
+- Default policy applies to all users unless overridden
+- Custom policies require rules to apply to specific users
+- Actions: MoveToJmf (Junk), Quarantine, Delete, AddXHeader
+- Bulk Complaint Level (BCL) ranges 0-9 (higher = more likely bulk)
+- Spam Confidence Level (SCL) ranges -1 to 9
+- Test policy changes on pilot group first
+- Allow lists bypass spam filtering - use carefully
+- Block lists are applied during filtering`,
+    parameters: [
+      { id: 'policyName', label: 'Policy Name', type: 'text', required: true, placeholder: 'Strict Anti-Spam Policy', description: 'Use "Default" to modify default policy' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create', 'Modify', 'GetStatus'], defaultValue: 'GetStatus' },
+      { id: 'spamAction', label: 'Spam Action', type: 'select', required: false, options: ['MoveToJmf', 'Quarantine', 'Delete', 'AddXHeader'], defaultValue: 'MoveToJmf' },
+      { id: 'highConfidenceSpamAction', label: 'High Confidence Spam Action', type: 'select', required: false, options: ['MoveToJmf', 'Quarantine', 'Delete'], defaultValue: 'Quarantine' },
+      { id: 'bulkThreshold', label: 'Bulk Email Threshold (1-9)', type: 'number', required: false, defaultValue: 7, placeholder: '7', description: 'Lower = stricter (5-6 recommended)' },
+      { id: 'quarantineDays', label: 'Quarantine Retention (Days)', type: 'number', required: false, defaultValue: 30, placeholder: '30' },
+      { id: 'allowedSenders', label: 'Allowed Senders', type: 'textarea', required: false, placeholder: 'trusted@partner.com, newsletter@vendor.com', description: 'Comma-separated - bypasses spam filtering' },
+      { id: 'blockedSenders', label: 'Blocked Senders', type: 'textarea', required: false, placeholder: 'spam@bad.com', description: 'Comma-separated - always blocked' }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const action = params.action || 'GetStatus';
+      const spamAction = params.spamAction || 'MoveToJmf';
+      const highConfidenceSpamAction = params.highConfidenceSpamAction || 'Quarantine';
+      const bulkThreshold = params.bulkThreshold || 7;
+      const quarantineDays = params.quarantineDays || 30;
+      const allowedSenders = params.allowedSenders ? escapePowerShellString(params.allowedSenders) : '';
+      const blockedSenders = params.blockedSenders ? escapePowerShellString(params.blockedSenders) : '';
+
+      return `# Configure Anti-Spam Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-ExchangeOnline
+
+try {
+    $PolicyName = "${policyName}"
+    $Action = "${action}"
+    $SpamAction = "${spamAction}"
+    $HighConfidenceSpamAction = "${highConfidenceSpamAction}"
+    $BulkThreshold = ${bulkThreshold}
+    $QuarantineDays = ${quarantineDays}
+    ${allowedSenders ? `$AllowedSenders = "${allowedSenders}" -split ',' | ForEach-Object { $_.Trim() }` : '$AllowedSenders = @()'}
+    ${blockedSenders ? `$BlockedSenders = "${blockedSenders}" -split ',' | ForEach-Object { $_.Trim() }` : '$BlockedSenders = @()'}
+    
+    Write-Host "Anti-Spam Policy Configuration" -ForegroundColor Cyan
+    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor DarkGray
+    Write-Host "Policy: $PolicyName" -ForegroundColor Gray
+    Write-Host "Action: $Action" -ForegroundColor Gray
+    Write-Host ""
+    
+    switch ($Action) {
+        "GetStatus" {
+            if ($PolicyName -eq "Default") {
+                $Policy = Get-HostedContentFilterPolicy -Identity "Default"
+            } else {
+                $Policy = Get-HostedContentFilterPolicy -Identity $PolicyName -ErrorAction SilentlyContinue
+            }
+            
+            if (-not $Policy) {
+                Write-Host "⚠ Policy not found: $PolicyName" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "Available policies:" -ForegroundColor Cyan
+                Get-HostedContentFilterPolicy | ForEach-Object {
+                    Write-Host "  - $($_.Name)" -ForegroundColor Gray
+                }
+            } else {
+                Write-Host "Policy Configuration:" -ForegroundColor Green
+                Write-Host "  Name: $($Policy.Name)" -ForegroundColor Gray
+                Write-Host "  Spam Action: $($Policy.SpamAction)" -ForegroundColor Gray
+                Write-Host "  High Confidence Spam Action: $($Policy.HighConfidenceSpamAction)" -ForegroundColor Gray
+                Write-Host "  Phish Action: $($Policy.PhishSpamAction)" -ForegroundColor Gray
+                Write-Host "  High Confidence Phish Action: $($Policy.HighConfidencePhishAction)" -ForegroundColor Gray
+                Write-Host "  Bulk Threshold: $($Policy.BulkThreshold)" -ForegroundColor Gray
+                Write-Host "  Quarantine Retention: $($Policy.QuarantineRetentionPeriod) days" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "Allow/Block Lists:" -ForegroundColor Cyan
+                Write-Host "  Allowed Senders: $($Policy.AllowedSenders.Count)" -ForegroundColor Gray
+                Write-Host "  Blocked Senders: $($Policy.BlockedSenders.Count)" -ForegroundColor Gray
+                Write-Host "  Allowed Sender Domains: $($Policy.AllowedSenderDomains.Count)" -ForegroundColor Gray
+                Write-Host "  Blocked Sender Domains: $($Policy.BlockedSenderDomains.Count)" -ForegroundColor Gray
+            }
+        }
+        
+        "Create" {
+            Write-Host "Creating new anti-spam policy..." -ForegroundColor Cyan
+            
+            $PolicyParams = @{
+                Name = $PolicyName
+                SpamAction = $SpamAction
+                HighConfidenceSpamAction = $HighConfidenceSpamAction
+                BulkThreshold = $BulkThreshold
+                QuarantineRetentionPeriod = $QuarantineDays
+            }
+            
+            if ($AllowedSenders.Count -gt 0) {
+                $PolicyParams.AllowedSenders = $AllowedSenders
+            }
+            
+            if ($BlockedSenders.Count -gt 0) {
+                $PolicyParams.BlockedSenders = $BlockedSenders
+            }
+            
+            New-HostedContentFilterPolicy @PolicyParams
+            
+            Write-Host "✓ Policy created: $PolicyName" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "⚠ Next Steps:" -ForegroundColor Yellow
+            Write-Host "  1. Create a filter rule to apply this policy to users:" -ForegroundColor Gray
+            Write-Host "     New-HostedContentFilterRule -Name '$PolicyName Rule' \`" -ForegroundColor Gray
+            Write-Host "         -HostedContentFilterPolicy '$PolicyName' \`" -ForegroundColor Gray
+            Write-Host "         -RecipientDomainIs 'contoso.com'" -ForegroundColor Gray
+            Write-Host "  2. Or apply to specific users/groups with -SentTo parameter" -ForegroundColor Gray
+        }
+        
+        "Modify" {
+            Write-Host "Modifying anti-spam policy..." -ForegroundColor Cyan
+            
+            $SetParams = @{
+                Identity = $PolicyName
+                SpamAction = $SpamAction
+                HighConfidenceSpamAction = $HighConfidenceSpamAction
+                BulkThreshold = $BulkThreshold
+                QuarantineRetentionPeriod = $QuarantineDays
+            }
+            
+            if ($AllowedSenders.Count -gt 0) {
+                $SetParams.AllowedSenders = $AllowedSenders
+            }
+            
+            if ($BlockedSenders.Count -gt 0) {
+                $SetParams.BlockedSenders = $BlockedSenders
+            }
+            
+            Set-HostedContentFilterPolicy @SetParams
+            
+            Write-Host "✓ Policy updated: $PolicyName" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "Settings Applied:" -ForegroundColor Cyan
+            Write-Host "  Spam Action: $SpamAction" -ForegroundColor Gray
+            Write-Host "  High Confidence Spam Action: $HighConfidenceSpamAction" -ForegroundColor Gray
+            Write-Host "  Bulk Threshold: $BulkThreshold" -ForegroundColor Gray
+            Write-Host "  Quarantine Retention: $QuarantineDays days" -ForegroundColor Gray
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to configure anti-spam policy: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'migrate-mailbox-cross-tenant',
+    name: 'Prepare Cross-Tenant Mailbox Migration',
+    category: 'Mailbox Migration',
+    isPremium: true,
+    description: 'Generate migration scripts and prerequisites for cross-tenant mailbox moves (M&A scenarios)',
+    instructions: `**How This Task Works:**
+This script generates the necessary configuration and commands for cross-tenant mailbox migration, commonly used in mergers, acquisitions, or tenant consolidation projects.
+
+**Prerequisites:**
+- Exchange Online Management PowerShell module on both tenants
+- Organization Management role in both tenants
+- Azure AD application configured for migration
+- Network connectivity between tenants
+
+**What You Need to Provide:**
+- Source and target tenant domains
+- Migration endpoint URL
+- Application ID for migration
+- User list for migration batch
+
+**What the Script Does:**
+1. Validates tenant connectivity
+2. Creates organization relationship (if needed)
+3. Configures migration endpoint
+4. Generates migration batch commands
+5. Provides step-by-step migration checklist
+
+**Important Notes:**
+- Cross-tenant migration requires significant planning
+- Azure AD app registration required in both tenants
+- Users need licenses in target tenant before migration
+- Mailbox data, calendar, and contacts migrate
+- Distribution groups and permissions need manual recreation
+- Plan for DNS cutover and email routing
+- Test with pilot batch before full migration
+- Typical migration: 1-2GB per hour per mailbox`,
+    parameters: [
+      { id: 'sourceTenant', label: 'Source Tenant Domain', type: 'text', required: true, placeholder: 'source.onmicrosoft.com' },
+      { id: 'targetTenant', label: 'Target Tenant Domain', type: 'text', required: true, placeholder: 'target.onmicrosoft.com' },
+      { id: 'applicationId', label: 'Migration App ID', type: 'text', required: true, placeholder: '00000000-0000-0000-0000-000000000000', description: 'Azure AD app registered for migration' },
+      { id: 'migrationEndpoint', label: 'Migration Endpoint URL', type: 'text', required: false, placeholder: 'https://outlook.office.com/ews/exchange.asmx' },
+      { id: 'usersCsv', label: 'Users CSV Path', type: 'path', required: false, placeholder: 'C:\\Migration\\users.csv', description: 'CSV with SourceEmail, TargetEmail columns' },
+      { id: 'batchName', label: 'Migration Batch Name', type: 'text', required: true, placeholder: 'Wave1-Migration', description: 'Name for migration batch' }
+    ],
+    scriptTemplate: (params) => {
+      const sourceTenant = escapePowerShellString(params.sourceTenant);
+      const targetTenant = escapePowerShellString(params.targetTenant);
+      const applicationId = escapePowerShellString(params.applicationId);
+      const migrationEndpoint = params.migrationEndpoint ? escapePowerShellString(params.migrationEndpoint) : 'https://outlook.office.com/ews/exchange.asmx';
+      const usersCsv = params.usersCsv ? escapePowerShellString(params.usersCsv) : '';
+      const batchName = escapePowerShellString(params.batchName);
+
+      return `# Cross-Tenant Mailbox Migration Preparation
+# Generated: ${new Date().toISOString()}
+
+<#
+.SYNOPSIS
+    Prepares and executes cross-tenant mailbox migration between Microsoft 365 tenants.
+
+.DESCRIPTION
+    This script handles the complex process of migrating mailboxes between tenants,
+    typically used in M&A scenarios or tenant consolidation.
+
+.NOTES
+    IMPORTANT: Review each section carefully before executing.
+    This is a multi-step process that requires coordination between tenants.
+#>
+
+#region Configuration
+$SourceTenant = "${sourceTenant}"
+$TargetTenant = "${targetTenant}"
+$ApplicationId = "${applicationId}"
+$MigrationEndpoint = "${migrationEndpoint}"
+${usersCsv ? `$UsersCsvPath = "${usersCsv}"` : '# $UsersCsvPath = "C:\\Migration\\users.csv"  # Uncomment and set path'}
+$BatchName = "${batchName}"
+#endregion
+
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "Cross-Tenant Mailbox Migration Preparation" -ForegroundColor Cyan
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Source Tenant: $SourceTenant" -ForegroundColor Gray
+Write-Host "Target Tenant: $TargetTenant" -ForegroundColor Gray
+Write-Host "Batch Name: $BatchName" -ForegroundColor Gray
+Write-Host ""
+
+#region Pre-Flight Checklist
+Write-Host "PRE-FLIGHT CHECKLIST" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+Write-Host "Before proceeding, ensure:" -ForegroundColor White
+Write-Host "  [ ] Azure AD app registered in BOTH tenants (ID: $ApplicationId)" -ForegroundColor Gray
+Write-Host "  [ ] App has Mail.ReadWrite and User.Read.All permissions" -ForegroundColor Gray
+Write-Host "  [ ] Users exist in target tenant (synced or cloud)" -ForegroundColor Gray
+Write-Host "  [ ] Users have licenses assigned in target tenant" -ForegroundColor Gray
+Write-Host "  [ ] Organization relationship configured" -ForegroundColor Gray
+Write-Host "  [ ] Migration endpoint created" -ForegroundColor Gray
+Write-Host ""
+#endregion
+
+#region Step 1: Connect to Target Tenant
+Write-Host "STEP 1: Connect to Target Tenant" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+Write-Host @"
+# Run this in target tenant admin PowerShell:
+Connect-ExchangeOnline -UserPrincipalName admin@$TargetTenant
+"@ -ForegroundColor White
+Write-Host ""
+#endregion
+
+#region Step 2: Create Organization Relationship
+Write-Host "STEP 2: Create Organization Relationship (Target Tenant)" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+Write-Host @"
+# Create organization relationship for migration
+\$OrgRel = Get-OrganizationRelationship | Where-Object { \$_.DomainNames -contains "$SourceTenant" }
+if (-not \$OrgRel) {
+    New-OrganizationRelationship -Name "Migration-$SourceTenant" \`
+        -DomainNames "$SourceTenant" \`
+        -MailboxMoveEnabled \$true \`
+        -MailboxMoveCapability Inbound
+    Write-Host "✓ Organization relationship created" -ForegroundColor Green
+} else {
+    Set-OrganizationRelationship -Identity \$OrgRel.Identity -MailboxMoveEnabled \$true -MailboxMoveCapability Inbound
+    Write-Host "✓ Organization relationship updated" -ForegroundColor Green
+}
+"@ -ForegroundColor White
+Write-Host ""
+#endregion
+
+#region Step 3: Create Migration Endpoint
+Write-Host "STEP 3: Create Migration Endpoint (Target Tenant)" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+Write-Host @"
+# Create migration endpoint
+\$Credential = Get-Credential -Message "Enter source tenant admin credentials"
+New-MigrationEndpoint -Name "CrossTenant-$SourceTenant" \`
+    -RemoteServer "$MigrationEndpoint" \`
+    -Credentials \$Credential \`
+    -ExchangeRemoteMove \`
+    -ApplicationId "$ApplicationId"
+Write-Host "✓ Migration endpoint created" -ForegroundColor Green
+"@ -ForegroundColor White
+Write-Host ""
+#endregion
+
+#region Step 4: Prepare Migration Batch
+Write-Host "STEP 4: Prepare Migration Batch" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+${usersCsv ? `
+Write-Host @"
+# Import users from CSV
+\$Users = Import-Csv -Path "$usersCsv"
+Write-Host "Loaded \$(\$Users.Count) users for migration"
+
+# Create migration batch
+New-MigrationBatch -Name "$batchName" \`
+    -SourceEndpoint "CrossTenant-$SourceTenant" \`
+    -CSVData ([System.IO.File]::ReadAllBytes("$usersCsv")) \`
+    -TargetDeliveryDomain "$TargetTenant"
+Write-Host "✓ Migration batch created" -ForegroundColor Green
+"@ -ForegroundColor White` : `
+Write-Host @"
+# Create CSV file with columns: EmailAddress (source), TargetAddress (target UPN)
+# Example CSV content:
+# EmailAddress,TargetAddress
+# user1@source.com,user1@target.com
+# user2@source.com,user2@target.com
+
+# Then create migration batch:
+New-MigrationBatch -Name "$batchName" \`
+    -SourceEndpoint "CrossTenant-$SourceTenant" \`
+    -CSVData ([System.IO.File]::ReadAllBytes("C:\\Migration\\users.csv")) \`
+    -TargetDeliveryDomain "$TargetTenant"
+"@ -ForegroundColor White`}
+Write-Host ""
+#endregion
+
+#region Step 5: Start and Monitor Migration
+Write-Host "STEP 5: Start and Monitor Migration" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+Write-Host @"
+# Start the migration batch
+Start-MigrationBatch -Identity "$batchName"
+
+# Monitor progress
+Get-MigrationBatch -Identity "$batchName" | Select-Object Status, TotalCount, SyncedCount, FinalizedCount
+
+# Get detailed user status
+Get-MigrationUser -BatchId "$batchName" | Select-Object Identity, Status, ItemsSynced, Error
+
+# Complete migration (after sync is done)
+Complete-MigrationBatch -Identity "$batchName"
+"@ -ForegroundColor White
+Write-Host ""
+#endregion
+
+#region Post-Migration Tasks
+Write-Host "POST-MIGRATION TASKS" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+Write-Host "After migration completes:" -ForegroundColor White
+Write-Host "  [ ] Update DNS MX records to point to target tenant" -ForegroundColor Gray
+Write-Host "  [ ] Verify mail flow to migrated users" -ForegroundColor Gray
+Write-Host "  [ ] Recreate distribution groups in target" -ForegroundColor Gray
+Write-Host "  [ ] Re-delegate mailbox permissions" -ForegroundColor Gray
+Write-Host "  [ ] Update any mail-enabled applications" -ForegroundColor Gray
+Write-Host "  [ ] Remove users from source tenant (after validation)" -ForegroundColor Gray
+Write-Host "  [ ] Remove organization relationship (when migration complete)" -ForegroundColor Gray
+Write-Host ""
+
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "Cross-tenant migration is complex. Test with pilot users first!" -ForegroundColor Yellow
+Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan`;
     }
   }
 ];

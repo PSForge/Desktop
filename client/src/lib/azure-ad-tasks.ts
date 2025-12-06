@@ -6941,5 +6941,197 @@ try {
 
 Disconnect-MgGraph`;
     }
+  },
+
+  {
+    id: 'export-risky-users-report',
+    name: 'Export Risky Users Report',
+    category: 'Reporting & Auditing',
+    isPremium: true,
+    description: 'Export users flagged by Identity Protection with risk levels and recommended actions',
+    instructions: `**How This Task Works:**
+This script exports users flagged by Azure AD Identity Protection based on risk level, essential for security incident response and compliance auditing.
+
+**Prerequisites:**
+- Microsoft Graph PowerShell SDK installed
+- Global Administrator, Security Administrator, or Security Reader role
+- Azure AD Premium P2 license (required for Identity Protection)
+- IdentityRiskyUser.Read.All permission
+
+**What You Need to Provide:**
+- Minimum risk level to include (Low, Medium, High)
+- Risk state filter (optional)
+- Export file path for CSV report
+- Include risk history option
+
+**What the Script Does:**
+1. Connects to Microsoft Graph API
+2. Queries Identity Protection risky users data
+3. Filters by specified risk level and state
+4. Retrieves detailed risk detection information
+5. Exports comprehensive report with user details
+6. Provides summary statistics by risk category
+
+**Important Notes:**
+- Requires Azure AD Premium P2 for Identity Protection
+- Risk levels: Low, Medium, High
+- Risk states: atRisk, confirmedCompromised, remediated, dismissed, atRisk
+- Regular review recommended (weekly for high-risk, monthly for others)
+- Use this data to trigger Conditional Access policies or manual remediation
+- Dismissed risks may indicate false positives or resolved issues`,
+    parameters: [
+      { id: 'minRiskLevel', label: 'Minimum Risk Level', type: 'select', required: true, options: ['Low', 'Medium', 'High'], defaultValue: 'Medium' },
+      { id: 'riskState', label: 'Risk State Filter', type: 'select', required: false, options: ['All', 'atRisk', 'confirmedCompromised', 'remediated', 'dismissed'], defaultValue: 'All' },
+      { id: 'exportPath', label: 'Export CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\risky-users.csv' },
+      { id: 'includeHistory', label: 'Include Risk Detection History', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const minRiskLevel = params.minRiskLevel || 'Medium';
+      const riskState = params.riskState || 'All';
+      const exportPath = escapePowerShellString(params.exportPath);
+      const includeHistory = params.includeHistory !== false;
+
+      return `# Export Risky Users Report from Azure AD Identity Protection
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "IdentityRiskyUser.Read.All", "IdentityRiskEvent.Read.All", "User.Read.All"
+
+try {
+    $MinRiskLevel = "${minRiskLevel}"
+    $RiskStateFilter = "${riskState}"
+    $ExportPath = "${exportPath}"
+    $IncludeHistory = $${includeHistory}
+    
+    Write-Host "=== Azure AD Identity Protection - Risky Users Report ===" -ForegroundColor Cyan
+    Write-Host "Minimum Risk Level: $MinRiskLevel" -ForegroundColor Gray
+    Write-Host "Risk State Filter: $RiskStateFilter" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Define risk level order for filtering
+    $RiskLevelOrder = @{
+        "low" = 1
+        "medium" = 2
+        "high" = 3
+        "hidden" = 0
+        "none" = 0
+    }
+    
+    $MinRiskValue = $RiskLevelOrder[$MinRiskLevel.ToLower()]
+    
+    # Get all risky users
+    Write-Host "Retrieving risky users..." -ForegroundColor Gray
+    $RiskyUsers = Get-MgRiskyUser -All
+    
+    if ($RiskyUsers.Count -eq 0) {
+        Write-Host "No risky users found in the tenant" -ForegroundColor Green
+        exit 0
+    }
+    
+    Write-Host "Found $($RiskyUsers.Count) total risky users" -ForegroundColor Gray
+    
+    # Filter by risk level and state
+    $FilteredUsers = $RiskyUsers | Where-Object {
+        $UserRiskValue = $RiskLevelOrder[$_.RiskLevel.ToLower()]
+        $LevelMatch = $UserRiskValue -ge $MinRiskValue
+        
+        $StateMatch = if ($RiskStateFilter -eq "All") {
+            $true
+        } else {
+            $_.RiskState -eq $RiskStateFilter
+        }
+        
+        $LevelMatch -and $StateMatch
+    }
+    
+    Write-Host "Filtered to $($FilteredUsers.Count) users matching criteria" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Build results array
+    $Results = @()
+    $HighRiskCount = 0
+    $MediumRiskCount = 0
+    $LowRiskCount = 0
+    
+    foreach ($RiskyUser in $FilteredUsers) {
+        # Get user details
+        $UserDetails = $null
+        try {
+            $UserDetails = Get-MgUser -UserId $RiskyUser.UserPrincipalName -Property DisplayName,Department,JobTitle,AccountEnabled -ErrorAction SilentlyContinue
+        } catch {
+            # User may have been deleted
+        }
+        
+        # Count by risk level
+        switch ($RiskyUser.RiskLevel.ToLower()) {
+            "high" { $HighRiskCount++ }
+            "medium" { $MediumRiskCount++ }
+            "low" { $LowRiskCount++ }
+        }
+        
+        $UserResult = [PSCustomObject]@{
+            UserPrincipalName = $RiskyUser.UserPrincipalName
+            DisplayName = if ($UserDetails) { $UserDetails.DisplayName } else { "N/A" }
+            RiskLevel = $RiskyUser.RiskLevel
+            RiskState = $RiskyUser.RiskState
+            RiskDetail = $RiskyUser.RiskDetail
+            RiskLastUpdatedDateTime = $RiskyUser.RiskLastUpdatedDateTime
+            Department = if ($UserDetails) { $UserDetails.Department } else { "N/A" }
+            JobTitle = if ($UserDetails) { $UserDetails.JobTitle } else { "N/A" }
+            AccountEnabled = if ($UserDetails) { $UserDetails.AccountEnabled } else { "Unknown" }
+            UserId = $RiskyUser.Id
+        }
+        
+        $Results += $UserResult
+        
+        # Display high-risk users in console
+        if ($RiskyUser.RiskLevel -eq "high") {
+            Write-Host "  ⚠ HIGH RISK: $($RiskyUser.UserPrincipalName)" -ForegroundColor Red
+            Write-Host "    State: $($RiskyUser.RiskState) | Detail: $($RiskyUser.RiskDetail)" -ForegroundColor Gray
+        }
+    }
+    
+    # Get risk detection history if requested
+    if ($IncludeHistory -and $FilteredUsers.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Retrieving risk detection history..." -ForegroundColor Gray
+        
+        $RiskDetections = Get-MgRiskDetection -All | Where-Object {
+            $_.UserId -in $FilteredUsers.Id
+        } | Select-Object -First 100
+        
+        if ($RiskDetections.Count -gt 0) {
+            $HistoryPath = $ExportPath -replace "\.csv$", "-detections.csv"
+            $RiskDetections | Select-Object UserPrincipalName, RiskLevel, RiskState, RiskDetail, 
+                RiskEventType, DetectedDateTime, IpAddress, Location, Activity |
+                Export-Csv -Path $HistoryPath -NoTypeInformation
+            Write-Host "✓ Risk detection history exported: $HistoryPath" -ForegroundColor Green
+        }
+    }
+    
+    # Export main report
+    $Results | Export-Csv -Path $ExportPath -NoTypeInformation
+    Write-Host ""
+    Write-Host "✓ Risky users report exported: $ExportPath" -ForegroundColor Green
+    
+    # Summary
+    Write-Host ""
+    Write-Host "================= SUMMARY =================" -ForegroundColor Cyan
+    Write-Host "Total risky users exported: $($Results.Count)" -ForegroundColor White
+    Write-Host "  High Risk: $HighRiskCount" -ForegroundColor Red
+    Write-Host "  Medium Risk: $MediumRiskCount" -ForegroundColor Yellow
+    Write-Host "  Low Risk: $LowRiskCount" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Recommended Actions:" -ForegroundColor Cyan
+    Write-Host "  - High Risk: Immediately reset password and revoke sessions" -ForegroundColor Gray
+    Write-Host "  - Medium Risk: Require MFA re-registration and monitor" -ForegroundColor Gray
+    Write-Host "  - Low Risk: Monitor and apply Conditional Access policies" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Failed to export risky users report: $_"
+    exit 1
+}
+
+Disconnect-MgGraph`;
+    }
   }
 ];

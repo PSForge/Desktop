@@ -4451,6 +4451,511 @@ try {
     Write-Error "Failed to execute remote action: $_"
 }`;
     }
+  },
+
+  {
+    id: 'intune-create-app-protection-policy',
+    title: 'Create App Protection Policy',
+    description: 'Create a Mobile Application Management (MAM) policy for iOS or Android apps',
+    category: 'App Management',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates Mobile Application Management (MAM) policies to protect corporate data within managed apps without requiring full device enrollment.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementApps.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name (descriptive name for the policy)
+- Platform (iOS or Android)
+- PIN required setting (whether app PIN is enforced)
+- Data transfer restriction level
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app management permissions
+2. Creates platform-specific app protection policy
+3. Configures PIN requirements for app access
+4. Sets data transfer restrictions between managed/unmanaged apps
+5. Enables organizational data encryption
+6. Returns policy ID for group assignment
+
+**Important Notes:**
+- MAM policies protect data without full device management (BYOD-friendly)
+- PIN requirement adds layer of security before app access
+- Data transfer restrictions prevent copy/paste to unmanaged apps
+- Policy not applied until assigned to user groups
+- Test with pilot group before broad deployment
+- Works with Microsoft 365 apps and MAM-enabled third-party apps
+- Essential for BYOD and contractor scenarios
+- Coordinate with Conditional Access for comprehensive protection`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Corporate Data Protection Policy',
+        helpText: 'Descriptive name for the app protection policy'
+      },
+      {
+        name: 'platform',
+        label: 'Platform',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'ios', label: 'iOS/iPadOS' },
+          { value: 'android', label: 'Android' }
+        ],
+        helpText: 'Target mobile platform'
+      },
+      {
+        name: 'pinRequired',
+        label: 'Require PIN for Access',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        helpText: 'Require PIN before accessing protected apps'
+      },
+      {
+        name: 'dataTransfer',
+        label: 'Data Transfer Restriction',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'allApps', label: 'All Apps (No Restriction)' },
+          { value: 'managedApps', label: 'Managed Apps Only' },
+          { value: 'none', label: 'None (Block All Transfers)' }
+        ],
+        helpText: 'Control data sharing between apps'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const platform = params.platform;
+      const pinRequired = params.pinRequired !== false;
+      const dataTransfer = params.dataTransfer || 'managedApps';
+
+      return `# Create App Protection Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementApps.ReadWrite.All"
+
+try {
+    Write-Host "Creating App Protection Policy: ${policyName}" -ForegroundColor Cyan
+    Write-Host "Platform: ${platform}" -ForegroundColor Yellow
+    
+    $PolicyParams = @{
+        DisplayName = "${policyName}"
+        PinRequired = \$${pinRequired}
+        ManagedBrowser = "notConfigured"
+        OrganizationalCredentialsRequired = \$false
+        DataBackupBlocked = \$true
+        DeviceComplianceRequired = \$false
+        SaveAsBlocked = \$true
+        PrintBlocked = \$true
+    }
+    
+    # Set data transfer policy
+    switch ("${dataTransfer}") {
+        "allApps" {
+            $PolicyParams.AllowedOutboundDataTransferDestinations = "allApps"
+            $PolicyParams.AllowedInboundDataTransferSources = "allApps"
+        }
+        "managedApps" {
+            $PolicyParams.AllowedOutboundDataTransferDestinations = "managedApps"
+            $PolicyParams.AllowedInboundDataTransferSources = "managedApps"
+        }
+        "none" {
+            $PolicyParams.AllowedOutboundDataTransferDestinations = "none"
+            $PolicyParams.AllowedInboundDataTransferSources = "none"
+        }
+    }
+    
+    # Create platform-specific policy
+    if ("${platform}" -eq "ios") {
+        $PolicyParams["@odata.type"] = "#microsoft.graph.iosManagedAppProtection"
+        $PolicyParams.AppDataEncryptionType = "whenDeviceLocked"
+        $PolicyParams.FaceIdBlocked = \$false
+        
+        $Policy = Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/deviceAppManagement/iosManagedAppProtections" -Body ($PolicyParams | ConvertTo-Json -Depth 10)
+    } else {
+        $PolicyParams["@odata.type"] = "#microsoft.graph.androidManagedAppProtection"
+        $PolicyParams.ScreenCaptureBlocked = \$true
+        $PolicyParams.EncryptAppData = \$true
+        
+        $Policy = Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/deviceAppManagement/androidManagedAppProtections" -Body ($PolicyParams | ConvertTo-Json -Depth 10)
+    }
+    
+    Write-Host "✓ App Protection Policy created successfully" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
+    Write-Host "  PIN Required: ${pinRequired}" -ForegroundColor Yellow
+    Write-Host "  Data Transfer: ${dataTransfer}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Policy.id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign policy to user groups and add targeted apps" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create App Protection Policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-export-autopilot-profiles',
+    title: 'Export Autopilot Deployment Profiles',
+    description: 'Export all Windows Autopilot deployment profile configurations to CSV',
+    category: 'Autopilot',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script exports all Windows Autopilot deployment profile configurations for documentation, auditing, and disaster recovery purposes.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementServiceConfig.Read.All permission
+
+**What You Need to Provide:**
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with read permissions
+2. Retrieves all Autopilot deployment profiles
+3. Extracts profile settings: name, mode, OOBE configuration
+4. Captures join type, user assignment, and language settings
+5. Exports comprehensive CSV for documentation
+6. Reports profile count and summary
+
+**Important Notes:**
+- Essential for Autopilot configuration documentation
+- Export before making profile changes (backup)
+- Includes OOBE customization settings
+- Shows Azure AD join type (Hybrid vs Azure AD only)
+- Useful for replicating profiles across tenants
+- Run quarterly for change tracking
+- Coordinate with deployment planning
+- DeviceNameTemplate shows naming convention used`,
+    parameters: [
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\AutopilotProfiles.csv',
+        helpText: 'Path where the CSV file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export Autopilot Deployment Profiles
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementServiceConfig.Read.All"
+
+try {
+    Write-Host "Collecting Autopilot deployment profiles..." -ForegroundColor Cyan
+    
+    $Profiles = Get-MgDeviceManagementWindowsAutopilotDeploymentProfile -All
+    
+    Write-Host "Found $($Profiles.Count) Autopilot profiles" -ForegroundColor Yellow
+    
+    $ProfileReport = foreach ($Profile in $Profiles) {
+        [PSCustomObject]@{
+            ProfileName                 = $Profile.DisplayName
+            Description                 = $Profile.Description
+            DeviceType                  = $Profile.DeviceType
+            ExtractHardwareHash         = $Profile.ExtractHardwareHash
+            DeviceNameTemplate          = $Profile.DeviceNameTemplate
+            Language                    = $Profile.Language
+            HidePrivacySettings         = $Profile.OutOfBoxExperienceSettings.HidePrivacySettings
+            HideEULA                    = $Profile.OutOfBoxExperienceSettings.HideEULA
+            HideChangeAccountOptions    = $Profile.OutOfBoxExperienceSettings.HideChangeAccountOptions
+            UserType                    = $Profile.OutOfBoxExperienceSettings.UserType
+            SkipKeyboardSelection       = $Profile.OutOfBoxExperienceSettings.SkipKeyboardSelectionPage
+            EnableWhiteGlove            = $Profile.EnableWhiteGlove
+            CreatedDateTime             = $Profile.CreatedDateTime
+            LastModifiedDateTime        = $Profile.LastModifiedDateTime
+            ProfileId                   = $Profile.Id
+        }
+    }
+    
+    $ProfileReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
+    
+    Write-Host "✓ Autopilot profiles exported to: ${exportPath}" -ForegroundColor Green
+    
+    Write-Host \"\`nProfile Summary:" -ForegroundColor Yellow
+    Write-Host "  Total Profiles: $($Profiles.Count)" -ForegroundColor White
+    $ProfileReport | Group-Object DeviceType | ForEach-Object {
+        Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor White
+    }
+    
+} catch {
+    Write-Error "Failed to export Autopilot profiles: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-create-compliance-policy',
+    title: 'Create Device Compliance Policy',
+    description: 'Create a Windows device compliance policy with security requirements',
+    category: 'Compliance',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script creates Windows device compliance policies that define security requirements devices must meet to access corporate resources.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Administrator role
+- DeviceManagementConfiguration.ReadWrite.All permission
+
+**What You Need to Provide:**
+- Policy name
+- Minimum OS version requirement
+- Whether BitLocker is required
+- Whether antivirus is required
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with configuration permissions
+2. Creates Windows 10/11 compliance policy
+3. Sets minimum OS version requirement
+4. Configures BitLocker encryption requirement
+5. Enables antivirus/antispyware requirement
+6. Sets firewall requirement
+7. Returns policy ID for group assignment
+
+**Important Notes:**
+- Non-compliant devices can be blocked by Conditional Access
+- Policy not enforced until assigned to device groups
+- Grace period allows time for remediation before blocking
+- BitLocker requirement needs TPM 2.0 on devices
+- Test with pilot group before production deployment
+- Coordinate with Conditional Access policies
+- Essential for Zero Trust security posture
+- Users notified via Company Portal for non-compliance`,
+    parameters: [
+      {
+        name: 'policyName',
+        label: 'Policy Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Windows Security Baseline',
+        helpText: 'Descriptive name for the compliance policy'
+      },
+      {
+        name: 'minOsVersion',
+        label: 'Minimum OS Version',
+        type: 'text',
+        required: false,
+        placeholder: '10.0.19045',
+        helpText: 'Minimum Windows version (e.g., 10.0.19045 for 22H2)'
+      },
+      {
+        name: 'requireBitLocker',
+        label: 'Require BitLocker Encryption',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        helpText: 'Require drive encryption'
+      },
+      {
+        name: 'requireAntivirus',
+        label: 'Require Antivirus',
+        type: 'boolean',
+        required: false,
+        defaultValue: true,
+        helpText: 'Require antivirus/antispyware to be enabled'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const policyName = escapePowerShellString(params.policyName);
+      const minOsVersion = escapePowerShellString(params.minOsVersion || '');
+      const requireBitLocker = params.requireBitLocker !== false;
+      const requireAntivirus = params.requireAntivirus !== false;
+
+      return `# Create Device Compliance Policy
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
+
+try {
+    Write-Host "Creating Compliance Policy: ${policyName}" -ForegroundColor Cyan
+    
+    $PolicyParams = @{
+        "@odata.type" = "#microsoft.graph.windows10CompliancePolicy"
+        DisplayName = "${policyName}"
+        Description = "Windows device compliance policy created via PSForge"
+        BitLockerEnabled = \$${requireBitLocker}
+        SecureBootEnabled = \$true
+        CodeIntegrityEnabled = \$false
+        StorageRequireEncryption = \$${requireBitLocker}
+        ActiveFirewallRequired = \$true
+        DefenderEnabled = \$${requireAntivirus}
+        AntivirusRequired = \$${requireAntivirus}
+        AntiSpywareRequired = \$${requireAntivirus}
+        RtpEnabled = \$${requireAntivirus}
+        SignatureOutOfDate = \$${requireAntivirus}
+        PasswordRequired = \$true
+        PasswordRequiredType = "deviceDefault"
+        PasswordMinimumLength = 8
+    }
+    
+    # Add minimum OS version if specified
+    if ("${minOsVersion}" -ne "") {
+        $PolicyParams.OsMinimumVersion = "${minOsVersion}"
+        Write-Host "  Minimum OS: ${minOsVersion}" -ForegroundColor Yellow
+    }
+    
+    $Policy = New-MgDeviceManagementDeviceCompliancePolicy -BodyParameter $PolicyParams
+    
+    Write-Host "✓ Compliance Policy created successfully" -ForegroundColor Green
+    Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
+    Write-Host "  BitLocker Required: ${requireBitLocker}" -ForegroundColor Yellow
+    Write-Host "  Antivirus Required: ${requireAntivirus}" -ForegroundColor Yellow
+    Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
+    Write-Host "Next: Assign policy to device groups" -ForegroundColor Yellow
+    Write-Host "Note: Coordinate with Conditional Access for enforcement" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "Failed to create Compliance Policy: $_"
+}`;
+    }
+  },
+
+  {
+    id: 'intune-export-app-install-status',
+    title: 'Export App Installation Status Report',
+    description: 'Export detailed app installation status across all devices to CSV',
+    category: 'Reporting',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+This script generates comprehensive app installation status reports showing deployment success/failure across managed devices.
+
+**Prerequisites:**
+- Microsoft.Graph PowerShell module
+- Intune Administrator or Global Reader role
+- DeviceManagementApps.Read.All permission
+
+**What You Need to Provide:**
+- App display name (or partial name to filter)
+- CSV export file path
+
+**What the Script Does:**
+1. Connects to Microsoft Graph with app read permissions
+2. Searches for app by display name filter
+3. Retrieves device installation status for matched app
+4. Extracts device name, user, install state, error codes
+5. Captures last sync and install timestamps
+6. Exports comprehensive installation report
+
+**Important Notes:**
+- Essential for troubleshooting failed app deployments
+- Shows install state: Installed, Failed, Pending, NotApplicable
+- Error codes help identify specific failure reasons
+- Use partial name to find apps (e.g., "Chrome" finds "Google Chrome")
+- Run after app deployments to verify success
+- Filter report by InstallState for failed installations
+- Coordinate with help desk for user remediation
+- Track installation trends over time`,
+    parameters: [
+      {
+        name: 'appName',
+        label: 'App Name (or Partial Name)',
+        type: 'text',
+        required: true,
+        placeholder: 'Google Chrome',
+        helpText: 'Full or partial app name to search for'
+      },
+      {
+        name: 'exportPath',
+        label: 'Export CSV Path',
+        type: 'text',
+        required: true,
+        placeholder: 'C:\\Exports\\AppInstallStatus.csv',
+        helpText: 'Path where the CSV file will be saved'
+      }
+    ],
+    scriptTemplate: (params) => {
+      const appName = escapePowerShellString(params.appName);
+      const exportPath = escapePowerShellString(params.exportPath);
+
+      return `# Export App Installation Status Report
+# Generated: ${new Date().toISOString()}
+
+Connect-MgGraph -Scopes "DeviceManagementApps.Read.All"
+
+try {
+    Write-Host "Searching for app: ${appName}" -ForegroundColor Cyan
+    
+    # Find the app
+    $Apps = Get-MgDeviceAppManagementMobileApp -Filter "contains(displayName, '${appName}')"
+    
+    if (-not $Apps -or $Apps.Count -eq 0) {
+        throw "No apps found matching: ${appName}"
+    }
+    
+    Write-Host "Found $($Apps.Count) matching app(s)" -ForegroundColor Yellow
+    
+    $AllInstallStatus = @()
+    
+    foreach ($App in $Apps) {
+        Write-Host "  Processing: $($App.DisplayName)" -ForegroundColor White
+        
+        # Get device statuses for this app
+        $Uri = "https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps/$($App.Id)/deviceStatuses"
+        
+        try {
+            $DeviceStatuses = Invoke-MgGraphRequest -Method GET -Uri $Uri
+            
+            foreach ($Status in $DeviceStatuses.value) {
+                $AllInstallStatus += [PSCustomObject]@{
+                    AppName               = $App.DisplayName
+                    AppId                 = $App.Id
+                    DeviceName            = $Status.deviceName
+                    UserPrincipalName     = $Status.userPrincipalName
+                    InstallState          = $Status.installState
+                    InstallStateDetail    = $Status.installStateDetail
+                    ErrorCode             = $Status.errorCode
+                    LastSyncDateTime      = $Status.lastSyncDateTime
+                    OSVersion             = $Status.osVersion
+                    OSDescription         = $Status.osDescription
+                    DeviceId              = $Status.deviceId
+                }
+            }
+        } catch {
+            Write-Host "    Warning: Could not retrieve device statuses for $($App.DisplayName)" -ForegroundColor Yellow
+        }
+    }
+    
+    if ($AllInstallStatus.Count -eq 0) {
+        Write-Host "No installation status data found" -ForegroundColor Yellow
+    } else {
+        $AllInstallStatus | Export-Csv -Path "${exportPath}" -NoTypeInformation
+        
+        Write-Host "✓ App installation status exported to: ${exportPath}" -ForegroundColor Green
+        Write-Host "  Total Records: $($AllInstallStatus.Count)" -ForegroundColor Yellow
+        
+        Write-Host \"\`nInstallation Summary:" -ForegroundColor Yellow
+        $AllInstallStatus | Group-Object InstallState | ForEach-Object {
+            Write-Host "  $($_.Name): $($_.Count)" -ForegroundColor White
+        }
+        
+        # Show failed installations
+        $Failed = $AllInstallStatus | Where-Object { $_.InstallState -eq "failed" }
+        if ($Failed.Count -gt 0) {
+            Write-Host \"\`nFailed Installations: $($Failed.Count)" -ForegroundColor Red
+            $Failed | Select-Object -First 5 | ForEach-Object {
+                Write-Host "  $($_.DeviceName) - Error: $($_.ErrorCode)" -ForegroundColor Red
+            }
+        }
+    }
+    
+} catch {
+    Write-Error "Failed to export app installation status: $_"
+}`;
+    }
   }
 ];
 

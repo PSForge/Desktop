@@ -2242,5 +2242,1705 @@ try {
 }`;
     },
     isPremium: true
+  },
+
+  {
+    id: 'aws-create-ami-from-instance',
+    name: 'Create AMI from EC2 Instance',
+    category: 'EC2 Management',
+    description: 'Create a custom Amazon Machine Image from an existing EC2 instance for backup or replication',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'instanceId', label: 'Source Instance ID', type: 'text', required: true, placeholder: 'i-1234567890abcdef0' },
+      { id: 'amiName', label: 'AMI Name', type: 'text', required: true, placeholder: 'MyApp-Production-AMI' },
+      { id: 'description', label: 'AMI Description', type: 'text', required: false, placeholder: 'Production server baseline image' },
+      { id: 'noReboot', label: 'No Reboot During Creation', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const instanceId = escapePowerShellString(params.instanceId);
+      const amiName = escapePowerShellString(params.amiName);
+      const description = params.description ? escapePowerShellString(params.description) : 'Created by PowerShell automation';
+      const noReboot = toPowerShellBoolean(params.noReboot);
+
+      return `# Create AMI from EC2 Instance
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EC2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    # Create AMI from instance
+    $AMI = New-EC2Image \`
+        -InstanceId "${instanceId}" \`
+        -Name "${amiName}" \`
+        -Description "${description}" \`
+        -NoReboot ${noReboot}
+    
+    Write-Host "✓ AMI creation initiated" -ForegroundColor Green
+    Write-Host "  AMI ID: $($AMI)" -ForegroundColor Cyan
+    Write-Host "  Source Instance: ${instanceId}" -ForegroundColor Cyan
+    Write-Host "  Name: ${amiName}" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Wait for AMI to become available
+    Write-Host "Waiting for AMI to become available..." -ForegroundColor Yellow
+    $Attempts = 0
+    do {
+        Start-Sleep -Seconds 30
+        $Attempts++
+        $Image = Get-EC2Image -ImageId $AMI
+        Write-Host "  Status: $($Image.State)" -ForegroundColor Gray
+    } while ($Image.State -eq "pending" -and $Attempts -lt 20)
+    
+    if ($Image.State -eq "available") {
+        Write-Host "✓ AMI is now available" -ForegroundColor Green
+    } else {
+        Write-Host "⚠ AMI creation still in progress. Check console for status." -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "AMI creation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-manage-security-groups',
+    name: 'Manage EC2 Security Groups',
+    category: 'EC2 Management',
+    description: 'Create, modify, and configure security group rules for network access control',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Security Group', 'Add Inbound Rule', 'Add Outbound Rule', 'List Rules'], defaultValue: 'Create Security Group' },
+      { id: 'vpcId', label: 'VPC ID', type: 'text', required: false, placeholder: 'vpc-1234567890abcdef0' },
+      { id: 'securityGroupId', label: 'Security Group ID (for rules)', type: 'text', required: false, placeholder: 'sg-1234567890abcdef0' },
+      { id: 'groupName', label: 'Security Group Name', type: 'text', required: false, placeholder: 'WebServer-SG' },
+      { id: 'description', label: 'Description', type: 'text', required: false, placeholder: 'Security group for web servers' },
+      { id: 'protocol', label: 'Protocol', type: 'select', required: false, options: ['tcp', 'udp', 'icmp', '-1'], defaultValue: 'tcp' },
+      { id: 'fromPort', label: 'From Port', type: 'number', required: false, placeholder: '443' },
+      { id: 'toPort', label: 'To Port', type: 'number', required: false, placeholder: '443' },
+      { id: 'cidrBlock', label: 'CIDR Block', type: 'text', required: false, placeholder: '0.0.0.0/0' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const vpcId = params.vpcId ? escapePowerShellString(params.vpcId) : '';
+      const securityGroupId = params.securityGroupId ? escapePowerShellString(params.securityGroupId) : '';
+      const groupName = params.groupName ? escapePowerShellString(params.groupName) : '';
+      const description = params.description ? escapePowerShellString(params.description) : 'Created by PowerShell';
+      const protocol = params.protocol || 'tcp';
+      const fromPort = params.fromPort || 443;
+      const toPort = params.toPort || 443;
+      const cidrBlock = params.cidrBlock ? escapePowerShellString(params.cidrBlock) : '0.0.0.0/0';
+
+      return `# Manage EC2 Security Groups
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EC2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Security Group' ? `    # Create security group
+    $SG = New-EC2SecurityGroup \`
+        -GroupName "${groupName}" \`
+        -Description "${description}" \`
+        -VpcId "${vpcId}"
+    
+    Write-Host "✓ Security group created" -ForegroundColor Green
+    Write-Host "  Security Group ID: $SG" -ForegroundColor Cyan
+    Write-Host "  Name: ${groupName}" -ForegroundColor Cyan
+    Write-Host "  VPC: ${vpcId}" -ForegroundColor Cyan` :
+action === 'Add Inbound Rule' ? `    # Create inbound rule
+    $IpPermission = New-Object Amazon.EC2.Model.IpPermission
+    $IpPermission.IpProtocol = "${protocol}"
+    $IpPermission.FromPort = ${fromPort}
+    $IpPermission.ToPort = ${toPort}
+    $IpRange = New-Object Amazon.EC2.Model.IpRange
+    $IpRange.CidrIp = "${cidrBlock}"
+    $IpRange.Description = "Added via PowerShell automation"
+    $IpPermission.Ipv4Ranges.Add($IpRange)
+    
+    Grant-EC2SecurityGroupIngress \`
+        -GroupId "${securityGroupId}" \`
+        -IpPermission $IpPermission
+    
+    Write-Host "✓ Inbound rule added" -ForegroundColor Green
+    Write-Host "  Security Group: ${securityGroupId}" -ForegroundColor Cyan
+    Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
+    Write-Host "  Ports: ${fromPort}-${toPort}" -ForegroundColor Cyan
+    Write-Host "  Source: ${cidrBlock}" -ForegroundColor Cyan` :
+action === 'Add Outbound Rule' ? `    # Create outbound rule
+    $IpPermission = New-Object Amazon.EC2.Model.IpPermission
+    $IpPermission.IpProtocol = "${protocol}"
+    $IpPermission.FromPort = ${fromPort}
+    $IpPermission.ToPort = ${toPort}
+    $IpRange = New-Object Amazon.EC2.Model.IpRange
+    $IpRange.CidrIp = "${cidrBlock}"
+    $IpPermission.Ipv4Ranges.Add($IpRange)
+    
+    Grant-EC2SecurityGroupEgress \`
+        -GroupId "${securityGroupId}" \`
+        -IpPermission $IpPermission
+    
+    Write-Host "✓ Outbound rule added" -ForegroundColor Green
+    Write-Host "  Security Group: ${securityGroupId}" -ForegroundColor Cyan
+    Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
+    Write-Host "  Ports: ${fromPort}-${toPort}" -ForegroundColor Cyan
+    Write-Host "  Destination: ${cidrBlock}" -ForegroundColor Cyan` :
+`    # List security group rules
+    $SG = Get-EC2SecurityGroup -GroupId "${securityGroupId}"
+    
+    Write-Host "✓ Security Group Details" -ForegroundColor Green
+    Write-Host "  Name: $($SG.GroupName)" -ForegroundColor Cyan
+    Write-Host "  ID: $($SG.GroupId)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Inbound Rules:" -ForegroundColor Yellow
+    $SG.IpPermissions | ForEach-Object {
+        Write-Host "  Protocol: $($_.IpProtocol), Ports: $($_.FromPort)-$($_.ToPort), Sources: $($_.Ipv4Ranges.CidrIp -join ', ')" -ForegroundColor Gray
+    }
+    Write-Host ""
+    Write-Host "Outbound Rules:" -ForegroundColor Yellow
+    $SG.IpPermissionsEgress | ForEach-Object {
+        Write-Host "  Protocol: $($_.IpProtocol), Ports: $($_.FromPort)-$($_.ToPort), Destinations: $($_.Ipv4Ranges.CidrIp -join ', ')" -ForegroundColor Gray
+    }`}
+    
+} catch {
+    Write-Error "Security group operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-manage-ebs-volumes',
+    name: 'Manage EBS Volumes',
+    category: 'EC2 Management',
+    description: 'Create, attach, detach, and snapshot EBS volumes for EC2 instances',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Volume', 'Attach Volume', 'Detach Volume', 'Create Snapshot', 'List Volumes'], defaultValue: 'Create Volume' },
+      { id: 'availabilityZone', label: 'Availability Zone', type: 'text', required: false, placeholder: 'us-east-1a' },
+      { id: 'volumeId', label: 'Volume ID', type: 'text', required: false, placeholder: 'vol-1234567890abcdef0' },
+      { id: 'instanceId', label: 'Instance ID', type: 'text', required: false, placeholder: 'i-1234567890abcdef0' },
+      { id: 'deviceName', label: 'Device Name', type: 'text', required: false, placeholder: '/dev/sdf' },
+      { id: 'volumeSize', label: 'Volume Size (GB)', type: 'number', required: false, placeholder: '100', defaultValue: 100 },
+      { id: 'volumeType', label: 'Volume Type', type: 'select', required: false, options: ['gp3', 'gp2', 'io1', 'io2', 'st1', 'sc1'], defaultValue: 'gp3' },
+      { id: 'encrypted', label: 'Encrypt Volume', type: 'boolean', required: false, defaultValue: true }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const availabilityZone = params.availabilityZone ? escapePowerShellString(params.availabilityZone) : 'us-east-1a';
+      const volumeId = params.volumeId ? escapePowerShellString(params.volumeId) : '';
+      const instanceId = params.instanceId ? escapePowerShellString(params.instanceId) : '';
+      const deviceName = params.deviceName ? escapePowerShellString(params.deviceName) : '/dev/sdf';
+      const volumeSize = params.volumeSize || 100;
+      const volumeType = params.volumeType || 'gp3';
+      const encrypted = toPowerShellBoolean(params.encrypted);
+
+      return `# Manage EBS Volumes
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EC2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Volume' ? `    # Create EBS volume
+    $Volume = New-EC2Volume \`
+        -AvailabilityZone "${availabilityZone}" \`
+        -Size ${volumeSize} \`
+        -VolumeType "${volumeType}" \`
+        -Encrypted ${encrypted}
+    
+    Write-Host "✓ EBS volume created" -ForegroundColor Green
+    Write-Host "  Volume ID: $($Volume.VolumeId)" -ForegroundColor Cyan
+    Write-Host "  Size: ${volumeSize} GB" -ForegroundColor Cyan
+    Write-Host "  Type: ${volumeType}" -ForegroundColor Cyan
+    Write-Host "  AZ: ${availabilityZone}" -ForegroundColor Cyan
+    Write-Host "  Encrypted: ${encrypted}" -ForegroundColor Cyan` :
+action === 'Attach Volume' ? `    # Attach volume to instance
+    Add-EC2Volume \`
+        -VolumeId "${volumeId}" \`
+        -InstanceId "${instanceId}" \`
+        -Device "${deviceName}"
+    
+    Write-Host "✓ Volume attached successfully" -ForegroundColor Green
+    Write-Host "  Volume: ${volumeId}" -ForegroundColor Cyan
+    Write-Host "  Instance: ${instanceId}" -ForegroundColor Cyan
+    Write-Host "  Device: ${deviceName}" -ForegroundColor Cyan` :
+action === 'Detach Volume' ? `    # Detach volume from instance
+    Dismount-EC2Volume -VolumeId "${volumeId}" -Force
+    
+    Write-Host "✓ Volume detached successfully" -ForegroundColor Green
+    Write-Host "  Volume: ${volumeId}" -ForegroundColor Cyan` :
+action === 'Create Snapshot' ? `    # Create snapshot of volume
+    $Snapshot = New-EC2Snapshot \`
+        -VolumeId "${volumeId}" \`
+        -Description "Snapshot created via PowerShell - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    
+    Write-Host "✓ Snapshot creation initiated" -ForegroundColor Green
+    Write-Host "  Snapshot ID: $($Snapshot.SnapshotId)" -ForegroundColor Cyan
+    Write-Host "  Volume: ${volumeId}" -ForegroundColor Cyan
+    Write-Host "  Status: $($Snapshot.State)" -ForegroundColor Cyan` :
+`    # List EBS volumes
+    $Volumes = Get-EC2Volume
+    
+    Write-Host "✓ EBS Volumes:" -ForegroundColor Green
+    $Volumes | Format-Table VolumeId, Size, VolumeType, State, AvailabilityZone, Encrypted -AutoSize`}
+    
+} catch {
+    Write-Error "EBS operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-s3-bucket-policy',
+    name: 'Manage S3 Bucket Policies',
+    category: 'S3 Storage',
+    description: 'Create and apply bucket policies for access control and security',
+    parameters: [
+      { id: 'bucketName', label: 'Bucket Name', type: 'text', required: true, placeholder: 'my-company-bucket' },
+      { id: 'policyType', label: 'Policy Type', type: 'select', required: true, options: ['Block Public Access', 'Allow Cross-Account Access', 'Require SSL', 'Allow CloudFront Access'], defaultValue: 'Block Public Access' },
+      { id: 'crossAccountId', label: 'Cross-Account AWS ID (if applicable)', type: 'text', required: false, placeholder: '123456789012' },
+      { id: 'cloudfrontOAI', label: 'CloudFront OAI ID (if applicable)', type: 'text', required: false, placeholder: 'E1A2B3C4D5E6F7' }
+    ],
+    scriptTemplate: (params) => {
+      const bucketName = escapePowerShellString(params.bucketName);
+      const policyType = params.policyType;
+      const crossAccountId = params.crossAccountId ? escapePowerShellString(params.crossAccountId) : '';
+      const cloudfrontOAI = params.cloudfrontOAI ? escapePowerShellString(params.cloudfrontOAI) : '';
+
+      return `# Manage S3 Bucket Policies
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.S3
+
+try {
+${policyType === 'Block Public Access' ? `    # Configure public access block
+    Write-S3PublicAccessBlock \`
+        -BucketName "${bucketName}" \`
+        -PublicAccessBlockConfiguration_BlockPublicAcl \$true \`
+        -PublicAccessBlockConfiguration_BlockPublicPolicy \$true \`
+        -PublicAccessBlockConfiguration_IgnorePublicAcl \$true \`
+        -PublicAccessBlockConfiguration_RestrictPublicBucket \$true
+    
+    Write-Host "✓ Public access blocked for bucket: ${bucketName}" -ForegroundColor Green
+    Write-Host "  BlockPublicAcls: Enabled" -ForegroundColor Cyan
+    Write-Host "  BlockPublicPolicy: Enabled" -ForegroundColor Cyan
+    Write-Host "  IgnorePublicAcls: Enabled" -ForegroundColor Cyan
+    Write-Host "  RestrictPublicBuckets: Enabled" -ForegroundColor Cyan` :
+policyType === 'Allow Cross-Account Access' ? `    # Create cross-account access policy
+    $Policy = @{
+        Version = "2012-10-17"
+        Statement = @(
+            @{
+                Sid = "CrossAccountAccess"
+                Effect = "Allow"
+                Principal = @{
+                    AWS = "arn:aws:iam::${crossAccountId}:root"
+                }
+                Action = @(
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                )
+                Resource = @(
+                    "arn:aws:s3:::${bucketName}",
+                    "arn:aws:s3:::${bucketName}/*"
+                )
+            }
+        )
+    } | ConvertTo-Json -Depth 10
+    
+    Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
+    
+    Write-Host "✓ Cross-account access policy applied" -ForegroundColor Green
+    Write-Host "  Bucket: ${bucketName}" -ForegroundColor Cyan
+    Write-Host "  Granted to Account: ${crossAccountId}" -ForegroundColor Cyan` :
+policyType === 'Require SSL' ? `    # Create SSL-only policy
+    $Policy = @{
+        Version = "2012-10-17"
+        Statement = @(
+            @{
+                Sid = "DenyNonSSL"
+                Effect = "Deny"
+                Principal = "*"
+                Action = "s3:*"
+                Resource = @(
+                    "arn:aws:s3:::${bucketName}",
+                    "arn:aws:s3:::${bucketName}/*"
+                )
+                Condition = @{
+                    Bool = @{
+                        "aws:SecureTransport" = "false"
+                    }
+                }
+            }
+        )
+    } | ConvertTo-Json -Depth 10
+    
+    Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
+    
+    Write-Host "✓ SSL-only policy applied" -ForegroundColor Green
+    Write-Host "  Bucket: ${bucketName}" -ForegroundColor Cyan
+    Write-Host "  Non-SSL requests: Denied" -ForegroundColor Cyan` :
+`    # Create CloudFront OAI access policy
+    $Policy = @{
+        Version = "2012-10-17"
+        Statement = @(
+            @{
+                Sid = "CloudFrontOAIAccess"
+                Effect = "Allow"
+                Principal = @{
+                    AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${cloudfrontOAI}"
+                }
+                Action = "s3:GetObject"
+                Resource = "arn:aws:s3:::${bucketName}/*"
+            }
+        )
+    } | ConvertTo-Json -Depth 10
+    
+    Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
+    
+    Write-Host "✓ CloudFront OAI access policy applied" -ForegroundColor Green
+    Write-Host "  Bucket: ${bucketName}" -ForegroundColor Cyan
+    Write-Host "  CloudFront OAI: ${cloudfrontOAI}" -ForegroundColor Cyan`}
+    
+} catch {
+    Write-Error "S3 bucket policy operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-s3-sync-objects',
+    name: 'Sync S3 Objects',
+    category: 'S3 Storage',
+    description: 'Synchronize files between local directory and S3 bucket with advanced options',
+    parameters: [
+      { id: 'bucketName', label: 'Bucket Name', type: 'text', required: true, placeholder: 'my-company-bucket' },
+      { id: 'localPath', label: 'Local Path', type: 'path', required: true, placeholder: 'C:\\Backups\\Data' },
+      { id: 's3Prefix', label: 'S3 Prefix (folder)', type: 'text', required: false, placeholder: 'backups/daily/' },
+      { id: 'direction', label: 'Sync Direction', type: 'select', required: true, options: ['Upload to S3', 'Download from S3'], defaultValue: 'Upload to S3' },
+      { id: 'deleteRemoved', label: 'Delete files not in source', type: 'boolean', required: false, defaultValue: false },
+      { id: 'dryRun', label: 'Dry Run (preview only)', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const bucketName = escapePowerShellString(params.bucketName);
+      const localPath = escapePowerShellString(params.localPath);
+      const s3Prefix = params.s3Prefix ? escapePowerShellString(params.s3Prefix) : '';
+      const direction = params.direction;
+      const deleteRemoved = toPowerShellBoolean(params.deleteRemoved);
+      const dryRun = toPowerShellBoolean(params.dryRun);
+
+      return `# Sync S3 Objects
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.S3
+
+try {
+    $DryRun = ${dryRun}
+    $DeleteRemoved = ${deleteRemoved}
+    $Stats = @{Uploaded = 0; Downloaded = 0; Deleted = 0; Skipped = 0}
+    
+${direction === 'Upload to S3' ? `    # Upload local files to S3
+    Write-Host "Syncing local files to s3://${bucketName}/${s3Prefix}" -ForegroundColor Cyan
+    
+    $LocalFiles = Get-ChildItem -Path "${localPath}" -Recurse -File
+    
+    foreach ($File in $LocalFiles) {
+        $RelativePath = $File.FullName.Substring("${localPath}".Length).TrimStart('\\').Replace('\\', '/')
+        $S3Key = "${s3Prefix}$RelativePath"
+        
+        # Check if file exists in S3
+        try {
+            $S3Object = Get-S3Object -BucketName "${bucketName}" -Key $S3Key
+            $S3LastModified = $S3Object.LastModified
+            
+            if ($File.LastWriteTimeUtc -gt $S3LastModified) {
+                if (-not $DryRun) {
+                    Write-S3Object -BucketName "${bucketName}" -Key $S3Key -File $File.FullName
+                }
+                Write-Host "  Updated: $S3Key" -ForegroundColor Yellow
+                $Stats.Uploaded++
+            } else {
+                $Stats.Skipped++
+            }
+        } catch {
+            if (-not $DryRun) {
+                Write-S3Object -BucketName "${bucketName}" -Key $S3Key -File $File.FullName
+            }
+            Write-Host "  Uploaded: $S3Key" -ForegroundColor Green
+            $Stats.Uploaded++
+        }
+    }
+    
+    if ($DeleteRemoved) {
+        $S3Objects = Get-S3Object -BucketName "${bucketName}" -KeyPrefix "${s3Prefix}"
+        foreach ($S3Obj in $S3Objects) {
+            $LocalEquivalent = Join-Path "${localPath}" ($S3Obj.Key.Substring("${s3Prefix}".Length).Replace('/', '\\'))
+            if (-not (Test-Path $LocalEquivalent)) {
+                if (-not $DryRun) {
+                    Remove-S3Object -BucketName "${bucketName}" -Key $S3Obj.Key -Force
+                }
+                Write-Host "  Deleted: $($S3Obj.Key)" -ForegroundColor Red
+                $Stats.Deleted++
+            }
+        }
+    }` :
+`    # Download S3 files to local
+    Write-Host "Syncing s3://${bucketName}/${s3Prefix} to local directory" -ForegroundColor Cyan
+    
+    $S3Objects = Get-S3Object -BucketName "${bucketName}" -KeyPrefix "${s3Prefix}"
+    
+    foreach ($S3Obj in $S3Objects) {
+        if ($S3Obj.Key.EndsWith('/')) { continue }
+        
+        $RelativePath = $S3Obj.Key.Substring("${s3Prefix}".Length).Replace('/', '\\')
+        $LocalFilePath = Join-Path "${localPath}" $RelativePath
+        $LocalDir = Split-Path $LocalFilePath -Parent
+        
+        if (-not (Test-Path $LocalDir)) {
+            New-Item -ItemType Directory -Path $LocalDir -Force | Out-Null
+        }
+        
+        $ShouldDownload = $true
+        if (Test-Path $LocalFilePath) {
+            $LocalFile = Get-Item $LocalFilePath
+            if ($LocalFile.LastWriteTimeUtc -ge $S3Obj.LastModified) {
+                $ShouldDownload = $false
+                $Stats.Skipped++
+            }
+        }
+        
+        if ($ShouldDownload) {
+            if (-not $DryRun) {
+                Read-S3Object -BucketName "${bucketName}" -Key $S3Obj.Key -File $LocalFilePath
+            }
+            Write-Host "  Downloaded: $($S3Obj.Key)" -ForegroundColor Green
+            $Stats.Downloaded++
+        }
+    }`}
+    
+    Write-Host ""
+    Write-Host "✓ Sync completed" -ForegroundColor Green
+    Write-Host "  Files processed: $($Stats.Uploaded + $Stats.Downloaded)" -ForegroundColor Cyan
+    Write-Host "  Files skipped: $($Stats.Skipped)" -ForegroundColor Gray
+    Write-Host "  Files deleted: $($Stats.Deleted)" -ForegroundColor $(if ($Stats.Deleted -gt 0) { "Red" } else { "Gray" })
+    if ($DryRun) {
+        Write-Host "  (Dry run - no changes made)" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "S3 sync operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-iam-role-management',
+    name: 'Manage IAM Roles',
+    category: 'IAM Management',
+    description: 'Create and configure IAM roles with trust policies and permissions',
+    parameters: [
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Role', 'Attach Policy', 'List Role Policies', 'Delete Role'], defaultValue: 'Create Role' },
+      { id: 'roleName', label: 'Role Name', type: 'text', required: true, placeholder: 'EC2-Admin-Role' },
+      { id: 'trustedService', label: 'Trusted Service', type: 'select', required: false, options: ['ec2.amazonaws.com', 'lambda.amazonaws.com', 'ecs-tasks.amazonaws.com', 'states.amazonaws.com'], defaultValue: 'ec2.amazonaws.com' },
+      { id: 'policyArn', label: 'Policy ARN (for attach)', type: 'text', required: false, placeholder: 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess' },
+      { id: 'description', label: 'Role Description', type: 'text', required: false, placeholder: 'Role for EC2 instances to access AWS resources' }
+    ],
+    scriptTemplate: (params) => {
+      const action = params.action;
+      const roleName = escapePowerShellString(params.roleName);
+      const trustedService = params.trustedService || 'ec2.amazonaws.com';
+      const policyArn = params.policyArn ? escapePowerShellString(params.policyArn) : '';
+      const description = params.description ? escapePowerShellString(params.description) : 'Created by PowerShell automation';
+
+      return `# Manage IAM Roles
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.IdentityManagement
+
+try {
+${action === 'Create Role' ? `    # Create trust policy document
+    $TrustPolicy = @{
+        Version = "2012-10-17"
+        Statement = @(
+            @{
+                Effect = "Allow"
+                Principal = @{
+                    Service = "${trustedService}"
+                }
+                Action = "sts:AssumeRole"
+            }
+        )
+    } | ConvertTo-Json -Depth 10
+    
+    # Create IAM role
+    $Role = New-IAMRole \`
+        -RoleName "${roleName}" \`
+        -AssumeRolePolicyDocument $TrustPolicy \`
+        -Description "${description}"
+    
+    Write-Host "✓ IAM role created" -ForegroundColor Green
+    Write-Host "  Role Name: ${roleName}" -ForegroundColor Cyan
+    Write-Host "  Role ARN: $($Role.Arn)" -ForegroundColor Cyan
+    Write-Host "  Trusted Service: ${trustedService}" -ForegroundColor Cyan` :
+action === 'Attach Policy' ? `    # Attach policy to role
+    Register-IAMRolePolicy \`
+        -RoleName "${roleName}" \`
+        -PolicyArn "${policyArn}"
+    
+    Write-Host "✓ Policy attached to role" -ForegroundColor Green
+    Write-Host "  Role: ${roleName}" -ForegroundColor Cyan
+    Write-Host "  Policy: ${policyArn}" -ForegroundColor Cyan` :
+action === 'List Role Policies' ? `    # List attached policies
+    Write-Host "Policies attached to role: ${roleName}" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Managed policies
+    $ManagedPolicies = Get-IAMAttachedRolePolicyList -RoleName "${roleName}"
+    Write-Host "Managed Policies:" -ForegroundColor Yellow
+    if ($ManagedPolicies.Count -eq 0) {
+        Write-Host "  (none)" -ForegroundColor Gray
+    } else {
+        $ManagedPolicies | ForEach-Object {
+            Write-Host "  $($_.PolicyName)" -ForegroundColor Green
+        }
+    }
+    
+    Write-Host ""
+    
+    # Inline policies
+    $InlinePolicies = Get-IAMRolePolicyList -RoleName "${roleName}"
+    Write-Host "Inline Policies:" -ForegroundColor Yellow
+    if ($InlinePolicies.Count -eq 0) {
+        Write-Host "  (none)" -ForegroundColor Gray
+    } else {
+        $InlinePolicies | ForEach-Object {
+            Write-Host "  $_" -ForegroundColor Green
+        }
+    }` :
+`    # Delete role (must detach policies first)
+    Write-Host "Removing policies from role..." -ForegroundColor Yellow
+    
+    # Detach managed policies
+    $ManagedPolicies = Get-IAMAttachedRolePolicyList -RoleName "${roleName}"
+    foreach ($Policy in $ManagedPolicies) {
+        Unregister-IAMRolePolicy -RoleName "${roleName}" -PolicyArn $Policy.PolicyArn
+        Write-Host "  Detached: $($Policy.PolicyName)" -ForegroundColor Gray
+    }
+    
+    # Delete inline policies
+    $InlinePolicies = Get-IAMRolePolicyList -RoleName "${roleName}"
+    foreach ($Policy in $InlinePolicies) {
+        Remove-IAMRolePolicy -RoleName "${roleName}" -PolicyName $Policy
+        Write-Host "  Deleted inline: $Policy" -ForegroundColor Gray
+    }
+    
+    # Delete the role
+    Remove-IAMRole -RoleName "${roleName}" -Force
+    
+    Write-Host "✓ IAM role deleted: ${roleName}" -ForegroundColor Green`}
+    
+} catch {
+    Write-Error "IAM role operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-iam-access-key-rotation',
+    name: 'Rotate IAM Access Keys',
+    category: 'IAM Management',
+    description: 'Rotate access keys for IAM users with optional old key deactivation',
+    parameters: [
+      { id: 'userName', label: 'IAM User Name', type: 'text', required: true, placeholder: 'service-account' },
+      { id: 'deactivateOld', label: 'Deactivate Old Keys', type: 'boolean', required: false, defaultValue: true },
+      { id: 'deleteOld', label: 'Delete Old Keys', type: 'boolean', required: false, defaultValue: false }
+    ],
+    scriptTemplate: (params) => {
+      const userName = escapePowerShellString(params.userName);
+      const deactivateOld = toPowerShellBoolean(params.deactivateOld);
+      const deleteOld = toPowerShellBoolean(params.deleteOld);
+
+      return `# Rotate IAM Access Keys
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.IdentityManagement
+
+try {
+    $DeactivateOld = ${deactivateOld}
+    $DeleteOld = ${deleteOld}
+    
+    # Get existing access keys
+    $ExistingKeys = Get-IAMAccessKey -UserName "${userName}"
+    
+    Write-Host "Current access keys for ${userName}:" -ForegroundColor Cyan
+    $ExistingKeys | ForEach-Object {
+        Write-Host "  Key: $($_.AccessKeyId) - Status: $($_.Status) - Created: $($_.CreateDate)" -ForegroundColor Gray
+    }
+    Write-Host ""
+    
+    # Check if user has 2 keys already (AWS limit)
+    if ($ExistingKeys.Count -ge 2) {
+        if ($DeleteOld) {
+            $OldestKey = $ExistingKeys | Sort-Object CreateDate | Select-Object -First 1
+            Remove-IAMAccessKey -UserName "${userName}" -AccessKeyId $OldestKey.AccessKeyId -Force
+            Write-Host "✓ Deleted oldest key: $($OldestKey.AccessKeyId)" -ForegroundColor Yellow
+        } else {
+            Write-Host "⚠ User already has 2 access keys. Cannot create more until one is deleted." -ForegroundColor Red
+            Write-Host "  Set 'Delete Old Keys' to true to automatically delete the oldest key." -ForegroundColor Yellow
+            exit
+        }
+    }
+    
+    # Create new access key
+    $NewKey = New-IAMAccessKey -UserName "${userName}"
+    
+    Write-Host "✓ New access key created" -ForegroundColor Green
+    Write-Host "  Access Key ID: $($NewKey.AccessKeyId)" -ForegroundColor Cyan
+    Write-Host "  Secret Access Key: $($NewKey.SecretAccessKey)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "⚠ IMPORTANT: Save the secret key now - it cannot be retrieved later!" -ForegroundColor Red
+    Write-Host ""
+    
+    # Handle old keys
+    $ExistingKeys = Get-IAMAccessKey -UserName "${userName}" | Where-Object { $_.AccessKeyId -ne $NewKey.AccessKeyId }
+    
+    foreach ($OldKey in $ExistingKeys) {
+        if ($DeleteOld) {
+            Remove-IAMAccessKey -UserName "${userName}" -AccessKeyId $OldKey.AccessKeyId -Force
+            Write-Host "✓ Deleted old key: $($OldKey.AccessKeyId)" -ForegroundColor Yellow
+        } elseif ($DeactivateOld -and $OldKey.Status -eq "Active") {
+            Update-IAMAccessKey -UserName "${userName}" -AccessKeyId $OldKey.AccessKeyId -Status Inactive
+            Write-Host "✓ Deactivated old key: $($OldKey.AccessKeyId)" -ForegroundColor Yellow
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Key rotation completed successfully!" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Access key rotation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-rds-parameter-groups',
+    name: 'Manage RDS Parameter Groups',
+    category: 'RDS Database',
+    description: 'Create and modify RDS parameter groups for database configuration',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Parameter Group', 'Modify Parameters', 'Apply to Instance', 'List Parameters'], defaultValue: 'Create Parameter Group' },
+      { id: 'parameterGroupName', label: 'Parameter Group Name', type: 'text', required: true, placeholder: 'mysql-custom-params' },
+      { id: 'family', label: 'DB Family', type: 'select', required: false, options: ['mysql8.0', 'mysql5.7', 'postgres14', 'postgres15', 'mariadb10.6'], defaultValue: 'mysql8.0' },
+      { id: 'description', label: 'Description', type: 'text', required: false, placeholder: 'Custom parameter group for production' },
+      { id: 'dbInstanceId', label: 'DB Instance Identifier (for apply)', type: 'text', required: false, placeholder: 'production-db' },
+      { id: 'parameterName', label: 'Parameter Name', type: 'text', required: false, placeholder: 'max_connections' },
+      { id: 'parameterValue', label: 'Parameter Value', type: 'text', required: false, placeholder: '500' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const parameterGroupName = escapePowerShellString(params.parameterGroupName);
+      const family = params.family || 'mysql8.0';
+      const description = params.description ? escapePowerShellString(params.description) : 'Custom parameter group';
+      const dbInstanceId = params.dbInstanceId ? escapePowerShellString(params.dbInstanceId) : '';
+      const parameterName = params.parameterName ? escapePowerShellString(params.parameterName) : '';
+      const parameterValue = params.parameterValue ? escapePowerShellString(params.parameterValue) : '';
+
+      return `# Manage RDS Parameter Groups
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.RDS
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Parameter Group' ? `    # Create parameter group
+    New-RDSDBParameterGroup \`
+        -DBParameterGroupName "${parameterGroupName}" \`
+        -DBParameterGroupFamily "${family}" \`
+        -Description "${description}"
+    
+    Write-Host "✓ Parameter group created" -ForegroundColor Green
+    Write-Host "  Name: ${parameterGroupName}" -ForegroundColor Cyan
+    Write-Host "  Family: ${family}" -ForegroundColor Cyan` :
+action === 'Modify Parameters' ? `    # Modify parameter
+    $Parameter = New-Object Amazon.RDS.Model.Parameter
+    $Parameter.ParameterName = "${parameterName}"
+    $Parameter.ParameterValue = "${parameterValue}"
+    $Parameter.ApplyMethod = "pending-reboot"
+    
+    Edit-RDSDBParameterGroup \`
+        -DBParameterGroupName "${parameterGroupName}" \`
+        -Parameter $Parameter
+    
+    Write-Host "✓ Parameter modified" -ForegroundColor Green
+    Write-Host "  Group: ${parameterGroupName}" -ForegroundColor Cyan
+    Write-Host "  Parameter: ${parameterName} = ${parameterValue}" -ForegroundColor Cyan
+    Write-Host "  Note: Requires instance reboot to apply" -ForegroundColor Yellow` :
+action === 'Apply to Instance' ? `    # Apply parameter group to instance
+    Edit-RDSDBInstance \`
+        -DBInstanceIdentifier "${dbInstanceId}" \`
+        -DBParameterGroupName "${parameterGroupName}" \`
+        -ApplyImmediately \$true
+    
+    Write-Host "✓ Parameter group applied" -ForegroundColor Green
+    Write-Host "  Instance: ${dbInstanceId}" -ForegroundColor Cyan
+    Write-Host "  Parameter Group: ${parameterGroupName}" -ForegroundColor Cyan
+    Write-Host "  Note: Some parameters require reboot to take effect" -ForegroundColor Yellow` :
+`    # List parameters
+    $Parameters = Get-RDSDBParameter -DBParameterGroupName "${parameterGroupName}"
+    
+    Write-Host "Parameters in ${parameterGroupName}:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $ModifiedParams = $Parameters | Where-Object { $_.Source -eq "user" }
+    if ($ModifiedParams.Count -gt 0) {
+        Write-Host "User-Modified Parameters:" -ForegroundColor Yellow
+        $ModifiedParams | Format-Table ParameterName, ParameterValue, ApplyType -AutoSize
+    }
+    
+    Write-Host ""
+    Write-Host "Total parameters: $($Parameters.Count)" -ForegroundColor Gray`}
+    
+} catch {
+    Write-Error "RDS parameter group operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-lambda-layer-management',
+    name: 'Manage Lambda Layers',
+    category: 'Serverless',
+    description: 'Create, publish, and manage Lambda layers for shared code and dependencies',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Layer', 'List Layers', 'Delete Layer Version', 'Add Layer to Function'], defaultValue: 'Create Layer' },
+      { id: 'layerName', label: 'Layer Name', type: 'text', required: true, placeholder: 'common-dependencies' },
+      { id: 'description', label: 'Layer Description', type: 'text', required: false, placeholder: 'Shared Python libraries for data processing' },
+      { id: 'zipFilePath', label: 'Layer Package Path', type: 'path', required: false, placeholder: 'C:\\Lambda\\layer.zip' },
+      { id: 'compatibleRuntimes', label: 'Compatible Runtimes', type: 'select', required: false, options: ['python3.9', 'python3.10', 'nodejs18.x', 'nodejs20.x'], defaultValue: 'python3.9' },
+      { id: 'functionName', label: 'Function Name (for add)', type: 'text', required: false, placeholder: 'my-lambda-function' },
+      { id: 'layerVersionArn', label: 'Layer Version ARN', type: 'text', required: false, placeholder: 'arn:aws:lambda:us-east-1:123456789012:layer:my-layer:1' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const layerName = escapePowerShellString(params.layerName);
+      const description = params.description ? escapePowerShellString(params.description) : 'Lambda layer created via PowerShell';
+      const zipFilePath = params.zipFilePath ? escapePowerShellString(params.zipFilePath) : '';
+      const compatibleRuntimes = params.compatibleRuntimes || 'python3.9';
+      const functionName = params.functionName ? escapePowerShellString(params.functionName) : '';
+      const layerVersionArn = params.layerVersionArn ? escapePowerShellString(params.layerVersionArn) : '';
+
+      return `# Manage Lambda Layers
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.Lambda
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Layer' ? `    # Read layer package
+    $ZipBytes = [System.IO.File]::ReadAllBytes("${zipFilePath}")
+    $MemoryStream = New-Object System.IO.MemoryStream(,$ZipBytes)
+    
+    # Publish layer version
+    $Layer = Publish-LMLayerVersion \`
+        -LayerName "${layerName}" \`
+        -Description "${description}" \`
+        -ZipFile $MemoryStream \`
+        -CompatibleRuntime @("${compatibleRuntimes}")
+    
+    Write-Host "✓ Lambda layer published" -ForegroundColor Green
+    Write-Host "  Layer Name: ${layerName}" -ForegroundColor Cyan
+    Write-Host "  Version: $($Layer.Version)" -ForegroundColor Cyan
+    Write-Host "  Layer ARN: $($Layer.LayerVersionArn)" -ForegroundColor Cyan
+    Write-Host "  Compatible Runtime: ${compatibleRuntimes}" -ForegroundColor Cyan
+    
+    $MemoryStream.Dispose()` :
+action === 'List Layers' ? `    # List layer versions
+    $Layers = Get-LMLayerVersionList -LayerName "${layerName}"
+    
+    Write-Host "Layer versions for ${layerName}:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $Layers | ForEach-Object {
+        Write-Host "  Version $($_.Version)" -ForegroundColor Green
+        Write-Host "    ARN: $($_.LayerVersionArn)" -ForegroundColor Gray
+        Write-Host "    Created: $($_.CreatedDate)" -ForegroundColor Gray
+        Write-Host "    Runtimes: $($_.CompatibleRuntimes -join ', ')" -ForegroundColor Gray
+        Write-Host ""
+    }` :
+action === 'Delete Layer Version' ? `    # Extract version from ARN
+    $Version = "${layerVersionArn}".Split(':')[-1]
+    
+    Remove-LMLayerVersion -LayerName "${layerName}" -VersionNumber $Version
+    
+    Write-Host "✓ Layer version deleted" -ForegroundColor Green
+    Write-Host "  Layer: ${layerName}" -ForegroundColor Cyan
+    Write-Host "  Version: $Version" -ForegroundColor Cyan` :
+`    # Add layer to function
+    $Function = Get-LMFunction -FunctionName "${functionName}"
+    $CurrentLayers = $Function.Configuration.Layers.Arn
+    
+    # Add new layer to existing layers
+    $NewLayers = @($CurrentLayers) + @("${layerVersionArn}")
+    $NewLayers = $NewLayers | Where-Object { $_ }
+    
+    Update-LMFunctionConfiguration \`
+        -FunctionName "${functionName}" \`
+        -Layer $NewLayers
+    
+    Write-Host "✓ Layer added to function" -ForegroundColor Green
+    Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
+    Write-Host "  Layer: ${layerVersionArn}" -ForegroundColor Cyan
+    Write-Host "  Total layers: $($NewLayers.Count)" -ForegroundColor Cyan`}
+    
+} catch {
+    Write-Error "Lambda layer operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-cloudwatch-log-groups',
+    name: 'Manage CloudWatch Log Groups',
+    category: 'Monitoring & Alerting',
+    description: 'Create, configure, and query CloudWatch log groups with retention policies',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Log Group', 'Set Retention', 'Query Logs', 'Delete Log Group', 'List Log Groups'], defaultValue: 'Create Log Group' },
+      { id: 'logGroupName', label: 'Log Group Name', type: 'text', required: true, placeholder: '/aws/lambda/my-function' },
+      { id: 'retentionDays', label: 'Retention (days)', type: 'select', required: false, options: ['1', '3', '7', '14', '30', '60', '90', '180', '365', 'Never Expire'], defaultValue: '30' },
+      { id: 'filterPattern', label: 'Filter Pattern (for query)', type: 'text', required: false, placeholder: 'ERROR' },
+      { id: 'startTime', label: 'Start Time (hours ago)', type: 'number', required: false, placeholder: '24', defaultValue: 24 }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const logGroupName = escapePowerShellString(params.logGroupName);
+      const retentionDays = params.retentionDays === 'Never Expire' ? 0 : (parseInt(params.retentionDays) || 30);
+      const filterPattern = params.filterPattern ? escapePowerShellString(params.filterPattern) : '';
+      const startTime = params.startTime || 24;
+
+      return `# Manage CloudWatch Log Groups
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.CloudWatchLogs
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Log Group' ? `    # Create log group
+    New-CWLLogGroup -LogGroupName "${logGroupName}"
+    
+    Write-Host "✓ Log group created: ${logGroupName}" -ForegroundColor Green
+    
+    # Set retention if specified
+${retentionDays > 0 ? `    Write-CWLRetentionPolicy -LogGroupName "${logGroupName}" -RetentionInDays ${retentionDays}
+    Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Cyan` : `    Write-Host "  Retention: Never expire" -ForegroundColor Cyan`}` :
+action === 'Set Retention' ? `    # Set retention policy
+${retentionDays > 0 ? `    Write-CWLRetentionPolicy -LogGroupName "${logGroupName}" -RetentionInDays ${retentionDays}
+    
+    Write-Host "✓ Retention policy updated" -ForegroundColor Green
+    Write-Host "  Log Group: ${logGroupName}" -ForegroundColor Cyan
+    Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Cyan` : `    Remove-CWLRetentionPolicy -LogGroupName "${logGroupName}"
+    
+    Write-Host "✓ Retention policy removed (logs never expire)" -ForegroundColor Green
+    Write-Host "  Log Group: ${logGroupName}" -ForegroundColor Cyan`}` :
+action === 'Query Logs' ? `    # Query logs using CloudWatch Logs Insights
+    $StartTime = (Get-Date).AddHours(-${startTime})
+    $EndTime = Get-Date
+    
+    $Query = @"
+fields @timestamp, @message
+| filter @message like /${filterPattern}/
+| sort @timestamp desc
+| limit 100
+"@
+    
+    # Start query
+    $QueryId = Start-CWLQuery \`
+        -LogGroupName "${logGroupName}" \`
+        -StartTime ([DateTimeOffset]$StartTime).ToUnixTimeMilliseconds() \`
+        -EndTime ([DateTimeOffset]$EndTime).ToUnixTimeMilliseconds() \`
+        -QueryString $Query
+    
+    Write-Host "Query started: $QueryId" -ForegroundColor Cyan
+    Write-Host "Waiting for results..." -ForegroundColor Yellow
+    
+    # Wait for query to complete
+    do {
+        Start-Sleep -Seconds 1
+        $Status = Get-CWLQueryResult -QueryId $QueryId
+    } while ($Status.Status -eq "Running")
+    
+    Write-Host "✓ Query completed" -ForegroundColor Green
+    Write-Host "  Records scanned: $($Status.Statistics.RecordsScanned)" -ForegroundColor Gray
+    Write-Host "  Records matched: $($Status.Statistics.RecordsMatched)" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Display results
+    foreach ($Result in $Status.Results) {
+        $Timestamp = ($Result | Where-Object { $_.Field -eq "@timestamp" }).Value
+        $Message = ($Result | Where-Object { $_.Field -eq "@message" }).Value
+        Write-Host "[$Timestamp] $Message" -ForegroundColor White
+    }` :
+action === 'Delete Log Group' ? `    # Delete log group
+    Remove-CWLLogGroup -LogGroupName "${logGroupName}" -Force
+    
+    Write-Host "✓ Log group deleted: ${logGroupName}" -ForegroundColor Green
+    Write-Host "  ⚠ All logs have been permanently deleted" -ForegroundColor Yellow` :
+`    # List log groups
+    $LogGroups = Get-CWLLogGroup
+    
+    Write-Host "✓ CloudWatch Log Groups:" -ForegroundColor Green
+    Write-Host ""
+    
+    $LogGroups | ForEach-Object {
+        $Retention = if ($_.RetentionInDays) { "$($_.RetentionInDays) days" } else { "Never expire" }
+        $SizeMB = [math]::Round($_.StoredBytes / 1MB, 2)
+        Write-Host "  $($_.LogGroupName)" -ForegroundColor Cyan
+        Write-Host "    Retention: $Retention | Size: $SizeMB MB" -ForegroundColor Gray
+    }`}
+    
+} catch {
+    Write-Error "CloudWatch Logs operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-cloudwatch-dashboard',
+    name: 'Create CloudWatch Dashboard',
+    category: 'Monitoring & Alerting',
+    description: 'Create custom CloudWatch dashboards with widgets for monitoring AWS resources',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'dashboardName', label: 'Dashboard Name', type: 'text', required: true, placeholder: 'Production-Overview' },
+      { id: 'instanceIds', label: 'EC2 Instance IDs (comma-separated)', type: 'textarea', required: false, placeholder: 'i-1234567890abcdef0, i-0987654321fedcba0' },
+      { id: 'rdsInstanceIds', label: 'RDS Instance IDs (comma-separated)', type: 'textarea', required: false, placeholder: 'production-db, staging-db' },
+      { id: 'lambdaFunctions', label: 'Lambda Functions (comma-separated)', type: 'textarea', required: false, placeholder: 'function1, function2' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const dashboardName = escapePowerShellString(params.dashboardName);
+      const instanceIdsRaw = params.instanceIds ? (params.instanceIds as string).split(',').map((n: string) => n.trim()).filter((n: string) => n) : [];
+      const rdsInstanceIdsRaw = params.rdsInstanceIds ? (params.rdsInstanceIds as string).split(',').map((n: string) => n.trim()).filter((n: string) => n) : [];
+      const lambdaFunctionsRaw = params.lambdaFunctions ? (params.lambdaFunctions as string).split(',').map((n: string) => n.trim()).filter((n: string) => n) : [];
+
+      return `# Create CloudWatch Dashboard
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.CloudWatch
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    # Build dashboard widgets
+    $Widgets = @()
+    $YPosition = 0
+    
+${instanceIdsRaw.length > 0 ? `    # EC2 CPU Utilization Widget
+    $EC2Metrics = @()
+    @(${instanceIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')}) | ForEach-Object {
+        $EC2Metrics += @("AWS/EC2", "CPUUtilization", "InstanceId", $_)
+    }
+    
+    $Widgets += @{
+        type = "metric"
+        x = 0
+        y = $YPosition
+        width = 12
+        height = 6
+        properties = @{
+            title = "EC2 CPU Utilization"
+            region = "${region}"
+            metrics = @($EC2Metrics)
+            period = 300
+            stat = "Average"
+        }
+    }
+    $YPosition += 6
+` : ''}
+${rdsInstanceIdsRaw.length > 0 ? `    # RDS Connections Widget
+    $RDSMetrics = @()
+    @(${rdsInstanceIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')}) | ForEach-Object {
+        $RDSMetrics += @("AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", $_)
+    }
+    
+    $Widgets += @{
+        type = "metric"
+        x = 0
+        y = $YPosition
+        width = 12
+        height = 6
+        properties = @{
+            title = "RDS Database Connections"
+            region = "${region}"
+            metrics = @($RDSMetrics)
+            period = 300
+            stat = "Average"
+        }
+    }
+    $YPosition += 6
+` : ''}
+${lambdaFunctionsRaw.length > 0 ? `    # Lambda Invocations Widget
+    $LambdaMetrics = @()
+    @(${lambdaFunctionsRaw.map(fn => `"${escapePowerShellString(fn)}"`).join(', ')}) | ForEach-Object {
+        $LambdaMetrics += @("AWS/Lambda", "Invocations", "FunctionName", $_)
+    }
+    
+    $Widgets += @{
+        type = "metric"
+        x = 0
+        y = $YPosition
+        width = 12
+        height = 6
+        properties = @{
+            title = "Lambda Invocations"
+            region = "${region}"
+            metrics = @($LambdaMetrics)
+            period = 300
+            stat = "Sum"
+        }
+    }
+    
+    # Lambda Errors Widget
+    $LambdaErrorMetrics = @()
+    @(${lambdaFunctionsRaw.map(fn => `"${escapePowerShellString(fn)}"`).join(', ')}) | ForEach-Object {
+        $LambdaErrorMetrics += @("AWS/Lambda", "Errors", "FunctionName", $_)
+    }
+    
+    $Widgets += @{
+        type = "metric"
+        x = 12
+        y = $YPosition
+        width = 12
+        height = 6
+        properties = @{
+            title = "Lambda Errors"
+            region = "${region}"
+            metrics = @($LambdaErrorMetrics)
+            period = 300
+            stat = "Sum"
+        }
+    }
+` : ''}
+    # Create dashboard body
+    $DashboardBody = @{
+        widgets = $Widgets
+    } | ConvertTo-Json -Depth 10
+    
+    # Create/update dashboard
+    Write-CWDashboard -DashboardName "${dashboardName}" -DashboardBody $DashboardBody
+    
+    Write-Host "✓ CloudWatch dashboard created/updated" -ForegroundColor Green
+    Write-Host "  Dashboard: ${dashboardName}" -ForegroundColor Cyan
+    Write-Host "  Region: ${region}" -ForegroundColor Cyan
+    Write-Host "  Widgets: $($Widgets.Count)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "View at: https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#dashboards:name=${dashboardName}" -ForegroundColor Yellow
+    
+} catch {
+    Write-Error "CloudWatch dashboard operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-vpc-subnet-management',
+    name: 'Manage VPC Subnets',
+    category: 'Networking',
+    description: 'Create and configure VPC subnets with route table associations',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create Subnet', 'Associate Route Table', 'Enable Auto-Assign IP', 'List Subnets'], defaultValue: 'Create Subnet' },
+      { id: 'vpcId', label: 'VPC ID', type: 'text', required: true, placeholder: 'vpc-1234567890abcdef0' },
+      { id: 'subnetName', label: 'Subnet Name', type: 'text', required: false, placeholder: 'Public-Subnet-1a' },
+      { id: 'cidrBlock', label: 'CIDR Block', type: 'text', required: false, placeholder: '10.0.1.0/24' },
+      { id: 'availabilityZone', label: 'Availability Zone', type: 'text', required: false, placeholder: 'us-east-1a' },
+      { id: 'subnetId', label: 'Subnet ID (for operations)', type: 'text', required: false, placeholder: 'subnet-1234567890abcdef0' },
+      { id: 'routeTableId', label: 'Route Table ID', type: 'text', required: false, placeholder: 'rtb-1234567890abcdef0' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const vpcId = escapePowerShellString(params.vpcId);
+      const subnetName = params.subnetName ? escapePowerShellString(params.subnetName) : '';
+      const cidrBlock = params.cidrBlock ? escapePowerShellString(params.cidrBlock) : '';
+      const availabilityZone = params.availabilityZone ? escapePowerShellString(params.availabilityZone) : '';
+      const subnetId = params.subnetId ? escapePowerShellString(params.subnetId) : '';
+      const routeTableId = params.routeTableId ? escapePowerShellString(params.routeTableId) : '';
+
+      return `# Manage VPC Subnets
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EC2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create Subnet' ? `    # Create subnet
+    $Subnet = New-EC2Subnet \`
+        -VpcId "${vpcId}" \`
+        -CidrBlock "${cidrBlock}" \`
+        -AvailabilityZone "${availabilityZone}"
+    
+    # Tag the subnet
+    $Tag = New-Object Amazon.EC2.Model.Tag
+    $Tag.Key = "Name"
+    $Tag.Value = "${subnetName}"
+    New-EC2Tag -Resource $Subnet.SubnetId -Tag $Tag
+    
+    Write-Host "✓ Subnet created" -ForegroundColor Green
+    Write-Host "  Subnet ID: $($Subnet.SubnetId)" -ForegroundColor Cyan
+    Write-Host "  Name: ${subnetName}" -ForegroundColor Cyan
+    Write-Host "  VPC: ${vpcId}" -ForegroundColor Cyan
+    Write-Host "  CIDR: ${cidrBlock}" -ForegroundColor Cyan
+    Write-Host "  AZ: ${availabilityZone}" -ForegroundColor Cyan` :
+action === 'Associate Route Table' ? `    # Associate route table with subnet
+    $Association = Register-EC2RouteTable \`
+        -RouteTableId "${routeTableId}" \`
+        -SubnetId "${subnetId}"
+    
+    Write-Host "✓ Route table associated" -ForegroundColor Green
+    Write-Host "  Subnet: ${subnetId}" -ForegroundColor Cyan
+    Write-Host "  Route Table: ${routeTableId}" -ForegroundColor Cyan
+    Write-Host "  Association ID: $($Association)" -ForegroundColor Cyan` :
+action === 'Enable Auto-Assign IP' ? `    # Enable auto-assign public IP
+    Edit-EC2SubnetAttribute \`
+        -SubnetId "${subnetId}" \`
+        -MapPublicIpOnLaunch \$true
+    
+    Write-Host "✓ Auto-assign public IP enabled" -ForegroundColor Green
+    Write-Host "  Subnet: ${subnetId}" -ForegroundColor Cyan
+    Write-Host "  New instances will receive public IPs automatically" -ForegroundColor Yellow` :
+`    # List subnets in VPC
+    $Subnets = Get-EC2Subnet -Filter @{Name="vpc-id";Values="${vpcId}"}
+    
+    Write-Host "✓ Subnets in VPC ${vpcId}:" -ForegroundColor Green
+    Write-Host ""
+    
+    $Subnets | ForEach-Object {
+        $Name = ($_.Tags | Where-Object { $_.Key -eq "Name" }).Value
+        if (-not $Name) { $Name = "(unnamed)" }
+        
+        Write-Host "  $Name" -ForegroundColor Cyan
+        Write-Host "    Subnet ID: $($_.SubnetId)" -ForegroundColor Gray
+        Write-Host "    CIDR: $($_.CidrBlock)" -ForegroundColor Gray
+        Write-Host "    AZ: $($_.AvailabilityZone)" -ForegroundColor Gray
+        Write-Host "    Available IPs: $($_.AvailableIpAddressCount)" -ForegroundColor Gray
+        Write-Host "    Public IP: $(if ($_.MapPublicIpOnLaunch) { 'Auto-assign' } else { 'No' })" -ForegroundColor Gray
+        Write-Host ""
+    }`}
+    
+} catch {
+    Write-Error "VPC subnet operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-nat-gateway-management',
+    name: 'Manage NAT Gateways',
+    category: 'Networking',
+    description: 'Create and configure NAT gateways for private subnet internet access',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Create NAT Gateway', 'Add Route to Private Subnet', 'Delete NAT Gateway', 'List NAT Gateways'], defaultValue: 'Create NAT Gateway' },
+      { id: 'subnetId', label: 'Public Subnet ID', type: 'text', required: false, placeholder: 'subnet-1234567890abcdef0' },
+      { id: 'allocationId', label: 'Elastic IP Allocation ID', type: 'text', required: false, placeholder: 'eipalloc-1234567890abcdef0' },
+      { id: 'natGatewayId', label: 'NAT Gateway ID', type: 'text', required: false, placeholder: 'nat-1234567890abcdef0' },
+      { id: 'routeTableId', label: 'Private Route Table ID', type: 'text', required: false, placeholder: 'rtb-1234567890abcdef0' },
+      { id: 'natGatewayName', label: 'NAT Gateway Name', type: 'text', required: false, placeholder: 'NAT-Gateway-1a' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const subnetId = params.subnetId ? escapePowerShellString(params.subnetId) : '';
+      const allocationId = params.allocationId ? escapePowerShellString(params.allocationId) : '';
+      const natGatewayId = params.natGatewayId ? escapePowerShellString(params.natGatewayId) : '';
+      const routeTableId = params.routeTableId ? escapePowerShellString(params.routeTableId) : '';
+      const natGatewayName = params.natGatewayName ? escapePowerShellString(params.natGatewayName) : 'NAT-Gateway';
+
+      return `# Manage NAT Gateways
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EC2
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Create NAT Gateway' ? `    # Create NAT Gateway
+    $NatGateway = New-EC2NatGateway \`
+        -SubnetId "${subnetId}" \`
+        -AllocationId "${allocationId}"
+    
+    # Tag the NAT Gateway
+    $Tag = New-Object Amazon.EC2.Model.Tag
+    $Tag.Key = "Name"
+    $Tag.Value = "${natGatewayName}"
+    New-EC2Tag -Resource $NatGateway.NatGateway.NatGatewayId -Tag $Tag
+    
+    Write-Host "✓ NAT Gateway creation initiated" -ForegroundColor Green
+    Write-Host "  NAT Gateway ID: $($NatGateway.NatGateway.NatGatewayId)" -ForegroundColor Cyan
+    Write-Host "  Name: ${natGatewayName}" -ForegroundColor Cyan
+    Write-Host "  Subnet: ${subnetId}" -ForegroundColor Cyan
+    Write-Host "  State: $($NatGateway.NatGateway.State)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Waiting for NAT Gateway to become available..." -ForegroundColor Yellow
+    
+    # Wait for NAT Gateway to be available
+    $Attempts = 0
+    do {
+        Start-Sleep -Seconds 15
+        $Attempts++
+        $Status = Get-EC2NatGateway -NatGatewayId $NatGateway.NatGateway.NatGatewayId
+        Write-Host "  Status: $($Status.State)" -ForegroundColor Gray
+    } while ($Status.State -eq "pending" -and $Attempts -lt 20)
+    
+    if ($Status.State -eq "available") {
+        Write-Host "✓ NAT Gateway is now available" -ForegroundColor Green
+    }` :
+action === 'Add Route to Private Subnet' ? `    # Add route to NAT Gateway in private route table
+    New-EC2Route \`
+        -RouteTableId "${routeTableId}" \`
+        -DestinationCidrBlock "0.0.0.0/0" \`
+        -NatGatewayId "${natGatewayId}"
+    
+    Write-Host "✓ Route added to private subnet" -ForegroundColor Green
+    Write-Host "  Route Table: ${routeTableId}" -ForegroundColor Cyan
+    Write-Host "  Destination: 0.0.0.0/0" -ForegroundColor Cyan
+    Write-Host "  NAT Gateway: ${natGatewayId}" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Private subnet instances can now access the internet via NAT" -ForegroundColor Yellow` :
+action === 'Delete NAT Gateway' ? `    # Delete NAT Gateway
+    Remove-EC2NatGateway -NatGatewayId "${natGatewayId}" -Force
+    
+    Write-Host "✓ NAT Gateway deletion initiated: ${natGatewayId}" -ForegroundColor Green
+    Write-Host "  Note: The associated Elastic IP is NOT automatically released" -ForegroundColor Yellow
+    Write-Host "  You may want to release it to avoid charges" -ForegroundColor Yellow` :
+`    # List NAT Gateways
+    $NatGateways = Get-EC2NatGateway
+    
+    Write-Host "✓ NAT Gateways:" -ForegroundColor Green
+    Write-Host ""
+    
+    $NatGateways | Where-Object { $_.State -ne "deleted" } | ForEach-Object {
+        $Name = ($_.Tags | Where-Object { $_.Key -eq "Name" }).Value
+        if (-not $Name) { $Name = "(unnamed)" }
+        
+        Write-Host "  $Name" -ForegroundColor Cyan
+        Write-Host "    NAT Gateway ID: $($_.NatGatewayId)" -ForegroundColor Gray
+        Write-Host "    State: $($_.State)" -ForegroundColor $(if ($_.State -eq "available") { "Green" } else { "Yellow" })
+        Write-Host "    Subnet: $($_.SubnetId)" -ForegroundColor Gray
+        Write-Host "    Public IP: $($_.NatGatewayAddresses[0].PublicIp)" -ForegroundColor Gray
+        Write-Host ""
+    }`}
+    
+} catch {
+    Write-Error "NAT Gateway operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-eks-workload-deployment',
+    name: 'Deploy EKS Workloads',
+    category: 'Kubernetes',
+    description: 'Configure kubectl and deploy workloads to Amazon EKS clusters',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'clusterName', label: 'EKS Cluster Name', type: 'text', required: true, placeholder: 'my-eks-cluster' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Configure kubectl', 'List Nodes', 'List Pods', 'Scale Deployment', 'Get Cluster Info'], defaultValue: 'Configure kubectl' },
+      { id: 'namespace', label: 'Namespace', type: 'text', required: false, placeholder: 'default', defaultValue: 'default' },
+      { id: 'deploymentName', label: 'Deployment Name (for scale)', type: 'text', required: false, placeholder: 'my-app' },
+      { id: 'replicas', label: 'Replicas (for scale)', type: 'number', required: false, placeholder: '3', defaultValue: 3 }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const clusterName = escapePowerShellString(params.clusterName);
+      const action = params.action;
+      const namespace = params.namespace ? escapePowerShellString(params.namespace) : 'default';
+      const deploymentName = params.deploymentName ? escapePowerShellString(params.deploymentName) : '';
+      const replicas = params.replicas || 3;
+
+      return `# Deploy EKS Workloads
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.EKS
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+${action === 'Configure kubectl' ? `    # Update kubeconfig for EKS cluster
+    Write-Host "Updating kubeconfig for cluster: ${clusterName}" -ForegroundColor Cyan
+    
+    aws eks update-kubeconfig --name "${clusterName}" --region "${region}"
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ kubectl configured for EKS cluster" -ForegroundColor Green
+        Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
+        Write-Host "  Region: ${region}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Current context:" -ForegroundColor Yellow
+        kubectl config current-context
+    } else {
+        Write-Error "Failed to update kubeconfig"
+    }` :
+action === 'List Nodes' ? `    # List cluster nodes
+    Write-Host "Nodes in cluster ${clusterName}:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    kubectl get nodes -o wide
+    
+    Write-Host ""
+    Write-Host "Node details:" -ForegroundColor Yellow
+    kubectl describe nodes | Select-String -Pattern "Name:|Roles:|cpu:|memory:|pods:"` :
+action === 'List Pods' ? `    # List pods in namespace
+    Write-Host "Pods in namespace ${namespace}:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    kubectl get pods -n "${namespace}" -o wide
+    
+    Write-Host ""
+    Write-Host "Pod resource usage:" -ForegroundColor Yellow
+    kubectl top pods -n "${namespace}" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  (Metrics server not available)" -ForegroundColor Gray
+    }` :
+action === 'Scale Deployment' ? `    # Scale deployment
+    Write-Host "Scaling deployment ${deploymentName} to ${replicas} replicas" -ForegroundColor Cyan
+    
+    kubectl scale deployment "${deploymentName}" -n "${namespace}" --replicas=${replicas}
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Deployment scaled" -ForegroundColor Green
+        Write-Host "  Deployment: ${deploymentName}" -ForegroundColor Cyan
+        Write-Host "  Namespace: ${namespace}" -ForegroundColor Cyan
+        Write-Host "  Replicas: ${replicas}" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Current status:" -ForegroundColor Yellow
+        kubectl rollout status deployment/"${deploymentName}" -n "${namespace}"
+    }` :
+`    # Get cluster info
+    Write-Host "EKS Cluster Information" -ForegroundColor Cyan
+    Write-Host ""
+    
+    $Cluster = Get-EKSCluster -Name "${clusterName}"
+    
+    Write-Host "Cluster Details:" -ForegroundColor Yellow
+    Write-Host "  Name: $($Cluster.Name)" -ForegroundColor Cyan
+    Write-Host "  Status: $($Cluster.Status)" -ForegroundColor $(if ($Cluster.Status -eq "ACTIVE") { "Green" } else { "Yellow" })
+    Write-Host "  Version: $($Cluster.Version)" -ForegroundColor Cyan
+    Write-Host "  Endpoint: $($Cluster.Endpoint)" -ForegroundColor Gray
+    Write-Host "  Platform Version: $($Cluster.PlatformVersion)" -ForegroundColor Gray
+    Write-Host "  Created: $($Cluster.CreatedAt)" -ForegroundColor Gray
+    Write-Host ""
+    
+    # Node groups
+    $NodeGroups = Get-EKSNodegroupList -ClusterName "${clusterName}"
+    Write-Host "Node Groups:" -ForegroundColor Yellow
+    foreach ($NG in $NodeGroups) {
+        $NGInfo = Get-EKSNodegroup -ClusterName "${clusterName}" -NodegroupName $NG
+        Write-Host "  $NG" -ForegroundColor Cyan
+        Write-Host "    Status: $($NGInfo.Status)" -ForegroundColor Gray
+        Write-Host "    Instance Types: $($NGInfo.InstanceTypes -join ', ')" -ForegroundColor Gray
+        Write-Host "    Desired/Min/Max: $($NGInfo.ScalingConfig.DesiredSize)/$($NGInfo.ScalingConfig.MinSize)/$($NGInfo.ScalingConfig.MaxSize)" -ForegroundColor Gray
+    }`}
+    
+} catch {
+    Write-Error "EKS operation failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-cost-explorer-report',
+    name: 'Generate Cost Explorer Report',
+    category: 'Cost Management',
+    description: 'Retrieve AWS cost and usage data for billing analysis and optimization',
+    parameters: [
+      { id: 'startDate', label: 'Start Date (YYYY-MM-DD)', type: 'text', required: true, placeholder: '2024-01-01' },
+      { id: 'endDate', label: 'End Date (YYYY-MM-DD)', type: 'text', required: true, placeholder: '2024-01-31' },
+      { id: 'granularity', label: 'Granularity', type: 'select', required: true, options: ['DAILY', 'MONTHLY'], defaultValue: 'DAILY' },
+      { id: 'groupBy', label: 'Group By', type: 'select', required: true, options: ['SERVICE', 'LINKED_ACCOUNT', 'REGION', 'USAGE_TYPE'], defaultValue: 'SERVICE' },
+      { id: 'exportCsv', label: 'Export to CSV', type: 'boolean', required: false, defaultValue: true },
+      { id: 'csvPath', label: 'CSV Export Path', type: 'path', required: false, placeholder: 'C:\\Reports\\aws-costs.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const startDate = escapePowerShellString(params.startDate);
+      const endDate = escapePowerShellString(params.endDate);
+      const granularity = params.granularity || 'DAILY';
+      const groupBy = params.groupBy || 'SERVICE';
+      const exportCsv = toPowerShellBoolean(params.exportCsv);
+      const csvPath = params.csvPath ? escapePowerShellString(params.csvPath) : 'aws-costs.csv';
+
+      return `# Generate Cost Explorer Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.CostExplorer
+
+try {
+    $ExportToCsv = ${exportCsv}
+    
+    # Define time period
+    $TimePeriod = New-Object Amazon.CostExplorer.Model.DateInterval
+    $TimePeriod.Start = "${startDate}"
+    $TimePeriod.End = "${endDate}"
+    
+    # Define grouping
+    $GroupDefinition = New-Object Amazon.CostExplorer.Model.GroupDefinition
+    $GroupDefinition.Type = "DIMENSION"
+    $GroupDefinition.Key = "${groupBy}"
+    
+    # Get cost and usage data
+    $CostData = Get-CECostAndUsage \`
+        -TimePeriod $TimePeriod \`
+        -Granularity "${granularity}" \`
+        -Metric @("BlendedCost", "UnblendedCost", "UsageQuantity") \`
+        -GroupBy $GroupDefinition
+    
+    Write-Host "✓ AWS Cost Report" -ForegroundColor Green
+    Write-Host "  Period: ${startDate} to ${endDate}" -ForegroundColor Cyan
+    Write-Host "  Granularity: ${granularity}" -ForegroundColor Cyan
+    Write-Host "  Grouped by: ${groupBy}" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Calculate totals by group
+    $TotalsByGroup = @{}
+    foreach ($Result in $CostData.ResultsByTime) {
+        foreach ($Group in $Result.Groups) {
+            $Key = $Group.Keys[0]
+            $Amount = [decimal]$Group.Metrics["BlendedCost"].Amount
+            
+            if ($TotalsByGroup.ContainsKey($Key)) {
+                $TotalsByGroup[$Key] += $Amount
+            } else {
+                $TotalsByGroup[$Key] = $Amount
+            }
+        }
+    }
+    
+    # Display top costs
+    Write-Host "Cost by ${groupBy}:" -ForegroundColor Yellow
+    $TotalsByGroup.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 15 | ForEach-Object {
+        $Formatted = "{0:C2}" -f $_.Value
+        Write-Host ("  {0,-40} {1,12}" -f $_.Key, $Formatted) -ForegroundColor $(if ($_.Value -gt 100) { "Red" } elseif ($_.Value -gt 10) { "Yellow" } else { "Green" })
+    }
+    
+    # Total
+    $GrandTotal = ($TotalsByGroup.Values | Measure-Object -Sum).Sum
+    Write-Host ""
+    Write-Host ("  {0,-40} {1,12}" -f "TOTAL", ("{0:C2}" -f $GrandTotal)) -ForegroundColor Cyan
+    
+    # Export to CSV
+    if ($ExportToCsv) {
+        $CsvData = @()
+        foreach ($Result in $CostData.ResultsByTime) {
+            $Date = $Result.TimePeriod.Start
+            foreach ($Group in $Result.Groups) {
+                $CsvData += [PSCustomObject]@{
+                    Date = $Date
+                    Group = $Group.Keys[0]
+                    BlendedCost = $Group.Metrics["BlendedCost"].Amount
+                    UnblendedCost = $Group.Metrics["UnblendedCost"].Amount
+                    UsageQuantity = $Group.Metrics["UsageQuantity"].Amount
+                    Unit = $Group.Metrics["BlendedCost"].Unit
+                }
+            }
+        }
+        
+        $CsvData | Export-Csv -Path "${csvPath}" -NoTypeInformation
+        Write-Host ""
+        Write-Host "✓ Report exported to: ${csvPath}" -ForegroundColor Green
+    }
+    
+} catch {
+    Write-Error "Cost Explorer report failed: $_"
+}`;
+    },
+    isPremium: true
+  },
+
+  {
+    id: 'aws-lambda-event-triggers',
+    name: 'Manage Lambda Event Triggers',
+    category: 'Serverless',
+    description: 'Configure event source mappings and triggers for Lambda functions',
+    parameters: [
+      { id: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+      { id: 'action', label: 'Action', type: 'select', required: true, options: ['Add S3 Trigger', 'Add SQS Trigger', 'Add CloudWatch Schedule', 'List Triggers', 'Remove Trigger'], defaultValue: 'Add S3 Trigger' },
+      { id: 'functionName', label: 'Lambda Function Name', type: 'text', required: true, placeholder: 'my-lambda-function' },
+      { id: 's3BucketName', label: 'S3 Bucket Name (for S3 trigger)', type: 'text', required: false, placeholder: 'my-bucket' },
+      { id: 's3Events', label: 'S3 Events', type: 'select', required: false, options: ['s3:ObjectCreated:*', 's3:ObjectRemoved:*', 's3:ObjectCreated:Put'], defaultValue: 's3:ObjectCreated:*' },
+      { id: 's3Prefix', label: 'S3 Key Prefix Filter', type: 'text', required: false, placeholder: 'uploads/' },
+      { id: 'sqsQueueArn', label: 'SQS Queue ARN (for SQS trigger)', type: 'text', required: false, placeholder: 'arn:aws:sqs:us-east-1:123456789012:my-queue' },
+      { id: 'batchSize', label: 'Batch Size (for SQS)', type: 'number', required: false, placeholder: '10', defaultValue: 10 },
+      { id: 'scheduleExpression', label: 'Schedule Expression', type: 'text', required: false, placeholder: 'rate(5 minutes)' },
+      { id: 'triggerUUID', label: 'Trigger UUID (for remove)', type: 'text', required: false, placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' }
+    ],
+    scriptTemplate: (params) => {
+      const region = escapePowerShellString(params.region);
+      const action = params.action;
+      const functionName = escapePowerShellString(params.functionName);
+      const s3BucketName = params.s3BucketName ? escapePowerShellString(params.s3BucketName) : '';
+      const s3Events = params.s3Events || 's3:ObjectCreated:*';
+      const s3Prefix = params.s3Prefix ? escapePowerShellString(params.s3Prefix) : '';
+      const sqsQueueArn = params.sqsQueueArn ? escapePowerShellString(params.sqsQueueArn) : '';
+      const batchSize = params.batchSize || 10;
+      const scheduleExpression = params.scheduleExpression ? escapePowerShellString(params.scheduleExpression) : 'rate(5 minutes)';
+      const triggerUUID = params.triggerUUID ? escapePowerShellString(params.triggerUUID) : '';
+
+      return `# Manage Lambda Event Triggers
+# Generated: ${new Date().toISOString()}
+
+Import-Module AWS.Tools.Lambda
+Import-Module AWS.Tools.S3
+Import-Module AWS.Tools.CloudWatchEvents
+
+try {
+    Set-DefaultAWSRegion -Region "${region}"
+    
+    # Get Lambda function ARN
+    $Function = Get-LMFunction -FunctionName "${functionName}"
+    $FunctionArn = $Function.Configuration.FunctionArn
+    
+${action === 'Add S3 Trigger' ? `    # Add permission for S3 to invoke Lambda
+    $StatementId = "s3-trigger-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    
+    Add-LMPermission \`
+        -FunctionName "${functionName}" \`
+        -StatementId $StatementId \`
+        -Action "lambda:InvokeFunction" \`
+        -Principal "s3.amazonaws.com" \`
+        -SourceArn "arn:aws:s3:::${s3BucketName}"
+    
+    # Configure S3 bucket notification
+    $LambdaConfig = New-Object Amazon.S3.Model.LambdaFunctionConfiguration
+    $LambdaConfig.LambdaFunctionArn = $FunctionArn
+    $LambdaConfig.Events = @("${s3Events}")
+    
+${s3Prefix ? `    # Add prefix filter
+    $FilterRule = New-Object Amazon.S3.Model.FilterRule
+    $FilterRule.Name = "prefix"
+    $FilterRule.Value = "${s3Prefix}"
+    $LambdaConfig.Filter = New-Object Amazon.S3.Model.S3KeyFilter
+    $LambdaConfig.Filter.FilterRules.Add($FilterRule)
+` : ''}
+    $NotificationConfig = Get-S3BucketNotification -BucketName "${s3BucketName}"
+    $NotificationConfig.LambdaFunctionConfigurations.Add($LambdaConfig)
+    
+    Write-S3BucketNotification -BucketName "${s3BucketName}" -NotificationConfiguration $NotificationConfig
+    
+    Write-Host "✓ S3 trigger added to Lambda function" -ForegroundColor Green
+    Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
+    Write-Host "  Bucket: ${s3BucketName}" -ForegroundColor Cyan
+    Write-Host "  Events: ${s3Events}" -ForegroundColor Cyan
+${s3Prefix ? `    Write-Host "  Prefix: ${s3Prefix}" -ForegroundColor Cyan` : ''}` :
+action === 'Add SQS Trigger' ? `    # Create SQS event source mapping
+    $Mapping = New-LMEventSourceMapping \`
+        -FunctionName "${functionName}" \`
+        -EventSourceArn "${sqsQueueArn}" \`
+        -BatchSize ${batchSize} \`
+        -Enabled \$true
+    
+    Write-Host "✓ SQS trigger added to Lambda function" -ForegroundColor Green
+    Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
+    Write-Host "  Queue ARN: ${sqsQueueArn}" -ForegroundColor Cyan
+    Write-Host "  Batch Size: ${batchSize}" -ForegroundColor Cyan
+    Write-Host "  UUID: $($Mapping.UUID)" -ForegroundColor Gray` :
+action === 'Add CloudWatch Schedule' ? `    # Create CloudWatch Events rule
+    $RuleName = "${functionName}-schedule"
+    
+    Write-CWERule \`
+        -Name $RuleName \`
+        -ScheduleExpression "${scheduleExpression}" \`
+        -State ENABLED
+    
+    # Add Lambda as target
+    $Target = New-Object Amazon.CloudWatchEvents.Model.Target
+    $Target.Id = "1"
+    $Target.Arn = $FunctionArn
+    
+    Write-CWETarget -Rule $RuleName -Target $Target
+    
+    # Add permission for CloudWatch to invoke Lambda
+    Add-LMPermission \`
+        -FunctionName "${functionName}" \`
+        -StatementId "cloudwatch-schedule-$(Get-Date -Format 'yyyyMMddHHmmss')" \`
+        -Action "lambda:InvokeFunction" \`
+        -Principal "events.amazonaws.com" \`
+        -SourceArn (Get-CWERule -Name $RuleName).Arn
+    
+    Write-Host "✓ CloudWatch schedule trigger added" -ForegroundColor Green
+    Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
+    Write-Host "  Rule: $RuleName" -ForegroundColor Cyan
+    Write-Host "  Schedule: ${scheduleExpression}" -ForegroundColor Cyan` :
+action === 'List Triggers' ? `    # List event source mappings
+    $Mappings = Get-LMEventSourceMappingList -FunctionName "${functionName}"
+    
+    Write-Host "Event Source Mappings for ${functionName}:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    if ($Mappings.Count -eq 0) {
+        Write-Host "  (No event source mappings)" -ForegroundColor Gray
+    } else {
+        $Mappings | ForEach-Object {
+            Write-Host "  UUID: $($_.UUID)" -ForegroundColor Green
+            Write-Host "    Source: $($_.EventSourceArn)" -ForegroundColor Gray
+            Write-Host "    State: $($_.State)" -ForegroundColor $(if ($_.State -eq "Enabled") { "Green" } else { "Yellow" })
+            Write-Host "    Batch Size: $($_.BatchSize)" -ForegroundColor Gray
+            Write-Host ""
+        }
+    }
+    
+    # List CloudWatch Events rules targeting this function
+    Write-Host "CloudWatch Event Rules:" -ForegroundColor Cyan
+    $Rules = Get-CWERule | Where-Object { $_.Name -like "*${functionName}*" }
+    
+    if ($Rules.Count -eq 0) {
+        Write-Host "  (No dedicated CloudWatch rules found)" -ForegroundColor Gray
+    } else {
+        $Rules | ForEach-Object {
+            Write-Host "  $($_.Name) - $($_.ScheduleExpression)" -ForegroundColor Green
+        }
+    }` :
+`    # Remove event source mapping
+    Remove-LMEventSourceMapping -UUID "${triggerUUID}" -Force
+    
+    Write-Host "✓ Event source mapping removed" -ForegroundColor Green
+    Write-Host "  UUID: ${triggerUUID}" -ForegroundColor Cyan`}
+    
+} catch {
+    Write-Error "Lambda trigger operation failed: $_"
+}`;
+    },
+    isPremium: true
   }
 ];

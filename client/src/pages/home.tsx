@@ -32,7 +32,10 @@ import {
   Wand2,
   Package,
   GitBranch,
-  Star
+  Star,
+  DollarSign,
+  TrendingUp,
+  BadgeDollarSign
 } from "lucide-react";
 
 export default function Home() {
@@ -53,7 +56,7 @@ export default function Home() {
     "AI script assistant (describe tasks in plain English)",
     "48 enterprise platforms (Exchange, Azure, AWS, VMware, SharePoint, Microsoft 365, and 42 more)",
     "2,400+ automation tasks across all platforms",
-    "Publish templates to Marketplace (share your expertise)",
+    "SELL your scripts on the Marketplace—keep 70% of every sale",
     "GitHub integration (sync scripts to repositories)",
     "Priority support (email response within 24 hours)",
     "Early access to new platforms and features",
@@ -205,6 +208,31 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <Card className="hover-elevate transition-all border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
+                  <BadgeDollarSign className="h-6 w-6 text-green-500" />
+                </div>
+                <CardTitle className="flex items-center gap-2">
+                  Sell Your Scripts
+                  <Badge className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">Pro</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-3">
+                  Turn your PowerShell expertise into income. Publish premium scripts to the Marketplace and <span className="font-semibold text-green-600 dark:text-green-400">keep 70% of every sale</span>. Price from $1-$50 per script.
+                </p>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-2">
+                  <DollarSign className="h-4 w-4 text-green-500" />
+                  Direct payouts via Stripe
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  Seller dashboard with analytics
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="hover-elevate transition-all border-primary/30">
               <CardHeader>
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
@@ -214,7 +242,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-3">
-                  Browse and install PowerShell script templates shared by the community. Discover proven solutions, rate templates, and publish your own scripts to help others.
+                  Browse and install PowerShell script templates shared by the community. Discover proven solutions, rate templates, and buy premium scripts from expert creators.
                 </p>
                 <Link href="/marketplace">
                   <Button variant="outline" size="sm" className="w-full gap-2" data-testid="button-explore-marketplace">
@@ -243,28 +271,6 @@ export default function Home() {
                 <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                   Branch management
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover-elevate transition-all">
-              <CardHeader>
-                <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-purple-500" />
-                </div>
-                <CardTitle>Enhanced Security</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-3">
-                  Every template undergoes automatic security scanning. Community ratings and admin moderation ensure you're installing safe, reliable scripts.
-                </p>
-                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  Malicious code detection
-                </div>
-                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  Security score ratings
                 </div>
               </CardContent>
             </Card>
@@ -401,6 +407,96 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Monetize Your Expertise Section */}
+      <section className="border-y bg-gradient-to-br from-green-500/5 via-emerald-500/5 to-cyan-500/5">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <Badge className="mb-4 bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                <BadgeDollarSign className="h-3 w-3 mr-1" />
+                Pro Feature
+              </Badge>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
+                Turn Your PowerShell Expertise Into Passive Income
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                You've spent years mastering PowerShell. Now monetize that knowledge. Sell your custom scripts to thousands of IT professionals on the PSForge Marketplace.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <Card className="hover-elevate transition-all text-center">
+                <CardHeader>
+                  <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                    <DollarSign className="h-8 w-8 text-green-500" />
+                  </div>
+                  <CardTitle className="text-2xl text-green-600 dark:text-green-400">70%</CardTitle>
+                  <CardDescription className="text-base">Revenue Share</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    You keep 70% of every sale. Price your scripts from $1 to $50 and earn on every download.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate transition-all text-center">
+                <CardHeader>
+                  <div className="h-16 w-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="h-8 w-8 text-blue-500" />
+                  </div>
+                  <CardTitle className="text-2xl">Seller Dashboard</CardTitle>
+                  <CardDescription className="text-base">Track Your Earnings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Real-time analytics show your sales, earnings, and pending payouts. Request withdrawals anytime.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate transition-all text-center">
+                <CardHeader>
+                  <div className="h-16 w-16 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-purple-500" />
+                  </div>
+                  <CardTitle className="text-2xl">Built-In Audience</CardTitle>
+                  <CardDescription className="text-base">Reach IT Professionals</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Your scripts get discovered by IT pros actively searching for automation solutions. No marketing needed.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="bg-card border rounded-xl p-6 sm:p-8 text-center">
+              <h3 className="text-xl font-semibold text-foreground mb-3">
+                Already have scripts that could help others?
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+                That Exchange migration script you perfected? The AD cleanup tool you built? The security audit script you run monthly? Other IT pros would pay for those. Start selling today.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href={user ? "/seller-dashboard" : "/signup"}>
+                  <Button size="lg" className="gap-2 bg-green-600 hover:bg-green-700 w-full sm:w-auto" data-testid="button-start-selling">
+                    <BadgeDollarSign className="h-5 w-5" />
+                    {user ? "Go to Seller Dashboard" : "Start Selling Scripts"}
+                  </Button>
+                </Link>
+                <Link href="/marketplace">
+                  <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
+                    See What's Selling
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="pricing" className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
         <div className="text-center mb-12 sm:mb-16">
@@ -408,7 +504,7 @@ export default function Home() {
             Simple, Transparent Pricing
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Start free with essential tools. Upgrade to Pro for AI assistance and enterprise platforms.
+            Start free with essential tools. Upgrade to Pro for AI assistance, enterprise platforms, and the ability to sell your scripts.
           </p>
         </div>
 

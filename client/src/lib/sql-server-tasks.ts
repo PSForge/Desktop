@@ -5813,5 +5813,1270 @@ END
     exit 1
 }`;
     }
+  },
+
+  // ==================== MONITORING ====================
+  {
+    id: 'sql-disk-space-report',
+    title: 'Database Disk Space Report',
+    description: 'Monitor disk space usage for all database files and drives',
+    category: 'Monitoring',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Reports disk space for all database files
+- Shows drive-level capacity
+- Identifies databases consuming most space
+- Warns on low disk thresholds
+
+**Prerequisites:**
+- SQL Server with VIEW SERVER STATE
+- SqlServer PowerShell module
+
+**What You Need to Provide:**
+- SQL Server instance
+- Warning threshold percentage
+
+**What the Script Does:**
+1. Queries database file sizes
+2. Reports drive capacity
+3. Identifies growth trends
+4. Alerts on low space
+
+**Important Notes:**
+- Monitor daily for production
+- Set alerts at 20% free space
+- Plan for growth
+- Consider autogrowth settings`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' },
+      { name: 'warningThreshold', label: 'Warning Threshold (% free)', type: 'number', required: false, defaultValue: 20, helpText: 'Alert when free space below this percentage' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+      const warningThreshold = params.warningThreshold || 20;
+
+      return `# SQL Server Disk Space Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+$WarningThreshold = ${warningThreshold}
+
+try {
+    Write-Host "Analyzing disk space usage..." -ForegroundColor Cyan
+    
+    # Database file sizes
+    $FileQuery = @"
+SELECT 
+    d.name AS DatabaseName,
+    f.name AS FileName,
+    f.type_desc AS FileType,
+    f.physical_name AS FilePath,
+    CAST(f.size * 8.0 / 1024 AS DECIMAL(18,2)) AS SizeMB,
+    CAST(FILEPROPERTY(f.name, 'SpaceUsed') * 8.0 / 1024 AS DECIMAL(18,2)) AS UsedMB,
+    CAST((f.size - FILEPROPERTY(f.name, 'SpaceUsed')) * 8.0 / 1024 AS DECIMAL(18,2)) AS FreeMB,
+    LEFT(f.physical_name, 1) AS DriveLetter
+FROM sys.master_files f
+INNER JOIN sys.databases d ON f.database_id = d.database_id
+ORDER BY SizeMB DESC
+"@
+    
+    $Files = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $FileQuery
+    
+    # Group by database
+    $ByDatabase = $Files | Group-Object DatabaseName | ForEach-Object {
+        [PSCustomObject]@{
+            DatabaseName = $_.Name
+            TotalSizeMB = ($_.Group | Measure-Object -Property SizeMB -Sum).Sum
+            TotalUsedMB = ($_.Group | Measure-Object -Property UsedMB -Sum).Sum
+            FileCount = $_.Count
+        }
+    } | Sort-Object TotalSizeMB -Descending
+    
+    Write-Host ""
+    Write-Host "Top 10 Databases by Size:" -ForegroundColor White
+    $ByDatabase | Select-Object -First 10 | ForEach-Object {
+        $UsedPct = if ($_.TotalSizeMB -gt 0) { [math]::Round($_.TotalUsedMB / $_.TotalSizeMB * 100, 1) } else { 0 }
+        Write-Host "  $($_.DatabaseName): $([math]::Round($_.TotalSizeMB / 1024, 2)) GB ($UsedPct% used)" -ForegroundColor Gray
+    }
+    
+    # Drive-level analysis
+    $DriveQuery = @"
+SELECT DISTINCT
+    vs.volume_mount_point AS Drive,
+    CAST(vs.total_bytes / 1024 / 1024 / 1024.0 AS DECIMAL(18,2)) AS TotalGB,
+    CAST(vs.available_bytes / 1024 / 1024 / 1024.0 AS DECIMAL(18,2)) AS FreeGB,
+    CAST((vs.total_bytes - vs.available_bytes) * 100.0 / vs.total_bytes AS DECIMAL(5,2)) AS UsedPct
+FROM sys.master_files f
+CROSS APPLY sys.dm_os_volume_stats(f.database_id, f.file_id) vs
+"@
+    
+    $Drives = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $DriveQuery
+    
+    Write-Host ""
+    Write-Host "Drive Capacity:" -ForegroundColor White
+    foreach ($Drive in $Drives) {
+        $FreePct = 100 - $Drive.UsedPct
+        $Color = if ($FreePct -lt $WarningThreshold) { 'Red' } elseif ($FreePct -lt ($WarningThreshold * 2)) { 'Yellow' } else { 'Green' }
+        Write-Host "  $($Drive.Drive): $($Drive.TotalGB) GB total, $($Drive.FreeGB) GB free ($FreePct% free)" -ForegroundColor $Color
+        
+        if ($FreePct -lt $WarningThreshold) {
+            Write-Host "    WARNING: LOW DISK SPACE" -ForegroundColor Red
+        }
+    }
+    
+    # Summary
+    $TotalAllocatedGB = [math]::Round(($Files | Measure-Object -Property SizeMB -Sum).Sum / 1024, 2)
+    $TotalUsedGB = [math]::Round(($Files | Measure-Object -Property UsedMB -Sum).Sum / 1024, 2)
+    
+    Write-Host ""
+    Write-Host "=============== SUMMARY ===============" -ForegroundColor White
+    Write-Host "Total databases: $($ByDatabase.Count)" -ForegroundColor Gray
+    Write-Host "Total database files: $($Files.Count)" -ForegroundColor Gray
+    Write-Host "Total allocated: $TotalAllocatedGB GB" -ForegroundColor Gray
+    Write-Host "Total used: $TotalUsedGB GB" -ForegroundColor Gray
+    
+} catch {
+    Write-Error "Disk space analysis failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-database-growth-report',
+    title: 'Database Growth Trend Report',
+    description: 'Track database size growth over time using backup history',
+    category: 'Monitoring',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Analyzes backup size history
+- Calculates growth trends
+- Projects future space needs
+- Exports growth data
+
+**Prerequisites:**
+- SQL Server with msdb access
+- SqlServer PowerShell module
+- Backup history available
+
+**What You Need to Provide:**
+- SQL Server instance
+- Days of history
+- Output path
+
+**What the Script Does:**
+1. Queries backup history
+2. Calculates growth rates
+3. Projects future needs
+4. Exports report
+
+**Important Notes:**
+- Accuracy depends on backup frequency
+- Use for capacity planning
+- Monitor growth anomalies
+- Plan storage accordingly`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' },
+      { name: 'daysBack', label: 'Days of History', type: 'number', required: false, defaultValue: 90 },
+      { name: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\Database_Growth.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+      const daysBack = params.daysBack || 90;
+      const outputPath = escapePowerShellString(params.outputPath);
+
+      return `# SQL Server Database Growth Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+$DaysBack = ${daysBack}
+$OutputPath = "${outputPath}"
+
+try {
+    Write-Host "Analyzing database growth trends..." -ForegroundColor Cyan
+    Write-Host "Period: Last $DaysBack days" -ForegroundColor Gray
+    
+    $GrowthQuery = @"
+SELECT 
+    database_name AS DatabaseName,
+    CAST(backup_start_date AS DATE) AS BackupDate,
+    CAST(AVG(backup_size) / 1024 / 1024 / 1024 AS DECIMAL(18,2)) AS BackupSizeGB
+FROM msdb.dbo.backupset
+WHERE type = 'D'
+    AND backup_start_date >= DATEADD(DAY, -$DaysBack, GETDATE())
+GROUP BY database_name, CAST(backup_start_date AS DATE)
+ORDER BY database_name, BackupDate
+"@
+    
+    $GrowthData = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $GrowthQuery
+    
+    if (-not $GrowthData) {
+        Write-Host "No backup history found" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    $GrowthData | Export-Csv -Path $OutputPath -NoTypeInformation
+    
+    # Calculate growth by database
+    $Databases = $GrowthData | Select-Object -ExpandProperty DatabaseName -Unique
+    
+    Write-Host ""
+    Write-Host "Database Growth Summary:" -ForegroundColor White
+    
+    foreach ($DB in $Databases) {
+        $DBData = $GrowthData | Where-Object { $_.DatabaseName -eq $DB } | Sort-Object BackupDate
+        
+        if ($DBData.Count -ge 2) {
+            $FirstSize = $DBData[0].BackupSizeGB
+            $LastSize = $DBData[-1].BackupSizeGB
+            $GrowthGB = $LastSize - $FirstSize
+            $GrowthPct = if ($FirstSize -gt 0) { [math]::Round(($GrowthGB / $FirstSize) * 100, 1) } else { 0 }
+            $DailyGrowth = [math]::Round($GrowthGB / $DaysBack, 3)
+            
+            $Color = if ($GrowthPct -gt 50) { 'Yellow' } elseif ($GrowthPct -gt 0) { 'Cyan' } else { 'Green' }
+            
+            Write-Host ""
+            Write-Host "  $DB" -ForegroundColor $Color
+            Write-Host "    Start: $FirstSize GB -> Current: $LastSize GB" -ForegroundColor Gray
+            Write-Host "    Growth: $GrowthGB GB ($GrowthPct%)" -ForegroundColor Gray
+            Write-Host "    Daily average: $DailyGrowth GB/day" -ForegroundColor Gray
+            
+            # Project 30-day growth
+            $Projected30 = [math]::Round($LastSize + ($DailyGrowth * 30), 2)
+            Write-Host "    30-day projection: $Projected30 GB" -ForegroundColor Gray
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Growth report exported: $OutputPath" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Growth analysis failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-connection-count-report',
+    title: 'Active Connections Report',
+    description: 'Monitor active connections by database, user, and application',
+    category: 'Monitoring',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Reports all active connections
+- Groups by database, user, application
+- Identifies connection patterns
+- Helps capacity planning
+
+**Prerequisites:**
+- SQL Server with VIEW SERVER STATE
+- SqlServer PowerShell module
+
+**What You Need to Provide:**
+- SQL Server instance
+
+**What the Script Does:**
+1. Queries dm_exec_sessions
+2. Groups by various criteria
+3. Identifies heavy consumers
+4. Reports connection states
+
+**Important Notes:**
+- Monitor for connection leaks
+- Track application patterns
+- Watch for blocking connections
+- Compare to connection limits`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+
+      return `# SQL Server Active Connections Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+
+try {
+    Write-Host "Analyzing active connections..." -ForegroundColor Cyan
+    
+    # Total connection count
+    $TotalQuery = @"
+SELECT 
+    COUNT(*) AS TotalConnections,
+    SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) AS RunningQueries,
+    SUM(CASE WHEN status = 'sleeping' THEN 1 ELSE 0 END) AS SleepingConnections
+FROM sys.dm_exec_sessions
+WHERE is_user_process = 1
+"@
+    
+    $Total = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $TotalQuery
+    
+    Write-Host ""
+    Write-Host "Connection Overview:" -ForegroundColor White
+    Write-Host "  Total connections: $($Total.TotalConnections)" -ForegroundColor Cyan
+    Write-Host "  Running queries: $($Total.RunningQueries)" -ForegroundColor Green
+    Write-Host "  Sleeping: $($Total.SleepingConnections)" -ForegroundColor Gray
+    
+    # By database
+    $ByDBQuery = @"
+SELECT TOP 10
+    ISNULL(DB_NAME(database_id), 'master') AS DatabaseName,
+    COUNT(*) AS Connections
+FROM sys.dm_exec_sessions
+WHERE is_user_process = 1
+GROUP BY database_id
+ORDER BY Connections DESC
+"@
+    
+    $ByDB = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ByDBQuery
+    
+    Write-Host ""
+    Write-Host "Connections by Database:" -ForegroundColor White
+    foreach ($DB in $ByDB) {
+        Write-Host "  $($DB.DatabaseName): $($DB.Connections)" -ForegroundColor Gray
+    }
+    
+    # By application
+    $ByAppQuery = @"
+SELECT TOP 10
+    ISNULL(program_name, 'Unknown') AS ApplicationName,
+    COUNT(*) AS Connections
+FROM sys.dm_exec_sessions
+WHERE is_user_process = 1 AND program_name IS NOT NULL AND program_name != ''
+GROUP BY program_name
+ORDER BY Connections DESC
+"@
+    
+    $ByApp = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ByAppQuery
+    
+    Write-Host ""
+    Write-Host "Connections by Application:" -ForegroundColor White
+    foreach ($App in $ByApp) {
+        Write-Host "  $($App.ApplicationName): $($App.Connections)" -ForegroundColor Gray
+    }
+    
+    # By login
+    $ByLoginQuery = @"
+SELECT TOP 10
+    login_name AS LoginName,
+    COUNT(*) AS Connections
+FROM sys.dm_exec_sessions
+WHERE is_user_process = 1
+GROUP BY login_name
+ORDER BY Connections DESC
+"@
+    
+    $ByLogin = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ByLoginQuery
+    
+    Write-Host ""
+    Write-Host "Connections by Login:" -ForegroundColor White
+    foreach ($Login in $ByLogin) {
+        Write-Host "  $($Login.LoginName): $($Login.Connections)" -ForegroundColor Gray
+    }
+    
+    # By host
+    $ByHostQuery = @"
+SELECT TOP 10
+    ISNULL(host_name, 'Unknown') AS HostName,
+    COUNT(*) AS Connections
+FROM sys.dm_exec_sessions
+WHERE is_user_process = 1
+GROUP BY host_name
+ORDER BY Connections DESC
+"@
+    
+    $ByHost = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ByHostQuery
+    
+    Write-Host ""
+    Write-Host "Connections by Host:" -ForegroundColor White
+    foreach ($HostItem in $ByHost) {
+        Write-Host "  $($HostItem.HostName): $($HostItem.Connections)" -ForegroundColor Gray
+    }
+    
+    # Max connections setting
+    $MaxQuery = "SELECT @@MAX_CONNECTIONS AS MaxConnections"
+    $Max = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $MaxQuery
+    
+    $UsagePct = [math]::Round(($Total.TotalConnections / $Max.MaxConnections) * 100, 1)
+    
+    Write-Host ""
+    Write-Host "Connection Capacity:" -ForegroundColor White
+    Write-Host "  Max allowed: $($Max.MaxConnections)" -ForegroundColor Gray
+    Write-Host "  Current usage: $UsagePct%" -ForegroundColor $(if ($UsagePct -gt 80) { 'Red' } elseif ($UsagePct -gt 50) { 'Yellow' } else { 'Green' })
+    
+} catch {
+    Write-Error "Connection analysis failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-server-configuration-report',
+    title: 'Server Configuration Report',
+    description: 'Report SQL Server configuration settings and best practices',
+    category: 'Monitoring',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Reports server configuration
+- Compares to best practices
+- Identifies misconfigurations
+- Documents current settings
+
+**Prerequisites:**
+- SQL Server with VIEW SERVER STATE
+- SqlServer PowerShell module
+- Sysadmin for some settings
+
+**What You Need to Provide:**
+- SQL Server instance
+
+**What the Script Does:**
+1. Queries sp_configure
+2. Reports key settings
+3. Compares to best practices
+4. Exports configuration
+
+**Important Notes:**
+- Document for DR purposes
+- Review after upgrades
+- Compare across servers
+- Track changes over time`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' },
+      { name: 'outputPath', label: 'Output CSV Path (optional)', type: 'path', required: false, placeholder: 'C:\\Reports\\SQL_Config.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+      const outputPath = escapePowerShellString(params.outputPath || '');
+
+      return `# SQL Server Configuration Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+$OutputPath = "${outputPath}"
+
+try {
+    Write-Host "Gathering server configuration..." -ForegroundColor Cyan
+    
+    # Server properties
+    $PropsQuery = @"
+SELECT 
+    SERVERPROPERTY('MachineName') AS MachineName,
+    SERVERPROPERTY('ServerName') AS ServerName,
+    SERVERPROPERTY('ProductVersion') AS Version,
+    SERVERPROPERTY('ProductLevel') AS ProductLevel,
+    SERVERPROPERTY('Edition') AS Edition,
+    SERVERPROPERTY('EngineEdition') AS EngineEdition,
+    SERVERPROPERTY('IsClustered') AS IsClustered,
+    SERVERPROPERTY('IsHadrEnabled') AS IsHadrEnabled,
+    SERVERPROPERTY('Collation') AS Collation
+"@
+    
+    $Props = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $PropsQuery
+    
+    Write-Host ""
+    Write-Host "Server Information:" -ForegroundColor White
+    Write-Host "  Server: $($Props.ServerName)" -ForegroundColor Cyan
+    Write-Host "  Version: $($Props.Version) ($($Props.ProductLevel))" -ForegroundColor Gray
+    Write-Host "  Edition: $($Props.Edition)" -ForegroundColor Gray
+    Write-Host "  Clustered: $($Props.IsClustered)" -ForegroundColor Gray
+    Write-Host "  AlwaysOn: $($Props.IsHadrEnabled)" -ForegroundColor Gray
+    Write-Host "  Collation: $($Props.Collation)" -ForegroundColor Gray
+    
+    # Key configurations
+    $ConfigQuery = @"
+SELECT 
+    name AS ConfigName,
+    value AS ConfiguredValue,
+    value_in_use AS RunningValue,
+    minimum AS MinValue,
+    maximum AS MaxValue,
+    is_dynamic AS IsDynamic,
+    is_advanced AS IsAdvanced
+FROM sys.configurations
+WHERE name IN (
+    'max server memory (MB)',
+    'min server memory (MB)',
+    'max degree of parallelism',
+    'cost threshold for parallelism',
+    'optimize for ad hoc workloads',
+    'clr enabled',
+    'xp_cmdshell',
+    'backup compression default',
+    'remote admin connections',
+    'cross db ownership chaining',
+    'Database Mail XPs',
+    'default trace enabled'
+)
+ORDER BY name
+"@
+    
+    $Config = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ConfigQuery
+    
+    Write-Host ""
+    Write-Host "Key Configuration Settings:" -ForegroundColor White
+    
+    foreach ($Setting in $Config) {
+        $Status = if ($Setting.ConfiguredValue -ne $Setting.RunningValue) { ' (restart needed)' } else { '' }
+        Write-Host "  $($Setting.ConfigName): $($Setting.RunningValue)$Status" -ForegroundColor Gray
+    }
+    
+    # Memory analysis
+    $MemQuery = @"
+SELECT 
+    physical_memory_kb / 1024 AS PhysicalMemoryMB,
+    committed_kb / 1024 AS CommittedMemoryMB,
+    committed_target_kb / 1024 AS TargetMemoryMB
+FROM sys.dm_os_sys_info
+"@
+    
+    $Mem = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $MemQuery
+    $MaxMem = ($Config | Where-Object { $_.ConfigName -eq 'max server memory (MB)' }).RunningValue
+    
+    Write-Host ""
+    Write-Host "Memory Configuration:" -ForegroundColor White
+    Write-Host "  Physical Memory: $([math]::Round($Mem.PhysicalMemoryMB / 1024, 2)) GB" -ForegroundColor Gray
+    Write-Host "  Max Server Memory: $([math]::Round($MaxMem / 1024, 2)) GB" -ForegroundColor Gray
+    Write-Host "  Currently Committed: $([math]::Round($Mem.CommittedMemoryMB / 1024, 2)) GB" -ForegroundColor Gray
+    
+    # Best practice checks
+    Write-Host ""
+    Write-Host "Best Practice Checks:" -ForegroundColor White
+    
+    # Check MAXDOP
+    $MaxDOP = ($Config | Where-Object { $_.ConfigName -eq 'max degree of parallelism' }).RunningValue
+    if ($MaxDOP -eq 0) {
+        Write-Host "  MAXDOP is 0 (unlimited) - consider setting based on CPU cores" -ForegroundColor Yellow
+    } else {
+        Write-Host "  MAXDOP: $MaxDOP" -ForegroundColor Green
+    }
+    
+    # Check cost threshold
+    $CostThreshold = ($Config | Where-Object { $_.ConfigName -eq 'cost threshold for parallelism' }).RunningValue
+    if ($CostThreshold -eq 5) {
+        Write-Host "  Cost threshold is default (5) - consider increasing for OLTP" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Cost threshold: $CostThreshold" -ForegroundColor Green
+    }
+    
+    # Check max memory
+    if ($MaxMem -gt ($Mem.PhysicalMemoryMB - 4096)) {
+        Write-Host "  Max server memory may be too high - leave 4GB+ for OS" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Max server memory properly configured" -ForegroundColor Green
+    }
+    
+    # Export if path provided
+    if ($OutputPath) {
+        $Config | Export-Csv -Path $OutputPath -NoTypeInformation
+        Write-Host ""
+        Write-Host "Configuration exported: $OutputPath" -ForegroundColor Green
+    }
+    
+} catch {
+    Write-Error "Configuration report failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-log-shipping-status',
+    title: 'Log Shipping Status Check',
+    description: 'Monitor log shipping status, latency, and alert thresholds',
+    category: 'High Availability',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Checks log shipping configuration
+- Reports backup/copy/restore status
+- Monitors latency and thresholds
+- Identifies sync issues
+
+**Prerequisites:**
+- Log shipping configured
+- SqlServer PowerShell module
+- Access to primary and secondary
+
+**What You Need to Provide:**
+- SQL Server instance (primary or secondary)
+
+**What the Script Does:**
+1. Queries log shipping tables
+2. Reports last backup/restore times
+3. Calculates latency
+4. Alerts on threshold breaches
+
+**Important Notes:**
+- Monitor on both primary and secondary
+- Check latency regularly
+- Review alert thresholds
+- Test failover procedures`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+
+      return `# SQL Server Log Shipping Status
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+
+try {
+    Write-Host "Checking log shipping status..." -ForegroundColor Cyan
+    
+    # Primary databases
+    $PrimaryQuery = @"
+SELECT 
+    p.primary_database AS DatabaseName,
+    p.backup_directory AS BackupDirectory,
+    p.backup_share AS BackupShare,
+    p.backup_threshold AS BackupThresholdMinutes
+FROM msdb.dbo.log_shipping_primary_databases p
+"@
+    
+    $Primaries = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $PrimaryQuery -ErrorAction SilentlyContinue
+    
+    if ($Primaries) {
+        Write-Host ""
+        Write-Host "Primary Databases (Log Shipping Source):" -ForegroundColor White
+        
+        foreach ($Primary in $Primaries) {
+            Write-Host ""
+            Write-Host "  $($Primary.DatabaseName)" -ForegroundColor Cyan
+            Write-Host "    Backup threshold: $($Primary.BackupThresholdMinutes) minutes" -ForegroundColor Gray
+            Write-Host "    Backup share: $($Primary.BackupShare)" -ForegroundColor Gray
+        }
+    }
+    
+    # Secondary databases
+    $SecondaryQuery = @"
+SELECT 
+    s.secondary_database AS DatabaseName,
+    s.primary_server AS PrimaryServer,
+    s.primary_database AS PrimaryDatabase,
+    s.restore_threshold AS RestoreThresholdMinutes,
+    sd.last_restored_file AS LastRestoredFile,
+    sd.last_restored_date AS LastRestoreTime,
+    DATEDIFF(MINUTE, sd.last_restored_date, GETDATE()) AS MinutesSinceRestore
+FROM msdb.dbo.log_shipping_secondary_databases s
+LEFT JOIN msdb.dbo.log_shipping_monitor_secondary sd 
+    ON s.secondary_database = sd.secondary_database
+"@
+    
+    $Secondaries = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $SecondaryQuery -ErrorAction SilentlyContinue
+    
+    if ($Secondaries) {
+        Write-Host ""
+        Write-Host "Secondary Databases (Log Shipping Target):" -ForegroundColor White
+        
+        foreach ($Secondary in $Secondaries) {
+            $Status = if ($Secondary.MinutesSinceRestore -gt $Secondary.RestoreThresholdMinutes) { 'ALERT' } else { 'OK' }
+            $Color = if ($Status -eq 'ALERT') { 'Red' } else { 'Green' }
+            
+            Write-Host ""
+            Write-Host "  $($Secondary.DatabaseName)" -ForegroundColor Cyan
+            Write-Host "    Primary: $($Secondary.PrimaryServer).$($Secondary.PrimaryDatabase)" -ForegroundColor Gray
+            Write-Host "    Restore threshold: $($Secondary.RestoreThresholdMinutes) minutes" -ForegroundColor Gray
+            Write-Host "    Minutes since restore: $($Secondary.MinutesSinceRestore)" -ForegroundColor $Color
+            Write-Host "    Last file: $($Secondary.LastRestoredFile)" -ForegroundColor Gray
+            Write-Host "    Status: $Status" -ForegroundColor $Color
+        }
+    }
+    
+    if (-not $Primaries -and -not $Secondaries) {
+        Write-Host ""
+        Write-Host "No log shipping configuration found on this server" -ForegroundColor Yellow
+    }
+    
+} catch {
+    Write-Error "Log shipping status check failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-database-mail-test',
+    title: 'Test Database Mail',
+    description: 'Send test email through Database Mail and verify configuration',
+    category: 'Maintenance Plans',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Sends test email via Database Mail
+- Verifies SMTP configuration
+- Checks mail queue status
+- Reports delivery status
+
+**Prerequisites:**
+- Database Mail configured
+- Valid mail profile
+- SMTP server accessible
+- SqlServer PowerShell module
+
+**What You Need to Provide:**
+- SQL Server instance
+- Mail profile name
+- Recipient email address
+
+**What the Script Does:**
+1. Validates mail profile
+2. Sends test message
+3. Monitors queue
+4. Reports delivery status
+
+**Important Notes:**
+- Test after any mail changes
+- Verify SMTP connectivity
+- Check spam folders
+- Monitor failed mail items`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' },
+      { name: 'profileName', label: 'Mail Profile Name', type: 'text', required: true, placeholder: 'SQLMailProfile' },
+      { name: 'recipientEmail', label: 'Recipient Email', type: 'text', required: true, placeholder: 'admin@company.com' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+      const profileName = escapePowerShellString(params.profileName);
+      const recipientEmail = escapePowerShellString(params.recipientEmail);
+
+      return `# SQL Server Database Mail Test
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+$ProfileName = "${profileName}"
+$RecipientEmail = "${recipientEmail}"
+
+try {
+    Write-Host "Testing Database Mail configuration..." -ForegroundColor Cyan
+    
+    # Check if Database Mail is enabled
+    $EnabledQuery = "SELECT value_in_use FROM sys.configurations WHERE name = 'Database Mail XPs'"
+    $Enabled = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $EnabledQuery
+    
+    if ($Enabled.value_in_use -ne 1) {
+        Write-Error "Database Mail XPs is not enabled. Enable with: sp_configure 'Database Mail XPs', 1; RECONFIGURE"
+        exit 1
+    }
+    
+    # Verify profile exists
+    $ProfileQuery = "SELECT profile_id, name FROM msdb.dbo.sysmail_profile WHERE name = '$ProfileName'"
+    $Profile = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ProfileQuery
+    
+    if (-not $Profile) {
+        Write-Error "Mail profile not found: $ProfileName"
+        exit 1
+    }
+    
+    Write-Host "Mail profile found: $ProfileName" -ForegroundColor Green
+    
+    # Send test email
+    $TestSubject = "SQL Server Database Mail Test - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $TestBody = @"
+This is a test email from SQL Server Database Mail.
+
+Server: $ServerInstance
+Profile: $ProfileName
+Sent: $(Get-Date)
+
+If you received this email, Database Mail is working correctly.
+"@
+    
+    Write-Host "Sending test email to: $RecipientEmail" -ForegroundColor Cyan
+    
+    $SendQuery = @"
+EXEC msdb.dbo.sp_send_dbmail
+    @profile_name = N'$ProfileName',
+    @recipients = N'$RecipientEmail',
+    @subject = N'$TestSubject',
+    @body = N'$TestBody';
+SELECT @@ROWCOUNT AS Result
+"@
+    
+    Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $SendQuery
+    
+    Write-Host "Test email queued successfully" -ForegroundColor Green
+    
+    # Check mail queue
+    Start-Sleep -Seconds 5
+    
+    $QueueQuery = @"
+SELECT TOP 5
+    mailitem_id,
+    send_request_date,
+    sent_status,
+    subject
+FROM msdb.dbo.sysmail_allitems
+ORDER BY mailitem_id DESC
+"@
+    
+    $Queue = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $QueueQuery
+    
+    Write-Host ""
+    Write-Host "Recent Mail Items:" -ForegroundColor White
+    
+    foreach ($Item in $Queue) {
+        $StatusColor = switch ($Item.sent_status) {
+            'sent' { 'Green' }
+            'failed' { 'Red' }
+            'unsent' { 'Yellow' }
+            default { 'Gray' }
+        }
+        
+        Write-Host "  [$($Item.sent_status)] $($Item.subject)" -ForegroundColor $StatusColor
+    }
+    
+    # Check for errors
+    $ErrorQuery = @"
+SELECT TOP 3 description 
+FROM msdb.dbo.sysmail_event_log 
+WHERE event_type = 'error'
+ORDER BY log_date DESC
+"@
+    
+    $Errors = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ErrorQuery -ErrorAction SilentlyContinue
+    
+    if ($Errors) {
+        Write-Host ""
+        Write-Host "Recent Mail Errors:" -ForegroundColor Yellow
+        foreach ($Err in $Errors) {
+            Write-Host "  $($Err.description)" -ForegroundColor Yellow
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Check recipient inbox (and spam folder) for test email" -ForegroundColor Cyan
+    
+} catch {
+    Write-Error "Database Mail test failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-server-logins-report',
+    title: 'Server Logins Security Report',
+    description: 'Report all SQL Server logins with roles and security status',
+    category: 'Security',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Lists all server-level logins
+- Reports role memberships
+- Identifies security concerns
+- Exports for audit compliance
+
+**Prerequisites:**
+- SQL Server with securityadmin role
+- SqlServer PowerShell module
+
+**What You Need to Provide:**
+- SQL Server instance
+- Output path
+
+**What the Script Does:**
+1. Queries server principals
+2. Reports role memberships
+3. Identifies disabled/expired
+4. Flags security issues
+
+**Important Notes:**
+- Run quarterly for compliance
+- Review sysadmin members
+- Check for orphaned logins
+- Document all exceptions`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' },
+      { name: 'outputPath', label: 'Output CSV Path', type: 'path', required: true, placeholder: 'C:\\Reports\\Server_Logins.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+      const outputPath = escapePowerShellString(params.outputPath);
+
+      return `# SQL Server Logins Security Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+$OutputPath = "${outputPath}"
+
+try {
+    Write-Host "Generating server logins security report..." -ForegroundColor Cyan
+    
+    $LoginsQuery = @"
+SELECT 
+    sp.name AS LoginName,
+    sp.type_desc AS LoginType,
+    sp.create_date AS CreateDate,
+    sp.modify_date AS ModifyDate,
+    sp.is_disabled AS IsDisabled,
+    LOGINPROPERTY(sp.name, 'IsExpired') AS IsExpired,
+    LOGINPROPERTY(sp.name, 'IsLocked') AS IsLocked,
+    LOGINPROPERTY(sp.name, 'IsMustChange') AS MustChangePassword,
+    LOGINPROPERTY(sp.name, 'DaysUntilExpiration') AS DaysUntilExpiration,
+    sp.default_database_name AS DefaultDatabase,
+    STUFF((
+        SELECT ',' + r.name
+        FROM sys.server_role_members rm
+        INNER JOIN sys.server_principals r ON rm.role_principal_id = r.principal_id
+        WHERE rm.member_principal_id = sp.principal_id
+        FOR XML PATH('')
+    ), 1, 1, '') AS ServerRoles
+FROM sys.server_principals sp
+WHERE sp.type IN ('S', 'U', 'G')
+    AND sp.name NOT LIKE '##%'
+    AND sp.name != 'sa'
+ORDER BY sp.name
+"@
+    
+    $Logins = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $LoginsQuery
+    
+    if (-not $Logins) {
+        Write-Host "No logins found" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    $Logins | Export-Csv -Path $OutputPath -NoTypeInformation
+    
+    # Summary stats
+    $TotalLogins = $Logins.Count
+    $SQLLogins = ($Logins | Where-Object { $_.LoginType -eq 'SQL_LOGIN' }).Count
+    $WindowsLogins = ($Logins | Where-Object { $_.LoginType -eq 'WINDOWS_LOGIN' }).Count
+    $WindowsGroups = ($Logins | Where-Object { $_.LoginType -eq 'WINDOWS_GROUP' }).Count
+    $Disabled = ($Logins | Where-Object { $_.IsDisabled -eq 1 }).Count
+    $Sysadmins = ($Logins | Where-Object { $_.ServerRoles -like '*sysadmin*' }).Count
+    
+    Write-Host ""
+    Write-Host "Login Summary:" -ForegroundColor White
+    Write-Host "  Total logins: $TotalLogins" -ForegroundColor Gray
+    Write-Host "  SQL logins: $SQLLogins" -ForegroundColor Gray
+    Write-Host "  Windows logins: $WindowsLogins" -ForegroundColor Gray
+    Write-Host "  Windows groups: $WindowsGroups" -ForegroundColor Gray
+    Write-Host "  Disabled: $Disabled" -ForegroundColor Gray
+    Write-Host "  Sysadmin members: $Sysadmins" -ForegroundColor $(if ($Sysadmins -gt 5) { 'Yellow' } else { 'Gray' })
+    
+    # Security concerns
+    Write-Host ""
+    Write-Host "Security Concerns:" -ForegroundColor White
+    
+    # Sysadmin members
+    $SysadminLogins = $Logins | Where-Object { $_.ServerRoles -like '*sysadmin*' }
+    if ($SysadminLogins) {
+        Write-Host ""
+        Write-Host "  Sysadmin Role Members:" -ForegroundColor Yellow
+        foreach ($Admin in $SysadminLogins) {
+            Write-Host "    - $($Admin.LoginName) ($($Admin.LoginType))" -ForegroundColor Yellow
+        }
+    }
+    
+    # Expired or locked
+    $ExpiredLocked = $Logins | Where-Object { $_.IsExpired -eq 1 -or $_.IsLocked -eq 1 }
+    if ($ExpiredLocked) {
+        Write-Host ""
+        Write-Host "  Expired/Locked Logins:" -ForegroundColor Red
+        foreach ($Login in $ExpiredLocked) {
+            Write-Host "    - $($Login.LoginName) (Expired: $($Login.IsExpired), Locked: $($Login.IsLocked))" -ForegroundColor Red
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Report exported: $OutputPath" -ForegroundColor Green
+    
+} catch {
+    Write-Error "Login report failed: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-failed-login-audit',
+    title: 'Failed Login Audit',
+    description: 'Audit failed login attempts from SQL Server error log',
+    category: 'Security',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Reads SQL Server error log
+- Filters failed login attempts
+- Identifies attack patterns
+- Reports by source and user
+
+**Prerequisites:**
+- SQL Server with admin access
+- Failed login auditing enabled
+- SqlServer PowerShell module
+
+**What You Need to Provide:**
+- SQL Server instance
+- Hours to analyze
+
+**What the Script Does:**
+1. Reads error log entries
+2. Filters login failures
+3. Groups by source/user
+4. Identifies patterns
+
+**Important Notes:**
+- Enable failed login auditing
+- Review regularly for security
+- Set up alerts for thresholds
+- Consider IP blocking for attacks`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' },
+      { name: 'hoursBack', label: 'Hours to Analyze', type: 'number', required: false, defaultValue: 24 }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+      const hoursBack = params.hoursBack || 24;
+
+      return `# SQL Server Failed Login Audit
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+$HoursBack = ${hoursBack}
+$CutoffTime = (Get-Date).AddHours(-$HoursBack)
+
+try {
+    Write-Host "Auditing failed login attempts..." -ForegroundColor Cyan
+    Write-Host "Period: Last $HoursBack hours" -ForegroundColor Gray
+    
+    # Read error log
+    $LogQuery = @"
+EXEC xp_readerrorlog 0, 1, N'Login failed'
+"@
+    
+    $LogEntries = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $LogQuery -ErrorAction SilentlyContinue
+    
+    if (-not $LogEntries) {
+        Write-Host "No failed login attempts found" -ForegroundColor Green
+        exit 0
+    }
+    
+    # Filter by time
+    $RecentFailures = $LogEntries | Where-Object { 
+        try { [DateTime]$_.LogDate -ge $CutoffTime } catch { $false }
+    }
+    
+    if (-not $RecentFailures) {
+        Write-Host "No failed logins in the last $HoursBack hours" -ForegroundColor Green
+        exit 0
+    }
+    
+    Write-Host ""
+    Write-Host "Found $($RecentFailures.Count) failed login attempts" -ForegroundColor Yellow
+    
+    # Parse and group failures
+    $FailureDetails = @{}
+    $SourceDetails = @{}
+    
+    foreach ($Entry in $RecentFailures) {
+        $Text = $Entry.Text
+        
+        # Extract user
+        if ($Text -match "Login failed for user '([^']+)'") {
+            $User = $Matches[1]
+            if (-not $FailureDetails.ContainsKey($User)) {
+                $FailureDetails[$User] = 0
+            }
+            $FailureDetails[$User]++
+        }
+        
+        # Extract client IP
+        if ($Text -match '\[CLIENT: ([^\]]+)\]') {
+            $Client = $Matches[1]
+            if (-not $SourceDetails.ContainsKey($Client)) {
+                $SourceDetails[$Client] = 0
+            }
+            $SourceDetails[$Client]++
+        }
+    }
+    
+    # Report by user
+    Write-Host ""
+    Write-Host "Failed Logins by User:" -ForegroundColor White
+    $FailureDetails.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object {
+        $Color = if ($_.Value -gt 10) { 'Red' } elseif ($_.Value -gt 5) { 'Yellow' } else { 'Gray' }
+        Write-Host "  $($_.Key): $($_.Value) attempts" -ForegroundColor $Color
+    }
+    
+    # Report by source
+    Write-Host ""
+    Write-Host "Failed Logins by Source:" -ForegroundColor White
+    $SourceDetails.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object {
+        $Color = if ($_.Value -gt 20) { 'Red' } elseif ($_.Value -gt 10) { 'Yellow' } else { 'Gray' }
+        Write-Host "  $($_.Key): $($_.Value) attempts" -ForegroundColor $Color
+    }
+    
+    # Security recommendations
+    $HighFailureUsers = $FailureDetails.GetEnumerator() | Where-Object { $_.Value -gt 10 }
+    $HighFailureSources = $SourceDetails.GetEnumerator() | Where-Object { $_.Value -gt 20 }
+    
+    if ($HighFailureUsers -or $HighFailureSources) {
+        Write-Host ""
+        Write-Host "SECURITY RECOMMENDATIONS:" -ForegroundColor Red
+        
+        if ($HighFailureUsers) {
+            Write-Host "  - High failure count for specific users may indicate:" -ForegroundColor Yellow
+            Write-Host "    * Password guessing attacks" -ForegroundColor Gray
+            Write-Host "    * Application misconfiguration" -ForegroundColor Gray
+            Write-Host "    * Expired credentials" -ForegroundColor Gray
+        }
+        
+        if ($HighFailureSources) {
+            Write-Host "  - High failure count from specific IPs may indicate:" -ForegroundColor Yellow
+            Write-Host "    * Brute force attack" -ForegroundColor Gray
+            Write-Host "    * Consider blocking these IPs" -ForegroundColor Gray
+            Write-Host "    * Review firewall rules" -ForegroundColor Gray
+        }
+    }
+    
+} catch {
+    Write-Error "Failed login audit error: $_"
+    exit 1
+}`;
+    }
+  },
+
+  {
+    id: 'sql-table-row-counts',
+    title: 'Table Row Counts Report',
+    description: 'Report row counts for all tables in a database',
+    category: 'Database Management',
+    isPremium: true,
+    instructions: `**How This Task Works:**
+- Counts rows in all user tables
+- Uses partition statistics (fast)
+- Reports table sizes
+- Identifies large tables
+
+**Prerequisites:**
+- SQL Server with db_datareader
+- SqlServer PowerShell module
+
+**What You Need to Provide:**
+- SQL Server instance
+- Database name
+- Output path (optional)
+
+**What the Script Does:**
+1. Queries partition stats
+2. Aggregates row counts
+3. Reports table sizes
+4. Exports to CSV
+
+**Important Notes:**
+- Uses system views (fast, approximate)
+- More accurate than SELECT COUNT(*)
+- Updated after index rebuilds
+- Good for data profiling`,
+    parameters: [
+      { name: 'serverInstance', label: 'SQL Server Instance', type: 'text', required: true, placeholder: 'SQL01' },
+      { name: 'databaseName', label: 'Database Name', type: 'text', required: true, placeholder: 'MyDatabase' },
+      { name: 'outputPath', label: 'Output CSV Path (optional)', type: 'path', required: false, placeholder: 'C:\\Reports\\Table_Counts.csv' }
+    ],
+    scriptTemplate: (params) => {
+      const serverInstance = escapePowerShellString(params.serverInstance);
+      const databaseName = escapePowerShellString(params.databaseName);
+      const outputPath = escapePowerShellString(params.outputPath || '');
+
+      return `# SQL Server Table Row Counts Report
+# Generated: ${new Date().toISOString()}
+
+Import-Module SqlServer -ErrorAction Stop
+
+$ServerInstance = "${serverInstance}"
+$DatabaseName = "${databaseName}"
+$OutputPath = "${outputPath}"
+
+try {
+    Write-Host "Generating table row counts report: $DatabaseName" -ForegroundColor Cyan
+    
+    $RowCountQuery = @"
+SELECT 
+    s.name AS SchemaName,
+    t.name AS TableName,
+    p.rows AS RowCount,
+    SUM(a.total_pages) * 8 / 1024 AS TotalSpaceMB,
+    SUM(a.used_pages) * 8 / 1024 AS UsedSpaceMB,
+    SUM(a.data_pages) * 8 / 1024 AS DataSpaceMB
+FROM sys.tables t
+INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+INNER JOIN sys.indexes i ON t.object_id = i.object_id AND i.index_id <= 1
+INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
+INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
+GROUP BY s.name, t.name, p.rows
+ORDER BY p.rows DESC
+"@
+    
+    $Tables = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $RowCountQuery
+    
+    if (-not $Tables) {
+        Write-Host "No tables found" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    # Summary
+    $TotalTables = $Tables.Count
+    $TotalRows = ($Tables | Measure-Object -Property RowCount -Sum).Sum
+    $TotalSpaceMB = ($Tables | Measure-Object -Property TotalSpaceMB -Sum).Sum
+    
+    Write-Host ""
+    Write-Host "Database Summary:" -ForegroundColor White
+    Write-Host "  Total tables: $TotalTables" -ForegroundColor Gray
+    Write-Host "  Total rows: $($TotalRows.ToString('N0'))" -ForegroundColor Gray
+    Write-Host "  Total space: $([math]::Round($TotalSpaceMB / 1024, 2)) GB" -ForegroundColor Gray
+    
+    # Top 15 tables by row count
+    Write-Host ""
+    Write-Host "Top 15 Tables by Row Count:" -ForegroundColor White
+    
+    $Tables | Select-Object -First 15 | ForEach-Object {
+        $RowsFormatted = $_.RowCount.ToString('N0')
+        Write-Host "  $($_.SchemaName).$($_.TableName): $RowsFormatted rows ($($_.TotalSpaceMB) MB)" -ForegroundColor Gray
+    }
+    
+    # Empty tables
+    $EmptyTables = $Tables | Where-Object { $_.RowCount -eq 0 }
+    if ($EmptyTables) {
+        Write-Host ""
+        Write-Host "Empty Tables ($($EmptyTables.Count)):" -ForegroundColor Yellow
+        $EmptyTables | Select-Object -First 10 | ForEach-Object {
+            Write-Host "  $($_.SchemaName).$($_.TableName)" -ForegroundColor Yellow
+        }
+        if ($EmptyTables.Count -gt 10) {
+            Write-Host "  ... and $($EmptyTables.Count - 10) more" -ForegroundColor Yellow
+        }
+    }
+    
+    # Export if path provided
+    if ($OutputPath) {
+        $Tables | Export-Csv -Path $OutputPath -NoTypeInformation
+        Write-Host ""
+        Write-Host "Report exported: $OutputPath" -ForegroundColor Green
+    }
+    
+} catch {
+    Write-Error "Row count report failed: $_"
+    exit 1
+}`;
+    }
   }
 ];

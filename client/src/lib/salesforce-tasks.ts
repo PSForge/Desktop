@@ -3740,7 +3740,7 @@ try {
     isPremium: true
   },
   {
-    id: 'sf-session-management',
+    id: 'sf-active-sessions-report',
     name: 'Active Session Management',
     category: 'Security',
     description: 'View and export all active user sessions',
@@ -3816,10 +3816,10 @@ try {
     isPremium: true
   },
   {
-    id: 'sf-sharing-rules',
-    name: 'Export Sharing Rules',
+    id: 'sf-sharing-rules-detailed',
+    name: 'Export Sharing Rules (Detailed)',
     category: 'Security',
-    description: 'Export all sharing rules for an object',
+    description: 'Export all sharing rules with OWD details for an object',
     parameters: [
       { id: 'instanceUrl', label: 'Instance URL', type: 'text', required: true, placeholder: 'https://company.my.salesforce.com' },
       { id: 'objectName', label: 'Object API Name', type: 'text', required: true, placeholder: 'Account' },
@@ -3830,7 +3830,7 @@ try {
       const objectName = escapePowerShellString(params.objectName);
       const exportPath = escapePowerShellString(params.exportPath);
       
-      return `# Salesforce Export Sharing Rules
+      return `# Salesforce Export Sharing Rules (Detailed)
 # Generated: ${new Date().toISOString()}
 
 $InstanceUrl = "${instanceUrl}"

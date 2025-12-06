@@ -244,9 +244,9 @@ export default function Home() {
                 <p className="text-muted-foreground mb-3">
                   Browse and install PowerShell script templates shared by the community. Discover proven solutions, rate templates, and buy premium scripts from expert creators.
                 </p>
-                <Link href="/marketplace">
+                <Link href={user ? "/marketplace" : "/signup"}>
                   <Button variant="outline" size="sm" className="w-full gap-2" data-testid="button-explore-marketplace">
-                    Explore Marketplace
+                    {user ? "Explore Marketplace" : "Sign Up to Access Marketplace"}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -485,9 +485,9 @@ export default function Home() {
                     {user ? "Go to Seller Dashboard" : "Start Selling Scripts"}
                   </Button>
                 </Link>
-                <Link href="/marketplace">
+                <Link href={user ? "/marketplace" : "/signup"}>
                   <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
-                    See What's Selling
+                    {user ? "See What's Selling" : "Sign Up to See Marketplace"}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </Link>

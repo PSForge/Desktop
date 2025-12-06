@@ -54,7 +54,7 @@ interface Purchase {
 
 export default function TemplatesMarketplace() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,11 +88,13 @@ export default function TemplatesMarketplace() {
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<TemplateWithAuthor[]>({
     queryKey: getTemplatesQueryKey(),
+    enabled: !!user, // Only fetch if user is authenticated
   });
 
   // Fetch categories
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<TemplateCategory[]>({
     queryKey: ["/api/template-categories"],
+    enabled: !!user, // Only fetch if user is authenticated
   });
 
   // Fetch user's purchases to check ownership
@@ -101,19 +103,7 @@ export default function TemplatesMarketplace() {
     enabled: !!user,
   });
 
-  // Helper to check if user owns a template (purchased or is author)
-  const hasTemplateAccess = (template: TemplateWithAuthor): boolean => {
-    if (!template.isPaid) return true;
-    if (template.authorId === user?.id) return true;
-    return purchases.some(p => p.templateId === template.id);
-  };
-
-  // Format price for display
-  const formatPrice = (cents: number) => {
-    return (cents / 100).toFixed(2);
-  };
-
-  // Filter and sort templates
+  // Filter and sort templates (must be before conditional return)
   const filteredAndSortedTemplates = useMemo(() => {
     let filtered = [...templates];
 
@@ -144,6 +134,24 @@ export default function TemplatesMarketplace() {
 
     return filtered;
   }, [templates, searchQuery, sortBy]);
+  
+  // Redirect to login if not authenticated (after all hooks)
+  if (!authLoading && !user) {
+    setLocation("/login");
+    return null;
+  }
+
+  // Helper to check if user owns a template (purchased or is author)
+  const hasTemplateAccess = (template: TemplateWithAuthor): boolean => {
+    if (!template.isPaid) return true;
+    if (template.authorId === user?.id) return true;
+    return purchases.some(p => p.templateId === template.id);
+  };
+
+  // Format price for display
+  const formatPrice = (cents: number) => {
+    return (cents / 100).toFixed(2);
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedTemplates.length / ITEMS_PER_PAGE);

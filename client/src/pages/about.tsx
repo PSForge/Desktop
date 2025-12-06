@@ -20,7 +20,7 @@ export default function About() {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>About PSForge - Professional PowerShell Script Builder for IT Teams</title>
-        <meta name="description" content="Learn about PSForge, the professional PowerShell script builder designed by IT professionals for IT professionals. Automate 1000+ tasks across 48 enterprise platforms." />
+        <meta name="description" content="Learn about PSForge, the professional PowerShell script builder designed by IT professionals for IT professionals. Automate 2,400+ tasks across 48 enterprise platforms." />
         <meta name="keywords" content="about PSForge, PowerShell automation company, IT automation tool, script builder" />
       </Helmet>
 
@@ -70,7 +70,7 @@ export default function About() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  We believe IT professionals should spend their time solving complex problems, not rewriting the same scripts over and over. PSForge eliminates repetitive work by providing a visual script builder with 1000+ pre-built automation tasks across 48 enterprise platforms—from Active Directory and Exchange to Azure, AWS, VMware, and beyond.
+                  We believe IT professionals should spend their time solving complex problems, not rewriting the same scripts over and over. PSForge eliminates repetitive work by providing a visual script builder with 2,400+ pre-built automation tasks across 48 enterprise platforms—from Active Directory and Exchange to Azure, AWS, VMware, and beyond.
                 </p>
               </CardContent>
             </Card>
@@ -195,7 +195,7 @@ export default function About() {
                     <div className="text-sm text-muted-foreground">Enterprise Platforms</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-primary mb-1">1000+</div>
+                    <div className="text-3xl font-bold text-primary mb-1">2,400+</div>
                     <div className="text-sm text-muted-foreground">Automation Tasks</div>
                   </div>
                   <div>

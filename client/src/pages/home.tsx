@@ -40,7 +40,7 @@ export default function Home() {
   
   const freeTierFeatures = [
     "8 core platforms (File System, Network, Services, Process Management, Event Logs, Active Directory, Registry, Security)",
-    "200+ automation tasks",
+    "400+ automation tasks",
     "Visual builder + direct coding modes",
     "Templates Marketplace access (browse & install community templates)",
     "Download unlimited .ps1 scripts",
@@ -52,7 +52,7 @@ export default function Home() {
     "Everything in Free, plus:",
     "AI script assistant (describe tasks in plain English)",
     "48 enterprise platforms (Exchange, Azure, AWS, VMware, SharePoint, Microsoft 365, and 42 more)",
-    "1000+ automation tasks across all platforms",
+    "2,400+ automation tasks across all platforms",
     "Publish templates to Marketplace (share your expertise)",
     "GitHub integration (sync scripts to repositories)",
     "Priority support (email response within 24 hours)",
@@ -156,7 +156,7 @@ export default function Home() {
               </h1>
               
               <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-                PSForge generates enterprise-ready PowerShell scripts for Exchange, Azure, SharePoint, and 45+ platforms—no syntax memorization required. Build visually, ask AI, or code directly. Your choice.
+                PSForge generates enterprise-ready PowerShell scripts for Exchange, Azure, SharePoint, and 48 enterprise platforms—no syntax memorization required. Build visually, ask AI, or code directly. Your choice.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-6">
@@ -286,7 +286,7 @@ export default function Home() {
             <div className="text-center space-y-2">
               <div className="flex items-center justify-center gap-2">
                 <Terminal className="h-6 w-6 text-primary" />
-                <div className="text-2xl sm:text-3xl font-bold text-foreground">1,000+</div>
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">2,400+</div>
               </div>
               <div className="text-sm text-muted-foreground">Automation Tasks</div>
             </div>
@@ -375,17 +375,17 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
-              48 Enterprise Platforms. 1000+ Ready-to-Use Automation Tasks.
+              48 Enterprise Platforms. 2,400+ Ready-to-Use Automation Tasks.
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Stop writing scripts from scratch. Start with pre-built tasks for your exact environment.
+              Stop writing scripts from scratch. Start with pre-built tasks for your exact environment—50+ tasks per platform.
             </p>
           </div>
 
           <div className="max-w-5xl mx-auto mb-8">
             <div className="bg-card border rounded-lg p-6 text-center">
               <p className="text-muted-foreground leading-relaxed">
-                <span className="font-medium text-foreground">Exchange</span> • <span className="font-medium text-foreground">Azure</span> • <span className="font-medium text-foreground">SharePoint</span> • <span className="font-medium text-foreground">AWS</span> • <span className="font-medium text-foreground">VMware</span> • <span className="font-medium text-foreground">Active Directory</span> • Veeam • Nutanix • Citrix • Cisco • NetApp • JAMF • Microsoft 365 • Slack • Zoom • Salesforce • GitHub • Jira • Splunk • ServiceNow • Okta • Docker • Kubernetes • Terraform • Ansible • PagerDuty • Datadog • New Relic • Zabbix • SolarWinds + 19 more
+                <span className="font-medium text-foreground">Exchange Online</span> • <span className="font-medium text-foreground">Azure AD</span> • <span className="font-medium text-foreground">SharePoint</span> • <span className="font-medium text-foreground">AWS</span> • <span className="font-medium text-foreground">VMware</span> • <span className="font-medium text-foreground">Active Directory</span> • <span className="font-medium text-foreground">Intune</span> • <span className="font-medium text-foreground">MECM</span> • Veeam • Nutanix • Citrix • Cisco • Fortinet • CrowdStrike • NetApp • JAMF • Microsoft Teams • Office 365 • Slack • Zoom • Salesforce • GitHub • Jira • Splunk • ServiceNow • Okta • Duo • Docker • GCP • Hyper-V • Windows 365 • SQL Server • ConnectWise • PDQ • Sophos + 14 more
               </p>
             </div>
           </div>

@@ -24,7 +24,7 @@ PSForge is a professional web-based PowerShell script builder designed for IT te
     - **Command Library**: 150+ PowerShell cmdlets including Microsoft Graph, Exchange, SharePoint, SQL Server, Group Policy, and Security cmdlets.
     - **Script Editor**: Monaco Editor (VS Code engine) with PowerShell syntax highlighting, code folding, auto-formatting, and cmdlet hover tooltips.
     - **Validation System**: Dual-mode validation with automatic Basic validation for real-time syntax checking and on-demand Comprehensive validation providing scored assessment, dependency detection, impact analysis, Microsoft PowerShell best practices, and compliance validation.
-    - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting 1000 automation tasks across 48 platforms.
+    - **GUI Builder**: Task-based script generation with dynamic parameter forms, supporting 2,400+ automation tasks across 48 platforms (50+ tasks per category).
     - **Script Wizard**: 5-step multi-platform bulk operations wizard supporting CSV file path reference, embedded CSV data, manual entry, and parameter mapping.
     - **Export**: Download .ps1 file or save to profile with security analysis.
     - **Script Management**: Comprehensive script library with tag system, favorites, recent scripts tracking, and advanced search.

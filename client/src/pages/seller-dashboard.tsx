@@ -80,7 +80,7 @@ export default function SellerDashboard() {
     hasAccount: boolean;
     onboardingComplete: boolean;
   }>({
-    queryKey: ["/api/seller/connect/status"],
+    queryKey: ["/api/seller/onboarding-status"],
     enabled: !!user && (user.role === "subscriber" || user.role === "admin"),
   });
 

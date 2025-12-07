@@ -139,7 +139,7 @@ export default function Account() {
   // Create Stripe Connect account mutation
   const createSellerAccountMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("/api/seller/connect", "POST");
+      const response = await apiRequest("/api/seller/onboard", "POST");
       return response.json();
     },
     onSuccess: (data) => {

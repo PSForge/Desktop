@@ -167,7 +167,14 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   // AI Review state
   const [aiReviewResult, setAiReviewResult] = useState<{
     summary: string;
-    recommendations: Array<{ type: string; title: string; description: string; }>;
+    recommendations: Array<{ 
+      type: string; 
+      title: string; 
+      description: string;
+      priority?: 'critical' | 'high' | 'medium' | 'low';
+      code?: string;
+      line?: number;
+    }>;
   } | null>(null);
 
   const totalSteps = 5;
@@ -182,14 +189,14 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
       setAiReviewResult({
         summary: data.summary || 'Script analyzed successfully.',
         recommendations: [
-          ...(data.performance || []),
-          ...(data.security || []),
-          ...(data.bestPractices || []),
-        ].map((rec: any) => ({
-          type: rec.type || 'general',
-          title: rec.title,
-          description: rec.description,
-        })),
+          ...(data.performance || []).map((rec: any) => ({ ...rec, type: rec.type || 'performance' })),
+          ...(data.security || []).map((rec: any) => ({ ...rec, type: rec.type || 'security' })),
+          ...(data.bestPractices || []).map((rec: any) => ({ ...rec, type: rec.type || 'best-practice' })),
+        ].sort((a, b) => {
+          const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+          return (priorityOrder[a.priority as keyof typeof priorityOrder] || 3) - 
+                 (priorityOrder[b.priority as keyof typeof priorityOrder] || 3);
+        }),
       });
       toast({
         title: 'AI Review Complete',
@@ -1391,13 +1398,15 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="preview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className={`grid w-full ${featureAccess?.hasPremiumCategories ? 'grid-cols-3' : 'grid-cols-2'}`}>
                       <TabsTrigger value="preview" data-testid="tab-preview">Script Preview</TabsTrigger>
                       <TabsTrigger value="security" data-testid="tab-security">Security Analysis</TabsTrigger>
-                      <TabsTrigger value="ai-review" data-testid="tab-ai-review">
-                        <Sparkles className="h-4 w-4 mr-1" />
-                        AI Review
-                      </TabsTrigger>
+                      {featureAccess?.hasPremiumCategories && (
+                        <TabsTrigger value="ai-review" data-testid="tab-ai-review">
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          AI Review
+                        </TabsTrigger>
+                      )}
                     </TabsList>
 
                     <TabsContent value="preview" className="space-y-4 mt-4">
@@ -1414,17 +1423,10 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                       </ScrollArea>
                     </TabsContent>
 
+                    {featureAccess?.hasPremiumCategories && (
                     <TabsContent value="ai-review" className="mt-4">
                       <div className="space-y-4">
-                        {!featureAccess?.hasPremiumCategories ? (
-                          <Alert>
-                            <Lock className="h-4 w-4" />
-                            <AlertTitle>Pro Feature</AlertTitle>
-                            <AlertDescription>
-                              AI Script Review requires a Pro subscription. Upgrade to get AI-powered script analysis with performance, security, and best practice recommendations.
-                            </AlertDescription>
-                          </Alert>
-                        ) : aiReviewMutation.isPending ? (
+                        {aiReviewMutation.isPending ? (
                           <div className="flex flex-col items-center justify-center h-[400px] gap-4">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p className="text-muted-foreground">Analyzing your script with AI...</p>
@@ -1444,12 +1446,34 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                   {aiReviewResult.recommendations.map((rec, idx) => (
                                     <Card key={idx} className="p-4">
                                       <div className="flex items-start gap-2">
-                                        <Badge variant="secondary" className="text-xs shrink-0">
-                                          {rec.type}
-                                        </Badge>
-                                        <div>
+                                        <div className="flex gap-1 shrink-0">
+                                          <Badge variant="secondary" className="text-xs">
+                                            {rec.type}
+                                          </Badge>
+                                          {rec.priority && (
+                                            <Badge 
+                                              variant={rec.priority === 'critical' ? 'destructive' : 'secondary'} 
+                                              className={`text-xs ${
+                                                rec.priority === 'high' ? 'text-orange-600 dark:text-orange-400' :
+                                                rec.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' :
+                                                rec.priority === 'low' ? 'text-blue-600 dark:text-blue-400' : ''
+                                              }`}
+                                            >
+                                              {rec.priority}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
                                           <p className="font-medium text-sm">{rec.title}</p>
                                           <p className="text-xs text-muted-foreground mt-1">{rec.description}</p>
+                                          {rec.line && (
+                                            <p className="text-xs text-muted-foreground mt-1">Line: {rec.line}</p>
+                                          )}
+                                          {rec.code && (
+                                            <pre className="mt-2 p-2 bg-muted rounded text-xs font-mono overflow-x-auto">
+                                              {rec.code}
+                                            </pre>
+                                          )}
                                         </div>
                                       </div>
                                     </Card>
@@ -1492,6 +1516,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                         )}
                       </div>
                     </TabsContent>
+                    )}
                   </Tabs>
                 </CardContent>
               </Card>

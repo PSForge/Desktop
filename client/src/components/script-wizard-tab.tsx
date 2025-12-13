@@ -1432,8 +1432,8 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                             <p className="text-muted-foreground">Analyzing your script with AI...</p>
                           </div>
                         ) : aiReviewResult ? (
-                          <ScrollArea className="h-[500px]">
-                            <div className="space-y-4 pr-4">
+                          <div className="h-[500px] overflow-y-auto">
+                            <div className="space-y-4 pr-2">
                               <Alert>
                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                                 <AlertTitle>AI Analysis Complete</AlertTitle>
@@ -1495,7 +1495,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                 </p>
                               </div>
                             </div>
-                          </ScrollArea>
+                          </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center h-[400px] gap-4 text-center">
                             <Sparkles className="h-12 w-12 text-muted-foreground" />

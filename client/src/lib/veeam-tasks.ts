@@ -1760,7 +1760,7 @@ try {
         
         if ($VM) {
             Add-VBRViJobObject -Job $Job -Entity $VM
-            Write-Host "  [OK] Added: $VMName" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added: $VMName" -ForegroundColor Green
             $AddedCount++
         } else {
             Write-Host "  [WARNING] VM not found: $VMName" -ForegroundColor Yellow
@@ -1822,7 +1822,7 @@ try {
         
         if ($JobObject) {
             Remove-VBRJobObject -Objects $JobObject
-            Write-Host "  [OK] Removed: $VMName" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Removed: $VMName" -ForegroundColor Green
             $RemovedCount++
         } else {
             Write-Host "  [WARNING] VM not in job: $VMName" -ForegroundColor Yellow
@@ -2585,7 +2585,7 @@ try {
     
     foreach ($Tape in $TapesToExport) {
         Move-VBRTapeMedium -Medium $Tape -Vault $Vault
-        Write-Host "  [OK] Exported: $($Tape.Barcode)" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Exported: $($Tape.Barcode)" -ForegroundColor Green
     }
     
     Write-Host ""

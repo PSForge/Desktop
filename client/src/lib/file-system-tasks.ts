@@ -1820,7 +1820,7 @@ foreach ($File in $Files) {
     } else {
         try {
             Rename-Item -Path $File.FullName -NewName $NewName -ErrorAction Stop
-            Write-Host "  [OK] $($File.Name) -> $NewName" -ForegroundColor Green
+            Write-Host "  [SUCCESS] $($File.Name) -> $NewName" -ForegroundColor Green
             $Renamed++
         } catch {
             Write-Host "  [FAILED] Failed: $($File.Name) - \$_" -ForegroundColor Red
@@ -2115,7 +2115,7 @@ foreach ($Folder in $Folders) {
     $FolderPath = Join-Path $BasePath $Folder
     if (-not (Test-Path $FolderPath)) {
         New-Item -Path $FolderPath -ItemType Directory -Force | Out-Null
-        Write-Host "  [OK] Created: $Folder" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Created: $Folder" -ForegroundColor Green
         $Created++
     } else {
         Write-Host "  - Exists: $Folder" -ForegroundColor Gray
@@ -2198,7 +2198,7 @@ do {
         } else {
             try {
                 Remove-Item -Path $Dir.FullName -Force
-                Write-Host "  [OK] Removed: $($Dir.FullName)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Removed: $($Dir.FullName)" -ForegroundColor Green
                 $Removed++
             } catch {
                 Write-Host "  [FAILED] Failed: $($Dir.FullName)" -ForegroundColor Red
@@ -2483,7 +2483,7 @@ if ($ApplyToSubfolders) {
     foreach ($Item in $Items) {
         $Count = Remove-UserPermission -Path $Item.FullName -User $Identity
         if ($Count -gt 0) {
-            Write-Host "  [OK] Removed from: $($Item.FullName)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Removed from: $($Item.FullName)" -ForegroundColor Green
         }
     }
 }
@@ -2659,7 +2659,7 @@ function Reset-FolderPermissions {
         $Acl = Get-Acl -Path $Path
         $Acl.SetAccessRuleProtection($false, $false)
         Set-Acl -Path $Path -AclObject $Acl
-        Write-Host "  [OK] Reset: $Path" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Reset: $Path" -ForegroundColor Green
     } catch {
         Write-Host "  [FAILED] Failed: $Path - \$_" -ForegroundColor Red
     }
@@ -3807,7 +3807,7 @@ if ($OldProfiles.Count -gt 0) {
             try {
                 $WmiProfile = Get-WmiObject Win32_UserProfile | Where-Object { $_.SID -eq $Profile.SID }
                 $WmiProfile.Delete()
-                Write-Host "  [OK] Removed: $($Profile.Username)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Removed: $($Profile.Username)" -ForegroundColor Green
             } catch {
                 Write-Host "  [FAILED] Failed: $($Profile.Username)" -ForegroundColor Red
             }

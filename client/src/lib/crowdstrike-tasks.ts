@@ -834,7 +834,7 @@ try {
             }
             
             New-FalconIndicator @Params
-            Write-Host "  [OK] Added: $IOC" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added: $IOC" -ForegroundColor Green
             
         } catch {
             Write-Host "  [FAILED] Failed: $IOC - $_" -ForegroundColor Red
@@ -944,7 +944,7 @@ try {
     
     foreach ($GroupId in $HostGroupIds) {
         Edit-FalconSensorUpdatePolicy -Id $Policy.id -groups @($GroupId)
-        Write-Host "  [OK] Policy applied to group: $GroupId" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Policy applied to group: $GroupId" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -1080,7 +1080,7 @@ try {
                 $NewTags = $CurrentHost.tags | Where-Object { $_ -notin $Tags }
                 Edit-FalconHost -Id $HostId -tags $NewTags
             }
-            Write-Host "  [OK] Updated: $HostId" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Updated: $HostId" -ForegroundColor Green
         } catch {
             Write-Host "  [FAILED] Failed: $HostId - $_" -ForegroundColor Red
         }
@@ -1617,7 +1617,7 @@ try {
                 }
                 
                 Remove-FalconSession -SessionId $Session.session_id
-                Write-Host "  [OK] Completed: $HostId" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Completed: $HostId" -ForegroundColor Green
             }
             
         } catch {
@@ -1702,7 +1702,7 @@ try {
             
             New-FalconIndicator @Params
             $SuccessCount++
-            Write-Host "  [OK] Added: $($IOC.value)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added: $($IOC.value)" -ForegroundColor Green
             
         } catch {
             $FailCount++
@@ -1852,7 +1852,7 @@ try {
             }
         }
         
-        Write-Host "  [OK] Deleted: $DeletedCount IOCs" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Deleted: $DeletedCount IOCs" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -2526,7 +2526,7 @@ try {
                     Receive-FalconRtrGetFile -SessionId $Session.session_id -Sha256 $GetResult.sha256 -OutputPath $OutputFile
                     
                     $CollectedFiles += $OutputFile
-                    Write-Host "    [OK] Downloaded: $FileName" -ForegroundColor Green
+                    Write-Host "    [SUCCESS] Downloaded: $FileName" -ForegroundColor Green
                 }
                 
             } catch {
@@ -3069,7 +3069,7 @@ try {
     
     foreach ($GroupId in $HostGroupIds) {
         Edit-FalconDeviceControlPolicy -Id $Policy.id -groups @($GroupId)
-        Write-Host "  [OK] Policy applied to group: $GroupId" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Policy applied to group: $GroupId" -ForegroundColor Green
     }
     
     Write-Host ""

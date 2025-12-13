@@ -720,7 +720,7 @@ try {
                     -Aggregate aggr1 \`
                     -Type DP \`
                     -VserverContext $DestConn -ErrorAction SilentlyContinue
-                Write-Host "  [OK] Destination volume created" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Destination volume created" -ForegroundColor Green
             } catch {
                 Write-Host "  Destination volume already exists or creation skipped" -ForegroundColor Yellow
             }
@@ -736,7 +736,7 @@ try {
                 -Policy ${policyType} \`
                 -VserverContext $DestConn
             
-            Write-Host "  [OK] SnapMirror relationship created" -ForegroundColor Green
+            Write-Host "  [SUCCESS] SnapMirror relationship created" -ForegroundColor Green
             
             # Initialize transfer
             Write-Host "  Initializing baseline transfer..." -ForegroundColor Cyan
@@ -918,7 +918,7 @@ ${minIOPS ? `
             -PolicyGroup "${policyName}" \`
             -MinThroughput "${minIOPS}iops" \`
             -Vserver "${svm}" -ErrorAction SilentlyContinue
-        Write-Host "  [OK] Min IOPS set to: ${minIOPS}" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Min IOPS set to: ${minIOPS}" -ForegroundColor Green
     } catch {
         Write-Host "  Note: Min IOPS not supported on this system" -ForegroundColor Yellow
     }` : ''}
@@ -1447,7 +1447,7 @@ ${snapshotPattern ? `    # Filter by pattern
                     -Vserver "${svm}" \`
                     -Confirm:\$false
                 
-                Write-Host "  [OK] Deleted: \$(\$Snap.Name)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Deleted: \$(\$Snap.Name)" -ForegroundColor Green
                 \$DeletedCount++
             } catch {
                 Write-Host "  [FAILED] Failed: \$(\$Snap.Name) - \$_" -ForegroundColor Red
@@ -1785,7 +1785,7 @@ try {
             "nfs" {
                 Write-Host "Enabling NFS..." -ForegroundColor Cyan
                 Enable-NcNfs -Vserver "${svmName}"
-                Write-Host "  [OK] NFS enabled" -ForegroundColor Green
+                Write-Host "  [SUCCESS] NFS enabled" -ForegroundColor Green
             }
             "cifs" {
                 Write-Host "Enabling CIFS..." -ForegroundColor Cyan
@@ -1795,7 +1795,7 @@ try {
             "iscsi" {
                 Write-Host "Enabling iSCSI..." -ForegroundColor Cyan
                 Enable-NcIscsi -Vserver "${svmName}"
-                Write-Host "  [OK] iSCSI enabled" -ForegroundColor Green
+                Write-Host "  [SUCCESS] iSCSI enabled" -ForegroundColor Green
             }
         }
     }
@@ -1890,7 +1890,7 @@ ${gateway ? `
         -Gateway "${gateway}" \`
         -Vserver "${svm}" -ErrorAction SilentlyContinue
     
-    Write-Host "  [OK] Gateway configured: ${gateway}" -ForegroundColor Green` : ''}
+    Write-Host "  [SUCCESS] Gateway configured: ${gateway}" -ForegroundColor Green` : ''}
     
     # Get LIF details
     \$LIF = Get-NcNetInterface -Name "${lifName}" -Vserver "${svm}"
@@ -1971,7 +1971,7 @@ try {
     foreach (\$Domain in \$DnsDomains) {
         try {
             \$Lookup = Resolve-DnsName -Name \$Domain -Server \$DnsServers[0] -ErrorAction Stop
-            Write-Host "  [OK] \$Domain resolves successfully" -ForegroundColor Green
+            Write-Host "  [SUCCESS] \$Domain resolves successfully" -ForegroundColor Green
         } catch {
             Write-Host "  [FAILED] \$Domain resolution failed" -ForegroundColor Yellow
         }
@@ -2584,7 +2584,7 @@ ${initiators.map(i => `        "${i}"`).join(',\n')}
                     -Initiator \$Initiator.Trim() \`
                     -Vserver "${svm}"
                 
-                Write-Host "  [OK] Added: \$Initiator" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Added: \$Initiator" -ForegroundColor Green
             } catch {
                 Write-Host "  [FAILED] Failed: \$Initiator - \$_" -ForegroundColor Red
             }
@@ -2745,7 +2745,7 @@ try {
                 -Port \$Lif \`
                 -Vserver "${svm}"
             
-            Write-Host "  [OK] Added: \$Lif" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added: \$Lif" -ForegroundColor Green
         } catch {
             Write-Host "  [FAILED] Failed: \$Lif - \$_" -ForegroundColor Red
         }
@@ -2844,7 +2844,7 @@ try {
             -Size "\$(\$SourceVol.TotalSize / 1GB)g" \`
             -VserverContext \$DestConn -ErrorAction SilentlyContinue
         
-        Write-Host "  [OK] Destination volume created" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Destination volume created" -ForegroundColor Green
     } catch {
         Write-Host "  Destination volume may already exist" -ForegroundColor Yellow
     }
@@ -2864,7 +2864,7 @@ try {
         -Type XDP \`
         -VserverContext \$DestConn
     
-    Write-Host "  [OK] SnapVault relationship created" -ForegroundColor Green
+    Write-Host "  [SUCCESS] SnapVault relationship created" -ForegroundColor Green
     
     # Initialize the relationship
     Write-Host "Initializing baseline transfer..." -ForegroundColor Cyan
@@ -2875,7 +2875,7 @@ try {
         -DestinationVolume "${destVolume}" \`
         -VserverContext \$DestConn
     
-    Write-Host "  [OK] Initialization started" -ForegroundColor Green
+    Write-Host "  [SUCCESS] Initialization started" -ForegroundColor Green
     
     # Monitor initialization
     Write-Host ""
@@ -3826,7 +3826,7 @@ try {
             -Applications snapmirror \`
             -VserverContext \$SourceConn -ErrorAction SilentlyContinue
         
-        Write-Host "  [OK] SVM peer relationship initiated" -ForegroundColor Green
+        Write-Host "  [SUCCESS] SVM peer relationship initiated" -ForegroundColor Green
     } catch {
         Write-Host "  SVM peer may already exist: \$_" -ForegroundColor Yellow
     }
@@ -3840,7 +3840,7 @@ try {
             -State active \`
             -VserverContext \$DestConn -ErrorAction SilentlyContinue
         
-        Write-Host "  [OK] SVM peer relationship accepted" -ForegroundColor Green
+        Write-Host "  [SUCCESS] SVM peer relationship accepted" -ForegroundColor Green
     } catch {
         Write-Host "  Peer acceptance: \$_" -ForegroundColor Yellow
     }
@@ -3861,7 +3861,7 @@ try {
         -IdentityPreserve \$true \`
         -VserverContext \$DestConn
     
-    Write-Host "  [OK] SVM-DR relationship created" -ForegroundColor Green
+    Write-Host "  [SUCCESS] SVM-DR relationship created" -ForegroundColor Green
     
     # Initialize the relationship
     Write-Host ""
@@ -3873,7 +3873,7 @@ try {
         -DestinationVserver "${destSVM}" \`
         -VserverContext \$DestConn
     
-    Write-Host "  [OK] Initialization started" -ForegroundColor Green
+    Write-Host "  [SUCCESS] Initialization started" -ForegroundColor Green
     
     # Monitor progress
     Write-Host ""
@@ -4080,7 +4080,7 @@ try {
         if (\$AggrInfo.Available / 1GB -lt \$RequiredSpace) {
             Write-Host "  Warning: Aggregate '\$Aggr' may not have sufficient space" -ForegroundColor Yellow
         }
-        Write-Host "  [OK] \$Aggr - Available: \$([math]::Round(\$AggrInfo.Available / 1TB, 2)) TB" -ForegroundColor Green
+        Write-Host "  [SUCCESS] \$Aggr - Available: \$([math]::Round(\$AggrInfo.Available / 1TB, 2)) TB" -ForegroundColor Green
     }
     
     Write-Host ""

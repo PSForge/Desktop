@@ -358,7 +358,7 @@ foreach ($User in $Users) {
                 $Sku = Get-MgSubscribedSku -All | Where-Object { $_.SkuPartNumber -eq $User.LicenseSku }
                 if ($Sku) {
                     Set-MgUserLicense -UserId $User.UPN -AddLicenses @{SkuId = $Sku.SkuId} -RemoveLicenses @()
-                    Write-Host "  [OK] License assigned: $($User.LicenseSku)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] License assigned: $($User.LicenseSku)" -ForegroundColor Green
                     $SuccessCount++
                 } else {
                     Write-Host "  [FAILED] SKU not found: $($User.LicenseSku)" -ForegroundColor Red
@@ -367,7 +367,7 @@ foreach ($User in $Users) {
             } elseif ($Operation -eq "AssignPermissions") {
                 # Assign permissions based on CSV columns
                 Add-MailboxPermission -Identity $User.TargetMailbox -User $User.UPN -AccessRights $User.Permission
-                Write-Host "  [OK] Permission assigned" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Permission assigned" -ForegroundColor Green
                 $SuccessCount++
             }
         }
@@ -741,7 +741,7 @@ try {
                     Write-Host "  [TEST] Would enable archive for: $($Mailbox.PrimarySmtpAddress)" -ForegroundColor Cyan
                 } else {
                     Enable-Mailbox -Identity $Mailbox.PrimarySmtpAddress -Archive
-                    Write-Host "  [OK] $($Mailbox.PrimarySmtpAddress): Archive enabled" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] $($Mailbox.PrimarySmtpAddress): Archive enabled" -ForegroundColor Green
                 }
                 $EnabledCount++
             }
@@ -984,7 +984,7 @@ try {
     foreach ($Member in $Members) {
         try {
             Add-DistributionGroupMember -Identity $EmailAddress -Member $Member
-            Write-Host "  [OK] Added member: $Member" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added member: $Member" -ForegroundColor Green
         } catch {
             Write-Host "  [WARNING] Failed to add $Member: $_" -ForegroundColor Yellow
         }
@@ -1094,10 +1094,10 @@ try {
             } else {
                 if ($Action -eq "Add") {
                     Add-DistributionGroupMember -Identity $GroupIdentity -Member $Member.Email -ErrorAction Stop
-                    Write-Host "  [OK] Added: $($Member.Email)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Added: $($Member.Email)" -ForegroundColor Green
                 } else {
                     Remove-DistributionGroupMember -Identity $GroupIdentity -Member $Member.Email -Confirm:\$false -ErrorAction Stop
-                    Write-Host "  [OK] Removed: $($Member.Email)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Removed: $($Member.Email)" -ForegroundColor Green
                 }
                 $SuccessCount++
             }
@@ -1594,7 +1594,7 @@ try {
     foreach ($Member in $Members) {
         try {
             Add-MailboxPermission -Identity $EmailAddress -User $Member -AccessRights FullAccess -AutoMapping \$true
-            Write-Host "  [OK] Added $Member with Full Access" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added $Member with Full Access" -ForegroundColor Green
         } catch {
             Write-Host "  [WARNING] Failed to add $Member: $_" -ForegroundColor Yellow
         }
@@ -1783,7 +1783,7 @@ try {
                 
                 if ($Action -eq "ConvertToShared" -and $Mailbox.RecipientTypeDetails -eq "UserMailbox") {
                     Set-Mailbox -Identity $Mailbox.PrimarySmtpAddress -Type Shared
-                    Write-Host "  [OK] Converted to Shared: $($Mailbox.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Converted to Shared: $($Mailbox.DisplayName)" -ForegroundColor Green
                 }
             }
         }
@@ -1873,7 +1873,7 @@ try {
                 
                 if ($Action -eq "DisableForwarding") {
                     Set-Mailbox -Identity $Mailbox.PrimarySmtpAddress -ForwardingSmtpAddress \$null
-                    Write-Host "  [OK] Disabled forwarding for: $($Mailbox.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Disabled forwarding for: $($Mailbox.DisplayName)" -ForegroundColor Green
                 } else {
                     Write-Host "  Found: $($Mailbox.DisplayName) -> $ForwardAddress" -ForegroundColor Yellow
                 }

@@ -2469,7 +2469,7 @@ try {
         </div>
         
         <div class="issues $(if ($Issues.Count -eq 0) { 'healthy' })">
-            <h3>$(if ($Issues.Count -eq 0) { '[OK] Environment Healthy' } else { '[WARNING] Issues Detected' })</h3>
+            <h3>$(if ($Issues.Count -eq 0) { '[SUCCESS] Environment Healthy' } else { '[WARNING] Issues Detected' })</h3>
             $(if ($Issues.Count -gt 0) {
                 $Issues | ForEach-Object { "<p>$_</p>" }
             } else {
@@ -2533,24 +2533,24 @@ try {
     $ConfigPath = Join-Path $env:ChocolateyInstall "config\\chocolatey.config"
     if (Test-Path $ConfigPath) {
         Copy-Item -Path $ConfigPath -Destination $BackupFolder -Force
-        Write-Host "  [OK] Configuration file backed up" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Configuration file backed up" -ForegroundColor Green
     }
     
     # Export sources
     $SourcesFile = Join-Path $BackupFolder "sources.txt"
     choco source list | Out-File -FilePath $SourcesFile -Encoding UTF8
-    Write-Host "  [OK] Sources list backed up" -ForegroundColor Green
+    Write-Host "  [SUCCESS] Sources list backed up" -ForegroundColor Green
     
     # Export features
     $FeaturesFile = Join-Path $BackupFolder "features.txt"
     choco feature list | Out-File -FilePath $FeaturesFile -Encoding UTF8
-    Write-Host "  [OK] Features list backed up" -ForegroundColor Green
+    Write-Host "  [SUCCESS] Features list backed up" -ForegroundColor Green
     
     ${includePackages ? `
     # Export installed packages
     $PackagesFile = Join-Path $BackupFolder "packages.config"
     choco export $PackagesFile -y
-    Write-Host "  [OK] Installed packages list backed up" -ForegroundColor Green` : ''}
+    Write-Host "  [SUCCESS] Installed packages list backed up" -ForegroundColor Green` : ''}
     
     # Create backup manifest
     $Manifest = [PSCustomObject]@{

@@ -3659,7 +3659,7 @@ try {
             # Add to group
             Add-CMDistributionPointToGroup -DistributionPointGroupName $GroupName -DistributionPointName $DPServer
             
-            Write-Host "  [OK] Added: $DPServer" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added: $DPServer" -ForegroundColor Green
             $AddedCount++
             
         } catch {
@@ -4106,21 +4106,21 @@ try {
                     Invoke-Command -ComputerName $DeviceName -ScriptBlock {
                         Restart-Service -Name CcmExec -Force
                     } -ErrorAction Stop
-                    Write-Host "  [OK] $DeviceName: CCMExec service restarted" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] $DeviceName: CCMExec service restarted" -ForegroundColor Green
                 }
                 
                 if ($RemediationAction -eq "PolicyRefresh" -or $RemediationAction -eq "All") {
                     Invoke-Command -ComputerName $DeviceName -ScriptBlock {
                         Invoke-WmiMethod -Namespace root\\ccm -Class SMS_CLIENT -Name TriggerSchedule "{00000000-0000-0000-0000-000000000021}"
                     } -ErrorAction Stop
-                    Write-Host "  [OK] $DeviceName: Policy refresh triggered" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] $DeviceName: Policy refresh triggered" -ForegroundColor Green
                 }
                 
                 if ($RemediationAction -eq "RepairClient" -or $RemediationAction -eq "All") {
                     Invoke-Command -ComputerName $DeviceName -ScriptBlock {
                         Start-Process -FilePath "C:\\Windows\\ccmsetup\\ccmsetup.exe" -ArgumentList "/mp:SCCM-SERVER.contoso.com SMSSITECODE=AUTO" -NoNewWindow -Wait
                     } -ErrorAction Stop
-                    Write-Host "  [OK] $DeviceName: Client repair initiated" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] $DeviceName: Client repair initiated" -ForegroundColor Green
                 }
                 
             } catch {
@@ -4237,7 +4237,7 @@ try {
                 -BoundaryGroupId $BG.GroupID \`
                 -BoundaryId $Boundary.BoundaryID
             
-            Write-Host "  [OK] Added: $BoundaryValue ($BoundaryType)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added: $BoundaryValue ($BoundaryType)" -ForegroundColor Green
             $SuccessCount++
             
         } catch {
@@ -4511,14 +4511,14 @@ ${manufacturer ? `
             # Filter by manufacturer if specified
             if ($Driver.DriverProvider -like "*${manufacturer}*") {
                 $ImportedDrivers += $Driver
-                Write-Host "  [OK] Imported: $($Driver.DriverName)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Imported: $($Driver.DriverName)" -ForegroundColor Green
             } else {
                 # Remove non-matching driver
                 Remove-CMDriver -Id $Driver.CI_ID -Force
             }
 ` : `            
             $ImportedDrivers += $Driver
-            Write-Host "  [OK] Imported: $($Driver.DriverName)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Imported: $($Driver.DriverName)" -ForegroundColor Green
 `}            
         } catch {
             Write-Host "  [WARNING] Skipped: $($InfFile.Name) - $($_.Exception.Message)" -ForegroundColor Yellow
@@ -4706,7 +4706,7 @@ try {
                 $AllResults += $DeviceInfo
             }
             
-            Write-Host "  [OK] Processed: $($Devices.Count) devices" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Processed: $($Devices.Count) devices" -ForegroundColor Green
             
         } catch {
             Write-Host "  [FAILED] Failed: $CollectionName - $($_.Exception.Message)" -ForegroundColor Red
@@ -4957,7 +4957,7 @@ foreach ($Device in $TargetDevices) {
             Invoke-WMIMethod -Namespace "root\\CCM" -Class SMS_Client -Name TriggerSchedule -ArgumentList $using:SoftwareUpdateEvalID | Out-Null
         } -ErrorAction Stop
         
-        Write-Host "  [OK] Update scan triggered successfully" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Update scan triggered successfully" -ForegroundColor Green
         $SuccessCount++
         
         # Wait for completion if requested
@@ -5103,7 +5103,7 @@ foreach ($Device in $TargetDevices) {
         } -ErrorAction Stop
         
         $ClientInfo | Export-Csv (Join-Path $DeviceOutputPath "ClientInfo.csv") -NoTypeInformation
-        Write-Host "  [OK] Client info collected" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Client info collected" -ForegroundColor Green
         
         # Collect cache information
         if ($CollectCacheInfo) {
@@ -5128,7 +5128,7 @@ foreach ($Device in $TargetDevices) {
             } -ErrorAction Stop
             
             $CacheInfo | ConvertTo-Json -Depth 3 | Out-File (Join-Path $DeviceOutputPath "CacheInfo.json")
-            Write-Host "  [OK] Cache info collected" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Cache info collected" -ForegroundColor Green
         }
         
         # Collect log files
@@ -5147,7 +5147,7 @@ foreach ($Device in $TargetDevices) {
                     Copy-Item -Path $SourceLog -Destination $LogOutputPath -Force -ErrorAction SilentlyContinue
                 }
             }
-            Write-Host "  [OK] Log files collected" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Log files collected" -ForegroundColor Green
         }
         
         # Collect service status
@@ -5158,9 +5158,9 @@ foreach ($Device in $TargetDevices) {
         }
         
         $ServiceInfo | Export-Csv (Join-Path $DeviceOutputPath "Services.csv") -NoTypeInformation
-        Write-Host "  [OK] Service status collected" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Service status collected" -ForegroundColor Green
         
-        Write-Host "  [OK] Diagnostics saved to: $DeviceOutputPath" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Diagnostics saved to: $DeviceOutputPath" -ForegroundColor Green
         
     } catch {
         Write-Host "  [FAILED] Failed: $($_.Exception.Message)" -ForegroundColor Red

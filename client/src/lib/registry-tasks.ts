@@ -1178,7 +1178,7 @@ foreach ($KeyPath in $KeyPaths) {
     if ($LASTEXITCODE -eq 0) {
         $FileSize = (Get-Item $BackupFile).Length
         $TotalSize += $FileSize
-        Write-Host "  [OK] $KeyPath -> $([math]::Round($FileSize/1KB, 2)) KB" -ForegroundColor Green
+        Write-Host "  [SUCCESS] $KeyPath -> $([math]::Round($FileSize/1KB, 2)) KB" -ForegroundColor Green
         $SuccessCount++
     } else {
         Write-Host "  [FAILED] Failed: $KeyPath" -ForegroundColor Red
@@ -2260,7 +2260,7 @@ foreach ($Entry in $OrphanedEntries) {
             }
             
             Remove-Item -Path $Entry.Path -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "    [OK] Removed" -ForegroundColor Green
+            Write-Host "    [SUCCESS] Removed" -ForegroundColor Green
             $RemovedCount++
         } else {
             Write-Host "    Skipped" -ForegroundColor Gray
@@ -3919,12 +3919,12 @@ try {
         foreach ($Cat in $Categories.Keys) {
             $CatName = $Categories[$Cat]
             auditpol /set /category:"$CatName" $Setting.Split(' ') 2>&1 | Out-Null
-            Write-Host "  [OK] $Cat configured" -ForegroundColor Green
+            Write-Host "  [SUCCESS] $Cat configured" -ForegroundColor Green
         }
     } else {
         $CatName = $Categories[$AuditCategory]
         auditpol /set /category:"$CatName" $Setting.Split(' ') 2>&1 | Out-Null
-        Write-Host "  [OK] $AuditCategory configured" -ForegroundColor Green
+        Write-Host "  [SUCCESS] $AuditCategory configured" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -5443,7 +5443,7 @@ function Repair-KeyPermissions {
         # Apply the ACL
         Set-Acl -Path $Path -AclObject $Acl -ErrorAction Stop
         
-        Write-Host "  [OK] Repaired: $Path" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Repaired: $Path" -ForegroundColor Green
         return $true
     } catch {
         Write-Host "  [FAILED] Failed: $Path - $($_.Exception.Message)" -ForegroundColor Red

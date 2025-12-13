@@ -2712,7 +2712,7 @@ try {
                     Message = "Quota updated to $($User.QuotaGB)GB"
                 }
                 $SuccessCount++
-                Write-Host "  [OK] $($User.UserEmail): $($User.QuotaGB)GB" -ForegroundColor Green
+                Write-Host "  [SUCCESS] $($User.UserEmail): $($User.QuotaGB)GB" -ForegroundColor Green
             } else {
                 $Results += [PSCustomObject]@{
                     UserEmail = $User.UserEmail
@@ -3612,9 +3612,9 @@ Write-Host "Silent Move: ${silentMove ? 'Enabled' : 'Disabled'}" -ForegroundColo
 Write-Host ""
 
 Write-Host "Folders to Redirect:" -ForegroundColor Yellow
-${includeDesktop ? `Write-Host "  [OK] Desktop" -ForegroundColor Green` : `Write-Host "  [FAILED] Desktop (excluded)" -ForegroundColor Gray`}
-${includeDocuments ? `Write-Host "  [OK] Documents" -ForegroundColor Green` : `Write-Host "  [FAILED] Documents (excluded)" -ForegroundColor Gray`}
-${includePictures ? `Write-Host "  [OK] Pictures" -ForegroundColor Green` : `Write-Host "  [FAILED] Pictures (excluded)" -ForegroundColor Gray`}
+${includeDesktop ? `Write-Host "  [SUCCESS] Desktop" -ForegroundColor Green` : `Write-Host "  [FAILED] Desktop (excluded)" -ForegroundColor Gray`}
+${includeDocuments ? `Write-Host "  [SUCCESS] Documents" -ForegroundColor Green` : `Write-Host "  [FAILED] Documents (excluded)" -ForegroundColor Gray`}
+${includePictures ? `Write-Host "  [SUCCESS] Pictures" -ForegroundColor Green` : `Write-Host "  [FAILED] Pictures (excluded)" -ForegroundColor Gray`}
 
 Write-Host ""
 Write-Host "Registry Settings for Group Policy:" -ForegroundColor Cyan

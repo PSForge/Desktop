@@ -432,7 +432,7 @@ try {
     foreach ($Member in $Members) {
         try {
             Add-DistributionGroupMember -Identity $EmailAddress -Member $Member
-            Write-Host "  [OK] Added member: $Member" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Added member: $Member" -ForegroundColor Green
         } catch {
             Write-Host "  [WARNING] Failed to add $Member: $_" -ForegroundColor Yellow
         }
@@ -1110,7 +1110,7 @@ try {
         if ($Action -eq "Purge") {
             try {
                 Remove-StoreMailbox -Database $DatabaseName -Identity $Mailbox.MailboxGuid -MailboxState Disabled
-                Write-Host "  [OK] Purged: $($Mailbox.DisplayName)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Purged: $($Mailbox.DisplayName)" -ForegroundColor Green
             } catch {
                 Write-Host "  [FAILED] Failed to purge: $($Mailbox.DisplayName)" -ForegroundColor Red
             }
@@ -1226,7 +1226,7 @@ try {
             }
             
             $EnabledCount++
-            Write-Host "  [OK] Enabled: $($Mailbox.DisplayName)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Enabled: $($Mailbox.DisplayName)" -ForegroundColor Green
         } catch {
             Write-Host "  [FAILED] Failed: $($Mailbox.DisplayName) - $_" -ForegroundColor Red
         }
@@ -1518,17 +1518,17 @@ try {
             if ($Action -eq "Start") {
                 if ($Service.Status -ne "Running") {
                     Start-Service -InputObject $Service
-                    Write-Host "  [OK] Started: $($Service.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Started: $($Service.DisplayName)" -ForegroundColor Green
                 }
             } elseif ($Action -eq "Stop") {
                 if ($Service.Status -eq "Running") {
                     Stop-Service -InputObject $Service -Force
-                    Write-Host "  [OK] Stopped: $($Service.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Stopped: $($Service.DisplayName)" -ForegroundColor Green
                 }
             } else {
                 # Restart
                 Restart-Service -InputObject $Service -Force
-                Write-Host "  [OK] Restarted: $($Service.DisplayName)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Restarted: $($Service.DisplayName)" -ForegroundColor Green
             }
         } catch {
             Write-Host "  [FAILED] Failed: $($Service.DisplayName) - $_" -ForegroundColor Red

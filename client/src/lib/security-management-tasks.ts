@@ -3795,7 +3795,7 @@ try {
         Write-Host "  [WARNING] High-risk ports open: $($RiskyOpen.Count)" -ForegroundColor Yellow
         Write-Host "    (Ports: $($RiskyOpen.LocalPort -join ', '))" -ForegroundColor Yellow
     } else {
-        Write-Host "  [OK] No high-risk ports detected" -ForegroundColor Green
+        Write-Host "  [SUCCESS] No high-risk ports detected" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -3903,7 +3903,7 @@ try {
             Write-Host "    Execute: $($_.Execute)" -ForegroundColor Gray
         }
     } else {
-        Write-Host "  [OK] None detected" -ForegroundColor Green
+        Write-Host "  [SUCCESS] None detected" -ForegroundColor Green
     }
 } catch {
     Write-Host "[FAILED] Failed to audit tasks: $_" -ForegroundColor Red

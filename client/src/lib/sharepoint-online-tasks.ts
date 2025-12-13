@@ -2712,7 +2712,7 @@ try {
     foreach ($SiteUrl in $SiteUrls) {
         try {
             Add-SPOHubSiteAssociation -Site $SiteUrl -HubSite "${hubSiteUrl}"
-            Write-Host "  [OK] Associated: $SiteUrl" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Associated: $SiteUrl" -ForegroundColor Green
             $AssociatedCount++
         } catch {
             Write-Warning "  [FAILED] Failed to associate: $SiteUrl"
@@ -5058,7 +5058,7 @@ try {
             # Associate to hub
             Add-SPOHubSiteAssociation -Site $SiteUrl -HubSite $HubSiteUrl
             
-            Write-Host "  [OK] Successfully associated" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Successfully associated" -ForegroundColor Green
             $SuccessCount++
             
         } catch {

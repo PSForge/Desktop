@@ -4293,7 +4293,7 @@ ${mandatoryTagsBlock}
         }
     }
     
-    Write-Host \"\`n[OK] Updated $UpdatedCount resources with governance tags\" -ForegroundColor Green`;
+    Write-Host \"\`n[SUCCESS] Updated $UpdatedCount resources with governance tags\" -ForegroundColor Green`;
       } else if (operation === 'AuditTags') {
         scriptBody = `
     $RequiredTags = @(${mandatoryTagsArray})
@@ -5898,7 +5898,7 @@ try {
         }
     }
     
-    Write-Host "\\n[OK] Performance metrics collection complete" -ForegroundColor Green
+    Write-Host "\\n[SUCCESS] Performance metrics collection complete" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to collect VM metrics: $_"

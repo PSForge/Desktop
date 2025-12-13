@@ -2430,7 +2430,7 @@ WHERE dp.type IN ('S', 'U')
                 # Remap to existing login
                 $RemapQuery = "ALTER USER [$($User.UserName)] WITH LOGIN = [$($User.UserName)]"
                 Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $RemapQuery
-                Write-Host "  [OK] Remapped to existing login" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Remapped to existing login" -ForegroundColor Green
             } else {
                 Write-Host "  [WARNING] No matching login found - create login manually" -ForegroundColor Yellow
             }
@@ -4107,7 +4107,7 @@ ORDER BY ios.forwarded_fetch_count DESC, SizeMB DESC
             $RebuildQuery = "ALTER TABLE $TableName REBUILD"
             Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $RebuildQuery -QueryTimeout 0
             
-            Write-Host "  [OK] Rebuilt" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Rebuilt" -ForegroundColor Green
             $RebuiltCount++
         } else {
             Write-Host "  Skipped (under threshold)" -ForegroundColor Gray

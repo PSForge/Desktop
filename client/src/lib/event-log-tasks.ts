@@ -1071,7 +1071,7 @@ Write-Host "  Standard Deviation: $([Math]::Round($StdDev, 2)) minutes"
 if ($StdDev -lt ($AvgInterval * 0.2)) {
     Write-Host "\`n[WARNING] PATTERN DETECTED: Events occur regularly every ~$([Math]::Round($AvgInterval, 0)) minutes" -ForegroundColor Red
 } else {
-    Write-Host "\`n[OK] No strong recurring pattern detected" -ForegroundColor Green
+    Write-Host "\`n[SUCCESS] No strong recurring pattern detected" -ForegroundColor Green
 }
 
 $HourlyDistribution = $Events | Group-Object { $_.TimeCreated.Hour } | Sort-Object Name
@@ -2215,10 +2215,10 @@ foreach ($File in $OldFiles) {
     }
     
     $Archived++
-    Write-Host "  [OK] $($File.Name)" -ForegroundColor Green
+    Write-Host "  [SUCCESS] $($File.Name)" -ForegroundColor Green
 }
 
-Write-Host "\`n[OK] Archived $Archived files to $ArchiveDir" -ForegroundColor Green`;
+Write-Host "\`n[SUCCESS] Archived $Archived files to $ArchiveDir" -ForegroundColor Green`;
     }
   },
 
@@ -2326,7 +2326,7 @@ $($Report | ForEach-Object { "<tr><td>$($_.Category)</td><td>$($_.EventIDs)</td>
 
 $HTML | Out-File "$ReportPath" -Encoding UTF8` : `$Report | Export-Csv "$ReportPath" -NoTypeInformation`}
 
-Write-Host "\`n[OK] Report generated: $ReportPath" -ForegroundColor Green
+Write-Host "\`n[SUCCESS] Report generated: $ReportPath" -ForegroundColor Green
 
 $Report | Format-Table -AutoSize`;
     }
@@ -2513,7 +2513,7 @@ Get-ChildItem -Path \$ArchivePath -Filter "*.evtx" |
 $CleanupScriptPath = Join-Path $ArchivePath "Cleanup-OldLogs.ps1"
 $CleanupScript | Out-File $CleanupScriptPath -Encoding UTF8
 
-Write-Host "\`n[OK] Archival policy configured" -ForegroundColor Green
+Write-Host "\`n[SUCCESS] Archival policy configured" -ForegroundColor Green
 Write-Host "[SUCCESS] Cleanup script created: $CleanupScriptPath" -ForegroundColor Green
 Write-Host "\`nSchedule the cleanup script to run daily for retention enforcement" -ForegroundColor Yellow`;
     }
@@ -3464,7 +3464,7 @@ if ($Drift) {
     ${exportPath ? `$Drift | Export-Csv "${exportPath}" -NoTypeInformation
     Write-Host "[SUCCESS] Drift report exported to ${exportPath}" -ForegroundColor Yellow` : ''}
 } else {
-    Write-Host "\`n[OK] No configuration drift detected" -ForegroundColor Green
+    Write-Host "\`n[SUCCESS] No configuration drift detected" -ForegroundColor Green
 }
 
 Write-Host "\`nSummary: $($Drift.Count) drift issues found" -ForegroundColor $(if ($Drift.Count -gt 0) { 'Yellow' } else { 'Green' })`;
@@ -3547,7 +3547,7 @@ $OverallHealth = ($Stats | Measure-Object -Property HealthScore -Average).Averag
 Write-Host "\`n  Overall Health Score: $([Math]::Round($OverallHealth, 1))%" -ForegroundColor $(if ($OverallHealth -ge 90) { 'Green' } elseif ($OverallHealth -ge 70) { 'Yellow' } else { 'Red' })
 
 ${exportPath ? `$Stats | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "\`n[OK] Statistics exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "\`n[SUCCESS] Statistics exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 

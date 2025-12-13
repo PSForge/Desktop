@@ -465,17 +465,17 @@ foreach ($Computer in $StaleComputers) {
     switch ($Action) {
         "Disable" {
             Disable-ADAccount -Identity $Computer
-            Write-Host "  [OK] Disabled" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Disabled" -ForegroundColor Green
         }
         "Move to Quarantine OU" {
             ${quarantineOU ? `
             Move-ADObject -Identity $Computer.DistinguishedName -TargetPath $QuarantineOU
-            Write-Host "  [OK] Moved to quarantine" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Moved to quarantine" -ForegroundColor Green
             ` : `Write-Host "  [WARNING] Quarantine OU not specified" -ForegroundColor Red`}
         }
         "Delete" {
             Remove-ADComputer -Identity $Computer -Confirm:$false
-            Write-Host "  [OK] Deleted" -ForegroundColor Red
+            Write-Host "  [SUCCESS] Deleted" -ForegroundColor Red
         }
         default {
             Write-Host "  ℹ Report only - no action taken" -ForegroundColor Gray
@@ -1146,7 +1146,7 @@ foreach ($DC in $DCs) {
                 Username = $Username
             }
             
-            Write-Host "  [OK] Found lockout at $($Event.TimeCreated)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Found lockout at $($Event.TimeCreated)" -ForegroundColor Green
             Write-Host "    Source: $CallerComputer" -ForegroundColor Cyan
         }
     } catch {
@@ -1825,7 +1825,7 @@ foreach ($Group in $AllGroups) {
         if ($DeleteEmpty) {
             try {
                 Remove-ADGroup -Identity $Group -Confirm:$false
-                Write-Host "  [OK] Deleted" -ForegroundColor Red
+                Write-Host "  [SUCCESS] Deleted" -ForegroundColor Red
             } catch {
                 Write-Host "  [FAILED] Failed to delete: $_" -ForegroundColor Red
             }
@@ -2134,7 +2134,7 @@ foreach ($DC in $DCs) {
                     LastResult = $Partner.LastReplicationResult
                 }
             } else {
-                Write-Host "  [OK] OK with $($Partner.Partner)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] OK with $($Partner.Partner)" -ForegroundColor Green
             }
         }
     } catch {
@@ -5217,7 +5217,7 @@ try {
             # Validate OU exists
             try {
                 $OUObject = Get-ADOrganizationalUnit -Identity $OU -ErrorAction Stop
-                Write-Host "    [OK] OU verified" -ForegroundColor Gray
+                Write-Host "    [SUCCESS] OU verified" -ForegroundColor Gray
             } catch {
                 Write-Host "    [FAILED] OU does not exist or is inaccessible" -ForegroundColor Red
                 $FailedCount++
@@ -5260,7 +5260,7 @@ try {
                         }
                     }
                     
-                    Write-Host "    [OK] Linked successfully" -ForegroundColor Green
+                    Write-Host "    [SUCCESS] Linked successfully" -ForegroundColor Green
                     Write-Host "      Order: $LinkOrder" -ForegroundColor Gray
                     Write-Host "      Enforced: $Enforced" -ForegroundColor Gray
                     Write-Host "      Enabled: $LinkEnabled" -ForegroundColor Gray
@@ -5446,7 +5446,7 @@ try {
             foreach ($GPO in $AllGPOs) {
                 try {
                     $Backup = Backup-GPO -Name $GPO.DisplayName -Path $BackupPath
-                    Write-Host "  [OK] Backed up: $($GPO.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Backed up: $($GPO.DisplayName)" -ForegroundColor Green
                     $BackupCount++
                 } catch {
                     Write-Host "  [FAILED] Failed: $($GPO.DisplayName) - $_" -ForegroundColor Red
@@ -5716,7 +5716,7 @@ try {
         # Verify GPO exists
         try {
             $GPO = Get-GPO -Name $GPOName -ErrorAction Stop
-            Write-Host "  [OK] GPO found: $($GPO.DisplayName)" -ForegroundColor Gray
+            Write-Host "  [SUCCESS] GPO found: $($GPO.DisplayName)" -ForegroundColor Gray
         } catch {
             Write-Error "GPO not found: $GPOName"
             exit 1
@@ -5767,7 +5767,7 @@ try {
                                 if ($Inheritance.GpoLinks) {
                                     $LinkedGPO = $Inheritance.GpoLinks | Where-Object { $_.DisplayName -eq $GPOName }
                                     if ($LinkedGPO) {
-                                        Write-Host "  [OK] Linked to: $OU" -ForegroundColor Green
+                                        Write-Host "  [SUCCESS] Linked to: $OU" -ForegroundColor Green
                                         Write-Host "    Enabled: $($LinkedGPO.Enabled)" -ForegroundColor Gray
                                         Write-Host "    Enforced: $($LinkedGPO.Enforced)" -ForegroundColor Gray
                                         Write-Host "    Order: $($LinkedGPO.Order)" -ForegroundColor Gray
@@ -6238,7 +6238,7 @@ try {
                 $ReplStatus = repadmin /showrepl $DC $NC 2>&1
                 
                 if ($ReplStatus -match "successful") {
-                    Write-Host "  [OK] Replication successful" -ForegroundColor Green
+                    Write-Host "  [SUCCESS] Replication successful" -ForegroundColor Green
                     $SuccessCount++
                 } else {
                     Write-Host "  [WARNING] Replication status unclear - check manually" -ForegroundColor Yellow

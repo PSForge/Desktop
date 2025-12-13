@@ -1811,7 +1811,7 @@ try {
     $AuthTime = ((Get-Date) - $AuthStart).TotalMilliseconds
     
     if ($AuthResponse.access_token) {
-        Write-Host "  [OK] Authentication successful ($([math]::Round($AuthTime, 0))ms)" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Authentication successful ($([math]::Round($AuthTime, 0))ms)" -ForegroundColor Green
     } else {
         throw "Authentication failed - no token received"
     }
@@ -1828,7 +1828,7 @@ try {
     $TenantTime = ((Get-Date) - $TenantStart).TotalMilliseconds
     
     if ($TenantResponse.id) {
-        Write-Host "  [OK] Tenant access verified ($([math]::Round($TenantTime, 0))ms)" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Tenant access verified ($([math]::Round($TenantTime, 0))ms)" -ForegroundColor Green
     }
     
     Write-Host "Testing Endpoint API..." -ForegroundColor Yellow
@@ -1836,14 +1836,14 @@ try {
     $EndpointResponse = Invoke-RestMethod -Uri "https://api-$($TenantResponse.dataRegion).central.sophos.com/endpoint/v1/endpoints?pageSize=1" \`
         -Headers $Headers -Method GET
     $EndpointTime = ((Get-Date) - $EndpointStart).TotalMilliseconds
-    Write-Host "  [OK] Endpoint API accessible ($([math]::Round($EndpointTime, 0))ms)" -ForegroundColor Green
+    Write-Host "  [SUCCESS] Endpoint API accessible ($([math]::Round($EndpointTime, 0))ms)" -ForegroundColor Green
     
     Write-Host "Testing Alert API..." -ForegroundColor Yellow
     $AlertStart = Get-Date
     $AlertResponse = Invoke-RestMethod -Uri "https://api-$($TenantResponse.dataRegion).central.sophos.com/common/v1/alerts?pageSize=1" \`
         -Headers $Headers -Method GET
     $AlertTime = ((Get-Date) - $AlertStart).TotalMilliseconds
-    Write-Host "  [OK] Alert API accessible ($([math]::Round($AlertTime, 0))ms)" -ForegroundColor Green
+    Write-Host "  [SUCCESS] Alert API accessible ($([math]::Round($AlertTime, 0))ms)" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "API Health: HEALTHY" -ForegroundColor Green
@@ -2098,7 +2098,7 @@ try {
                     Status = "Initiated"
                     StartTime = Get-Date
                 }
-                Write-Host "  [OK] $($Endpoint.hostname)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] $($Endpoint.hostname)" -ForegroundColor Green
             } catch {
                 $ScanJobs += [PSCustomObject]@{
                     Endpoint = $Endpoint.hostname
@@ -2181,7 +2181,7 @@ try {
         
         foreach ($Endpoint in $GroupMembers) {
             Move-SophosEndpointToGroup -EndpointId $Endpoint.id -GroupId $TargetGroupId
-            Write-Host "  [OK] Moved: $($Endpoint.hostname)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Moved: $($Endpoint.hostname)" -ForegroundColor Green
         }
     }
     
@@ -2465,7 +2465,7 @@ try {
         
         foreach ($Endpoint in $AssignedEndpoints) {
             Set-SophosEndpointPolicy -EndpointId $Endpoint.id -PolicyId $ReassignPolicyId
-            Write-Host "  [OK] Reassigned: $($Endpoint.hostname)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Reassigned: $($Endpoint.hostname)" -ForegroundColor Green
         }
     }
     
@@ -2582,7 +2582,7 @@ try {
     
     foreach ($App in $BlockedApps) {
         Add-SophosApplicationControlRule -PolicyId $Policy.id -Application $App -Action $Action
-        Write-Host "  [OK] Added rule for: $App ($Action)" -ForegroundColor Cyan
+        Write-Host "  [SUCCESS] Added rule for: $App ($Action)" -ForegroundColor Cyan
     }
     
     Write-Host ""

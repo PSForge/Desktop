@@ -673,7 +673,7 @@ if ($Services) {
         foreach ($Service in $Services) {
             try {
                 Start-Service -Name $Service.Name -ErrorAction Stop
-                Write-Host "  [OK] $($Service.Name)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] $($Service.Name)" -ForegroundColor Green
             } catch {
                 Write-Host "  [FAILED] $($Service.Name): $_" -ForegroundColor Red
             }
@@ -751,7 +751,7 @@ if ($Services) {
         foreach ($Service in $Services) {
             try {
                 Stop-Service -Name $Service.Name -Force -ErrorAction Stop
-                Write-Host "  [OK] $($Service.Name)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] $($Service.Name)" -ForegroundColor Green
             } catch {
                 Write-Host "  [FAILED] $($Service.Name): $_" -ForegroundColor Red
             }
@@ -951,7 +951,7 @@ foreach ($ServiceName in $ServicesToDisable) {
             } else {
                 Set-Service -Name $ServiceName -StartupType Disabled
                 Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
-                Write-Host "  [OK] Disabled: $($Service.DisplayName)" -ForegroundColor Green
+                Write-Host "  [SUCCESS] Disabled: $($Service.DisplayName)" -ForegroundColor Green
             }
         } else {
             Write-Host "  Already disabled: $($Service.DisplayName)" -ForegroundColor Gray
@@ -1618,7 +1618,7 @@ foreach ($Service in $HungServices) {
         
         $NewStatus = (Get-Service -Name $Service.Name).Status
         if ($NewStatus -eq 'Running') {
-            Write-Host "  [OK] Service recovered and running" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Service recovered and running" -ForegroundColor Green
         } else {
             Write-Host "  [WARNING] Service status: $NewStatus" -ForegroundColor Yellow
         }
@@ -1740,7 +1740,7 @@ Write-Host "Starting services..." -ForegroundColor Yellow
 foreach ($ServiceName in $ValidServices) {
     try {
         Start-Service -Name $ServiceName -ErrorAction Stop
-        Write-Host "  [OK] Started: $ServiceName" -ForegroundColor Green
+        Write-Host "  [SUCCESS] Started: $ServiceName" -ForegroundColor Green
     } catch {
         Write-Host "  [FAILED] Failed to start: $ServiceName - $_" -ForegroundColor Red
     }
@@ -2387,7 +2387,7 @@ if ($WMIService.Description) {
 # Display results
 Write-Host ""
 Write-Host "PASSED CHECKS ($($Passed.Count)):" -ForegroundColor Green
-$Passed | ForEach-Object { Write-Host "  [OK] $_" -ForegroundColor Green }
+$Passed | ForEach-Object { Write-Host "  [SUCCESS] $_" -ForegroundColor Green }
 
 if ($Warnings.Count -gt 0) {
     Write-Host ""
@@ -2844,7 +2844,7 @@ if ($TestMode) {
     foreach ($Server in $ServerList) {
         $Ping = Test-Connection -ComputerName $Server -Count 1 -Quiet
         if ($Ping) {
-            Write-Host "  [OK] $Server - Reachable" -ForegroundColor Green
+            Write-Host "  [SUCCESS] $Server - Reachable" -ForegroundColor Green
         } else {
             Write-Host "  [FAILED] $Server - Unreachable" -ForegroundColor Red
         }
@@ -2875,7 +2875,7 @@ foreach ($Server in $ServerList) {
         } -ArgumentList $ServiceName -ErrorAction Stop
         
         if ($Result.Success) {
-            Write-Host "  [OK] Success - Status: $($Result.Status)" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Success - Status: $($Result.Status)" -ForegroundColor Green
             $Results += [PSCustomObject]@{ Server = $Server; Status = "Success"; Details = $Result.Status }
         } else {
             Write-Host "  [FAILED] Failed - $($Result.Error)" -ForegroundColor Red
@@ -4461,7 +4461,7 @@ $Failed = 0
 foreach ($Service in $Services) {
     try {
         Set-Service -Name $Service.Name -StartupType $StartupType -ErrorAction Stop
-        Write-Host "  [OK] $($Service.Name)" -ForegroundColor Green
+        Write-Host "  [SUCCESS] $($Service.Name)" -ForegroundColor Green
         $Success++
     } catch {
         Write-Host "  [FAILED] $($Service.Name): $_" -ForegroundColor Red
@@ -4790,7 +4790,7 @@ foreach ($SvcName in $ServiceList) {
         $InvalidServices += $SvcName
         Write-Host "  [FAILED] $SvcName - Not found" -ForegroundColor Red
     } else {
-        Write-Host "  [OK] $($Svc.DisplayName) [$($Svc.Status)]" -ForegroundColor Green
+        Write-Host "  [SUCCESS] $($Svc.DisplayName) [$($Svc.Status)]" -ForegroundColor Green
     }
 }
 
@@ -4830,7 +4830,7 @@ for ($i = 0; $i -lt $ServiceList.Count; $i++) {
         $Status = (Get-Service -Name $SvcName).Status
         
         if ($Status -eq "Running") {
-            Write-Host "  [OK] Running" -ForegroundColor Green
+            Write-Host "  [SUCCESS] Running" -ForegroundColor Green
             $Results += [PSCustomObject]@{ Service = $SvcName; Status = "Success"; FinalState = $Status }
         } else {
             Write-Host "  [WARNING] Status: $Status" -ForegroundColor Yellow

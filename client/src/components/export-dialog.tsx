@@ -181,20 +181,20 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
             </TabsList>
             
             <TabsContent value="preview" className="space-y-2 mt-4">
-              <ScrollArea className="h-64 rounded-md border bg-muted/30">
+              <div className="h-64 rounded-md border bg-muted/30 overflow-y-auto">
                 <pre className="p-4 text-xs font-mono" data-testid="text-script-preview">
                   <code>{code || '# No script content'}</code>
                 </pre>
-              </ScrollArea>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Review your script before exporting
               </p>
             </TabsContent>
 
             <TabsContent value="security" className="mt-4">
-              <ScrollArea className="h-[400px]">
+              <div className="h-[400px] overflow-y-auto">
                 <SecurityDashboard script={code} />
-              </ScrollArea>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

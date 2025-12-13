@@ -1,14 +1,15 @@
 import { useState, useMemo, useRef } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Download, Upload, Info, Lock, FileText, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload, Info, Lock, FileText, AlertCircle, Sparkles, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { SecurityDashboard } from '@/components/security-dashboard';
 import { parseCSV, validateCSVData, generateCSVTemplate, downloadCSV, readCSVFile, ParsedCSV } from '@/lib/csv-utils';
@@ -163,7 +164,75 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   // Task parameters for non-bulk tasks: { taskId: { parameterId: value } }
   const [taskParameters, setTaskParameters] = useState<Record<string, Record<string, any>>>({});
 
+  // AI Review state
+  const [aiReviewResult, setAiReviewResult] = useState<{
+    summary: string;
+    recommendations: Array<{ type: string; title: string; description: string; }>;
+  } | null>(null);
+
   const totalSteps = 5;
+
+  // AI Review mutation
+  const aiReviewMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await apiRequest('/api/ai/optimize', 'POST', { code });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      setAiReviewResult({
+        summary: data.summary || 'Script analyzed successfully.',
+        recommendations: [
+          ...(data.performance || []),
+          ...(data.security || []),
+          ...(data.bestPractices || []),
+        ].map((rec: any) => ({
+          type: rec.type || 'general',
+          title: rec.title,
+          description: rec.description,
+        })),
+      });
+      toast({
+        title: 'AI Review Complete',
+        description: 'Script has been analyzed and reviewed.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'AI Review Failed',
+        description: error.message || 'Unable to complete AI review. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleAiCheck = () => {
+    if (!generatedScript || generatedScript.trim().length === 0) {
+      toast({
+        title: 'No Script',
+        description: 'Generate a script first before AI review.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!featureAccess?.hasPremiumCategories) {
+      toast({
+        title: 'Pro Feature',
+        description: 'AI Check requires a Pro subscription.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setAiReviewResult(null);
+    aiReviewMutation.mutate(generatedScript);
+  };
+
+  const handleTransferToBuilder = () => {
+    setScript(generatedScript);
+    toast({
+      title: 'Script Transferred',
+      description: 'Script has been sent to the Script Builder for further editing and saving.',
+    });
+  };
 
   // Filter platforms based on subscription
   const availablePlatforms = useMemo(() => {
@@ -1322,9 +1391,13 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="preview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="preview">Script Preview</TabsTrigger>
-                      <TabsTrigger value="security">Security Analysis</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="preview" data-testid="tab-preview">Script Preview</TabsTrigger>
+                      <TabsTrigger value="security" data-testid="tab-security">Security Analysis</TabsTrigger>
+                      <TabsTrigger value="ai-review" data-testid="tab-ai-review">
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        AI Review
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="preview" className="space-y-4 mt-4">
@@ -1339,6 +1412,85 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                       <ScrollArea className="h-[500px]">
                         <SecurityDashboard script={generatedScript} />
                       </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="ai-review" className="mt-4">
+                      <div className="space-y-4">
+                        {!featureAccess?.hasPremiumCategories ? (
+                          <Alert>
+                            <Lock className="h-4 w-4" />
+                            <AlertTitle>Pro Feature</AlertTitle>
+                            <AlertDescription>
+                              AI Script Review requires a Pro subscription. Upgrade to get AI-powered script analysis with performance, security, and best practice recommendations.
+                            </AlertDescription>
+                          </Alert>
+                        ) : aiReviewMutation.isPending ? (
+                          <div className="flex flex-col items-center justify-center h-[400px] gap-4">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-muted-foreground">Analyzing your script with AI...</p>
+                          </div>
+                        ) : aiReviewResult ? (
+                          <ScrollArea className="h-[500px]">
+                            <div className="space-y-4 pr-4">
+                              <Alert>
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <AlertTitle>AI Analysis Complete</AlertTitle>
+                                <AlertDescription>{aiReviewResult.summary}</AlertDescription>
+                              </Alert>
+
+                              {aiReviewResult.recommendations.length > 0 && (
+                                <div className="space-y-3">
+                                  <h4 className="font-semibold text-sm">Recommendations ({aiReviewResult.recommendations.length})</h4>
+                                  {aiReviewResult.recommendations.map((rec, idx) => (
+                                    <Card key={idx} className="p-4">
+                                      <div className="flex items-start gap-2">
+                                        <Badge variant="secondary" className="text-xs shrink-0">
+                                          {rec.type}
+                                        </Badge>
+                                        <div>
+                                          <p className="font-medium text-sm">{rec.title}</p>
+                                          <p className="text-xs text-muted-foreground mt-1">{rec.description}</p>
+                                        </div>
+                                      </div>
+                                    </Card>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="pt-4 border-t">
+                                <Button 
+                                  onClick={handleTransferToBuilder}
+                                  className="w-full"
+                                  data-testid="button-transfer-to-builder"
+                                >
+                                  <ArrowRight className="h-4 w-4 mr-2" />
+                                  Transfer to Script Builder
+                                </Button>
+                                <p className="text-xs text-muted-foreground text-center mt-2">
+                                  Send this script to the Script Builder tab for editing and saving
+                                </p>
+                              </div>
+                            </div>
+                          </ScrollArea>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-[400px] gap-4 text-center">
+                            <Sparkles className="h-12 w-12 text-muted-foreground" />
+                            <div>
+                              <h4 className="font-semibold">AI-Powered Script Review</h4>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Click "AI Check" below to analyze your script for performance, security, and best practices.
+                              </p>
+                            </div>
+                            <Button 
+                              onClick={handleAiCheck}
+                              data-testid="button-ai-check-inline"
+                            >
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Start AI Review
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </CardContent>
@@ -1376,10 +1528,41 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleExport} data-testid="button-wizard-export">
-                <Download className="h-4 w-4 mr-2" />
-                Export Script
-              </Button>
+              <>
+                {featureAccess?.hasPremiumCategories && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleAiCheck}
+                    disabled={aiReviewMutation.isPending || !generatedScript}
+                    data-testid="button-wizard-ai-check"
+                  >
+                    {aiReviewMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AI Check
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Button 
+                  variant="outline"
+                  onClick={handleTransferToBuilder}
+                  disabled={!generatedScript}
+                  data-testid="button-wizard-transfer"
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  To Builder
+                </Button>
+                <Button onClick={handleExport} data-testid="button-wizard-export">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Script
+                </Button>
+              </>
             )}
           </div>
         </div>

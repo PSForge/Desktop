@@ -1,11 +1,13 @@
 import OpenAI from "openai";
 
 function getOpenAIClient(): OpenAI {
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (!apiKey) {
     throw new Error("OPENAI_API_KEY environment variable is not set");
   }
   return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || undefined,
   });
 }
 

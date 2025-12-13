@@ -5536,7 +5536,7 @@ try {
                         Write-Host "  Using unique name: $NewGPOName" -ForegroundColor Yellow
                     }
                     
-                    Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
+                    Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath \`
                         -TargetName $NewGPOName -CreateIfNeeded -ErrorAction Stop
                     
                     Write-Host "✓ GPO restored as new object: $NewGPOName" -ForegroundColor Green
@@ -5548,7 +5548,7 @@ try {
                         exit 1
                     }
                     
-                    Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath ``
+                    Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath \`
                         -TargetName $GPOName -ErrorAction Stop
                     
                     Write-Host "✓ GPO settings restored to existing GPO: $GPOName" -ForegroundColor Green

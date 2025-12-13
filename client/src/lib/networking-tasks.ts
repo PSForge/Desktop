@@ -147,7 +147,6 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
       const ipAddress = escapePowerShellString(params.ipAddress);
       const prefixLength = Number(params.prefixLength);
       const gateway = escapePowerShellString(params.gateway);
-      const dnsServers = params.dnsServers.split(',').map((d: string) => d.trim());
       
       return `# Configure Static IP Address
 # Generated: ${new Date().toISOString()}
@@ -156,7 +155,7 @@ $AdapterName = "${adapterName}"
 $IPAddress = "${ipAddress}"
 $PrefixLength = ${prefixLength}
 $Gateway = "${gateway}"
-$DNSServers = ${buildPowerShellArray(dnsServers)}
+$DNSServers = ${buildPowerShellArray(params.dnsServers)}
 
 # Get adapter
 $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction Stop

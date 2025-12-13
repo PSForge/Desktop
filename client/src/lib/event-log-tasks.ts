@@ -237,14 +237,13 @@ Write-Host "✓ Log ${action.toLowerCase()}d: $LogName" -ForegroundColor Green`;
       { id: 'retentionMode', label: 'Retention Mode', type: 'select', required: true, options: ['Overwrite', 'Archive', 'DoNotOverwrite'], defaultValue: 'Overwrite' }
     ],
     scriptTemplate: (params) => {
-      const logs = params.logNames.split(',').map((l: string) => l.trim());
       const maxSize = Number(params.maxSizeMB);
       const mode = escapePowerShellString(params.retentionMode);
       
       return `# Set Log Retention Policy (Bulk)
 # Generated: ${new Date().toISOString()}
 
-$Logs = ${buildPowerShellArray(logs)}
+$Logs = ${buildPowerShellArray(params.logNames)}
 $MaxSize = ${maxSize} * 1MB
 $Mode = "${mode}"
 
@@ -309,7 +308,6 @@ foreach ($LogName in $Logs) {
       { id: 'compress', label: 'Compress Backups', type: 'boolean', required: false, defaultValue: true }
     ],
     scriptTemplate: (params) => {
-      const logs = params.logNames.split(',').map((l: string) => l.trim());
       const backupPath = escapePowerShellString(params.backupPath);
       const compress = toPowerShellBoolean(params.compress ?? true);
       
@@ -318,7 +316,7 @@ foreach ($LogName in $Logs) {
 
 $BackupDir = "${backupPath}"
 New-Item -Path $BackupDir -ItemType Directory -Force | Out-Null
-$Logs = ${buildPowerShellArray(logs)}
+$Logs = ${buildPowerShellArray(params.logNames)}
 
 foreach ($LogName in $Logs) {
     $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -379,7 +377,6 @@ foreach ($LogName in $Logs) {
     ],
     scriptTemplate: (params) => {
       const logName = escapePowerShellString(params.logName);
-      const ids = params.eventIDs.split(',').map((i: string) => i.trim());
       const hours = Number(params.hours || 24);
       const exportPath = params.exportPath ? escapePowerShellString(params.exportPath) : '';
       
@@ -387,7 +384,7 @@ foreach ($LogName in $Logs) {
 # Generated: ${new Date().toISOString()}
 
 $LogName = "${logName}"
-$EventIDs = ${buildPowerShellArray(ids)}
+$EventIDs = ${buildPowerShellArray(params.eventIDs)}
 $StartTime = (Get-Date).AddHours(-${hours})
 
 $Filter = @{
@@ -717,13 +714,12 @@ if ($All) {
     ],
     scriptTemplate: (params) => {
       const threshold = Number(params.threshold);
-      const logs = params.criticalLogs.split(',').map((l: string) => l.trim());
       
       return `# Monitor Log Capacity
 # Generated: ${new Date().toISOString()}
 
 $Threshold = ${threshold}
-$CriticalLogs = ${buildPowerShellArray(logs)}
+$CriticalLogs = ${buildPowerShellArray(params.criticalLogs)}
 $Alerts = @()
 
 foreach ($LogName in $CriticalLogs) {
@@ -786,12 +782,10 @@ if ($Alerts) {
       { id: 'expectedLogs', label: 'Expected Enabled Logs', type: 'textarea', required: true, placeholder: 'Security,Application,System,Microsoft-Windows-Sysmon/Operational' }
     ],
     scriptTemplate: (params) => {
-      const logs = params.expectedLogs.split(',').map((l: string) => l.trim());
-      
       return `# Detect Disabled Critical Logs
 # Generated: ${new Date().toISOString()}
 
-$ExpectedLogs = ${buildPowerShellArray(logs)}
+$ExpectedLogs = ${buildPowerShellArray(params.expectedLogs)}
 $Disabled = @()
 
 foreach ($LogName in $ExpectedLogs) {
@@ -2473,14 +2467,13 @@ Write-Host "✓ Report exported to ${exportPath}" -ForegroundColor Green` : ''}`
       { id: 'retentionDays', label: 'Retention Period (days)', type: 'number', required: true, defaultValue: 365 }
     ],
     scriptTemplate: (params) => {
-      const logs = params.logNames.split(',').map((l: string) => l.trim());
       const archivePath = escapePowerShellString(params.archivePath);
       const retentionDays = Number(params.retentionDays);
       
       return `# Implement Event Archival Policy
 # Generated: ${new Date().toISOString()}
 
-$Logs = ${buildPowerShellArray(logs)}
+$Logs = ${buildPowerShellArray(params.logNames)}
 $ArchivePath = "${archivePath}"
 $RetentionDays = ${retentionDays}
 
@@ -2556,7 +2549,6 @@ Write-Host "\`nSchedule the cleanup script to run daily for retention enforcemen
       { id: 'exportPath', label: 'Export Path (CSV)', type: 'path', required: false }
     ],
     scriptTemplate: (params) => {
-      const keywords = params.keywords.split(',').map((k: string) => k.trim());
       const isAndMode = params.searchMode === 'AND (all keywords)';
       const logName = escapePowerShellString(params.logName);
       const hours = Number(params.hours);
@@ -2565,7 +2557,7 @@ Write-Host "\`nSchedule the cleanup script to run daily for retention enforcemen
       return `# Search Events by Keyword
 # Generated: ${new Date().toISOString()}
 
-$Keywords = ${buildPowerShellArray(keywords)}
+$Keywords = ${buildPowerShellArray(params.keywords)}
 $LogName = "${logName}"
 $StartTime = (Get-Date).AddHours(-${hours})
 $AndMode = $${isAndMode}
@@ -3335,7 +3327,6 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
       const logName = escapePowerShellString(params.logName);
       const hours = Number(params.hours);
       const exportPath = escapePowerShellString(params.exportPath);
-      const eventIds = params.eventIds ? params.eventIds.split(',').map((i: string) => i.trim()) : null;
       
       return `# Export Events to XML
 # Generated: ${new Date().toISOString()}
@@ -3349,7 +3340,7 @@ $Filter = @{
     StartTime = $StartTime
 }
 
-${eventIds ? `$Filter.ID = ${buildPowerShellArray(eventIds)}` : ''}
+${params.eventIds ? `$Filter.ID = ${buildPowerShellArray(params.eventIds)}` : ''}
 
 $Events = Get-WinEvent -FilterHashtable $Filter -ErrorAction SilentlyContinue
 

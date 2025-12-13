@@ -2477,7 +2477,7 @@ $SiteCode = Get-PSDrive -PSProvider CMSite | Select -ExpandProperty Name
 Set-Location "$SiteCode:"
 
 try {
-    New-CMTaskSequenceDeployment -TaskSequenceName "${t}" -CollectionName "${c}" -DeployPurpose Available -AvailableDateTime (Get-Date) -MakeAvailableTo ClientsMediaAndPxe -ShowTaskSequenceProgress $true${px ? ` -AllowUsersRunIndependently $true` : ``}${m ? ` -AllowUseUnprotectedDP $true` : ``}
+    New-CMTaskSequenceDeployment -TaskSequenceName "${t}" -CollectionName "${c}" -DeployPurpose Available -AvailableDateTime (Get-Date) -MakeAvailableTo ClientsMediaAndPxe -ShowTaskSequenceProgress $true${px ? ` -AllowUsersRunIndependently $true` : ''}${m ? ` -AllowUseUnprotectedDP $true` : ''}
     
     Write-Host "✓ Task sequence deployed: ${t}" -ForegroundColor Green
     Write-Host "  Collection: ${c}" -ForegroundColor Gray
@@ -2626,7 +2626,7 @@ $Devices = Get-CMDevice -CollectionName "${c}"
 $Report = @()
 
 foreach ($Dev in $Devices) {
-    $Apps = Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_ADD_REMOVE_PROGRAMS -Filter "ResourceID='$($Dev.ResourceID)'"${f ? ` | Where-Object { $_.DisplayName -like '*${f}*' }` : ``}
+    $Apps = Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Class SMS_G_System_ADD_REMOVE_PROGRAMS -Filter "ResourceID='$($Dev.ResourceID)'"${f ? ` | Where-Object { $_.DisplayName -like '*${f}*' }` : ''}
     
     foreach ($App in $Apps) {
         $Report += [PSCustomObject]@{

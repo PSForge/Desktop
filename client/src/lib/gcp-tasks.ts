@@ -53,9 +53,9 @@ try {
         gcloud compute instances ${action.toLowerCase()} $Instance --zone="${zone}"${action === 'Delete' ? ' --quiet' : ''}
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ ${action}: $Instance" -ForegroundColor Green
+            Write-Host "[SUCCESS] ${action}: $Instance" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed: $Instance" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $Instance" -ForegroundColor Red
         }
     }
     
@@ -102,7 +102,7 @@ try {
         --boot-disk-size=10GB
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Instance '${instanceName}' created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Instance '${instanceName}' created successfully!" -ForegroundColor Green
     } else {
         Write-Error "Instance creation failed"
     }
@@ -138,7 +138,7 @@ try {
     gsutil mb -l ${location} gs://${bucketName}/
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Bucket '${bucketName}' created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Bucket '${bucketName}' created successfully!" -ForegroundColor Green
     } else {
         Write-Error "Bucket creation failed"
     }
@@ -191,8 +191,8 @@ ${action === 'Change Machine Type' ? `    # Stop instance
     gcloud compute instances start "${instanceName}" --zone="${zone}" --quiet
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Machine type changed to: ${machineType}" -ForegroundColor Green
-        Write-Host "✓ Instance restarted" -ForegroundColor Green
+        Write-Host "[SUCCESS] Machine type changed to: ${machineType}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Instance restarted" -ForegroundColor Green
     }` :
 action === 'Add Labels' ? `    $LabelArgs = "${labelsRaw.join(',')}"
     gcloud compute instances add-labels "${instanceName}" \`
@@ -200,14 +200,14 @@ action === 'Add Labels' ? `    $LabelArgs = "${labelsRaw.join(',')}"
         --labels=$LabelArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Labels added to instance" -ForegroundColor Green
+        Write-Host "[SUCCESS] Labels added to instance" -ForegroundColor Green
     }` :
 `    gcloud compute instances add-metadata "${instanceName}" \`
         --zone="${zone}" \`
         --metadata=startup-script="#!/bin/bash\necho 'Modified by PSForge'"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Metadata updated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Metadata updated" -ForegroundColor Green
     }`}
     
 } catch {
@@ -252,7 +252,7 @@ ${action === 'Create Disk' ? `    gcloud compute disks create "${diskName}" \`
         --type=${diskType}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Disk created: ${diskName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disk created: ${diskName}" -ForegroundColor Green
         Write-Host "  Size: ${size} GB" -ForegroundColor Cyan
         Write-Host "  Type: ${diskType}" -ForegroundColor Cyan
     }` :
@@ -261,21 +261,21 @@ action === 'Attach Disk' ? `    gcloud compute instances attach-disk "${instance
         --zone="${zone}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Disk attached to instance: ${instanceName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disk attached to instance: ${instanceName}" -ForegroundColor Green
     }` :
 action === 'Detach Disk' ? `    gcloud compute instances detach-disk "${instanceName}" \`
         --disk="${diskName}" \`
         --zone="${zone}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Disk detached from instance: ${instanceName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disk detached from instance: ${instanceName}" -ForegroundColor Green
     }` :
 `    gcloud compute disks delete "${diskName}" \`
         --zone="${zone}" \`
         --quiet
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Disk deleted: ${diskName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disk deleted: ${diskName}" -ForegroundColor Green
     }`}
     
 } catch {
@@ -317,7 +317,7 @@ ${action === 'Create VPC Network' ? `    gcloud compute networks create "${netwo
         --bgp-routing-mode=regional
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ VPC network created: ${networkName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] VPC network created: ${networkName}" -ForegroundColor Green
     }` :
 action === 'Create Subnet' ? `    gcloud compute networks subnets create "${subnetName}" \`
         --network="${networkName}" \`
@@ -325,16 +325,16 @@ action === 'Create Subnet' ? `    gcloud compute networks subnets create "${subn
         --range="${ipRange}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Subnet created: ${subnetName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Subnet created: ${subnetName}" -ForegroundColor Green
         Write-Host "  Network: ${networkName}" -ForegroundColor Cyan
         Write-Host "  Region: ${subnetRegion}" -ForegroundColor Cyan
         Write-Host "  IP Range: ${ipRange}" -ForegroundColor Cyan
     }` :
-`    Write-Host "✓ VPC Networks:" -ForegroundColor Green
+`    Write-Host "[SUCCESS] VPC Networks:" -ForegroundColor Green
     gcloud compute networks list
     
     Write-Host ""
-    Write-Host "✓ Subnets:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Subnets:" -ForegroundColor Green
     gcloud compute networks subnets list`}
     
 } catch {
@@ -372,18 +372,18 @@ try {
 ${action === 'Make Public' ? `    gsutil iam ch allUsers:objectViewer gs://${bucketName}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Bucket is now public: ${bucketName}" -ForegroundColor Green
-        Write-Host "  ⚠ All users can view objects!" -ForegroundColor Yellow
+        Write-Host "[SUCCESS] Bucket is now public: ${bucketName}" -ForegroundColor Green
+        Write-Host "  [WARNING] All users can view objects!" -ForegroundColor Yellow
     }` :
 action === 'Make Private' ? `    gsutil iam ch -d allUsers:objectViewer gs://${bucketName}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Public access removed from: ${bucketName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Public access removed from: ${bucketName}" -ForegroundColor Green
     }` :
 `    gsutil iam ch user:${memberEmail}:${role} gs://${bucketName}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ IAM policy updated for: ${bucketName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] IAM policy updated for: ${bucketName}" -ForegroundColor Green
         Write-Host "  Member: ${memberEmail}" -ForegroundColor Cyan
         Write-Host "  Role: ${role}" -ForegroundColor Cyan
     }`}
@@ -429,7 +429,7 @@ try {
     $StartTime = (Get-Date).AddHours(-${hours}).ToString("yyyy-MM-ddTHH:mm:ssZ")
     $EndTime = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
     
-    Write-Host "✓ Fetching metrics for: ${instanceName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Fetching metrics for: ${instanceName}" -ForegroundColor Green
     Write-Host "  Resource Type: ${resourceType}" -ForegroundColor Cyan
     Write-Host "  Metric: ${metricType}" -ForegroundColor Cyan
     Write-Host "  Period: Last ${hours} hours" -ForegroundColor Cyan
@@ -443,7 +443,7 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ Metrics retrieved successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Metrics retrieved successfully" -ForegroundColor Green
     }
     
 } catch {
@@ -476,7 +476,7 @@ try {
 try {
     gcloud config set project ${project}
     
-    Write-Host "✓ Exporting billing data for: ${reportMonth}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exporting billing data for: ${reportMonth}" -ForegroundColor Green
     Write-Host "  Billing Account: ${billingAccountId}" -ForegroundColor Cyan
     Write-Host "  Format: ${exportFormat}" -ForegroundColor Cyan
     Write-Host ""
@@ -497,7 +497,7 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ Billing information retrieved" -ForegroundColor Green
+        Write-Host "[SUCCESS] Billing information retrieved" -ForegroundColor Green
     }
     
 } catch {
@@ -539,7 +539,7 @@ ${resourceType === 'Disk Snapshot' ? `    Write-Host "Creating disk snapshot..."
         --snapshot-names="${snapshotName}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Disk snapshot created: ${snapshotName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disk snapshot created: ${snapshotName}" -ForegroundColor Green
         Write-Host "  Source Disk: ${resourceName}" -ForegroundColor Cyan
         Write-Host "  Zone: ${zone}" -ForegroundColor Cyan
     }` :
@@ -549,7 +549,7 @@ ${resourceType === 'Disk Snapshot' ? `    Write-Host "Creating disk snapshot..."
         --instance="${resourceName}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud SQL backup created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud SQL backup created" -ForegroundColor Green
         Write-Host "  Instance: ${resourceName}" -ForegroundColor Cyan
     }`}
     
@@ -602,7 +602,7 @@ ${restoreType === 'Disk from Snapshot' ? `    Write-Host "Restoring disk from sn
         --zone="${zone}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Disk restored from snapshot" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disk restored from snapshot" -ForegroundColor Green
         Write-Host "  New Disk: ${newDiskName}" -ForegroundColor Cyan
         Write-Host "  Source Snapshot: ${snapshotName}" -ForegroundColor Cyan
         Write-Host "  Zone: ${zone}" -ForegroundColor Cyan
@@ -613,7 +613,7 @@ ${restoreType === 'Disk from Snapshot' ? `    Write-Host "Restoring disk from sn
         --backup-instance="${instanceName}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud SQL instance restored" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud SQL instance restored" -ForegroundColor Green
         Write-Host "  Instance: ${instanceName}" -ForegroundColor Cyan
         Write-Host "  Backup ID: ${backupId}" -ForegroundColor Cyan
     }`}
@@ -664,7 +664,7 @@ ${action === 'Create Rule' ? `    gcloud compute firewall-rules create "${ruleNa
         --source-ranges="${sourceRanges}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Firewall rule created: ${ruleName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Firewall rule created: ${ruleName}" -ForegroundColor Green
         Write-Host "  Network: ${network}" -ForegroundColor Cyan
         Write-Host "  Direction: ${direction}" -ForegroundColor Cyan
         Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
@@ -674,9 +674,9 @@ ${action === 'Create Rule' ? `    gcloud compute firewall-rules create "${ruleNa
 action === 'Delete Rule' ? `    gcloud compute firewall-rules delete "${ruleName}" --quiet
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Firewall rule deleted: ${ruleName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Firewall rule deleted: ${ruleName}" -ForegroundColor Green
     }` :
-`    Write-Host "✓ Firewall Rules:" -ForegroundColor Green
+`    Write-Host "[SUCCESS] Firewall Rules:" -ForegroundColor Green
     gcloud compute firewall-rules list --format="table(name,network,direction,priority,sourceRanges.list():label=SRC_RANGES,allowed[].map().firewall_rule().list():label=ALLOW)"`}
     
 } catch {
@@ -723,7 +723,7 @@ ${action === 'Add IAM Binding' ? `    gcloud projects add-iam-policy-binding ${p
         --role="${role}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ IAM binding added" -ForegroundColor Green
+        Write-Host "[SUCCESS] IAM binding added" -ForegroundColor Green
         Write-Host "  Member: ${memberType}:${memberEmail}" -ForegroundColor Cyan
         Write-Host "  Role: ${role}" -ForegroundColor Cyan
     }` :
@@ -732,11 +732,11 @@ action === 'Remove IAM Binding' ? `    gcloud projects remove-iam-policy-binding
         --role="${role}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ IAM binding removed" -ForegroundColor Green
+        Write-Host "[SUCCESS] IAM binding removed" -ForegroundColor Green
         Write-Host "  Member: ${memberType}:${memberEmail}" -ForegroundColor Cyan
         Write-Host "  Role: ${role}" -ForegroundColor Cyan
     }` :
-`    Write-Host "✓ IAM Policy for project: ${project}" -ForegroundColor Green
+`    Write-Host "[SUCCESS] IAM Policy for project: ${project}" -ForegroundColor Green
     Write-Host ""
     
     gcloud projects get-iam-policy ${project} --format="table(bindings.role,bindings.members.flatten())"`}
@@ -788,7 +788,7 @@ ${action === 'Create Cluster' ? `    Write-Host "Creating GKE cluster..." -Foreg
         --max-nodes=10
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ GKE cluster created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] GKE cluster created successfully!" -ForegroundColor Green
         Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
         Write-Host "  Zone: ${zone}" -ForegroundColor Cyan
         Write-Host "  Nodes: ${numNodes}" -ForegroundColor Cyan
@@ -804,7 +804,7 @@ action === 'Delete Cluster' ? `    Write-Host "Deleting GKE cluster..." -Foregro
         --quiet
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ GKE cluster deleted: ${clusterName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] GKE cluster deleted: ${clusterName}" -ForegroundColor Green
     }` :
 action === 'Create Node Pool' ? `    Write-Host "Creating node pool..." -ForegroundColor Yellow
     
@@ -815,12 +815,12 @@ action === 'Create Node Pool' ? `    Write-Host "Creating node pool..." -Foregro
         --machine-type="${machineType}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Node pool created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Node pool created successfully!" -ForegroundColor Green
         Write-Host "  Node Pool: ${nodePoolName}" -ForegroundColor Cyan
         Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
         Write-Host "  Nodes: ${numNodes}" -ForegroundColor Cyan
     }` :
-`    Write-Host "✓ GKE Clusters:" -ForegroundColor Green
+`    Write-Host "[SUCCESS] GKE Clusters:" -ForegroundColor Green
     Write-Host ""
     
     gcloud container clusters list --format="table(name,location,currentMasterVersion,currentNodeVersion,numNodes,status)"`}
@@ -874,7 +874,7 @@ ${action === 'Deploy Function' ? `    Write-Host "Deploying Cloud Function..." -
         --allow-unauthenticated
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud Function deployed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud Function deployed successfully!" -ForegroundColor Green
         Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
         Write-Host "  Runtime: ${runtime}" -ForegroundColor Cyan
         Write-Host "  Trigger: ${triggerType}" -ForegroundColor Cyan
@@ -890,9 +890,9 @@ action === 'Delete Function' ? `    Write-Host "Deleting Cloud Function..." -For
         --quiet
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud Function deleted: ${functionName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud Function deleted: ${functionName}" -ForegroundColor Green
     }` :
-`    Write-Host "✓ Cloud Functions:" -ForegroundColor Green
+`    Write-Host "[SUCCESS] Cloud Functions:" -ForegroundColor Green
     Write-Host ""
     
     gcloud functions list --format="table(name,status,trigger,runtime,updateTime)"`}
@@ -949,7 +949,7 @@ ${action === 'Create Instance' ? `    Write-Host "Creating Cloud SQL instance...
         --backup-start-time=02:00
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud SQL instance created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud SQL instance created successfully!" -ForegroundColor Green
         Write-Host "  Instance: ${instanceName}" -ForegroundColor Cyan
         Write-Host "  Database: ${databaseVersion}" -ForegroundColor Cyan
         Write-Host "  Tier: ${tier}" -ForegroundColor Cyan
@@ -963,7 +963,7 @@ action === 'Delete Instance' ? `    Write-Host "Deleting Cloud SQL instance..." 
     gcloud sql instances delete "${instanceName}" --quiet
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud SQL instance deleted: ${instanceName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud SQL instance deleted: ${instanceName}" -ForegroundColor Green
     }` :
 action === 'Create Replica' ? `    Write-Host "Creating read replica..." -ForegroundColor Yellow
     
@@ -973,12 +973,12 @@ action === 'Create Replica' ? `    Write-Host "Creating read replica..." -Foregr
         --region="${region}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Read replica created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Read replica created successfully!" -ForegroundColor Green
         Write-Host "  Replica: ${instanceName}" -ForegroundColor Cyan
         Write-Host "  Master: ${masterInstanceName}" -ForegroundColor Cyan
         Write-Host "  Region: ${region}" -ForegroundColor Cyan
     }` :
-`    Write-Host "✓ Cloud SQL Instances:" -ForegroundColor Green
+`    Write-Host "[SUCCESS] Cloud SQL Instances:" -ForegroundColor Green
     Write-Host ""
     
     gcloud sql instances list --format="table(name,databaseVersion,region,tier,ipAddress,state)"`}
@@ -1036,7 +1036,7 @@ ${action === 'Create Log Sink' ? `    Write-Host "Creating log sink..." -Foregro
         --log-filter="${logFilter}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Log sink created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Log sink created successfully!" -ForegroundColor Green
         Write-Host "  Sink: ${sinkName}" -ForegroundColor Cyan
         Write-Host "  Destination: $Destination" -ForegroundColor Cyan
         Write-Host "  Filter: ${logFilter}" -ForegroundColor Cyan
@@ -1078,7 +1078,7 @@ action === 'Create Uptime Check' ? `    Write-Host "Creating uptime check..." -F
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Note: Alpha API may not be enabled. Enable in Console." -ForegroundColor Yellow
     }` :
-action === 'List Metrics' ? `    Write-Host "✓ Available Metrics:" -ForegroundColor Green
+action === 'List Metrics' ? `    Write-Host "[SUCCESS] Available Metrics:" -ForegroundColor Green
     Write-Host ""
     
     gcloud logging metrics list --format="table(name,description,filter)"
@@ -1086,7 +1086,7 @@ action === 'List Metrics' ? `    Write-Host "✓ Available Metrics:" -Foreground
     Write-Host ""
     Write-Host "Monitoring metric descriptors (sample):" -ForegroundColor Yellow
     gcloud monitoring metric-descriptors list --limit=20 --format="table(type,description)"` :
-`    Write-Host "✓ Recent Logs (last 10 entries):" -ForegroundColor Green
+`    Write-Host "[SUCCESS] Recent Logs (last 10 entries):" -ForegroundColor Green
     Write-Host ""
     
     gcloud logging read "timestamp >= \\"$(Get-Date (Get-Date).AddHours(-1) -Format 'yyyy-MM-ddTHH:mm:ssZ')\\"" \`
@@ -1166,7 +1166,7 @@ ${action === 'Create HTTP LB' ? `    Write-Host "Creating HTTP(S) Load Balancer.
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ HTTP(S) Load Balancer created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] HTTP(S) Load Balancer created successfully!" -ForegroundColor Green
         Write-Host "  Name: ${lbName}" -ForegroundColor Cyan
         Write-Host "  Backend Service: ${backendServiceName}" -ForegroundColor Cyan
         Write-Host "  Health Check: ${healthCheckName}" -ForegroundColor Cyan
@@ -1191,7 +1191,7 @@ action === 'Create Backend Service' ? `    Write-Host "Creating backend service.
         --global
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Backend service created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backend service created successfully!" -ForegroundColor Green
         Write-Host "  Service: ${backendServiceName}" -ForegroundColor Cyan
         Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
         Write-Host "  Health Check: ${healthCheckName}" -ForegroundColor Cyan
@@ -1219,8 +1219,8 @@ action === 'Delete Load Balancer' ? `    Write-Host "Deleting load balancer comp
     gcloud compute health-checks delete "${healthCheckName}" --quiet 2>$null
     
     Write-Host ""
-    Write-Host "✓ Load balancer components deleted" -ForegroundColor Green` :
-`    Write-Host "✓ Load Balancer Components:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Load balancer components deleted" -ForegroundColor Green` :
+`    Write-Host "[SUCCESS] Load Balancer Components:" -ForegroundColor Green
     Write-Host ""
     
     Write-Host "Forwarding Rules:" -ForegroundColor Cyan
@@ -1271,7 +1271,7 @@ try {
         --enable-bin-log
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud SQL backups configured" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud SQL backups configured" -ForegroundColor Green
         Write-Host "  Instance: ${instanceName}" -ForegroundColor Cyan
         Write-Host "  Start Time: ${startTime}" -ForegroundColor Cyan
         Write-Host "  Retention: ${retention} days" -ForegroundColor Cyan
@@ -1312,7 +1312,7 @@ try {
         --display-name="${displayName}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Service account created: ${accountName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service account created: ${accountName}" -ForegroundColor Green
         
         # Assign role
         $ServiceAccountEmail = "${accountName}@${project}.iam.gserviceaccount.com"
@@ -1321,7 +1321,7 @@ try {
             --member="serviceAccount:$ServiceAccountEmail" \`
             --role="${role}"
         
-        Write-Host "✓ Role assigned: ${role}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Role assigned: ${role}" -ForegroundColor Green
         Write-Host "  Service Account: $ServiceAccountEmail" -ForegroundColor Cyan
     }
     
@@ -1362,7 +1362,7 @@ try {
         --auto-create-routes
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ VPC peering connection created" -ForegroundColor Green
+        Write-Host "[SUCCESS] VPC peering connection created" -ForegroundColor Green
         Write-Host "  Peering Name: ${peeringName}" -ForegroundColor Cyan
         Write-Host "  Network 1: ${network1}" -ForegroundColor Cyan
         Write-Host "  Network 2: ${network2}" -ForegroundColor Cyan
@@ -1406,7 +1406,7 @@ try {
     Invoke-Expression $CreateCmd
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ BigQuery dataset created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] BigQuery dataset created successfully" -ForegroundColor Green
         Write-Host "  Dataset ID: ${datasetId}" -ForegroundColor Cyan
         Write-Host "  Location: ${location}" -ForegroundColor Cyan
         ${expiration ? `Write-Host "  Table Expiration: ${expiration} hours" -ForegroundColor Cyan` : ''}
@@ -1455,13 +1455,13 @@ try {
         --global
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cloud CDN enabled successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud CDN enabled successfully" -ForegroundColor Green
         Write-Host "  Backend Service: ${backendService}" -ForegroundColor Cyan
         Write-Host "  Cache Mode: ${cacheMode}" -ForegroundColor Cyan
         Write-Host "  Max TTL: ${maxTtl} seconds" -ForegroundColor Cyan
         
         Write-Host ""
-        Write-Host "⚠️ CDN cache may take a few minutes to warm up" -ForegroundColor Yellow
+        Write-Host "[WARNING]️ CDN cache may take a few minutes to warm up" -ForegroundColor Yellow
     }
     
 } catch {

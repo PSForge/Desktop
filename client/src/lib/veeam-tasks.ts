@@ -52,10 +52,10 @@ try {
         
         if ($Job) {
 ${action === 'Enable' ? `            $Job | Enable-VBRJob
-            Write-Host "✓ Enabled: $JobName" -ForegroundColor Green` : `            $Job | Disable-VBRJob
-            Write-Host "✓ Disabled: $JobName" -ForegroundColor Green`}
+            Write-Host "[SUCCESS] Enabled: $JobName" -ForegroundColor Green` : `            $Job | Disable-VBRJob
+            Write-Host "[SUCCESS] Disabled: $JobName" -ForegroundColor Green`}
         } else {
-            Write-Host "⚠ Job not found: $JobName" -ForegroundColor Yellow
+            Write-Host "[WARNING] Job not found: $JobName" -ForegroundColor Yellow
         }
     }
     
@@ -110,7 +110,7 @@ try {
         -RetentionPolicy "Simple" \`
         -RetentionPolicyDeleteDays ${params.retentionDays}
     
-    Write-Host "✓ Backup job '${jobName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup job '${jobName}' created successfully!" -ForegroundColor Green
     Write-Host "  VMs: $($VMNames.Count)" -ForegroundColor Cyan
     Write-Host "  Retention: ${params.retentionDays} days" -ForegroundColor Cyan
     
@@ -148,8 +148,8 @@ try {
     $Job = Get-VBRJob -Name "${jobName}"
     
 ${action === 'Start' ? `    Start-VBRJob -Job $Job
-    Write-Host "✓ Backup job started: ${jobName}" -ForegroundColor Green` : `    Stop-VBRJob -Job $Job
-    Write-Host "✓ Backup job stopped: ${jobName}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Backup job started: ${jobName}" -ForegroundColor Green` : `    Stop-VBRJob -Job $Job
+    Write-Host "[SUCCESS] Backup job stopped: ${jobName}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Failed: $_"
@@ -187,7 +187,7 @@ try {
     
     if ($RestorePoint) {
         Start-VBRRestoreVM -RestorePoint $RestorePoint -PowerUp:${powerOn}
-        Write-Host "✓ VM restore initiated: ${vmName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] VM restore initiated: ${vmName}" -ForegroundColor Green
     } else {
         Write-Error "No restore point found for ${vmName}"
     }
@@ -238,7 +238,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Jobs: $($Jobs.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -286,7 +286,7 @@ try {
         
         Stop-VBRWindowsFileRestore -Session $FileRestoreSession
         
-        Write-Host "✓ Files restored to: ${restoreDestination}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Files restored to: ${restoreDestination}" -ForegroundColor Green
     } else {
         Write-Error "No restore point found for ${vmName}"
     }
@@ -332,19 +332,19 @@ ${applicationType === 'Exchange' ? `        # Exchange mailbox restore
         $Mailbox = Get-VBRExchangeMailbox -Session $Session -Name "${itemName}"
         Restore-VBRExchangeMailbox -Session $Session -Mailbox $Mailbox
         Stop-VBRExchangeItemRestore -Session $Session
-        Write-Host "✓ Exchange mailbox restored: ${itemName}" -ForegroundColor Green` :
+        Write-Host "[SUCCESS] Exchange mailbox restored: ${itemName}" -ForegroundColor Green` :
 applicationType === 'SQL' ? `        # SQL database restore
         $Session = Start-VBRSQLItemRestore -RestorePoint $RestorePoint
         $Database = Get-VBRSQLDatabase -Session $Session -Name "${itemName}"
         Restore-VBRSQLDatabase -Session $Session -Database $Database
         Stop-VBRSQLItemRestore -Session $Session
-        Write-Host "✓ SQL database restored: ${itemName}" -ForegroundColor Green` :
+        Write-Host "[SUCCESS] SQL database restored: ${itemName}" -ForegroundColor Green` :
 `        # Active Directory object restore
         $Session = Start-VBRADObjectRestore -RestorePoint $RestorePoint
         $Object = Get-VBRADObject -Session $Session -Name "${itemName}"
         Restore-VBRADObject -Session $Session -Object $Object
         Stop-VBRADObjectRestore -Session $Session
-        Write-Host "✓ AD object restored: ${itemName}" -ForegroundColor Green`}
+        Write-Host "[SUCCESS] AD object restored: ${itemName}" -ForegroundColor Green`}
     } else {
         Write-Error "No restore point found"
     }
@@ -392,7 +392,7 @@ try {
     # Start verification
     Start-VBRSureBackupJob -Job $SureBackupJob
     
-    Write-Host "✓ SureBackup verification started for: ${jobName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] SureBackup verification started for: ${jobName}" -ForegroundColor Green
     Write-Host "  Monitor job progress in Veeam console" -ForegroundColor Cyan
     
 } catch {
@@ -432,7 +432,7 @@ ${action === 'AddRepository' ? `    Add-VBRBackupRepository \`
         -Name "${repositoryName}" \`
         -Folder "${repositoryPath}" \`
         -Type WinLocal
-    Write-Host "✓ Repository added: ${repositoryName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Repository added: ${repositoryName}" -ForegroundColor Green` :
 action === 'ListRepositories' ? `    $Repositories = Get-VBRBackupRepository
     
     Write-Host "Backup Repositories:" -ForegroundColor Cyan
@@ -445,7 +445,7 @@ action === 'ListRepositories' ? `    $Repositories = Get-VBRBackupRepository
     }` :
 action === 'AddProxy' ? `    $ProxyServer = Get-VBRServer -Name "${repositoryName}"
     Add-VBRViProxy -Server $ProxyServer
-    Write-Host "✓ Proxy added: ${repositoryName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Proxy added: ${repositoryName}" -ForegroundColor Green` :
 `    $Proxies = Get-VBRViProxy
     
     Write-Host "Backup Proxies:" -ForegroundColor Cyan
@@ -505,10 +505,10 @@ try {
     }
     
 ${exportFormat === 'CSV' ? `    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ CSV report exported: ${exportPath}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] CSV report exported: ${exportPath}" -ForegroundColor Green` :
 `    $HTML = $Report | ConvertTo-Html -Title "Veeam Backup Report" -PreContent "<h1>Veeam Backup Job Report</h1><p>Generated: $(Get-Date)</p>"
     $HTML | Out-File -FilePath "${exportPath}"
-    Write-Host "✓ HTML report exported: ${exportPath}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] HTML report exported: ${exportPath}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Export failed: $_"
@@ -561,7 +561,7 @@ try {
             -NotifyOnWarning $true \`
             -NotifyOnError $true
         
-        Write-Host "✓ Email notifications configured for: $($Job.Name)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Email notifications configured for: $($Job.Name)" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -707,7 +707,7 @@ try {
         -RetentionPolicy "Simple" \`
         -RetentionPolicyDeleteDays ${params.retentionDays}
     
-    Write-Host "✓ Backup copy job '${copyJobName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup copy job '${copyJobName}' created successfully!" -ForegroundColor Green
     Write-Host "  Source Job: ${sourceJob}" -ForegroundColor Cyan
     Write-Host "  Target Repository: ${targetRepository}" -ForegroundColor Cyan
     Write-Host "  Retention: ${params.retentionDays} days" -ForegroundColor Cyan
@@ -772,7 +772,7 @@ try {
         -MediaPool $MediaPool \`
         -RetentionType "${retentionType}"
     
-    Write-Host "✓ Tape backup job '${tapeJobName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tape backup job '${tapeJobName}' created successfully!" -ForegroundColor Green
     Write-Host "  Source Job: ${sourceJob}" -ForegroundColor Cyan
     Write-Host "  Media Pool: ${mediaPool}" -ForegroundColor Cyan
     Write-Host "  Retention: ${retentionType}" -ForegroundColor Cyan
@@ -829,10 +829,10 @@ try {
     $VMs = foreach ($VMName in $VMNames) {
         $VM = Find-VBRViEntity -Name $VMName
         if ($VM) {
-            Write-Host "✓ Found VM: $VMName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Found VM: $VMName" -ForegroundColor Green
             $VM
         } else {
-            Write-Host "⚠ VM not found: $VMName" -ForegroundColor Yellow
+            Write-Host "[WARNING] VM not found: $VMName" -ForegroundColor Yellow
         }
     }
     
@@ -848,7 +848,7 @@ try {
         -RestorePoints ${params.restorePoints}
     
     Write-Host ""
-    Write-Host "✓ Replication job '${replicationJobName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Replication job '${replicationJobName}' created successfully!" -ForegroundColor Green
     Write-Host "  VMs to Replicate: $($VMs.Count)" -ForegroundColor Cyan
     Write-Host "  Target Host: ${targetHost}" -ForegroundColor Cyan
     Write-Host "  Restore Points: ${params.restorePoints}" -ForegroundColor Cyan
@@ -913,7 +913,7 @@ try {
             -Datastore $Datastore \`
             -QuickRollback
         
-        Write-Host "✓ Instant VM Recovery started successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Instant VM Recovery started successfully!" -ForegroundColor Green
         Write-Host "  VM: ${vmName}" -ForegroundColor Cyan
         Write-Host "  Target Host: ${targetHost}" -ForegroundColor Cyan
         Write-Host "  Datastore: ${datastore}" -ForegroundColor Cyan
@@ -974,7 +974,7 @@ try {
         -Extent $Extents \`
         -PolicyType "DataLocality"
     
-    Write-Host "✓ Scale-Out Repository created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scale-Out Repository created successfully!" -ForegroundColor Green
     Write-Host "  Name: ${repoName}" -ForegroundColor Cyan
     Write-Host "  Extents: $($Extents.Count)" -ForegroundColor Cyan
     ` : action === 'ConfigureDedup' ? `
@@ -986,7 +986,7 @@ try {
         -Enabled:$true \`
         -BlockSize "4KB"
     
-    Write-Host "✓ Deduplication configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deduplication configured successfully!" -ForegroundColor Green
     ` : `
     $Repos = Get-VBRBackupRepository
     
@@ -1066,7 +1066,7 @@ try {
         
         $Job.SetOptions($JobOptions)
         
-        Write-Host "✓ Application-Aware Processing configured successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Application-Aware Processing configured successfully!" -ForegroundColor Green
         Write-Host "  Job: ${jobName}" -ForegroundColor Cyan
         Write-Host "  Application: ${appType}" -ForegroundColor Cyan
         Write-Host "  Truncate Logs: ${params.truncateLogs}" -ForegroundColor Cyan
@@ -1124,7 +1124,7 @@ try {
     $CloudRepo = Get-VBRCloudHardwarePlan | Where-Object { $_.Name -eq "${repoName}" } | Select-Object -First 1
     
     if ($CloudRepo) {
-        Write-Host "✓ Cloud Connect configured successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cloud Connect configured successfully!" -ForegroundColor Green
         Write-Host "  Provider: ${cloudProvider}" -ForegroundColor Cyan
         Write-Host "  Repository: ${repoName}" -ForegroundColor Cyan
         Write-Host "  User: ${username}" -ForegroundColor Cyan
@@ -1202,7 +1202,7 @@ try {
     
     $ComplianceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Compliance report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Compliance Summary:" -ForegroundColor Yellow
     Write-Host "===================" -ForegroundColor Yellow
@@ -1279,7 +1279,7 @@ try {
         -Datastore $TargetDatastore \`
         -RestorePointsToKeep ${params.restorePoints}
     
-    Write-Host "✓ Replication job '${jobName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Replication job '${jobName}' created successfully!" -ForegroundColor Green
     Write-Host "  Source VMs: $($VMNames.Count)" -ForegroundColor Cyan
     Write-Host "  Target Host: ${targetHost}" -ForegroundColor Cyan
     Write-Host "  Target Datastore: ${targetDatastore}" -ForegroundColor Cyan
@@ -1341,7 +1341,7 @@ try {
         -PowerOn:${powerOn} \`
         -Reason "DR Failover initiated via PowerShell"
     
-    Write-Host "✓ Failover initiated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Failover initiated successfully!" -ForegroundColor Green
     Write-Host "  VM Replica: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Restore Point: $($SelectedPoint.CreationTime)" -ForegroundColor Cyan
     Write-Host "  Power On: ${params.powerOn}" -ForegroundColor Cyan
@@ -1401,7 +1401,7 @@ try {
         -QuickRollback:${quickRollback} \`
         -PowerOn:${powerOnOriginal}
     
-    Write-Host "✓ Failback initiated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Failback initiated successfully!" -ForegroundColor Green
     Write-Host "  VM Replica: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Quick Rollback: ${params.quickRollback}" -ForegroundColor Cyan
     Write-Host "  Power On Original: ${params.powerOnOriginal}" -ForegroundColor Cyan
@@ -1457,7 +1457,7 @@ try {
         -ShutdownSourceVM:${shutdownSource} \`
         -PowerOnReplica:${powerOnReplica}
     
-    Write-Host "✓ Planned failover initiated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Planned failover initiated successfully!" -ForegroundColor Green
     Write-Host "  VM Replica: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Source VM Shutdown: ${params.shutdownSource}" -ForegroundColor Cyan
     Write-Host "  Replica Power On: ${params.powerOnReplica}" -ForegroundColor Cyan
@@ -1513,7 +1513,7 @@ try {
         -RestorePoint $RestorePoint \`
         -UseIsolatedNetwork:${isolatedNetwork}
     
-    Write-Host "✓ Test failover started successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Test failover started successfully!" -ForegroundColor Green
     Write-Host "  VM Replica: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Restore Point: $($RestorePoint.CreationTime)" -ForegroundColor Cyan
     Write-Host "  Isolated Network: ${params.isolatedNetwork}" -ForegroundColor Cyan
@@ -1569,13 +1569,13 @@ try {
 ${action === 'Commit' ? `    # Commit the failover (makes it permanent)
     Invoke-VBRViReplicaFailoverCommit -Replica $Replica
     
-    Write-Host "✓ Failover committed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Failover committed successfully!" -ForegroundColor Green
     Write-Host "  The replica is now the production VM" -ForegroundColor Cyan
     Write-Host "  Original VM has been removed" -ForegroundColor Yellow` :
 `    # Undo the failover (restore original state)
     Stop-VBRViReplicaFailover -Replica $Replica
     
-    Write-Host "✓ Failover undone successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Failover undone successfully!" -ForegroundColor Green
     Write-Host "  Replica restored to standby mode" -ForegroundColor Cyan
     Write-Host "  Original VM is now active" -ForegroundColor Cyan`}
     
@@ -1646,7 +1646,7 @@ scheduleType === 'Monthly' ? `    # Set monthly schedule
     # Enable the schedule
     Enable-VBRJobSchedule -Job $Job
     
-    Write-Host "✓ Job schedule updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job schedule updated successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to modify schedule: $_"
@@ -1711,7 +1711,7 @@ ${retentionType === 'RestorePoints' ? `    # Set retention by restore points
         Remove-VBRBackup -Backup (Get-VBRBackup -Name "${jobName}") -FromDisk
     }
     
-    Write-Host "✓ Retention policy updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retention policy updated successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to set retention: $_"
@@ -1760,15 +1760,15 @@ try {
         
         if ($VM) {
             Add-VBRViJobObject -Job $Job -Entity $VM
-            Write-Host "  ✓ Added: $VMName" -ForegroundColor Green
+            Write-Host "  [OK] Added: $VMName" -ForegroundColor Green
             $AddedCount++
         } else {
-            Write-Host "  ⚠ VM not found: $VMName" -ForegroundColor Yellow
+            Write-Host "  [WARNING] VM not found: $VMName" -ForegroundColor Yellow
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Operation completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Operation completed!" -ForegroundColor Green
     Write-Host "  VMs added: $AddedCount" -ForegroundColor Cyan
     Write-Host "  Job: ${jobName}" -ForegroundColor Cyan
     
@@ -1822,15 +1822,15 @@ try {
         
         if ($JobObject) {
             Remove-VBRJobObject -Objects $JobObject
-            Write-Host "  ✓ Removed: $VMName" -ForegroundColor Green
+            Write-Host "  [OK] Removed: $VMName" -ForegroundColor Green
             $RemovedCount++
         } else {
-            Write-Host "  ⚠ VM not in job: $VMName" -ForegroundColor Yellow
+            Write-Host "  [WARNING] VM not in job: $VMName" -ForegroundColor Yellow
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Operation completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Operation completed!" -ForegroundColor Green
     Write-Host "  VMs removed: $RemovedCount" -ForegroundColor Cyan
     Write-Host "  Job: ${jobName}" -ForegroundColor Cyan
     
@@ -1888,7 +1888,7 @@ ${newRepository ? `    # Change repository if specified
     # Disable the cloned job by default
     Disable-VBRJob -Job $NewJob
     
-    Write-Host "✓ Job cloned successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job cloned successfully!" -ForegroundColor Green
     Write-Host "  Source Job: ${sourceJobName}" -ForegroundColor Cyan
     Write-Host "  New Job: ${newJobName}" -ForegroundColor Cyan
     Write-Host "  Status: Disabled (enable when ready)" -ForegroundColor Yellow
@@ -1955,7 +1955,7 @@ try {
         -VMName "${restoredVMName}" \`
         -PowerOn:${powerOn}
     
-    Write-Host "✓ Instant VM Recovery started successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Instant VM Recovery started successfully!" -ForegroundColor Green
     Write-Host "  Original VM: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Restored VM: ${restoredVMName}" -ForegroundColor Cyan
     Write-Host "  Target Host: ${targetHost}" -ForegroundColor Cyan
@@ -2028,7 +2028,7 @@ try {
         -Datastore $Datastore${targetFolder ? ` \`
         -Folder "${targetFolder}"` : ''}
     
-    Write-Host "✓ Disk restored successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disk restored successfully!" -ForegroundColor Green
     Write-Host "  VM: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Disk: $($TargetDisk.Name)" -ForegroundColor Cyan
     Write-Host "  Target Datastore: ${targetDatastore}" -ForegroundColor Cyan
@@ -2106,7 +2106,7 @@ try {
         -VMSize "${vmSize}" \`
         -VMName "${vmName}-Azure"
     
-    Write-Host "✓ Azure restore initiated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Azure restore initiated!" -ForegroundColor Green
     Write-Host "  Source VM: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Azure Subscription: ${azureSubscription}" -ForegroundColor Cyan
     Write-Host "  Resource Group: ${resourceGroup}" -ForegroundColor Cyan
@@ -2163,7 +2163,7 @@ ${maintenanceType === 'HealthCheck' ? `    # Run health check on all backups in 
         Start-VBRBackupFilesHealthCheck -Backup $Backup
     }
     
-    Write-Host "✓ Health check completed!" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Health check completed!" -ForegroundColor Green` :
 maintenanceType === 'Compact' ? `    # Compact backup files in repository
     $Backups = Get-VBRBackup | Where-Object { $_.RepositoryId -eq $Repository.Id }
     
@@ -2172,7 +2172,7 @@ maintenanceType === 'Compact' ? `    # Compact backup files in repository
         Start-VBRBackupCompact -Backup $Backup
     }
     
-    Write-Host "✓ Compaction completed!" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Compaction completed!" -ForegroundColor Green` :
 `    # Remove deleted VM backups
     $Backups = Get-VBRBackup | Where-Object { $_.RepositoryId -eq $Repository.Id }
     
@@ -2185,7 +2185,7 @@ maintenanceType === 'Compact' ? `    # Compact backup files in repository
         }
     }
     
-    Write-Host "✓ Deleted VMs removed!" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Deleted VMs removed!" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Maintenance failed: $_"
@@ -2247,7 +2247,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Repository Summary:" -ForegroundColor Cyan
     Write-Host "===================" -ForegroundColor Cyan
@@ -2265,7 +2265,7 @@ try {
     $WarningRepos = ($Report | Where-Object { $_.Status -eq "Warning" }).Count
     if ($WarningRepos -gt 0) {
         Write-Host ""
-        Write-Host "⚠ $WarningRepos repository(s) above ${params.warningThreshold}% threshold!" -ForegroundColor Yellow
+        Write-Host "[WARNING] $WarningRepos repository(s) above ${params.warningThreshold}% threshold!" -ForegroundColor Yellow
     }
     
 } catch {
@@ -2323,7 +2323,7 @@ try {
         -Repository $SOBR \`
         -Extent $NewExtent
     
-    Write-Host "✓ Extent added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Extent added successfully!" -ForegroundColor Green
     Write-Host "  SOBR: ${sobrName}" -ForegroundColor Cyan
     Write-Host "  New Extent: ${extentName}" -ForegroundColor Cyan
     Write-Host "  Path: ${extentPath}" -ForegroundColor Cyan
@@ -2394,7 +2394,7 @@ try {
         -ProcessIncrementalBackup \`
         -EjectMedium
     
-    Write-Host "✓ Tape backup job created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tape backup job created successfully!" -ForegroundColor Green
     Write-Host "  Job Name: ${jobName}" -ForegroundColor Cyan
     Write-Host "  Source: ${sourceBackupJob}" -ForegroundColor Cyan
     Write-Host "  Media Pool: ${mediaPool}" -ForegroundColor Cyan
@@ -2447,7 +2447,7 @@ ${vaultName ? `    # Assign vault if specified
         Write-Host "  Vault assigned: ${vaultName}" -ForegroundColor Cyan
     }
 ` : ''}
-    Write-Host "✓ Media pool created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Media pool created successfully!" -ForegroundColor Green
     Write-Host "  Pool Name: ${poolName}" -ForegroundColor Cyan
     Write-Host "  Retention: ${params.retentionDays} days" -ForegroundColor Cyan
     
@@ -2513,7 +2513,7 @@ try {
     }
     
 ${exportPath ? `    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
 ` : ''}
     Write-Host ""
     Write-Host "Tape Inventory Summary:" -ForegroundColor Cyan
@@ -2585,11 +2585,11 @@ try {
     
     foreach ($Tape in $TapesToExport) {
         Move-VBRTapeMedium -Medium $Tape -Vault $Vault
-        Write-Host "  ✓ Exported: $($Tape.Barcode)" -ForegroundColor Green
+        Write-Host "  [OK] Exported: $($Tape.Barcode)" -ForegroundColor Green
     }
     
     Write-Host ""
-    Write-Host "✓ Export completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Export completed!" -ForegroundColor Green
     Write-Host "  Tapes Exported: $($TapesToExport.Count)" -ForegroundColor Cyan
     Write-Host "  Destination Vault: ${vaultName}" -ForegroundColor Cyan
     
@@ -2659,12 +2659,12 @@ try {
     # Check for issues
     if ($License.Status -ne "Valid") {
         Write-Host ""
-        Write-Host "⚠ License issue detected: $($License.Status)" -ForegroundColor Red
+        Write-Host "[WARNING] License issue detected: $($License.Status)" -ForegroundColor Red
     }
     
     if ($DaysToExpire -lt 30) {
         Write-Host ""
-        Write-Host "⚠ License expires soon! Contact Veeam for renewal." -ForegroundColor Red
+        Write-Host "[WARNING] License expires soon! Contact Veeam for renewal." -ForegroundColor Red
     }
     
 } catch {
@@ -2827,7 +2827,7 @@ try {
     }
     
 ${exportPath ? `    $Forecast | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
 ` : ''}
     Write-Host "Capacity Forecast (${params.forecastDays} days):" -ForegroundColor Yellow
@@ -2842,7 +2842,7 @@ ${exportPath ? `    $Forecast | Export-Csv -Path "${exportPath}" -NoTypeInformat
         Write-Host "    ${params.forecastDays}-Day Forecast: $($Repo.'Forecasted_${params.forecastDays}Day_Used_GB') GB"
         Write-Host "    Days Until Full: $($Repo.DaysUntilFull)"
         if ($Repo.Warning -eq "EXPAND SOON") {
-            Write-Host "    ⚠ WARNING: Repository will fill within forecast period!" -ForegroundColor Red
+            Write-Host "    [WARNING] WARNING: Repository will fill within forecast period!" -ForegroundColor Red
         }
     }
     
@@ -2935,13 +2935,13 @@ try {
     
     if ($Issues.Count -gt 0) {
         Write-Host ""
-        Write-Host "⚠ Issues Found:" -ForegroundColor Red
+        Write-Host "[WARNING] Issues Found:" -ForegroundColor Red
         foreach ($Issue in $Issues) {
             Write-Host "  - $Issue" -ForegroundColor Red
         }
     } else {
         Write-Host ""
-        Write-Host "✓ All infrastructure components healthy!" -ForegroundColor Green
+        Write-Host "[SUCCESS] All infrastructure components healthy!" -ForegroundColor Green
     }
     
 } catch {
@@ -2993,7 +2993,7 @@ try {
         -MaxTasks ${params.maxTasks} \`
         -TransportMode ${transportMode}
     
-    Write-Host "✓ Proxy configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Proxy configured successfully!" -ForegroundColor Green
     Write-Host "  Proxy: ${proxyName}" -ForegroundColor Cyan
     Write-Host "  Max Tasks: ${params.maxTasks}" -ForegroundColor Cyan
     Write-Host "  Transport Mode: ${transportMode}" -ForegroundColor Cyan
@@ -3046,7 +3046,7 @@ try {
         -CacheFolder "${cachePath}" \`
         -CacheSize ${params.cacheSizeGB}
     
-    Write-Host "✓ WAN Accelerator added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] WAN Accelerator added successfully!" -ForegroundColor Green
     Write-Host "  Server: ${wanServerName}" -ForegroundColor Cyan
     Write-Host "  Cache Path: ${cachePath}" -ForegroundColor Cyan
     Write-Host "  Cache Size: ${params.cacheSizeGB} GB" -ForegroundColor Cyan
@@ -3112,7 +3112,7 @@ action === 'Add' ? `    Write-Host "Adding new credential: ${credentialName}..."
         -Password $SecurePassword \`
         -Description "${credentialName}"
     
-    Write-Host "✓ Credential added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Credential added successfully!" -ForegroundColor Green
     Write-Host "  Name: ${credentialName}" -ForegroundColor Cyan
     Write-Host "  Username: ${username}" -ForegroundColor Cyan` :
 `    Write-Host "Updating credential: ${credentialName}..." -ForegroundColor Cyan
@@ -3128,7 +3128,7 @@ action === 'Add' ? `    Write-Host "Adding new credential: ${credentialName}..."
     
     Set-VBRCredentials -Credential $Credential -Password $SecurePassword
     
-    Write-Host "✓ Credential updated successfully!" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Credential updated successfully!" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Credential operation failed: $_"
@@ -3175,7 +3175,7 @@ try {
         -User "${username}" \`
         -Password $SecurePassword
     
-    Write-Host "✓ ${serverType} server added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] ${serverType} server added successfully!" -ForegroundColor Green
     Write-Host "  Server: ${vcenterName}" -ForegroundColor Cyan
     Write-Host "  Username: ${username}" -ForegroundColor Cyan
     
@@ -3238,7 +3238,7 @@ try {
         -NotifyOnFailure \`
         -NotifyOnLastRetry
     
-    Write-Host "✓ Global notification settings configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Global notification settings configured!" -ForegroundColor Green
     Write-Host "  SMTP Server: ${smtpServer}:${params.smtpPort}" -ForegroundColor Cyan
     Write-Host "  SSL Enabled: ${params.smtpSSL}" -ForegroundColor Cyan
     Write-Host "  From: ${fromEmail}" -ForegroundColor Cyan
@@ -3248,7 +3248,7 @@ try {
     Write-Host ""
     Write-Host "Sending test email..." -ForegroundColor Cyan
     Send-VBRMailNotification -Subject "Veeam Test Email" -Message "This is a test email from Veeam Backup & Replication."
-    Write-Host "✓ Test email sent!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Test email sent!" -ForegroundColor Green
     
 } catch {
     Write-Error "Configuration failed: $_"
@@ -3311,7 +3311,7 @@ try {
     }
     
 ${exportPath ? `    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
 ` : ''}
     Write-Host "Cloud Tenant Usage:" -ForegroundColor Yellow
@@ -3393,7 +3393,7 @@ try {
         -Repository $CloudRepo \`
         -QuotaMB $QuotaMB
     
-    Write-Host "✓ Cloud tenant created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cloud tenant created successfully!" -ForegroundColor Green
     Write-Host "  Tenant: ${tenantName}" -ForegroundColor Cyan
     Write-Host "  Repository: ${repository}" -ForegroundColor Cyan
     Write-Host "  Quota: ${params.quotaGB} GB" -ForegroundColor Cyan
@@ -3461,7 +3461,7 @@ try {
         Set-VBRCloudTenantResource -Resource $Resource -QuotaMB $NewQuotaMB
     }
     
-    Write-Host "✓ Quota updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quota updated successfully!" -ForegroundColor Green
     Write-Host "  Tenant: ${tenantName}" -ForegroundColor Cyan
     Write-Host "  Previous Quota: $CurrentQuotaGB GB" -ForegroundColor Cyan
     Write-Host "  New Quota: ${params.newQuotaGB} GB" -ForegroundColor Cyan

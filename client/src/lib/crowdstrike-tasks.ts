@@ -49,7 +49,7 @@ try {
     
     Invoke-FalconContainment -Ids $HostIds -Action "${action}"
     
-    Write-Host "✓ ${params.action} action initiated for $($HostIds.Count) hosts" -ForegroundColor Green
+    Write-Host "[SUCCESS] ${params.action} action initiated for $($HostIds.Count) hosts" -ForegroundColor Green
     
 } catch {
     Write-Error "Operation failed: $_"
@@ -93,7 +93,7 @@ try {
         first_behavior,
         last_behavior | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Detections exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Detections exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Detections: $($Detections.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -133,7 +133,7 @@ try {
         Write-Host "  Last Seen: $($Host.last_seen)"
         Write-Host "  Status: $($Host.status)"
     } else {
-        Write-Host "⚠ Host not found: ${hostname}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Host not found: ${hostname}" -ForegroundColor Yellow
     }
     
 } catch {
@@ -180,7 +180,7 @@ try {
         modified,
         host_ids | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Incidents exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Incidents exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Incidents: $($Incidents.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -220,7 +220,7 @@ try {
     
     Edit-FalconIncident -Id $IncidentId -assigned_to_uuid $AssignTo -status $NewStatus
     
-    Write-Host "✓ Incident $IncidentId updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Incident $IncidentId updated successfully" -ForegroundColor Green
     Write-Host "  Assigned To: $AssignTo" -ForegroundColor Cyan
     Write-Host "  Status: $NewStatus" -ForegroundColor Cyan
     
@@ -263,7 +263,7 @@ try {
     
     Receive-FalconRtrGetFile -SessionId $SessionId -Sha256 $GetCmd.sha256 -OutputPath $LocalPath
     
-    Write-Host "✓ Forensic data downloaded: $LocalPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Forensic data downloaded: $LocalPath" -ForegroundColor Green
     
 } catch {
     Write-Error "Download failed: $_"
@@ -299,7 +299,7 @@ try {
     
     foreach ($GroupId in $HostGroupIds) {
         Edit-FalconPreventionPolicy -Id $Policy.id -groups @($GroupId)
-        Write-Host "✓ Policy applied to group: $GroupId" -ForegroundColor Green
+        Write-Host "[SUCCESS] Policy applied to group: $GroupId" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -366,7 +366,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Compliance report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Report generation failed: $_"
@@ -422,7 +422,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ IOC search completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] IOC search completed" -ForegroundColor Green
     Write-Host "  Matches Found: $($Results.Count)" -ForegroundColor Cyan
     Write-Host "  Results exported: ${exportPath}" -ForegroundColor Green
     
@@ -479,7 +479,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Host inventory exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Host inventory exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Hosts: $($Hosts.Count)" -ForegroundColor Cyan
     ${osFilter !== 'All' ? `Write-Host "  OS Filter: ${osFilter}" -ForegroundColor Cyan` : ''}
     
@@ -533,7 +533,7 @@ try {
     
     Edit-FalconResponsePolicy @Settings
     
-    Write-Host "✓ RTR Policy configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] RTR Policy configured successfully" -ForegroundColor Green
     Write-Host "  Policy Name: ${policyName}" -ForegroundColor Cyan
     Write-Host "  RTR Enabled: ${params.enableRTR}" -ForegroundColor Cyan
     Write-Host "  Session Timeout: ${sessionTimeout} minutes" -ForegroundColor Cyan
@@ -595,14 +595,14 @@ try {
     
     if ("${action}" -eq "Add") {
         New-FalconIoaExclusion @TypeParam -description $Description
-        Write-Host "✓ Exclusion added successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Exclusion added successfully" -ForegroundColor Green
     } else {
         $Exclusions = Get-FalconIoaExclusion -Filter "value:'$ExclusionValue'"
         if ($Exclusions) {
             Remove-FalconIoaExclusion -Ids $Exclusions.id
-            Write-Host "✓ Exclusion removed successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Exclusion removed successfully" -ForegroundColor Green
         } else {
-            Write-Host "⚠ Exclusion not found" -ForegroundColor Yellow
+            Write-Host "[WARNING] Exclusion not found" -ForegroundColor Yellow
         }
     }
     
@@ -652,7 +652,7 @@ try {
     $Session = Start-FalconSession -Id $HostId
     
     if ($Session) {
-        Write-Host "✓ RTR session established: $($Session.session_id)" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session established: $($Session.session_id)" -ForegroundColor Green
         
         Write-Host "Executing command: $Command" -ForegroundColor Cyan
         
@@ -664,13 +664,13 @@ try {
         
         $Result | Out-File -FilePath "${exportPath}" -Encoding UTF8
         
-        Write-Host "✓ Command executed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Command executed successfully" -ForegroundColor Green
         Write-Host "  Results exported: ${exportPath}" -ForegroundColor Cyan
         Write-Host "  Output Preview:" -ForegroundColor Yellow
         Write-Host $Result.stdout -ForegroundColor Gray
         
         Remove-FalconSession -SessionId $Session.session_id
-        Write-Host "✓ RTR session closed" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session closed" -ForegroundColor Green
         
     } else {
         Write-Error "Failed to establish RTR session"
@@ -769,7 +769,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Threat intelligence report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Threat intelligence report generated" -ForegroundColor Green
     Write-Host "  Report Type: ${reportType}" -ForegroundColor Cyan
     Write-Host "  Time Range: ${timeRange}" -ForegroundColor Cyan
     Write-Host "  Total Records: $($Report.Count)" -ForegroundColor Cyan
@@ -834,15 +834,15 @@ try {
             }
             
             New-FalconIndicator @Params
-            Write-Host "  ✓ Added: $IOC" -ForegroundColor Green
+            Write-Host "  [OK] Added: $IOC" -ForegroundColor Green
             
         } catch {
-            Write-Host "  ✗ Failed: $IOC - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $IOC - $_" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Custom IOC list processing complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Custom IOC list processing complete" -ForegroundColor Green
     Write-Host "  List Name: $ListName" -ForegroundColor Cyan
     Write-Host "  IOC Type: $IOCType" -ForegroundColor Cyan
     Write-Host "  Action: $Action" -ForegroundColor Cyan
@@ -944,11 +944,11 @@ try {
     
     foreach ($GroupId in $HostGroupIds) {
         Edit-FalconSensorUpdatePolicy -Id $Policy.id -groups @($GroupId)
-        Write-Host "  ✓ Policy applied to group: $GroupId" -ForegroundColor Green
+        Write-Host "  [OK] Policy applied to group: $GroupId" -ForegroundColor Green
     }
     
     Write-Host ""
-    Write-Host "✓ Sensor update policy configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sensor update policy configured successfully" -ForegroundColor Green
     Write-Host "  Policy Name: $PolicyName" -ForegroundColor Cyan
     Write-Host "  Target Version: $SensorVersion" -ForegroundColor Cyan
     Write-Host "  Update Schedule: ${updateSchedule}" -ForegroundColor Cyan
@@ -1029,7 +1029,7 @@ try {
     
     $Results | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Advanced host search completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Advanced host search completed" -ForegroundColor Green
     Write-Host "  Search Field: ${searchField}" -ForegroundColor Cyan
     Write-Host "  Search Value: ${searchValue}" -ForegroundColor Cyan
     Write-Host "  Hosts Found: $($Hosts.Count)" -ForegroundColor Cyan
@@ -1080,14 +1080,14 @@ try {
                 $NewTags = $CurrentHost.tags | Where-Object { $_ -notin $Tags }
                 Edit-FalconHost -Id $HostId -tags $NewTags
             }
-            Write-Host "  ✓ Updated: $HostId" -ForegroundColor Green
+            Write-Host "  [OK] Updated: $HostId" -ForegroundColor Green
         } catch {
-            Write-Host "  ✗ Failed: $HostId - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $HostId - $_" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Bulk tag operation completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Bulk tag operation completed" -ForegroundColor Green
     Write-Host "  Action: ${action}" -ForegroundColor Cyan
     Write-Host "  Hosts Processed: $($HostIds.Count)" -ForegroundColor Cyan
     Write-Host "  Tags: ${params.tags}" -ForegroundColor Cyan
@@ -1131,7 +1131,7 @@ try {
         Invoke-FalconHostAction -Action unhide_host -Ids $HostIds
     }
     
-    Write-Host "✓ ${action} operation completed for $($HostIds.Count) hosts" -ForegroundColor Green
+    Write-Host "[SUCCESS] ${action} operation completed for $($HostIds.Count) hosts" -ForegroundColor Green
     
 } catch {
     Write-Error "${action} operation failed: $_"
@@ -1181,7 +1181,7 @@ try {
     
     Edit-FalconDetection @UpdateParams
     
-    Write-Host "✓ Detection status update completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Detection status update completed" -ForegroundColor Green
     Write-Host "  Detections Updated: $($DetectionIds.Count)" -ForegroundColor Cyan
     Write-Host "  New Status: $NewStatus" -ForegroundColor Cyan
     ${comment ? `Write-Host "  Comment: ${comment}" -ForegroundColor Cyan` : ''}
@@ -1223,7 +1223,7 @@ try {
     
     Edit-FalconDetection -Id $DetectionId -comment "[$Timestamp] $Note"
     
-    Write-Host "✓ Note added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Note added successfully" -ForegroundColor Green
     Write-Host "  Detection ID: $DetectionId" -ForegroundColor Cyan
     Write-Host "  Timestamp: $Timestamp" -ForegroundColor Cyan
     Write-Host "  Note Preview: $($Note.Substring(0, [Math]::Min(100, $Note.Length)))..." -ForegroundColor Gray
@@ -1284,7 +1284,7 @@ try {
     
     $Timeline | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Detection timeline exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Detection timeline exported" -ForegroundColor Green
     Write-Host "  Detection ID: $DetectionId" -ForegroundColor Cyan
     Write-Host "  Total Behaviors: $($Timeline.Count)" -ForegroundColor Cyan
     Write-Host "  Exported to: ${exportPath}" -ForegroundColor Green
@@ -1355,7 +1355,7 @@ try {
         -platform_name "${platformName}" \`
         -settings $PolicySettings
     
-    Write-Host "✓ Prevention policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Prevention policy created successfully" -ForegroundColor Green
     Write-Host "  Policy ID: $($Policy.id)" -ForegroundColor Cyan
     Write-Host "  Policy Name: ${policyName}" -ForegroundColor Cyan
     Write-Host "  Platform: ${platformName}" -ForegroundColor Cyan
@@ -1408,7 +1408,7 @@ try {
         -platform_name $SourcePolicy.platform_name \`
         -settings $SourcePolicy.prevention_settings
     
-    Write-Host "✓ Prevention policy cloned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Prevention policy cloned successfully" -ForegroundColor Green
     Write-Host "  Source Policy: ${sourcePolicyName}" -ForegroundColor Cyan
     Write-Host "  New Policy ID: $($NewPolicy.id)" -ForegroundColor Cyan
     Write-Host "  New Policy Name: ${newPolicyName}" -ForegroundColor Cyan
@@ -1482,7 +1482,7 @@ try {
     
     $Comparison | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Policy comparison completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy comparison completed" -ForegroundColor Green
     Write-Host "  Policy 1: ${policy1Name}" -ForegroundColor Cyan
     Write-Host "  Policy 2: ${policy2Name}" -ForegroundColor Cyan
     Write-Host "  Differences Found: $($Comparison.Count)" -ForegroundColor Yellow
@@ -1541,7 +1541,7 @@ ${scriptContent}
     
     Remove-Item -Path $TempFile -Force
     
-    Write-Host "✓ RTR script uploaded successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] RTR script uploaded successfully" -ForegroundColor Green
     Write-Host "  Script Name: ${scriptName}" -ForegroundColor Cyan
     Write-Host "  Platform: ${platform}" -ForegroundColor Cyan
     Write-Host "  Permission Type: ${permissionType}" -ForegroundColor Cyan
@@ -1617,7 +1617,7 @@ try {
                 }
                 
                 Remove-FalconSession -SessionId $Session.session_id
-                Write-Host "  ✓ Completed: $HostId" -ForegroundColor Green
+                Write-Host "  [OK] Completed: $HostId" -ForegroundColor Green
             }
             
         } catch {
@@ -1626,12 +1626,12 @@ try {
                 Status = "Failed"
                 Error = $_.Exception.Message
             }
-            Write-Host "  ✗ Failed: $HostId - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $HostId - $_" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Script execution completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Script execution completed" -ForegroundColor Green
     Write-Host "  Script: $ScriptName" -ForegroundColor Cyan
     Write-Host "  Total Hosts: $($HostIds.Count)" -ForegroundColor Cyan
     Write-Host "  Successful: $($Results | Where-Object Status -eq 'Success' | Measure-Object).Count" -ForegroundColor Green
@@ -1702,16 +1702,16 @@ try {
             
             New-FalconIndicator @Params
             $SuccessCount++
-            Write-Host "  ✓ Added: $($IOC.value)" -ForegroundColor Green
+            Write-Host "  [OK] Added: $($IOC.value)" -ForegroundColor Green
             
         } catch {
             $FailCount++
-            Write-Host "  ✗ Failed: $($IOC.value) - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $($IOC.value) - $_" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ IOC import completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] IOC import completed" -ForegroundColor Green
     Write-Host "  Total IOCs: $TotalCount" -ForegroundColor Cyan
     Write-Host "  Successfully Imported: $SuccessCount" -ForegroundColor Green
     Write-Host "  Failed: $FailCount" -ForegroundColor Red
@@ -1774,7 +1774,7 @@ try {
     
     Edit-FalconIndicator @UpdateParams
     
-    Write-Host "✓ IOC expiration updated" -ForegroundColor Green
+    Write-Host "[SUCCESS] IOC expiration updated" -ForegroundColor Green
     Write-Host "  IOC Type: $IOCType" -ForegroundColor Cyan
     Write-Host "  IOC Value: $IOCValue" -ForegroundColor Cyan
     if ($ExpirationDays -gt 0) {
@@ -1848,15 +1848,15 @@ try {
                 Remove-FalconIndicator -Id $IOC.id
                 $DeletedCount++
             } catch {
-                Write-Host "    ✗ Failed to delete: $($IOC.value)" -ForegroundColor Red
+                Write-Host "    [FAILED] Failed to delete: $($IOC.value)" -ForegroundColor Red
             }
         }
         
-        Write-Host "  ✓ Deleted: $DeletedCount IOCs" -ForegroundColor Green
+        Write-Host "  [OK] Deleted: $DeletedCount IOCs" -ForegroundColor Green
     }
     
     Write-Host ""
-    Write-Host "✓ IOC cleanup completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] IOC cleanup completed" -ForegroundColor Green
     Write-Host "  Mode: $DeleteMode" -ForegroundColor Cyan
     Write-Host "  IOCs Processed: $($IOCs.Count)" -ForegroundColor Cyan
     Write-Host "  Report exported: ${exportPath}" -ForegroundColor Green
@@ -1924,7 +1924,7 @@ try {
     $DetailPath = "${exportPath}".Replace(".csv", "_detailed.csv")
     $DetailedReport | Export-Csv -Path $DetailPath -NoTypeInformation
     
-    Write-Host "✓ Sensor version report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sensor version report generated" -ForegroundColor Green
     Write-Host "  Total Hosts: $($Hosts.Count)" -ForegroundColor Cyan
     Write-Host "  Unique ${groupBy}s: $($Summary.Count)" -ForegroundColor Cyan
     Write-Host "  Summary exported: ${exportPath}" -ForegroundColor Green
@@ -2003,7 +2003,7 @@ try {
     
     Receive-FalconCcidInstaller -Id $Installer.sha256 -Path $DownloadPath
     
-    Write-Host "✓ Sensor installer downloaded" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sensor installer downloaded" -ForegroundColor Green
     Write-Host "  Platform: $Platform" -ForegroundColor Cyan
     Write-Host "  Version: $($Installer.version)" -ForegroundColor Cyan
     Write-Host "  SHA256: $($Installer.sha256)" -ForegroundColor Cyan
@@ -2056,7 +2056,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Reduced functionality report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Reduced functionality report generated" -ForegroundColor Green
     Write-Host "  Hosts in RFM: $($RFMHosts.Count)" -ForegroundColor Yellow
     Write-Host "  Report exported: ${exportPath}" -ForegroundColor Green
     
@@ -2136,7 +2136,7 @@ try {
     $TacticPath = "${exportPath}".Replace(".csv", "_tactics.csv")
     $TacticSummary | Export-Csv -Path $TacticPath -NoTypeInformation
     
-    Write-Host "✓ Weekly detection report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Weekly detection report generated" -ForegroundColor Green
     Write-Host "  Period: $StartDate to $(Get-Date -Format 'yyyy-MM-dd')" -ForegroundColor Cyan
     Write-Host "  Total Detections: $($Detections.Count)" -ForegroundColor Cyan
     Write-Host "  Weekly summary: ${exportPath}" -ForegroundColor Green
@@ -2203,11 +2203,11 @@ try {
         $UngroupedPath = "${exportPath}".Replace(".csv", "_ungrouped.csv")
         $UngroupedHosts | Select-Object hostname, device_id, platform_name, last_seen | 
             Export-Csv -Path $UngroupedPath -NoTypeInformation
-        Write-Host "  ⚠ Ungrouped hosts found: $($UngroupedHosts.Count)" -ForegroundColor Yellow
+        Write-Host "  [WARNING] Ungrouped hosts found: $($UngroupedHosts.Count)" -ForegroundColor Yellow
         Write-Host "  Ungrouped hosts exported: $UngroupedPath" -ForegroundColor Yellow
     }
     
-    Write-Host "✓ Host group coverage report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Host group coverage report generated" -ForegroundColor Green
     Write-Host "  Total Host Groups: $($HostGroups.Count)" -ForegroundColor Cyan
     Write-Host "  Total Hosts: $($AllHosts.Count)" -ForegroundColor Cyan
     Write-Host "  Report exported: ${exportPath}" -ForegroundColor Green
@@ -2276,7 +2276,7 @@ try {
     $CsvPath = "${exportPath}".Replace(".json", ".csv")
     $Summary | Export-Csv -Path $CsvPath -NoTypeInformation
     
-    Write-Host "✓ Executive security summary generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Executive security summary generated" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Security Posture Summary ===" -ForegroundColor Cyan
     Write-Host "  Managed Hosts: $($Summary.TotalManagedHosts)" -ForegroundColor White
@@ -2331,7 +2331,7 @@ try {
     $Session = Start-FalconSession -Id $HostId
     
     if ($Session) {
-        Write-Host "✓ RTR session established: $($Session.session_id)" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session established: $($Session.session_id)" -ForegroundColor Green
         
         if ("${identifierType}" -eq "Process Name") {
             $PsResult = Invoke-FalconRtr -Command "ps" -SessionId $Session.session_id
@@ -2341,14 +2341,14 @@ try {
                 Write-Host "  Found process: $ProcessIdentifier" -ForegroundColor Yellow
                 $KillResult = Invoke-FalconRtr -Command "kill" -Arguments "$ProcessIdentifier" -SessionId $Session.session_id
             } else {
-                Write-Host "  ⚠ Process not found: $ProcessIdentifier" -ForegroundColor Yellow
+                Write-Host "  [WARNING] Process not found: $ProcessIdentifier" -ForegroundColor Yellow
             }
         } else {
             $KillResult = Invoke-FalconRtr -Command "kill" -Arguments "$ProcessIdentifier" -SessionId $Session.session_id
         }
         
         if ($KillResult.complete) {
-            Write-Host "✓ Process terminated successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Process terminated successfully" -ForegroundColor Green
         } else {
             Write-Host "  Process termination may have failed" -ForegroundColor Yellow
             Write-Host "  Output: $($KillResult.stdout)" -ForegroundColor Gray
@@ -2356,7 +2356,7 @@ try {
         }
         
         Remove-FalconSession -SessionId $Session.session_id
-        Write-Host "✓ RTR session closed" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session closed" -ForegroundColor Green
         
     } else {
         Write-Error "Failed to establish RTR session"
@@ -2404,7 +2404,7 @@ try {
     $Session = Start-FalconSession -Id $HostId
     
     if ($Session) {
-        Write-Host "✓ RTR session established: $($Session.session_id)" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session established: $($Session.session_id)" -ForegroundColor Green
         
         $Command = switch ("${operation}") {
             "Delete File" { "rm" }
@@ -2425,7 +2425,7 @@ try {
         $Result = Invoke-FalconRtr -Command $Command -Arguments $Arguments -SessionId $Session.session_id
         
         if ($Result.complete) {
-            Write-Host "✓ File operation completed successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] File operation completed successfully" -ForegroundColor Green
         } else {
             Write-Host "  Operation output: $($Result.stdout)" -ForegroundColor Gray
             if ($Result.stderr) {
@@ -2434,7 +2434,7 @@ try {
         }
         
         Remove-FalconSession -SessionId $Session.session_id
-        Write-Host "✓ RTR session closed" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session closed" -ForegroundColor Green
         
     } else {
         Write-Error "Failed to establish RTR session"
@@ -2509,7 +2509,7 @@ try {
     $Session = Start-FalconSession -Id $HostId
     
     if ($Session) {
-        Write-Host "✓ RTR session established: $($Session.session_id)" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session established: $($Session.session_id)" -ForegroundColor Green
         
         $CollectedFiles = @()
         
@@ -2526,18 +2526,18 @@ try {
                     Receive-FalconRtrGetFile -SessionId $Session.session_id -Sha256 $GetResult.sha256 -OutputPath $OutputFile
                     
                     $CollectedFiles += $OutputFile
-                    Write-Host "    ✓ Downloaded: $FileName" -ForegroundColor Green
+                    Write-Host "    [OK] Downloaded: $FileName" -ForegroundColor Green
                 }
                 
             } catch {
-                Write-Host "    ✗ Failed: $ArtifactPath - $_" -ForegroundColor Red
+                Write-Host "    [FAILED] Failed: $ArtifactPath - $_" -ForegroundColor Red
             }
         }
         
         Remove-FalconSession -SessionId $Session.session_id
         
         Write-Host ""
-        Write-Host "✓ Artifact collection completed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Artifact collection completed" -ForegroundColor Green
         Write-Host "  Artifact Type: $ArtifactType" -ForegroundColor Cyan
         Write-Host "  Files Collected: $($CollectedFiles.Count)" -ForegroundColor Cyan
         Write-Host "  Download Location: $LocalPath" -ForegroundColor Green
@@ -2579,12 +2579,12 @@ try {
     $LocalPath = "${localDownloadPath}"
     
     Write-Host "Initiating memory dump collection..." -ForegroundColor Cyan
-    Write-Host "⚠ This operation may take several minutes depending on host memory size" -ForegroundColor Yellow
+    Write-Host "[WARNING] This operation may take several minutes depending on host memory size" -ForegroundColor Yellow
     
     $Session = Start-FalconSession -Id $HostId
     
     if ($Session) {
-        Write-Host "✓ RTR session established: $($Session.session_id)" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session established: $($Session.session_id)" -ForegroundColor Green
         
         Write-Host "  Starting memory dump..." -ForegroundColor Yellow
         
@@ -2597,7 +2597,7 @@ try {
             
             Receive-FalconRtrGetFile -SessionId $Session.session_id -Sha256 $MemDump.sha256 -OutputPath $OutputFile
             
-            Write-Host "✓ Memory dump downloaded successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Memory dump downloaded successfully" -ForegroundColor Green
             Write-Host "  File: $OutputFile" -ForegroundColor Cyan
             Write-Host "  SHA256: $($MemDump.sha256)" -ForegroundColor Cyan
             
@@ -2607,7 +2607,7 @@ try {
         }
         
         Remove-FalconSession -SessionId $Session.session_id
-        Write-Host "✓ RTR session closed" -ForegroundColor Green
+        Write-Host "[SUCCESS] RTR session closed" -ForegroundColor Green
         
     } else {
         Write-Error "Failed to establish RTR session"
@@ -2660,7 +2660,7 @@ try {
     
     $Group = New-FalconHostGroup @GroupParams
     
-    Write-Host "✓ Host group created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Host group created successfully" -ForegroundColor Green
     Write-Host "  Group ID: $($Group.id)" -ForegroundColor Cyan
     Write-Host "  Group Name: ${groupName}" -ForegroundColor Cyan
     Write-Host "  Group Type: ${groupType}" -ForegroundColor Cyan
@@ -2714,7 +2714,7 @@ try {
     
     Invoke-FalconHostGroupAction -Action add-hosts -Id $Group.id -Ids $HostIds
     
-    Write-Host "✓ Hosts added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Hosts added successfully" -ForegroundColor Green
     Write-Host "  Group: $GroupName" -ForegroundColor Cyan
     Write-Host "  Hosts Added: $($HostIds.Count)" -ForegroundColor Cyan
     
@@ -2770,7 +2770,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Stale sensor report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Stale sensor report generated" -ForegroundColor Green
     Write-Host "  Threshold: $StaleDays days" -ForegroundColor Cyan
     Write-Host "  Stale Hosts Found: $($StaleHosts.Count)" -ForegroundColor Yellow
     Write-Host "  Report exported: ${exportPath}" -ForegroundColor Green
@@ -2829,7 +2829,7 @@ try {
     $Token = Get-FalconUninstallToken -Id $HostId -audit_message $AuditMessage
     
     Write-Host ""
-    Write-Host "✓ Uninstall token generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Uninstall token generated" -ForegroundColor Green
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host "  UNINSTALL TOKEN" -ForegroundColor Yellow
@@ -2840,7 +2840,7 @@ try {
     Write-Host "  Host ID: $HostId" -ForegroundColor Cyan
     Write-Host "  Audit Message: $AuditMessage" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "⚠ Store this token securely. It is required to uninstall the sensor." -ForegroundColor Yellow
+    Write-Host "[WARNING] Store this token securely. It is required to uninstall the sensor." -ForegroundColor Yellow
     
 } catch {
     Write-Error "Token generation failed: $_"
@@ -2901,7 +2901,7 @@ try {
     $SummaryPath = "${exportPath}".Replace(".csv", "_summary.csv")
     $SeveritySummary | Export-Csv -Path $SummaryPath -NoTypeInformation
     
-    Write-Host "✓ Vulnerability report exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Vulnerability report exported" -ForegroundColor Green
     Write-Host "  Total Vulnerabilities: $($Vulnerabilities.Count)" -ForegroundColor Cyan
     Write-Host "  Severity Filter: ${severityFilter}" -ForegroundColor Cyan
     Write-Host "  Detailed Report: ${exportPath}" -ForegroundColor Green
@@ -2958,14 +2958,14 @@ try {
             ${description ? `$Params.description = "${description}"` : ''}
             
             $Policy = New-FalconFirewallPolicy @Params
-            Write-Host "✓ Firewall policy created" -ForegroundColor Green
+            Write-Host "[SUCCESS] Firewall policy created" -ForegroundColor Green
             Write-Host "  Policy ID: $($Policy.id)" -ForegroundColor Cyan
         }
         "Enable Policy" {
             $Policy = Get-FalconFirewallPolicy -Filter "name:'$PolicyName'"
             if ($Policy) {
                 Edit-FalconFirewallPolicy -Id $Policy.id -enabled $true
-                Write-Host "✓ Firewall policy enabled" -ForegroundColor Green
+                Write-Host "[SUCCESS] Firewall policy enabled" -ForegroundColor Green
             } else {
                 throw "Policy not found: $PolicyName"
             }
@@ -2974,7 +2974,7 @@ try {
             $Policy = Get-FalconFirewallPolicy -Filter "name:'$PolicyName'"
             if ($Policy) {
                 Edit-FalconFirewallPolicy -Id $Policy.id -enabled $false
-                Write-Host "✓ Firewall policy disabled" -ForegroundColor Yellow
+                Write-Host "[SUCCESS] Firewall policy disabled" -ForegroundColor Yellow
             } else {
                 throw "Policy not found: $PolicyName"
             }
@@ -2983,7 +2983,7 @@ try {
             $Policy = Get-FalconFirewallPolicy -Filter "name:'$PolicyName'"
             if ($Policy) {
                 Remove-FalconFirewallPolicy -Id $Policy.id
-                Write-Host "✓ Firewall policy deleted" -ForegroundColor Red
+                Write-Host "[SUCCESS] Firewall policy deleted" -ForegroundColor Red
             } else {
                 throw "Policy not found: $PolicyName"
             }
@@ -3069,11 +3069,11 @@ try {
     
     foreach ($GroupId in $HostGroupIds) {
         Edit-FalconDeviceControlPolicy -Id $Policy.id -groups @($GroupId)
-        Write-Host "  ✓ Policy applied to group: $GroupId" -ForegroundColor Green
+        Write-Host "  [OK] Policy applied to group: $GroupId" -ForegroundColor Green
     }
     
     Write-Host ""
-    Write-Host "✓ Device control policy configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device control policy configured" -ForegroundColor Green
     Write-Host "  Policy: $PolicyName" -ForegroundColor Cyan
     Write-Host "  USB Storage: ${usbAction}" -ForegroundColor Cyan
     Write-Host "  Bluetooth: ${bluetoothAction}" -ForegroundColor Cyan
@@ -3147,7 +3147,7 @@ try {
     $SummaryPath = "${exportPath}".Replace(".csv", "_summary.csv")
     $OperationSummary | Export-Csv -Path $SummaryPath -NoTypeInformation
     
-    Write-Host "✓ API audit log exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] API audit log exported" -ForegroundColor Green
     Write-Host "  Period: Last $DaysBack days" -ForegroundColor Cyan
     Write-Host "  Filter: ${activityFilter}" -ForegroundColor Cyan
     Write-Host "  Total Events: $($AuditEvents.Count)" -ForegroundColor Cyan
@@ -3207,7 +3207,7 @@ try {
             
             ${exportPath ? `$Report | Export-Csv -Path "${exportPath}" -NoTypeInformation` : '$Report | Format-Table -AutoSize'}
             
-            Write-Host "✓ Found $($Quarantined.Count) quarantined files" -ForegroundColor Green
+            Write-Host "[SUCCESS] Found $($Quarantined.Count) quarantined files" -ForegroundColor Green
             ${exportPath ? `Write-Host "  Exported to: ${exportPath}" -ForegroundColor Green` : ''}
         }
         "Release Files" {
@@ -3216,7 +3216,7 @@ try {
             }
             
             Invoke-FalconQuarantineAction -Action "release" -Ids @("${sha256}")
-            Write-Host "✓ File released from quarantine" -ForegroundColor Green
+            Write-Host "[SUCCESS] File released from quarantine" -ForegroundColor Green
             Write-Host "  SHA256: ${sha256}" -ForegroundColor Cyan
         }
         "Delete Files" {
@@ -3225,7 +3225,7 @@ try {
             }
             
             Invoke-FalconQuarantineAction -Action "delete" -Ids @("${sha256}")
-            Write-Host "✓ File deleted from quarantine" -ForegroundColor Green
+            Write-Host "[SUCCESS] File deleted from quarantine" -ForegroundColor Green
             Write-Host "  SHA256: ${sha256}" -ForegroundColor Cyan
         }
     }
@@ -3296,7 +3296,7 @@ try {
     $RolePath = "${exportPath}".Replace(".csv", "_roles.csv")
     $RoleSummary | Export-Csv -Path $RolePath -NoTypeInformation
     
-    Write-Host "✓ User roles report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] User roles report generated" -ForegroundColor Green
     Write-Host "  Total Users: $($Users.Count)" -ForegroundColor Cyan
     Write-Host "  Total Roles: $($Roles.Count)" -ForegroundColor Cyan
     Write-Host "  User Report: ${exportPath}" -ForegroundColor Green

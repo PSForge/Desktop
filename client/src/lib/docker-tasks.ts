@@ -47,9 +47,9 @@ try {
         docker ${action} $Container
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ ${params.action}ed: $Container" -ForegroundColor Green
+            Write-Host "[SUCCESS] ${params.action}ed: $Container" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed: $Container" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $Container" -ForegroundColor Red
         }
     }
     
@@ -88,7 +88,7 @@ try {
     docker-compose -f $ComposePath -p $ProjectName up -d
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Stack deployed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Stack deployed successfully!" -ForegroundColor Green
         
         # Show running containers
         docker-compose -f $ComposePath -p $ProjectName ps
@@ -128,7 +128,7 @@ try {
     kubectl apply -f $ManifestPath -n $Namespace
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Manifest deployed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Manifest deployed successfully!" -ForegroundColor Green
         
         # Show deployment status
         kubectl get all -n $Namespace
@@ -174,7 +174,7 @@ try {
     docker run -d --name $ContainerName ${ports} ${envVars} $ImageName
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Container deployed: $ContainerName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Container deployed: $ContainerName" -ForegroundColor Green
         docker ps -f name=$ContainerName
     } else {
         Write-Error "Deployment failed"
@@ -216,7 +216,7 @@ try {
     kubectl create deployment $PodName --image=$Image --replicas=${replicas} -n $Namespace
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Deployment created: $PodName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Deployment created: $PodName" -ForegroundColor Green
         
         Write-Host "Waiting for pods to be ready..." -ForegroundColor Yellow
         kubectl wait --for=condition=ready pod -l app=$PodName -n $Namespace --timeout=60s
@@ -271,7 +271,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${action} completed successfully!" -ForegroundColor Green
         kubectl get deployment $DeploymentName -n $Namespace
     } else {
         Write-Error "${action} failed"
@@ -322,7 +322,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${params.action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${params.action} completed successfully!" -ForegroundColor Green
         ${params.action !== 'Remove' ? 'docker volume ls' : ''}
     } else {
         Write-Error "${params.action} failed"
@@ -373,7 +373,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${params.action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${params.action} completed successfully!" -ForegroundColor Green
         ${params.action !== 'Remove' ? 'docker network ls' : ''}
     } else {
         Write-Error "${params.action} failed"
@@ -429,7 +429,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${action} completed successfully!" -ForegroundColor Green
         ${action === 'Create' ? 'kubectl get secrets -n $Namespace' : ''}
     } else {
         Write-Error "${action} failed"
@@ -477,7 +477,7 @@ try {
     
     $NodeData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Node health data exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Node health data exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Node Summary:" -ForegroundColor Yellow
     $NodeData | Format-Table -AutoSize
@@ -516,7 +516,7 @@ try {
     kubectl ${action} -f $ConfigPath
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Configuration ${action}ed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Configuration ${action}ed successfully!" -ForegroundColor Green
         
         kubectl get all --all-namespaces
     } else {
@@ -564,7 +564,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Cleanup completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cleanup completed successfully!" -ForegroundColor Green
         
         Write-Host ""
         Write-Host "Current Docker disk usage:" -ForegroundColor Yellow
@@ -629,7 +629,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${action} completed successfully!" -ForegroundColor Green
         ${action === 'Deploy' ? 'kubectl get pods,services -n $Namespace' : ''}
     } else {
         Write-Error "${action} failed"
@@ -707,7 +707,7 @@ spec:
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${action} completed successfully!" -ForegroundColor Green
         ${action !== 'Delete' ? 'kubectl get pvc -n $Namespace' : ''}
     } else {
         Write-Error "${action} failed"
@@ -781,7 +781,7 @@ ${configData.split('\n').map((line: string) => line.trim()).filter((line: string
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${action} completed successfully!" -ForegroundColor Green
         ${action !== 'Delete' && action !== 'Inspect' ? 'kubectl get configmap $ConfigMapName -n $Namespace' : ''}
     } else {
         Write-Error "${action} failed"
@@ -873,7 +873,7 @@ ${rolePermissions ? rolePermissions.split('\n').map((line: string) => {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${action} completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${action} completed successfully!" -ForegroundColor Green
         ${action === 'Create' ? `kubectl get ${resourceType.toLowerCase()} ${resourceType.includes('Cluster') ? '' : '-n $Namespace'}` : ''}
     } else {
         Write-Error "${action} failed"
@@ -920,7 +920,7 @@ try {
     docker run -d -p ${registryPort}:5000 --name registry --restart=always -v registry-data:/var/lib/registry registry:2
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Registry started on port ${registryPort}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Registry started on port ${registryPort}" -ForegroundColor Green
         Write-Host "  Access at: http://localhost:${registryPort}" -ForegroundColor Cyan
         docker ps -f name=registry
     }
@@ -939,7 +939,7 @@ try {
         docker push $RegistryImage
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Image pushed: $RegistryImage" -ForegroundColor Green
+            Write-Host "[SUCCESS] Image pushed: $RegistryImage" -ForegroundColor Green
         } else {
             Write-Error "Push failed"
         }
@@ -959,7 +959,7 @@ try {
     docker pull $RegistryImage
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Image pulled: $RegistryImage" -ForegroundColor Green
+        Write-Host "[SUCCESS] Image pulled: $RegistryImage" -ForegroundColor Green
         docker images $RegistryImage
     } else {
         Write-Error "Pull failed"
@@ -976,7 +976,7 @@ try {
     
     try {
         $Response = Invoke-RestMethod -Uri $ApiUrl -Method Get
-        Write-Host "✓ Available tags for ${imageName}:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Available tags for ${imageName}:" -ForegroundColor Green
         $Response.tags | ForEach-Object { Write-Host "  - $_" -ForegroundColor Cyan }
     } catch {
         Write-Error "Failed to list tags: $_"
@@ -1001,7 +1001,7 @@ try {
             if ($Digest) {
                 $DeleteUrl = "http://$RegistryUrl/v2/${imageName}/manifests/$Digest"
                 Invoke-RestMethod -Uri $DeleteUrl -Method Delete
-                Write-Host "✓ Image deleted: ${imageName}:${imageTag}" -ForegroundColor Green
+                Write-Host "[SUCCESS] Image deleted: ${imageName}:${imageTag}" -ForegroundColor Green
             } else {
                 Write-Error "Could not retrieve image digest"
             }
@@ -1053,14 +1053,14 @@ try {
     kubectl create namespace $Namespace
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Namespace created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Namespace created successfully!" -ForegroundColor Green
         kubectl get namespace $Namespace
     }` : action === 'Delete' ? `
     $Confirm = Read-Host "Delete namespace $Namespace? This will delete ALL resources. Type 'YES' to confirm"
     if ($Confirm -eq 'YES') {
         Write-Host "Deleting namespace: $Namespace..." -ForegroundColor Yellow
         kubectl delete namespace $Namespace
-        Write-Host "✓ Namespace deleted" -ForegroundColor Green
+        Write-Host "[SUCCESS] Namespace deleted" -ForegroundColor Green
     } else {
         Write-Host "Operation cancelled" -ForegroundColor Yellow
         exit
@@ -1084,7 +1084,7 @@ spec:
     $QuotaYaml | kubectl apply -f -
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Resource quota configured successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Resource quota configured successfully!" -ForegroundColor Green
         kubectl get resourcequota -n $Namespace
     }`}
     
@@ -1168,7 +1168,7 @@ ${policyYaml}
     $PolicyYaml | kubectl apply -f -
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Network policy created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Network policy created successfully!" -ForegroundColor Green
         kubectl get networkpolicy -n ${namespace}
     } else {
         Write-Error "Failed to create network policy"
@@ -1249,7 +1249,7 @@ spec:
     $JobYaml | kubectl apply -f -
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ ${jobType} created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${jobType} created successfully!" -ForegroundColor Green
         ${jobType === 'Job' ? 'kubectl get jobs -n $namespace' : 'kubectl get cronjobs -n $namespace'}
     }
     
@@ -1292,7 +1292,7 @@ try {
         --cpu-percent ${params.cpuPercent}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ HPA configured successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] HPA configured successfully!" -ForegroundColor Green
         Write-Host "  Min Replicas: ${params.minReplicas}" -ForegroundColor Cyan
         Write-Host "  Max Replicas: ${params.maxReplicas}" -ForegroundColor Cyan
         Write-Host "  Target CPU: ${params.cpuPercent}%" -ForegroundColor Cyan
@@ -1340,7 +1340,7 @@ try {
     # Enable sidecar injection
     kubectl label namespace default istio-injection=enabled
     
-    Write-Host "✓ Istio installed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Istio installed successfully!" -ForegroundColor Green
     Write-Host "  Verify with: kubectl get pods -n istio-system" -ForegroundColor Cyan
     ` : `
     # Download and install Linkerd
@@ -1353,7 +1353,7 @@ try {
     # Wait for installation
     linkerd check
     
-    Write-Host "✓ Linkerd installed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Linkerd installed successfully!" -ForegroundColor Green
     Write-Host "  Verify with: linkerd check" -ForegroundColor Cyan
     `}
     ` : `
@@ -1413,7 +1413,7 @@ try {
     docker @LogArgs | Out-File -FilePath "${exportPath}" -Encoding UTF8
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Logs exported successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Logs exported successfully!" -ForegroundColor Green
         Write-Host "  File: ${exportPath}" -ForegroundColor Cyan
         Write-Host "  Size: $((Get-Item '${exportPath}').Length / 1KB) KB" -ForegroundColor Cyan
     }
@@ -1467,7 +1467,7 @@ try {
     docker @ExecArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Command executed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Command executed successfully!" -ForegroundColor Green
     } else {
         Write-Host "Command exited with code: $LASTEXITCODE" -ForegroundColor Yellow
     }
@@ -1555,7 +1555,7 @@ try {
     `}
     
     Write-Host ""
-    Write-Host "✓ Inspection completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inspection completed!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to inspect container: $_"
@@ -1605,7 +1605,7 @@ try {
     
     $Results | Out-File -FilePath "${exportPath}" -Encoding UTF8
     
-    Write-Host "✓ Stats exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Stats exported to: ${exportPath}" -ForegroundColor Green
     
     # Also display the stats
     $StatsOutput | ForEach-Object {
@@ -1671,7 +1671,7 @@ try {
     docker rename $CurrentName $NewName
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Container renamed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Container renamed successfully!" -ForegroundColor Green
         Write-Host "  Old name: $CurrentName" -ForegroundColor Yellow
         Write-Host "  New name: $NewName" -ForegroundColor Green
         
@@ -1737,7 +1737,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Files copied successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Files copied successfully!" -ForegroundColor Green
     } else {
         Write-Error "Copy operation failed"
     }
@@ -1798,7 +1798,7 @@ try {
     if ($LASTEXITCODE -eq 0) {
         $Duration = $EndTime - $StartTime
         Write-Host ""
-        Write-Host "✓ Image built successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Image built successfully!" -ForegroundColor Green
         Write-Host "  Image: $ImageName" -ForegroundColor Cyan
         Write-Host "  Build time: $($Duration.TotalSeconds.ToString('F2')) seconds" -ForegroundColor Cyan
         
@@ -1848,7 +1848,7 @@ try {
     docker tag $SourceImage $TargetImage
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Image tagged successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Image tagged successfully!" -ForegroundColor Green
         docker images | Select-String -Pattern ($TargetImage -replace ":", "\\s+")
     } else {
         Write-Error "Tagging failed"
@@ -1920,7 +1920,7 @@ try {
         Remove-Item $TempFile -Force
         
         $FileSize = (Get-Item $CompressedPath).Length / 1MB
-        Write-Host "✓ Image exported and compressed!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Image exported and compressed!" -ForegroundColor Green
         Write-Host "  File: $CompressedPath" -ForegroundColor Cyan
         Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
     }
@@ -1929,7 +1929,7 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         $FileSize = (Get-Item $OutputPath).Length / 1MB
-        Write-Host "✓ Image exported successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Image exported successfully!" -ForegroundColor Green
         Write-Host "  File: $OutputPath" -ForegroundColor Cyan
         Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
     } else {
@@ -1993,7 +1993,7 @@ try {
     }
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Image imported successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Image imported successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Available images:" -ForegroundColor Yellow
         docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
@@ -2087,7 +2087,7 @@ try {
     `}
     
     Write-Host ""
-    Write-Host "✓ Inspection completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inspection completed!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to inspect image: $_"
@@ -2128,7 +2128,7 @@ try {
     docker images $ImageName --format "  {{.Size}}"
     
     Write-Host ""
-    Write-Host "✓ History displayed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] History displayed!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to get image history: $_"
@@ -2176,7 +2176,7 @@ try {
     docker @ConnectArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Container connected to network!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Container connected to network!" -ForegroundColor Green
         
         # Show network details
         Write-Host ""
@@ -2229,7 +2229,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Container disconnected from network!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Container disconnected from network!" -ForegroundColor Green
         
         # Show remaining networks
         Write-Host ""
@@ -2311,7 +2311,7 @@ try {
         Remove-Item $SourceFile -Force
         
         $FileSize = (Get-Item $CompressedPath).Length / 1MB
-        Write-Host "✓ Volume backed up and compressed!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Volume backed up and compressed!" -ForegroundColor Green
         Write-Host "  File: $CompressedPath" -ForegroundColor Cyan
         Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
     }
@@ -2320,7 +2320,7 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         $FileSize = (Get-Item $BackupPath).Length / 1MB
-        Write-Host "✓ Volume backed up successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Volume backed up successfully!" -ForegroundColor Green
         Write-Host "  File: $BackupPath" -ForegroundColor Cyan
         Write-Host "  Size: $($FileSize.ToString('F2')) MB" -ForegroundColor Cyan
     } else {
@@ -2406,7 +2406,7 @@ try {
     }
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Volume restored successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Volume restored successfully!" -ForegroundColor Green
         
         # Show volume info
         Write-Host ""
@@ -2456,7 +2456,7 @@ try {
     `}
     
     Write-Host ""
-    Write-Host "✓ Listing completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Listing completed!" -ForegroundColor Green
     
     # Show volume size
     Write-Host ""
@@ -2505,7 +2505,7 @@ try {
     docker-compose @DownArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Stack stopped successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Stack stopped successfully!" -ForegroundColor Green
         ${removeVolumes ? `Write-Host "  Volumes removed" -ForegroundColor Yellow` : ''}
         ${removeImages !== 'none' ? `Write-Host "  Images removed: ${removeImages}" -ForegroundColor Yellow` : ''}
     } else {
@@ -2548,7 +2548,7 @@ try {
     docker-compose -f $ComposePath -p $ProjectName up -d --scale $ServiceName=${replicas}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Service scaled successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service scaled successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Running containers:" -ForegroundColor Yellow
         docker-compose -f $ComposePath -p $ProjectName ps
@@ -2692,7 +2692,7 @@ try {
     if ($LASTEXITCODE -eq 0) {
         $Duration = $EndTime - $StartTime
         Write-Host ""
-        Write-Host "✓ Build completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Build completed successfully!" -ForegroundColor Green
         Write-Host "  Duration: $($Duration.TotalSeconds.ToString('F2')) seconds" -ForegroundColor Cyan
         
         Write-Host ""
@@ -2737,7 +2737,7 @@ try {
     docker @InitArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Swarm initialized successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Swarm initialized successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Swarm status:" -ForegroundColor Yellow
         docker info --format '{{.Swarm.LocalNodeState}}'
@@ -2785,7 +2785,7 @@ try {
     docker swarm join --token $JoinToken $ManagerAddr
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Successfully joined the Swarm!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Successfully joined the Swarm!" -ForegroundColor Green
         
         Write-Host ""
         Write-Host "Node information:" -ForegroundColor Yellow
@@ -2842,7 +2842,7 @@ try {
     docker @CreateArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Service created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service created successfully!" -ForegroundColor Green
         docker service ps ${serviceName}
     }
     ` : `
@@ -2861,7 +2861,7 @@ try {
     docker @UpdateArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Service updated successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service updated successfully!" -ForegroundColor Green
         docker service ps ${serviceName}
     }
     ` : `
@@ -2876,7 +2876,7 @@ try {
         docker service rm ${serviceName}
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Service removed!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Service removed!" -ForegroundColor Green
         }
     } else {
         Write-Host "Operation cancelled" -ForegroundColor Yellow
@@ -2891,7 +2891,7 @@ try {
     docker service scale ${serviceName}=${replicas}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Service scaled successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service scaled successfully!" -ForegroundColor Green
         docker service ps ${serviceName}
     }
     ` : `
@@ -2933,7 +2933,7 @@ try {
     docker stack deploy -c "${composePath}" $StackName
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Stack deployed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Stack deployed successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Stack services:" -ForegroundColor Yellow
         docker stack services $StackName
@@ -2949,7 +2949,7 @@ try {
         docker stack rm $StackName
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Stack removed!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Stack removed!" -ForegroundColor Green
         }
     } else {
         Write-Host "Operation cancelled" -ForegroundColor Yellow
@@ -3007,7 +3007,7 @@ try {
     `}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Secret created!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Secret created!" -ForegroundColor Green
         docker secret ls
     }
     ` : `
@@ -3022,7 +3022,7 @@ try {
         docker secret rm ${secretName}
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Secret removed!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Secret removed!" -ForegroundColor Green
         }
     } else {
         Write-Host "Operation cancelled" -ForegroundColor Yellow
@@ -3164,7 +3164,7 @@ try {
     
     ${exportPath ? `
     $Containers | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     ` : ''}
     
@@ -3262,7 +3262,7 @@ try {
     docker @UpdateArgs
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Resource limits updated!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Resource limits updated!" -ForegroundColor Green
         
         Write-Host ""
         Write-Host "Current resource configuration:" -ForegroundColor Yellow

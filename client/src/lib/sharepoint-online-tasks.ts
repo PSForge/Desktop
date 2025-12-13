@@ -93,7 +93,7 @@ try {
     
     $SiteReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Site inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site inventory exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export site inventory: $_"
@@ -181,7 +181,7 @@ try {
     
     $Permissions | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Permissions exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export permissions: $_"
@@ -259,7 +259,7 @@ try {
     
     $StorageReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Storage report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage report exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export storage report: $_"
@@ -335,7 +335,7 @@ try {
     
     $UserReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ External users exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] External users exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export external users: $_"
@@ -425,7 +425,7 @@ try {
     
     $SharingReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Sharing links exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sharing links exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export sharing links: $_"
@@ -510,7 +510,7 @@ try {
     
     New-SPOSite -Url "${url}" -Title "${title}" -Owner "${owner}" -StorageQuota 1024 -Template "STS#3"
     
-    Write-Host "✓ Site collection created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection created successfully" -ForegroundColor Green
     Write-Host "  URL: ${url}" -ForegroundColor White
     Write-Host "  Owner: ${owner}" -ForegroundColor White
     
@@ -546,7 +546,7 @@ try {
 4. Reports deletion success
 
 **Important Notes:**
-- ⚠️ DESTRUCTIVE OPERATION - Cannot be easily undone
+- [WARNING]️ DESTRUCTIVE OPERATION - Cannot be easily undone
 - Site is moved to recycle bin and can be restored within 93 days
 - After 93 days, site is permanently deleted
 - All content, lists, libraries, and permissions are removed
@@ -571,17 +571,17 @@ try {
 
       return `# Delete SharePoint Online Site Collection
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This operation will delete the site collection
+# [WARNING]️ WARNING: This operation will delete the site collection
 
 Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
-    Write-Host "⚠️  WARNING: About to delete site collection" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  WARNING: About to delete site collection" -ForegroundColor Yellow
     Write-Host "  URL: ${url}" -ForegroundColor White
     
     Remove-SPOSite -Identity "${url}" -Confirm:$false
     
-    Write-Host "✓ Site collection deleted (moved to recycle bin)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection deleted (moved to recycle bin)" -ForegroundColor Green
     Write-Host "  Site can be restored within 93 days" -ForegroundColor Cyan
     
 } catch {
@@ -651,7 +651,7 @@ try {
     
     Restore-SPODeletedSite -Identity "${url}"
     
-    Write-Host "✓ Site collection restored successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection restored successfully" -ForegroundColor Green
     Write-Host "  All content and permissions recovered" -ForegroundColor Cyan
     
 } catch {
@@ -733,7 +733,7 @@ try {
     $QuotaMB = ${quotaGB} * 1024
     Set-SPOSite -Identity "${url}" -StorageQuota $QuotaMB
     
-    Write-Host "✓ Storage quota updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage quota updated successfully" -ForegroundColor Green
     Write-Host "  New limit: ${quotaGB} GB ($QuotaMB MB)" -ForegroundColor Cyan
     
 } catch {
@@ -814,7 +814,7 @@ try {
     
     Set-SPOUser -Site "${url}" -LoginName "${userEmail}" -IsSiteCollectionAdmin $true
     
-    Write-Host "✓ Site collection admin added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection admin added successfully" -ForegroundColor Green
     Write-Host "  ${userEmail} now has full control" -ForegroundColor Cyan
     
 } catch {
@@ -894,7 +894,7 @@ try {
     
     Set-SPOUser -Site "${url}" -LoginName "${userEmail}" -IsSiteCollectionAdmin $false
     
-    Write-Host "✓ Site collection admin removed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection admin removed successfully" -ForegroundColor Green
     Write-Host "  ${userEmail} no longer has admin rights" -ForegroundColor Cyan
     
 } catch {
@@ -963,7 +963,7 @@ try {
     
     Set-SPOSite -Identity "${url}" -SharingCapability Disabled
     
-    Write-Host "✓ External sharing disabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] External sharing disabled successfully" -ForegroundColor Green
     Write-Host "  Site is now restricted to internal users only" -ForegroundColor Cyan
     Write-Host "  Note: Existing external users retain access until removed" -ForegroundColor Yellow
     
@@ -1045,7 +1045,7 @@ try {
     
     Set-PnPList -Identity "Documents" -EnableVersioning $true -MajorVersions ${versions}
     
-    Write-Host "✓ Versioning enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Versioning enabled successfully" -ForegroundColor Green
     Write-Host "  Documents library will retain up to ${versions} versions" -ForegroundColor Cyan
     Write-Host "  Note: Versions consume storage quota" -ForegroundColor Yellow
     
@@ -1129,7 +1129,7 @@ try {
     
     $Users | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Users exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Users exported successfully" -ForegroundColor Green
     Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
     
 } catch {
@@ -1212,7 +1212,7 @@ try {
     
     $Groups | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Groups exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Groups exported successfully" -ForegroundColor Green
     Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
     
 } catch {
@@ -1247,7 +1247,7 @@ try {
 4. Reports inheritance break success
 
 **Important Notes:**
-- ⚠️ Creates independent permission management overhead
+- [WARNING]️ Creates independent permission management overhead
 - Existing permissions are copied before breaking inheritance
 - Future parent permission changes will not apply
 - Allows customization of site-specific permissions
@@ -1272,7 +1272,7 @@ try {
 
       return `# Break Permission Inheritance
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This creates unique permissions for this site
+# [WARNING]️ WARNING: This creates unique permissions for this site
 
 Connect-PnPOnline -Url "${url}" -Interactive
 
@@ -1283,7 +1283,7 @@ try {
     
     Set-PnPWeb -BreakRoleInheritance -CopyRoleAssignments
     
-    Write-Host "✓ Permission inheritance broken successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permission inheritance broken successfully" -ForegroundColor Green
     Write-Host "  Site now has unique permissions" -ForegroundColor Cyan
     Write-Host "  Note: Future parent changes will not apply" -ForegroundColor Yellow
     
@@ -1365,7 +1365,7 @@ try {
     
     Register-SPOHubSite -Site "${url}" -Title "${title}"
     
-    Write-Host "✓ Hub site registered successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Hub site registered successfully" -ForegroundColor Green
     Write-Host "  ${title} is now a hub site" -ForegroundColor Cyan
     Write-Host "  Other sites can now associate with this hub" -ForegroundColor Yellow
     
@@ -1447,7 +1447,7 @@ try {
     
     Add-SPOHubSiteAssociation -Site "${siteUrl}" -HubSite "${hubUrl}"
     
-    Write-Host "✓ Site associated with hub successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site associated with hub successfully" -ForegroundColor Green
     Write-Host "  Site will inherit hub navigation and branding" -ForegroundColor Cyan
     
 } catch {
@@ -1527,7 +1527,7 @@ try {
     
     Set-PnPWeb -Title "${title}"
     
-    Write-Host "✓ Site title updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site title updated successfully" -ForegroundColor Green
     Write-Host "  Title is now: ${title}" -ForegroundColor Cyan
     
 } catch {
@@ -1562,7 +1562,7 @@ try {
 4. Reports lock status
 
 **Important Notes:**
-- ⚠️ SECURITY OPERATION - Blocks all content modifications
+- [WARNING]️ SECURITY OPERATION - Blocks all content modifications
 - Users can still read and download content
 - Site Collection Admins cannot override lock
 - Lock persists until explicitly removed
@@ -1587,17 +1587,17 @@ try {
 
       return `# Lock Site (Read-Only)
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This will prevent all modifications to the site
+# [WARNING]️ WARNING: This will prevent all modifications to the site
 
 Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
-    Write-Host "⚠️  WARNING: Setting site to read-only lock state" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  WARNING: Setting site to read-only lock state" -ForegroundColor Yellow
     Write-Host "  Site: ${url}" -ForegroundColor White
     
     Set-SPOSite -Identity "${url}" -LockState ReadOnly
     
-    Write-Host "✓ Site locked successfully (read-only mode)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site locked successfully (read-only mode)" -ForegroundColor Green
     Write-Host "  Users can read but cannot modify content" -ForegroundColor Cyan
     Write-Host "  Use Unlock Site task to restore editing" -ForegroundColor Yellow
     
@@ -1668,7 +1668,7 @@ try {
     
     Set-SPOSite -Identity "${url}" -LockState Unlock
     
-    Write-Host "✓ Site unlocked successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site unlocked successfully" -ForegroundColor Green
     Write-Host "  Users can now modify content normally" -ForegroundColor Cyan
     
 } catch {
@@ -1739,7 +1739,7 @@ try {
     Set-PnPWeb -QuickLaunchEnabled $false
     Enable-PnPFeature -Identity "E3540C7D-6BEA-403C-A224-1A12EAFEE4C4" -Scope Site
     
-    Write-Host "✓ Modern UI enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Modern UI enabled successfully" -ForegroundColor Green
     Write-Host "  Site now uses modern SharePoint experience" -ForegroundColor Cyan
     Write-Host "  Note: Some classic features may not be available" -ForegroundColor Yellow
     
@@ -1809,7 +1809,7 @@ try {
     
     Request-PnPReIndexWeb
     
-    Write-Host "✓ Search reindex requested successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search reindex requested successfully" -ForegroundColor Green
     Write-Host "  Reindexing will begin shortly" -ForegroundColor Cyan
     Write-Host "  Note: Large sites may take hours to complete" -ForegroundColor Yellow
     
@@ -1911,7 +1911,7 @@ try {
     
     $PermissionReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Permission report exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permission report exported successfully" -ForegroundColor Green
     Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
     Write-Host "  Total entries: $($PermissionReport.Count)" -ForegroundColor Yellow
     
@@ -2021,7 +2021,7 @@ try {
         Add-PnPFile -Path $File.FullName -Folder $TargetFolder -ErrorAction Continue
     }
     
-    Write-Host "✓ Files uploaded successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Files uploaded successfully" -ForegroundColor Green
     Write-Host "  Total files: $FileCount" -ForegroundColor Cyan
     Write-Host "  Location: ${library}/Upload" -ForegroundColor Yellow
     
@@ -2092,7 +2092,7 @@ try {
     
     Set-SPOTenant -ExternalUserExpirationRequired $true -ExternalUserExpireInDays ${days}
     
-    Write-Host "✓ Guest link expiration configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Guest link expiration configured successfully" -ForegroundColor Green
     Write-Host "  All new sharing links will expire in ${days} days" -ForegroundColor Cyan
     Write-Host "  Note: Existing links are not affected" -ForegroundColor Yellow
     
@@ -2128,7 +2128,7 @@ try {
 4. Reports download restriction success
 
 **Important Notes:**
-- ⚠️ SECURITY OPERATION - Blocks all file downloads
+- [WARNING]️ SECURITY OPERATION - Blocks all file downloads
 - Users can view files in browser only
 - Prevents printing and copying in Office Online
 - Useful for sensitive or confidential content
@@ -2154,17 +2154,17 @@ try {
 
       return `# Disable File Downloads
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This will block file downloads for all users
+# [WARNING]️ WARNING: This will block file downloads for all users
 
 Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
-    Write-Host "⚠️  WARNING: Disabling file downloads" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  WARNING: Disabling file downloads" -ForegroundColor Yellow
     Write-Host "  Site: ${url}" -ForegroundColor White
     
     Set-SPOSite -Identity "${url}" -DisableFlows RelaxationEnabled
     
-    Write-Host "✓ File downloads disabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] File downloads disabled successfully" -ForegroundColor Green
     Write-Host "  Users can view files but cannot download" -ForegroundColor Cyan
     Write-Host "  Note: This applies to all users including admins" -ForegroundColor Yellow
     
@@ -2259,7 +2259,7 @@ try {
     
     $FileReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ File inventory exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] File inventory exported successfully" -ForegroundColor Green
     Write-Host "  Export: ${exportPath}" -ForegroundColor Cyan
     
 } catch {
@@ -2294,7 +2294,7 @@ try {
 4. Reports blocked file types
 
 **Important Notes:**
-- ⚠️ SECURITY OPERATION - Blocks file uploads tenant-wide
+- [WARNING]️ SECURITY OPERATION - Blocks file uploads tenant-wide
 - Extensions must include leading dot (.exe, .bat, .cmd)
 - Applies to all SharePoint sites in tenant
 - Prevents upload via web, sync, and mobile apps
@@ -2319,18 +2319,18 @@ try {
 
       return `# Block File Type Uploads
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This blocks file uploads tenant-wide
+# [WARNING]️ WARNING: This blocks file uploads tenant-wide
 
 Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
-    Write-Host "⚠️  WARNING: Blocking file type uploads" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  WARNING: Blocking file type uploads" -ForegroundColor Yellow
     Write-Host "  Extensions: ${extensions}" -ForegroundColor White
     
     $BlockedFileTypes = "${extensions}"
     Set-SPOTenant -ExcludedFileExtensionsForSyncClient $BlockedFileTypes
     
-    Write-Host "✓ File types blocked successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] File types blocked successfully" -ForegroundColor Green
     Write-Host "  Blocked extensions: ${extensions}" -ForegroundColor Cyan
     Write-Host "  Note: Applies to all sites in tenant" -ForegroundColor Yellow
     
@@ -2400,7 +2400,7 @@ try {
     
     Clear-PnPMicrosoft365GroupFileVersionBatchDeleteJob
     
-    Write-Host "✓ Site cache cleared successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site cache cleared successfully" -ForegroundColor Green
     Write-Host "  Cache will rebuild automatically" -ForegroundColor Cyan
     Write-Host "  Note: Site may be briefly slower during rebuild" -ForegroundColor Yellow
     
@@ -2504,11 +2504,11 @@ try {
     
     Set-SPOTenant @TenantConfig
     
-    Write-Host "✓ Sharing settings configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sharing settings configured successfully" -ForegroundColor Green
     Write-Host "  External Sharing: ${sharingCapability}" -ForegroundColor Yellow
     Write-Host "  Default Link Type: ${defaultLinkType}" -ForegroundColor Yellow
     ${expirationDays > 0 ? `Write-Host "  Link Expiration: ${expirationDays} days" -ForegroundColor Yellow` : ''}
-    Write-Host "⚠ Changes apply to all SharePoint sites and OneDrive" -ForegroundColor Cyan
+    Write-Host "[WARNING] Changes apply to all SharePoint sites and OneDrive" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Failed to configure sharing settings: $_"
@@ -2607,7 +2607,7 @@ try {
         [math]::Round(($Site.StorageUsageCurrent / $QuotaMB) * 100, 2) 
     } else { 0 }
     
-    Write-Host "✓ Storage quota configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage quota configured successfully" -ForegroundColor Green
     Write-Host "  New Quota: ${quotaGB} GB ($QuotaMB MB)" -ForegroundColor Yellow
     Write-Host "  Warning Level: ${warningPercent}% ($WarningMB MB)" -ForegroundColor Yellow
     Write-Host "  Current Usage: $PercentUsed% of quota" -ForegroundColor $(if ($PercentUsed -gt ${warningPercent}) { "Red" } else { "Cyan" })
@@ -2699,7 +2699,7 @@ try {
     
     $Hub = Register-SPOHubSite -Site "${hubSiteUrl}" -Title "${hubTitle}"
     
-    Write-Host "✓ Hub site registered successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Hub site registered successfully" -ForegroundColor Green
     Write-Host "  Hub ID: $($Hub.ID)" -ForegroundColor Yellow
     Write-Host "  Hub Title: ${hubTitle}" -ForegroundColor Yellow
     
@@ -2712,17 +2712,17 @@ try {
     foreach ($SiteUrl in $SiteUrls) {
         try {
             Add-SPOHubSiteAssociation -Site $SiteUrl -HubSite "${hubSiteUrl}"
-            Write-Host "  ✓ Associated: $SiteUrl" -ForegroundColor Green
+            Write-Host "  [OK] Associated: $SiteUrl" -ForegroundColor Green
             $AssociatedCount++
         } catch {
-            Write-Warning "  ✗ Failed to associate: $SiteUrl"
+            Write-Warning "  [FAILED] Failed to associate: $SiteUrl"
         }
     }
     
     Write-Host "Associated $AssociatedCount sites to hub" -ForegroundColor Cyan
     ` : ''}
     
-    Write-Host "⚠ Configure hub navigation in SharePoint UI" -ForegroundColor Cyan
+    Write-Host "[WARNING] Configure hub navigation in SharePoint UI" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Failed to enable hub site: $_"
@@ -2819,10 +2819,10 @@ try {
     
     Set-PnPList -Identity "${libraryName}" -DefaultRetentionLabel "${retentionLabel}"
     
-    Write-Host "✓ Retention policy applied successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retention policy applied successfully" -ForegroundColor Green
     Write-Host "  All new documents will inherit retention label" -ForegroundColor Cyan
     Write-Host "  Existing documents retain current labels" -ForegroundColor Gray
-    Write-Host "⚠ Apply to existing files manually if needed" -ForegroundColor Yellow
+    Write-Host "[WARNING] Apply to existing files manually if needed" -ForegroundColor Yellow
     
 } catch {
     Write-Error "Failed to configure retention policy: $_"
@@ -2928,7 +2928,7 @@ try {
     $ActiveSites = ($Analytics | Where-Object { $_.LastActivityDate -ne $null }).Count
     $TotalStorage = ($Analytics | Measure-Object -Property StorageUsedMB -Sum).Sum
     
-    Write-Host "✓ Usage analytics exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Usage analytics exported successfully" -ForegroundColor Green
     Write-Host "  Total Sites: $TotalSites" -ForegroundColor Yellow
     Write-Host "  Active Sites: $ActiveSites" -ForegroundColor Yellow
     Write-Host "  Total Storage: $([math]::Round($TotalStorage/1024, 2)) GB" -ForegroundColor Yellow
@@ -3080,7 +3080,7 @@ try {
     $ExistingSite = Get-SPOSite -Identity $FullSiteUrl -ErrorAction SilentlyContinue
     
     if ($ExistingSite) {
-        Write-Host "⚠ Site already exists at: $FullSiteUrl" -ForegroundColor Yellow
+        Write-Host "[WARNING] Site already exists at: $FullSiteUrl" -ForegroundColor Yellow
         Write-Host "  Title: $($ExistingSite.Title)" -ForegroundColor Gray
         Write-Host "  Owner: $($ExistingSite.Owner)" -ForegroundColor Gray
         exit 0
@@ -3097,7 +3097,7 @@ try {
     
     New-SPOSite @NewSiteParams
     
-    Write-Host "✓ Site collection created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection created successfully" -ForegroundColor Green
     Write-Host ""
     
     # Wait for site provisioning
@@ -3107,7 +3107,7 @@ try {
     # Configure external sharing
     Write-Host "Configuring external sharing..." -ForegroundColor Cyan
     Set-SPOSite -Identity $FullSiteUrl -SharingCapability $ExternalSharing
-    Write-Host "✓ External sharing set to: $ExternalSharing" -ForegroundColor Green
+    Write-Host "[SUCCESS] External sharing set to: $ExternalSharing" -ForegroundColor Green
     
     # Get final site details
     $Site = Get-SPOSite -Identity $FullSiteUrl
@@ -3122,7 +3122,7 @@ try {
     Write-Host "Storage Used: $([math]::Round($Site.StorageUsageCurrent/1024, 2)) GB" -ForegroundColor Gray
     Write-Host "External Sharing: $($Site.SharingCapability)" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "✓ Site is ready for use" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site is ready for use" -ForegroundColor Green
     Write-Host "  Access at: $($Site.Url)" -ForegroundColor Cyan
     
 } catch {
@@ -3214,7 +3214,7 @@ try {
     $ConfirmDelete = $${confirmDelete}
     
     if (-not $ConfirmDelete) {
-        Write-Host "⚠ Deletion not confirmed - Set ConfirmDelete=true to proceed" -ForegroundColor Red
+        Write-Host "[WARNING] Deletion not confirmed - Set ConfirmDelete=true to proceed" -ForegroundColor Red
         exit 1
     }
     
@@ -3234,7 +3234,7 @@ try {
     Write-Host ""
     
     if ($PermanentDelete) {
-        Write-Host "⚠⚠⚠ WARNING: PERMANENT DELETION ⚠⚠⚠" -ForegroundColor Red
+        Write-Host "[WARNING][WARNING][WARNING] WARNING: PERMANENT DELETION [WARNING][WARNING][WARNING]" -ForegroundColor Red
         Write-Host "This will PERMANENTLY delete the site and all content" -ForegroundColor Red
         Write-Host "This action CANNOT be undone" -ForegroundColor Red
         Write-Host ""
@@ -3248,13 +3248,13 @@ try {
         # Also remove from recycle bin immediately
         Remove-SPODeletedSite -Identity $SiteUrl -Confirm:$false -ErrorAction SilentlyContinue
         
-        Write-Host "✓ Site permanently deleted" -ForegroundColor Red
+        Write-Host "[SUCCESS] Site permanently deleted" -ForegroundColor Red
         Write-Host "  Site and all content are gone forever" -ForegroundColor Gray
     } else {
         # Soft delete (move to recycle bin)
         Remove-SPOSite -Identity $SiteUrl -Confirm:$false
         
-        Write-Host "✓ Site moved to recycle bin" -ForegroundColor Yellow
+        Write-Host "[SUCCESS] Site moved to recycle bin" -ForegroundColor Yellow
         Write-Host "  Site will be automatically deleted after 93 days" -ForegroundColor Gray
         Write-Host ""
         Write-Host "To restore this site, run:" -ForegroundColor Cyan
@@ -3412,7 +3412,7 @@ try {
     
     Set-SPOSite @SetParams
     
-    Write-Host "✓ External sharing configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] External sharing configured successfully" -ForegroundColor Green
     
     # Verify changes
     $UpdatedSite = Get-SPOSite -Identity $SiteUrl
@@ -3563,7 +3563,7 @@ try {
     
     # Validate new quota is larger than current usage
     if ($StorageQuotaMB -lt $Site.StorageUsageCurrent) {
-        Write-Host "⚠ WARNING: New quota ($StorageQuotaGB GB) is less than current usage ($CurrentUsageGB GB)" -ForegroundColor Red
+        Write-Host "[WARNING] WARNING: New quota ($StorageQuotaGB GB) is less than current usage ($CurrentUsageGB GB)" -ForegroundColor Red
         Write-Host "This will prevent users from uploading new content until usage decreases" -ForegroundColor Yellow
         Write-Host ""
     }
@@ -3573,7 +3573,7 @@ try {
         -StorageQuota $StorageQuotaMB \`
         -StorageQuotaWarningLevel $WarningLevelMB
     
-    Write-Host "✓ Storage quota updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage quota updated successfully" -ForegroundColor Green
     
     # Verify changes
     $UpdatedSite = Get-SPOSite -Identity $SiteUrl
@@ -3737,7 +3737,7 @@ try {
         -TimeZoneId 10 \`
         -LocaleId 1033
     
-    Write-Host "✓ Site collection created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection created successfully" -ForegroundColor Green
     
     # Wait for provisioning
     Write-Host "Waiting for site provisioning to complete..." -ForegroundColor Yellow
@@ -3799,7 +3799,7 @@ try {
 4. Reports rename status and completion
 
 **Important Notes:**
-- ⚠️ Site renaming can take several hours for large sites
+- [WARNING]️ Site renaming can take several hours for large sites
 - Old URL automatically redirects to new URL for 30+ days
 - Cannot rename hub sites (unregister hub first)
 - Cannot rename sites with ongoing migrations
@@ -3832,7 +3832,7 @@ try {
 
       return `# Rename SharePoint Site Collection
 # Generated: ${new Date().toISOString()}
-# ⚠️ NOTE: Site rename operations can take several hours
+# [WARNING]️ NOTE: Site rename operations can take several hours
 
 try {
     $CurrentUrl = "${currentUrl}"
@@ -3854,12 +3854,12 @@ try {
     
     # Check if site is a hub
     if ($Site.IsHubSite) {
-        Write-Host "⚠ WARNING: This is a hub site. Unregister it first." -ForegroundColor Red
+        Write-Host "[WARNING] WARNING: This is a hub site. Unregister it first." -ForegroundColor Red
         Write-Host "Use: Unregister-SPOHubSite -Identity $CurrentUrl" -ForegroundColor Yellow
         return
     }
     
-    Write-Host "⚠ IMPORTANT NOTES:" -ForegroundColor Yellow
+    Write-Host "[WARNING] IMPORTANT NOTES:" -ForegroundColor Yellow
     Write-Host "  - Rename operation can take several hours" -ForegroundColor White
     Write-Host "  - Old URL will automatically redirect to new URL" -ForegroundColor White
     Write-Host "  - OneDrive sync clients will need to re-sync" -ForegroundColor White
@@ -3870,7 +3870,7 @@ try {
     Write-Host "Initiating site rename..." -ForegroundColor Cyan
     Start-SPOSiteRename -Identity $CurrentUrl -NewSiteUrl $NewUrl
     
-    Write-Host "✓ Site rename initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site rename initiated successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Check rename status with:" -ForegroundColor Cyan
     Write-Host "  Get-SPOSiteRenameState -Identity '$NewUrl'" -ForegroundColor Gray
@@ -3917,7 +3917,7 @@ try {
 5. Reports backup location and deletion status
 
 **Important Notes:**
-- ⚠️ DESTRUCTIVE OPERATION - Verify backup before deletion
+- [WARNING]️ DESTRUCTIVE OPERATION - Verify backup before deletion
 - Backup includes document content and metadata
 - Site moves to recycle bin for 93 days
 - Does not backup workflows or custom solutions
@@ -3958,7 +3958,7 @@ try {
 
       return `# Delete SharePoint Site with Content Backup
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This will delete the site after backup
+# [WARNING]️ WARNING: This will delete the site after backup
 
 Connect-PnPOnline -Url "${siteUrl}" -Interactive
 
@@ -3975,7 +3975,7 @@ try {
     # Create backup directory
     if (-not (Test-Path $BackupPath)) {
         New-Item -ItemType Directory -Path $BackupPath -Force | Out-Null
-        Write-Host "✓ Created backup directory" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created backup directory" -ForegroundColor Green
     }
     
     # Get site info
@@ -4011,7 +4011,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Content backup completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Content backup completed" -ForegroundColor Green
     Write-Host "  Location: $BackupPath" -ForegroundColor Gray
     
     # Export site metadata
@@ -4023,18 +4023,18 @@ try {
         Libraries = $Libraries | Select-Object Title, ItemCount
     }
     $SiteMetadata | ConvertTo-Json -Depth 3 | Out-File $MetadataPath
-    Write-Host "✓ Site metadata exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site metadata exported" -ForegroundColor Green
     
     # Delete site if confirmed
     if ($ConfirmDelete) {
         Write-Host ""
-        Write-Host "⚠ Proceeding with site deletion..." -ForegroundColor Yellow
+        Write-Host "[WARNING] Proceeding with site deletion..." -ForegroundColor Yellow
         
         Disconnect-PnPOnline
         
         Remove-SPOSite -Identity $SiteUrl -Confirm:$false
         
-        Write-Host "✓ Site moved to recycle bin" -ForegroundColor Green
+        Write-Host "[SUCCESS] Site moved to recycle bin" -ForegroundColor Green
         Write-Host "  Can be restored within 93 days" -ForegroundColor Gray
     } else {
         Write-Host ""
@@ -4168,17 +4168,17 @@ try {
             
             if ($Action -eq "Break") {
                 if ($List.HasUniqueRoleAssignments) {
-                    Write-Host "⚠ List already has unique permissions" -ForegroundColor Yellow
+                    Write-Host "[WARNING] List already has unique permissions" -ForegroundColor Yellow
                 } else {
                     Set-PnPList -Identity $TargetName -BreakRoleInheritance -CopyRoleAssignments:$CopyPermissions
-                    Write-Host "✓ Permission inheritance broken for list" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Permission inheritance broken for list" -ForegroundColor Green
                 }
             } else {
                 if (-not $List.HasUniqueRoleAssignments) {
-                    Write-Host "⚠ List already inherits permissions" -ForegroundColor Yellow
+                    Write-Host "[WARNING] List already inherits permissions" -ForegroundColor Yellow
                 } else {
                     Set-PnPList -Identity $TargetName -ResetRoleInheritance
-                    Write-Host "✓ Permission inheritance reset for list" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Permission inheritance reset for list" -ForegroundColor Green
                 }
             }
         }
@@ -4189,10 +4189,10 @@ try {
             if ($FolderItem) {
                 if ($Action -eq "Break") {
                     Set-PnPListItemPermission -List "Documents" -Identity $FolderItem.Id -InheritPermissions:$false -CopyRoleAssignments:$CopyPermissions
-                    Write-Host "✓ Permission inheritance broken for folder" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Permission inheritance broken for folder" -ForegroundColor Green
                 } else {
                     Set-PnPListItemPermission -List "Documents" -Identity $FolderItem.Id -InheritPermissions:$true
-                    Write-Host "✓ Permission inheritance reset for folder" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Permission inheritance reset for folder" -ForegroundColor Green
                 }
             }
         }
@@ -4239,7 +4239,7 @@ try {
 4. Optionally removes inactive users
 
 **Important Notes:**
-- ⚠️ DESTRUCTIVE - Removed users lose all access
+- [WARNING]️ DESTRUCTIVE - Removed users lose all access
 - Removed users can be re-invited if needed
 - Default inactivity threshold: 90 days
 - Consider business relationships before removal
@@ -4330,7 +4330,7 @@ try {
     # Export report
     if ($InactiveUsers.Count -gt 0) {
         $InactiveUsers | Export-Csv -Path $ExportPath -NoTypeInformation
-        Write-Host "✓ Report exported to: $ExportPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Report exported to: $ExportPath" -ForegroundColor Green
         
         # Show preview
         Write-Host ""
@@ -4339,7 +4339,7 @@ try {
         
         if ($RemoveUsers) {
             Write-Host ""
-            Write-Host "⚠ Removing inactive users..." -ForegroundColor Red
+            Write-Host "[WARNING] Removing inactive users..." -ForegroundColor Red
             
             $RemovedCount = 0
             foreach ($User in $InactiveUsers) {
@@ -4353,7 +4353,7 @@ try {
             }
             
             Write-Host ""
-            Write-Host "✓ Removed $RemovedCount external users" -ForegroundColor Green
+            Write-Host "[SUCCESS] Removed $RemovedCount external users" -ForegroundColor Green
         }
     } else {
         Write-Host "No inactive external users found" -ForegroundColor Green
@@ -4485,7 +4485,7 @@ try {
     
     $Policy = New-RetentionCompliancePolicy @PolicyParams
     
-    Write-Host "✓ Retention policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retention policy created" -ForegroundColor Green
     
     # Create the retention rule
     $RuleParams = @{
@@ -4498,7 +4498,7 @@ try {
     
     $Rule = New-RetentionComplianceRule @RuleParams
     
-    Write-Host "✓ Retention rule configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retention rule configured" -ForegroundColor Green
     Write-Host ""
     
     # Display policy details
@@ -4512,7 +4512,7 @@ try {
     }
     Write-Host ""
     
-    Write-Host "⚠ IMPORTANT:" -ForegroundColor Yellow
+    Write-Host "[WARNING] IMPORTANT:" -ForegroundColor Yellow
     Write-Host "- Policy may take 24-48 hours to fully apply" -ForegroundColor White
     Write-Host "- Content matching policy cannot be permanently deleted" -ForegroundColor White
     Write-Host "- Review policy in Microsoft Purview Compliance Portal" -ForegroundColor White
@@ -4658,13 +4658,13 @@ try {
     
     $Search = New-ComplianceSearch @SearchParams
     
-    Write-Host "✓ Content search created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Content search created" -ForegroundColor Green
     
     # Start the search
     Write-Host "Starting search..." -ForegroundColor Yellow
     Start-ComplianceSearch -Identity $SearchName
     
-    Write-Host "✓ Search initiated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search initiated" -ForegroundColor Green
     Write-Host ""
     
     # Wait and check status
@@ -4686,7 +4686,7 @@ try {
         Write-Host "Check status with:" -ForegroundColor White
         Write-Host "  Get-ComplianceSearch -Identity '$SearchName'" -ForegroundColor Gray
     } elseif ($SearchStatus.Status -eq "Completed") {
-        Write-Host "✓ Search completed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Search completed" -ForegroundColor Green
         Write-Host ""
         Write-Host "To preview results:" -ForegroundColor Cyan
         Write-Host "  Get-ComplianceSearch -Identity '$SearchName' | FL" -ForegroundColor Gray
@@ -4696,7 +4696,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "⚠ LEGAL NOTICE:" -ForegroundColor Yellow
+    Write-Host "[WARNING] LEGAL NOTICE:" -ForegroundColor Yellow
     Write-Host "- This search is logged for compliance purposes" -ForegroundColor White
     Write-Host "- Maintain chain of custody documentation" -ForegroundColor White
     Write-Host "- Export results through proper legal channels" -ForegroundColor White
@@ -4817,7 +4817,7 @@ Update-MgGroup -GroupId \$GroupId -AssignedLabels @{LabelId = "\$LabelGuid"}
 "@ -ForegroundColor Gray
     
     Write-Host ""
-    Write-Host "⚠ IMPORTANT:" -ForegroundColor Yellow
+    Write-Host "[WARNING] IMPORTANT:" -ForegroundColor Yellow
     Write-Host "- Sensitivity labels control site privacy and sharing" -ForegroundColor White
     Write-Host "- Some labels automatically restrict external sharing" -ForegroundColor White
     Write-Host "- Labels apply to the container, not individual documents" -ForegroundColor White
@@ -4907,7 +4907,7 @@ try {
     $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
     
     if ($Site.IsHubSite) {
-        Write-Host "⚠ This site is already a hub site" -ForegroundColor Yellow
+        Write-Host "[WARNING] This site is already a hub site" -ForegroundColor Yellow
         Write-Host "  Hub Site ID: $($Site.HubSiteId)" -ForegroundColor White
         return
     }
@@ -4922,7 +4922,7 @@ try {
     Write-Host "Registering site as hub..." -ForegroundColor Yellow
     Register-SPOHubSite -Site $SiteUrl -Principals $Site.Owner
     
-    Write-Host "✓ Hub site registered successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Hub site registered successfully" -ForegroundColor Green
     
     # Set hub site properties
     Set-SPOHubSite -Identity $SiteUrl -Title $HubTitle
@@ -5044,12 +5044,12 @@ try {
             $Site = Get-SPOSite -Identity $SiteUrl -ErrorAction Stop
             
             if ($Site.HubSiteId -eq $HubSite.SiteId) {
-                Write-Host "  ⚠ Already associated to this hub" -ForegroundColor Yellow
+                Write-Host "  [WARNING] Already associated to this hub" -ForegroundColor Yellow
                 continue
             }
             
             if ($Site.HubSiteId -and $Site.HubSiteId -ne "00000000-0000-0000-0000-000000000000") {
-                Write-Host "  ⚠ Site is associated with different hub" -ForegroundColor Yellow
+                Write-Host "  [WARNING] Site is associated with different hub" -ForegroundColor Yellow
                 Write-Host "    Current Hub: $($Site.HubSiteId)" -ForegroundColor Gray
                 Write-Host "    Removing current association..." -ForegroundColor Gray
                 Remove-SPOHubSiteAssociation -Site $SiteUrl
@@ -5058,11 +5058,11 @@ try {
             # Associate to hub
             Add-SPOHubSiteAssociation -Site $SiteUrl -HubSite $HubSiteUrl
             
-            Write-Host "  ✓ Successfully associated" -ForegroundColor Green
+            Write-Host "  [OK] Successfully associated" -ForegroundColor Green
             $SuccessCount++
             
         } catch {
-            Write-Host "  ✗ Failed: \$_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: \$_" -ForegroundColor Red
             $FailCount++
         }
     }

@@ -52,9 +52,9 @@ try {
         
         if ($VM) {
             Set-NTNXVMPowerState -Vmid $VM.vmId -Transition "${action}"
-            Write-Host "✓ Power ${action}: $VMName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Power ${action}: $VMName" -ForegroundColor Green
         } else {
-            Write-Host "⚠ VM not found: $VMName" -ForegroundColor Yellow
+            Write-Host "[WARNING] VM not found: $VMName" -ForegroundColor Yellow
         }
     }
     
@@ -112,7 +112,7 @@ try {
     }
     Add-NTNXVMDisk @DiskSpec
     
-    Write-Host "✓ VM '${vmName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM '${vmName}' created successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create VM: $_"
@@ -151,7 +151,7 @@ try {
         
         if ($VM) {
             New-NTNXSnapshot -VmId $VM.vmId -SnapshotName "${snapshotName}_$(Get-Date -Format 'yyyyMMdd_HHmm')"
-            Write-Host "✓ Snapshot created for: $VMName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Snapshot created for: $VMName" -ForegroundColor Green
         }
     }
     
@@ -248,7 +248,7 @@ try {
     
     New-NTNXContainer -Body $ContainerSpec
     
-    Write-Host "✓ Storage container '${containerName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage container '${containerName}' created successfully!" -ForegroundColor Green
     Write-Host "  Compression: ${params.enableCompression}" -ForegroundColor Cyan
     Write-Host "  Deduplication: ${params.enableDeduplication}" -ForegroundColor Cyan
     
@@ -293,7 +293,7 @@ try {
         $VM = Get-NTNXVM | Where-Object { $_.vmName -eq $VMName }
         if ($VM) {
             Add-NTNXProtectionDomainVM -Id $ProtectionDomain.name -VmIds $VM.vmId
-            Write-Host "✓ Added VM to protection domain: $VMName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Added VM to protection domain: $VMName" -ForegroundColor Green
         }
     }
     
@@ -309,7 +309,7 @@ try {
     Set-NTNXProtectionDomainSchedule -Name $ProtectionDomain.name -Body $ScheduleSpec
     
     Write-Host ""
-    Write-Host "✓ Protection domain configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Protection domain configured successfully!" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Cyan
     Write-Host "  Schedule: Every ${params.scheduleInterval} hours" -ForegroundColor Cyan
     Write-Host "  Retention: ${params.retentionCount} snapshots" -ForegroundColor Cyan
@@ -350,7 +350,7 @@ try {
     
     New-NTNXNetwork -Body $NetworkSpec
     
-    Write-Host "✓ Network '${networkName}' created with VLAN ${params.vlanId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Network '${networkName}' created with VLAN ${params.vlanId}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create network: $_"
@@ -406,7 +406,7 @@ try {
         
         Set-NTNXNetwork -NetworkId $Network.uuid -Body @{ ipConfig = $IPAMConfig }
         
-        Write-Host "✓ IPAM configured for network: ${networkName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] IPAM configured for network: ${networkName}" -ForegroundColor Green
         Write-Host "  IP Pool: ${ipPoolStart} - ${ipPoolEnd}" -ForegroundColor Cyan
         Write-Host "  Gateway: ${gatewayIP}" -ForegroundColor Cyan
         Write-Host "  Subnet Mask: ${subnetMask}" -ForegroundColor Cyan
@@ -470,7 +470,7 @@ try {
     $CapacityReport | Format-Table -AutoSize
     
     ${exportPath ? `$CapacityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Capacity report exported: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Capacity report exported: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Capacity check failed: $_"
@@ -532,7 +532,7 @@ try {
     
     $AllMetrics | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Performance report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Performance report exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Metrics: $($AllMetrics.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -577,12 +577,12 @@ ${action === 'Add' ? `        # Add network adapter
         }
         
         Add-NTNXVMNic -Vmid $VM.vmId -Body $NicSpec
-        Write-Host "✓ Network adapter added to ${vmName}" -ForegroundColor Green` :
+        Write-Host "[SUCCESS] Network adapter added to ${vmName}" -ForegroundColor Green` :
 action === 'Remove' ? `        # Remove first network adapter
         $Nics = Get-NTNXVMNic -Vmid $VM.vmId
         if ($Nics.Count -gt 0) {
             Remove-NTNXVMNic -Vmid $VM.vmId -NicId $Nics[0].uuid
-            Write-Host "✓ Network adapter removed from ${vmName}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Network adapter removed from ${vmName}" -ForegroundColor Green
         }` :
 `        # Change network adapter to new network
         $Nics = Get-NTNXVMNic -Vmid $VM.vmId
@@ -591,7 +591,7 @@ action === 'Remove' ? `        # Remove first network adapter
                 networkUuid = $Network.uuid
             }
             Set-NTNXVMNic -Vmid $VM.vmId -NicId $Nics[0].uuid -Body $UpdateSpec
-            Write-Host "✓ Network changed for ${vmName} to ${networkName}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Network changed for ${vmName} to ${networkName}" -ForegroundColor Green
         }`}
     } else {
         Write-Error "VM or Network not found"
@@ -655,7 +655,7 @@ try {
     # Enable remote replication
     Set-NTNXProtectionDomain -Name $ProtectionDomain.name -Body $DRSpec
     
-    Write-Host "✓ DR Plan '${drPlanName}' configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DR Plan '${drPlanName}' configured successfully!" -ForegroundColor Green
     Write-Host "  Protection Domain: ${protectionDomain}" -ForegroundColor Cyan
     Write-Host "  Remote Cluster: ${remoteCluster}" -ForegroundColor Cyan
     Write-Host "  Replication Interval: ${params.scheduleInterval} minutes" -ForegroundColor Cyan
@@ -726,7 +726,7 @@ ${action === 'UploadISO' ? `    # Upload ISO image
     
     Add-NTNXImage -Body $ImageSpec
     
-    Write-Host "✓ ISO image uploaded successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] ISO image uploaded successfully!" -ForegroundColor Green
     Write-Host "  Image Name: ${imageName}" -ForegroundColor Cyan
     Write-Host "  Container: ${container}" -ForegroundColor Cyan` :
 action === 'ListImages' ? `    # List all images
@@ -751,7 +751,7 @@ action === 'ListImages' ? `    # List all images
     
     if ($Image) {
         Remove-NTNXImage -Uuid $Image.uuid
-        Write-Host "✓ Image '${imageName}' deleted successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Image '${imageName}' deleted successfully!" -ForegroundColor Green
     } else {
         Write-Error "Image '${imageName}' not found"
     }`}
@@ -909,7 +909,7 @@ try {
         }
     }
     
-    Write-Host "✓ Flow security policy created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Flow security policy created successfully!" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Cyan
     Write-Host "  Category: ${categoryName}=${categoryValue}" -ForegroundColor Cyan
     Write-Host ""
@@ -956,7 +956,7 @@ try {
         aggressiveness = "${aggressiveness}"
     }
     
-    Write-Host "✓ ADS configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] ADS configured successfully!" -ForegroundColor Green
     Write-Host "  Enabled: ${params.enable}" -ForegroundColor Cyan
     Write-Host "  Aggressiveness: ${aggressiveness}" -ForegroundColor Cyan
     Write-Host ""
@@ -1006,7 +1006,7 @@ try {
         protocol = "SMB"
     }
     
-    Write-Host "✓ File share configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] File share configured successfully!" -ForegroundColor Green
     Write-Host "  File Server: ${fileServerName}" -ForegroundColor Cyan
     Write-Host "  Share: ${shareName}" -ForegroundColor Cyan
     Write-Host "  Path: ${sharePath}" -ForegroundColor Cyan
@@ -1060,7 +1060,7 @@ try {
         description = "iSCSI volume"
     }
     
-    Write-Host "✓ Volume created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume created successfully!" -ForegroundColor Green
     Write-Host "  Volume Group: ${volumeGroupName}" -ForegroundColor Cyan
     Write-Host "  Volume: ${volumeName}" -ForegroundColor Cyan
     Write-Host "  Size: ${params.sizeGB} GB" -ForegroundColor Cyan
@@ -1150,7 +1150,7 @@ try {
     $HostDetails | Export-Csv -Path $HostExportPath -NoTypeInformation
     $AlertDetails | Export-Csv -Path $AlertExportPath -NoTypeInformation
     
-    Write-Host "✓ Health reports exported successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Health reports exported successfully!" -ForegroundColor Green
     Write-Host "  Cluster Report: $ExportPath" -ForegroundColor Cyan
     Write-Host "  Host Report: $HostExportPath" -ForegroundColor Cyan
     Write-Host "  Alert Report: $AlertExportPath" -ForegroundColor Cyan
@@ -1218,7 +1218,7 @@ try {
         Write-Host "  VM powered on" -ForegroundColor Cyan
     }
     
-    Write-Host "✓ VM cloned successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM cloned successfully!" -ForegroundColor Green
     Write-Host "  Source: ${sourceVmName}" -ForegroundColor Cyan
     Write-Host "  Clone: ${cloneVmName}" -ForegroundColor Cyan
     
@@ -1267,7 +1267,7 @@ ${action === 'Create' ? `    # Create snapshot
     
     New-NTNXSnapshot -Body $SnapshotSpec
     
-    Write-Host "✓ Snapshot created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Snapshot created successfully!" -ForegroundColor Green
     Write-Host "  VM: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Snapshot: ${snapshotName}" -ForegroundColor Cyan` :
 action === 'List' ? `    # List snapshots
@@ -1304,7 +1304,7 @@ action === 'Restore' ? `    # Restore from snapshot
     
     Restore-NTNXSnapshot -SnapshotUuid $Snapshot.uuid
     
-    Write-Host "✓ VM restored from snapshot!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM restored from snapshot!" -ForegroundColor Green
     Write-Host "  VM: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Snapshot: $($Snapshot.snapshotName)" -ForegroundColor Cyan` :
 `    # Delete snapshot
@@ -1318,7 +1318,7 @@ action === 'Restore' ? `    # Restore from snapshot
     
     Remove-NTNXSnapshot -SnapshotUuid $Snapshot.uuid
     
-    Write-Host "✓ Snapshot deleted successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Snapshot deleted successfully!" -ForegroundColor Green
     Write-Host "  VM: ${vmName}" -ForegroundColor Cyan
     Write-Host "  Snapshot: $($Snapshot.snapshotName)" -ForegroundColor Cyan`}
     
@@ -1376,7 +1376,7 @@ try {
     Move-NTNXVM -Body $MigrateSpec
     
     Write-Host ""
-    Write-Host "✓ VM migration initiated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM migration initiated successfully!" -ForegroundColor Green
     Write-Host "  Monitor migration progress in Prism" -ForegroundColor Cyan
     
 } catch {
@@ -1432,7 +1432,7 @@ ${params.memoryMB ? `    # Update Memory
     
     if ($UpdateSpec.Count -gt 0) {
         Set-NTNXVM -Vmid $VM.vmId -Body $UpdateSpec
-        Write-Host "✓ VM configuration updated!" -ForegroundColor Green
+        Write-Host "[SUCCESS] VM configuration updated!" -ForegroundColor Green
     }
     
 ${params.addDiskGB ? `    # Add new disk
@@ -1444,7 +1444,7 @@ ${params.addDiskGB ? `    # Add new disk
     }
     
     Add-NTNXVMDisk -Body $DiskSpec
-    Write-Host "✓ Added ${params.addDiskGB} GB disk to VM" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Added ${params.addDiskGB} GB disk to VM" -ForegroundColor Green` : ''}
     
     Write-Host ""
     Write-Host "Note: Some changes may require VM restart to take effect" -ForegroundColor Yellow
@@ -1516,7 +1516,7 @@ try {
     # Delete the VM
     Remove-NTNXVM -Vmid $VM.vmId
     
-    Write-Host "✓ VM '${vmName}' deleted successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM '${vmName}' deleted successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "VM deletion failed: $_"
@@ -1593,7 +1593,7 @@ try {
 ${exportPath ? `    # Export to JSON
     $VMDetails | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ VM details exported: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] VM details exported: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to get VM details: $_"
@@ -1659,7 +1659,7 @@ try {
     
     $VMConfigs | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ VM configurations exported successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM configurations exported successfully!" -ForegroundColor Green
     Write-Host "  Total VMs: $($VMConfigs.Count)" -ForegroundColor Cyan
     Write-Host "  Export Path: ${exportPath}" -ForegroundColor Cyan
     
@@ -1722,7 +1722,7 @@ try {
     Write-Host "Total Containers: $($Containers.Count)" -ForegroundColor Green
     
 ${exportPath ? `    $ContainerReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Container report exported: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Container report exported: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to list containers: $_"
@@ -1783,7 +1783,7 @@ ${params.reservedCapacityGB ? `    # Update reserved capacity
     if ($UpdateSpec.Count -gt 0) {
         Set-NTNXContainer -ContainerUuid $Container.containerUuid -Body $UpdateSpec
         Write-Host ""
-        Write-Host "✓ Container settings updated successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Container settings updated successfully!" -ForegroundColor Green
     } else {
         Write-Host "No changes specified" -ForegroundColor Yellow
     }
@@ -1931,7 +1931,7 @@ try {
     
     Set-NTNXContainer -ContainerUuid $Container.containerUuid -Body $ECSpec
     
-    Write-Host "✓ Erasure coding $(if (${enableEC}) { 'enabled' } else { 'disabled' }) for ${containerName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Erasure coding $(if (${enableEC}) { 'enabled' } else { 'disabled' }) for ${containerName}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Note: Erasure coding provides space efficiency with RF-like resilience" -ForegroundColor Yellow
     Write-Host "      EC uses 1.5x space vs RF2's 2x space" -ForegroundColor Yellow
@@ -2010,7 +2010,7 @@ try {
     Set-NTNXHostMaintenanceMode -Body $MaintenanceSpec
     
     Write-Host ""
-    Write-Host "✓ Host entering maintenance mode" -ForegroundColor Green
+    Write-Host "[SUCCESS] Host entering maintenance mode" -ForegroundColor Green
     Write-Host "  Monitor progress in Prism for completion" -ForegroundColor Yellow
     
 } catch {
@@ -2058,7 +2058,7 @@ try {
     Set-NTNXHostMaintenanceMode -Body $MaintenanceSpec
     
     Write-Host ""
-    Write-Host "✓ Host exiting maintenance mode" -ForegroundColor Green
+    Write-Host "[SUCCESS] Host exiting maintenance mode" -ForegroundColor Green
     Write-Host "  Host will rejoin cluster operations" -ForegroundColor Cyan
     Write-Host "  VMs can now be scheduled on this host" -ForegroundColor Cyan
     
@@ -2158,7 +2158,7 @@ ${exportPath ? `    # Export results
     
     $Report | ConvertTo-Json -Depth 5 | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "NCC health check failed: $_"
@@ -2247,9 +2247,9 @@ try {
     Write-Host ""
     $FailedChecks = $ReadinessResults | Where-Object { $_.Status -eq "FAIL" }
     if ($FailedChecks.Count -eq 0) {
-        Write-Host "✓ Cluster is ready for upgrade!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cluster is ready for upgrade!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Cluster has $($FailedChecks.Count) blocking issues" -ForegroundColor Red
+        Write-Host "[FAILED] Cluster has $($FailedChecks.Count) blocking issues" -ForegroundColor Red
         Write-Host "  Resolve issues before proceeding with upgrade" -ForegroundColor Yellow
     }
     
@@ -2350,7 +2350,7 @@ try {
     
     # Export
     $HostInventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Report generation failed: $_"
@@ -2455,7 +2455,7 @@ try {
     
     New-NTNXProtectionDomainSnapshot -Body $SnapshotSpec
     
-    Write-Host "✓ Snapshot triggered successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Snapshot triggered successfully!" -ForegroundColor Green
     Write-Host "  Monitor progress in Prism > Data Protection" -ForegroundColor Yellow
     
 } catch {
@@ -2603,7 +2603,7 @@ ${snapshotId ? `    $Snapshot = $Snapshots | Where-Object { $_.snapshotId -eq "$
     
     Restore-NTNXProtectionDomainSnapshot -Body $RestoreSpec
     
-    Write-Host "✓ Restore initiated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Restore initiated successfully!" -ForegroundColor Green
     Write-Host "  Monitor progress in Prism > Data Protection" -ForegroundColor Yellow
     
 } catch {
@@ -2663,7 +2663,7 @@ try {
     Write-Host "Total Networks: $($Networks.Count)" -ForegroundColor Green
     
 ${exportPath ? `    $NetworkReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Network report exported: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Network report exported: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to list networks: $_"
@@ -2719,7 +2719,7 @@ try {
     
     Remove-NTNXNetwork -NetworkUuid $Network.uuid
     
-    Write-Host "✓ Network '${networkName}' deleted successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Network '${networkName}' deleted successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Network deletion failed: $_"
@@ -2773,7 +2773,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Virtual switch configuration updated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual switch configuration updated!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Note: Some changes may require network restart" -ForegroundColor Yellow
     Write-Host "      Verify connectivity after changes" -ForegroundColor Yellow
@@ -2831,7 +2831,7 @@ ${action === 'Create' ? `    # Create category
     }
     
     Write-Host ""
-    Write-Host "✓ Category '${categoryName}' created with $($CategoryValues.Count) values" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Category '${categoryName}' created with $($CategoryValues.Count) values" -ForegroundColor Green` :
 action === 'Update' ? `    # Update category values
     Write-Host "Updating category: $CategoryName" -ForegroundColor Cyan
     
@@ -2848,7 +2848,7 @@ action === 'Update' ? `    # Update category values
     }
     
     Write-Host ""
-    Write-Host "✓ Category '${categoryName}' updated" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Category '${categoryName}' updated" -ForegroundColor Green` :
 `    # Delete category
     Write-Host "Deleting category: $CategoryName" -ForegroundColor Yellow
     
@@ -2860,7 +2860,7 @@ action === 'Update' ? `    # Update category values
     }
     
     Write-Host ""
-    Write-Host "✓ Category values deleted" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Category values deleted" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Category operation failed: $_"
@@ -2918,9 +2918,9 @@ try {
             $Uri = "https://${prismCentral}:9440/api/nutanix/v3/vms/$($VM.uuid)"
             Invoke-RestMethod -Uri $Uri -Method PUT -Body ($CategorySpec | ConvertTo-Json -Depth 5) -ContentType "application/json"
             
-            Write-Host "✓ Assigned to: $VMName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Assigned to: $VMName" -ForegroundColor Green
         } else {
-            Write-Host "⚠ VM not found: $VMName" -ForegroundColor Yellow
+            Write-Host "[WARNING] VM not found: $VMName" -ForegroundColor Yellow
         }
     }
     
@@ -2985,7 +2985,7 @@ ${emailRecipientsRaw.length > 0 ? `        notification = @{
     $Uri = "https://${prismCentral}:9440/api/nutanix/v3/alert_policies"
     $Result = Invoke-RestMethod -Uri $Uri -Method POST -Body ($AlertSpec | ConvertTo-Json -Depth 5) -ContentType "application/json"
     
-    Write-Host "✓ Alert policy created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alert policy created successfully!" -ForegroundColor Green
     Write-Host "  Policy ID: $($Result.uuid)" -ForegroundColor Cyan
 ${emailRecipientsRaw.length > 0 ? `    Write-Host "  Notifications will be sent to: ${params.emailRecipients}" -ForegroundColor Cyan` : ''}
     
@@ -3116,7 +3116,7 @@ try {
     $UpdateUri = "https://${cluster}:9440/api/nutanix/v3/files/shares/$($Share.metadata.uuid)"
     Invoke-RestMethod -Uri $UpdateUri -Method PUT -Body ($UpdateSpec | ConvertTo-Json -Depth 5) -ContentType "application/json"
     
-    Write-Host "✓ Quota updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quota updated successfully!" -ForegroundColor Green
     Write-Host "  Share: ${shareName}"
     Write-Host "  New Quota: ${params.newQuotaGB} GB"
     
@@ -3182,7 +3182,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Bucket created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Bucket created successfully!" -ForegroundColor Green
     Write-Host "  Bucket URL: https://${objectStore}/${bucketName}" -ForegroundColor Cyan
     
 } catch {
@@ -3300,7 +3300,7 @@ try {
     
     Write-S3LifecycleConfiguration -BucketName "${bucketName}" -Configuration $LifecycleConfig -Credential $Credential -EndpointUrl $Endpoint
     
-    Write-Host "✓ Lifecycle policy configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lifecycle policy configured!" -ForegroundColor Green
     Write-Host "  Bucket: ${bucketName}" -ForegroundColor Cyan
     Write-Host "  Transition to cold storage: After ${params.transitionDays} days" -ForegroundColor Cyan
     Write-Host "  Object expiration: After ${params.expirationDays} days" -ForegroundColor Cyan
@@ -3361,7 +3361,7 @@ ${policyType === 'Public-Read' ? `    # Public read policy
     
     Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy -Credential $Credential -EndpointUrl $Endpoint
     
-    Write-Host "⚠ Bucket is now publicly readable!" -ForegroundColor Yellow` :
+    Write-Host "[WARNING] Bucket is now publicly readable!" -ForegroundColor Yellow` :
 policyType === 'Private' ? `    # Remove any public access
     Remove-S3BucketPolicy -BucketName "${bucketName}" -Credential $Credential -EndpointUrl $Endpoint -Force
     
@@ -3411,7 +3411,7 @@ policyType === 'ReadOnly-User' ? `    # Read-only access for specific user
     Write-Host "Full access granted to: ${principalUser}" -ForegroundColor Green`}
     
     Write-Host ""
-    Write-Host "✓ Bucket policy configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Bucket policy configured!" -ForegroundColor Green
     
 } catch {
     Write-Error "Policy configuration failed: $_"

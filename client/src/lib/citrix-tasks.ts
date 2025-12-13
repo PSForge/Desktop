@@ -53,7 +53,7 @@ try {
             -Name $UserName \`
             -DesktopGroup $DeliveryGroup
         
-        Write-Host "✓ Desktop assigned to: $UserName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Desktop assigned to: $UserName" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -103,7 +103,7 @@ try {
         -DesktopGroup $DeliveryGroup \`
         -Count 10
     
-    Write-Host "✓ Delivery group '${groupName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Delivery group '${groupName}' created successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create delivery group: $_"
@@ -143,7 +143,7 @@ try {
         -CommandLineExecutable "${executablePath}" \`
         -DesktopGroup $DeliveryGroup.Uid
     
-    Write-Host "✓ Application '${appName}' published successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application '${appName}' published successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to publish application: $_"
@@ -183,7 +183,7 @@ try {
                 "Reset" { Stop-BrokerSession -AdminAddress "${ddc}" -InputObject $Session -Force }
             }
             
-            Write-Host "✓ ${action} action completed for session" -ForegroundColor Green
+            Write-Host "[SUCCESS] ${action} action completed for session" -ForegroundColor Green
         }
     } else {
         Write-Host "No active sessions found for ${userName}" -ForegroundColor Yellow
@@ -231,7 +231,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ License report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] License report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Export failed: $_"
@@ -274,18 +274,18 @@ ${action === 'Create' ? `    $Catalog = Get-BrokerCatalog -AdminAddress "${ddc}"
         -SessionSupport "MultiSession"${description ? ` \\\`
         -Description "${description}"` : ''}
     
-    Write-Host "✓ Delivery group '${groupName}' created successfully!" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Delivery group '${groupName}' created successfully!" -ForegroundColor Green` :
 action === 'Modify' ? `    $DeliveryGroup = Get-BrokerDesktopGroup -AdminAddress "${ddc}" -Name "${groupName}"
     
     Set-BrokerDesktopGroup -AdminAddress "${ddc}" \`
         -InputObject $DeliveryGroup${description ? ` \\\`
         -Description "${description}"` : ''}
     
-    Write-Host "✓ Delivery group '${groupName}' modified successfully!" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Delivery group '${groupName}' modified successfully!" -ForegroundColor Green` :
 `    $DeliveryGroup = Get-BrokerDesktopGroup -AdminAddress "${ddc}" -Name "${groupName}"
     Remove-BrokerDesktopGroup -AdminAddress "${ddc}" -InputObject $DeliveryGroup
     
-    Write-Host "✓ Delivery group '${groupName}' deleted successfully!" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Delivery group '${groupName}' deleted successfully!" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Delivery group operation failed: $_"
@@ -326,11 +326,11 @@ ${action === 'Publish' ? `    $DeliveryGroup = Get-BrokerDesktopGroup -AdminAddr
         -CommandLineExecutable "${executablePath}" \`
         -DesktopGroup $DeliveryGroup.Uid
     
-    Write-Host "✓ Application '${appName}' published successfully!" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Application '${appName}' published successfully!" -ForegroundColor Green` :
 `    $Application = Get-BrokerApplication -AdminAddress "${ddc}" -Name "${appName}"
     Remove-BrokerApplication -AdminAddress "${ddc}" -InputObject $Application
     
-    Write-Host "✓ Application '${appName}' unpublished successfully!" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Application '${appName}' unpublished successfully!" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Application operation failed: $_"
@@ -368,7 +368,7 @@ ${action === 'Create' ? `    New-BrokerCatalog -AdminAddress "${ddc}" \`
         -PersistUserChanges "Discard" \`
         -ProvisioningType "Manual"
     
-    Write-Host "✓ Machine catalog '${catalogName}' created successfully!" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Machine catalog '${catalogName}' created successfully!" -ForegroundColor Green` :
 action === 'AddMachines' ? `    # Add machines to catalog
     $Catalog = Get-BrokerCatalog -AdminAddress "${ddc}" -Name "${catalogName}"
     
@@ -376,7 +376,7 @@ action === 'AddMachines' ? `    # Add machines to catalog
     # $Machines = Get-BrokerMachine -AdminAddress "${ddc}" -Unassigned
     # $Machines | Add-BrokerMachine -CatalogUid $Catalog.Uid
     
-    Write-Host "✓ Machines added to catalog '${catalogName}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Machines added to catalog '${catalogName}'" -ForegroundColor Green
     Write-Host "  Note: Adjust script to specify which machines to add" -ForegroundColor Yellow` :
 `    $Catalogs = Get-BrokerCatalog -AdminAddress "${ddc}"
     
@@ -461,7 +461,7 @@ try {
     
     ${exportPath ? `$SessionReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Session report exported: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Session report exported: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Session monitoring failed: $_"
@@ -498,22 +498,22 @@ try {
     # Export Delivery Groups
     $DeliveryGroups = Get-BrokerDesktopGroup -AdminAddress "${ddc}"
     $DeliveryGroups | Export-Clixml -Path "$TempDir\\DeliveryGroups.xml"
-    Write-Host "✓ Exported Delivery Groups" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported Delivery Groups" -ForegroundColor Green
     
     # Export Applications
     $Applications = Get-BrokerApplication -AdminAddress "${ddc}"
     $Applications | Export-Clixml -Path "$TempDir\\Applications.xml"
-    Write-Host "✓ Exported Applications" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported Applications" -ForegroundColor Green
     
     # Export Machine Catalogs
     $Catalogs = Get-BrokerCatalog -AdminAddress "${ddc}"
     $Catalogs | Export-Clixml -Path "$TempDir\\Catalogs.xml"
-    Write-Host "✓ Exported Machine Catalogs" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported Machine Catalogs" -ForegroundColor Green
     
     # Export Policies
     $Policies = Get-BrokerAccessPolicy -AdminAddress "${ddc}"
     $Policies | Export-Clixml -Path "$TempDir\\Policies.xml"
-    Write-Host "✓ Exported Policies" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported Policies" -ForegroundColor Green
     
     # Create ZIP archive
     Compress-Archive -Path "$TempDir\\*" -DestinationPath "${backupPath}" -Force
@@ -522,7 +522,7 @@ try {
     Remove-Item -Path $TempDir -Recurse -Force
     
     Write-Host ""
-    Write-Host "✓ Citrix configuration backup completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Citrix configuration backup completed!" -ForegroundColor Green
     Write-Host "  Backup saved to: ${backupPath}" -ForegroundColor Cyan
     
 } catch {
@@ -564,7 +564,7 @@ ${action === 'CreatePolicy' ? `    # Create new access policy
         -Enabled $true \`
         -AllowedProtocols @("HDX", "RDP")
     
-    Write-Host "✓ Access policy '${policyName}' created successfully!" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Access policy '${policyName}' created successfully!" -ForegroundColor Green` :
 action === 'AssignUsers' ? `    $Application = Get-BrokerApplication -AdminAddress "${ddc}" -Name "${appName}"
     
     $UserNames = @(${userNamesRaw.map(n => `"${escapePowerShellString(n)}"`).join(', ')})
@@ -574,7 +574,7 @@ action === 'AssignUsers' ? `    $Application = Get-BrokerApplication -AdminAddre
             -Name $UserName \`
             -Application $Application
         
-        Write-Host "✓ Assigned application to: $UserName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Assigned application to: $UserName" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -587,7 +587,7 @@ action === 'RemoveUsers' ? `    $Application = Get-BrokerApplication -AdminAddre
         $User = Get-BrokerUser -AdminAddress "${ddc}" -Name $UserName -Application $Application
         Remove-BrokerUser -AdminAddress "${ddc}" -InputObject $User
         
-        Write-Host "✓ Removed application from: $UserName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Removed application from: $UserName" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -659,7 +659,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Load balancer configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Load balancer configured successfully!" -ForegroundColor Green
     Write-Host "  Virtual Server: ${vserverName}" -ForegroundColor Cyan
     Write-Host "  VIP: ${vserverIP}:${params.vserverPort}" -ForegroundColor Cyan
     Write-Host "  Backend Servers: $($BackendServers.Count)" -ForegroundColor Cyan
@@ -706,7 +706,7 @@ try {
         -StoreName "${storeName}" \`
         -DiskSize (${params.vDiskSize} * 1024)
     
-    Write-Host "✓ vDisk created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] vDisk created successfully!" -ForegroundColor Green
     Write-Host "  vDisk: ${vDiskName}" -ForegroundColor Cyan
     Write-Host "  Size: ${params.vDiskSize} GB" -ForegroundColor Cyan
     Write-Host "  Store: ${storeName}" -ForegroundColor Cyan
@@ -755,7 +755,7 @@ try {
     Write-Host "bind vpn vserver ${gatewayName} -policy session-policy -priority 100" -ForegroundColor Gray
     
     Write-Host ""
-    Write-Host "✓ Citrix Gateway configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Citrix Gateway configured successfully!" -ForegroundColor Green
     Write-Host "  Gateway: ${gatewayName}" -ForegroundColor Cyan
     Write-Host "  IP: ${gatewayIP}:443" -ForegroundColor Cyan
     Write-Host "  SSL Certificate: ${certName}" -ForegroundColor Cyan
@@ -815,7 +815,7 @@ try {
     $AuthService = Get-STFAuthenticationService -SiteId $Deployment.SiteId
     Set-STFStoreService -StoreService $Store -AuthenticationService $AuthService
     
-    Write-Host "✓ StoreFront store created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] StoreFront store created successfully!" -ForegroundColor Green
     Write-Host "  Store: ${storeName}" -ForegroundColor Cyan
     Write-Host "  Friendly Name: ${friendlyName}" -ForegroundColor Cyan
     Write-Host "  Controller: ${deliveryController}" -ForegroundColor Cyan
@@ -904,7 +904,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Records: $($Report.Count)" -ForegroundColor Cyan
     
     $Report | Format-Table -AutoSize | Out-String | Write-Host

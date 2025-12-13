@@ -52,7 +52,7 @@ try {
         
         Start-CWAPatchDeploy -ComputerId $ComputerId -ApprovalList "${approvalList}"
         
-        Write-Host "✓ Patch deployment initiated for $ComputerId" -ForegroundColor Green
+        Write-Host "[SUCCESS] Patch deployment initiated for $ComputerId" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -96,7 +96,7 @@ try {
     
     $Agents | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Agent inventory exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Agent inventory exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Agents: $($Agents.Count)" -ForegroundColor Cyan
     Write-Host "  Online: $(($Agents | Where-Object IsOnline).Count)" -ForegroundColor Cyan
     
@@ -150,7 +150,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/service/tickets" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Ticket created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Ticket created successfully!" -ForegroundColor Green
     Write-Host "  Ticket ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Summary: ${summary}" -ForegroundColor Cyan
     Write-Host "  Board: ${board}" -ForegroundColor Cyan
@@ -201,7 +201,7 @@ try {
     if ($Updates.Count -gt 0) {
         $Body = $Updates | ConvertTo-Json -Depth 5
         $Response = Invoke-RestMethod -Uri "$BaseUrl/service/tickets/$TicketId" -Method Patch -Headers $Headers -Body $Body
-        Write-Host "✓ Ticket #$TicketId updated!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Ticket #$TicketId updated!" -ForegroundColor Green
     }
     
     ${notes ? `# Add internal note
@@ -211,7 +211,7 @@ try {
     } | ConvertTo-Json
     
     Invoke-RestMethod -Uri "$BaseUrl/service/tickets/$TicketId/notes" -Method Post -Headers $Headers -Body $NoteBody
-    Write-Host "✓ Note added to ticket #$TicketId" -ForegroundColor Green` : '# No notes to add'}
+    Write-Host "[SUCCESS] Note added to ticket #$TicketId" -ForegroundColor Green` : '# No notes to add'}
     
 } catch {
     Write-Error "Ticket update failed: $_"
@@ -266,7 +266,7 @@ try {
     
     $Response = Invoke-RestMethod -Uri "$BaseUrl/service/tickets/$TicketId" -Method Patch -Headers $Headers -Body $StatusUpdate
     
-    Write-Host "✓ Ticket #$TicketId closed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Ticket #$TicketId closed successfully!" -ForegroundColor Green
     Write-Host "  Resolution added" -ForegroundColor Cyan
     
 } catch {
@@ -330,7 +330,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Ticket report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Ticket report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Tickets: $($Report.Count)" -ForegroundColor Cyan
     Write-Host "  Date Range: Last ${daysBack} days" -ForegroundColor Cyan
     
@@ -391,7 +391,7 @@ foreach ($TicketId in $TicketIds) {
         
         Invoke-RestMethod -Uri "$BaseUrl/service/tickets/$TicketId" -Method Patch -Headers $Headers -Body $StatusUpdate
         
-        Write-Host "✓ Ticket #$TicketId closed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Ticket #$TicketId closed" -ForegroundColor Green
         $ClosedCount++
         
     } catch {
@@ -453,7 +453,7 @@ try {
     
     Invoke-RestMethod -Uri "$BaseUrl/service/tickets/$TicketId/notes" -Method Post -Headers $Headers -Body $NoteBody` : ''}
     
-    Write-Host "✓ Ticket #$TicketId assigned to member $MemberId" -ForegroundColor Green
+    Write-Host "[SUCCESS] Ticket #$TicketId assigned to member $MemberId" -ForegroundColor Green
     
 } catch {
     Write-Error "Assignment failed: $_"
@@ -518,7 +518,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/company/companies" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Company created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Company created successfully!" -ForegroundColor Green
     Write-Host "  Company ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Name: ${companyName}" -ForegroundColor Cyan
     Write-Host "  Identifier: ${identifier}" -ForegroundColor Cyan
@@ -588,7 +588,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/company/contacts" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Contact created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Contact created successfully!" -ForegroundColor Green
     Write-Host "  Contact ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Name: ${firstName} ${lastName}" -ForegroundColor Cyan
     Write-Host "  Email: ${email}" -ForegroundColor Cyan
@@ -649,7 +649,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/company/companies/${companyId}/sites" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Site created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site created successfully!" -ForegroundColor Green
     Write-Host "  Site ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Name: ${siteName}" -ForegroundColor Cyan
     Write-Host "  Address: ${addressLine1}, ${city}, ${state} ${zip}" -ForegroundColor Cyan
@@ -709,7 +709,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Company report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Company report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Companies: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -764,7 +764,7 @@ try {
     $Body = $Updates | ConvertTo-Json -Depth 5
     $Response = Invoke-RestMethod -Uri "$BaseUrl/company/companies/$TargetCompanyId" -Method Patch -Headers $Headers -Body $Body
     
-    Write-Host "✓ Company #$TargetCompanyId updated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Company #$TargetCompanyId updated!" -ForegroundColor Green
     
 } catch {
     Write-Error "Company update failed: $_"
@@ -821,7 +821,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/finance/agreements" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Agreement created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Agreement created successfully!" -ForegroundColor Green
     Write-Host "  Agreement ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Name: ${agreementName}" -ForegroundColor Cyan
     Write-Host "  Type: ${agreementType}" -ForegroundColor Cyan
@@ -877,7 +877,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/finance/agreements/$AgreementId/additions" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Addition added to agreement #$AgreementId" -ForegroundColor Green
+    Write-Host "[SUCCESS] Addition added to agreement #$AgreementId" -ForegroundColor Green
     Write-Host "  Addition ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Quantity: ${quantity}" -ForegroundColor Cyan
     
@@ -936,7 +936,7 @@ try {
     
     $TotalBilling = ($Report | Measure-Object -Property BillAmount -Sum).Sum
     
-    Write-Host "✓ Agreement billing report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Agreement billing report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Agreements: $($Report.Count)" -ForegroundColor Cyan
     Write-Host "  Total Monthly Billing: $([Math]::Round($TotalBilling, 2))" -ForegroundColor Cyan
     
@@ -981,7 +981,7 @@ try {
     
     $Response = Invoke-RestMethod -Uri "$BaseUrl/finance/agreements/$AgreementId" -Method Patch -Headers $Headers -Body $Update
     
-    Write-Host "✓ Agreement #$AgreementId renewed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Agreement #$AgreementId renewed!" -ForegroundColor Green
     Write-Host "  New End Date: ${newEndDate}" -ForegroundColor Cyan
     
 } catch {
@@ -1040,7 +1040,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/time/entries" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Time entry added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Time entry added successfully!" -ForegroundColor Green
     Write-Host "  Entry ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Ticket: #${ticketId}" -ForegroundColor Cyan
     Write-Host "  Hours: ${hours}" -ForegroundColor Cyan
@@ -1102,7 +1102,7 @@ try {
         }
     }
     
-    Write-Host "✓ Time entries approved!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Time entries approved!" -ForegroundColor Green
     Write-Host "  Approved: $ApprovedCount of $($TimeEntries.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -1166,7 +1166,7 @@ try {
     
     $TotalHours = ($Report | Measure-Object -Property actualHours -Sum).Sum
     
-    Write-Host "✓ Billable hours report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Billable hours report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Date Range: ${startDate} to ${endDate}" -ForegroundColor Cyan
     Write-Host "  Total Entries: $($Report.Count)" -ForegroundColor Cyan
     Write-Host "  Total Billable Hours: $([Math]::Round($TotalHours, 2))" -ForegroundColor Cyan
@@ -1228,7 +1228,7 @@ try {
     
     $Summary | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Time summary generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Time summary generated: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     $Summary | Format-Table -AutoSize
     
@@ -1286,7 +1286,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/project/projects" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Project created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Project created successfully!" -ForegroundColor Green
     Write-Host "  Project ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Name: ${projectName}" -ForegroundColor Cyan
     Write-Host "  Estimated Hours: ${estimatedHours}" -ForegroundColor Cyan
@@ -1338,7 +1338,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/project/projects/$ProjectId/phases" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Phase created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Phase created successfully!" -ForegroundColor Green
     Write-Host "  Phase ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Name: ${phaseName}" -ForegroundColor Cyan
     Write-Host "  Project: #$ProjectId" -ForegroundColor Cyan
@@ -1388,7 +1388,7 @@ try {
     $Body = $Updates | ConvertTo-Json -Depth 5
     $Response = Invoke-RestMethod -Uri "$BaseUrl/project/projects/$ProjectId" -Method Patch -Headers $Headers -Body $Body
     
-    Write-Host "✓ Project #$ProjectId updated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Project #$ProjectId updated!" -ForegroundColor Green
     Write-Host "  Status: ${status}" -ForegroundColor Cyan
     ${percentComplete !== undefined ? `Write-Host "  Progress: ${percentComplete}%" -ForegroundColor Cyan` : ''}
     
@@ -1445,7 +1445,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Project report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Project report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Projects: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -1495,7 +1495,7 @@ try {
         
         New-CWAScheduledScript @ScheduleParams
         
-        Write-Host "✓ Script scheduled for computer $ComputerId" -ForegroundColor Green
+        Write-Host "[SUCCESS] Script scheduled for computer $ComputerId" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -1570,7 +1570,7 @@ try {
     
     New-CWAAlertRule @AlertConfig
     
-    Write-Host "✓ Alert rule created: ${alertName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alert rule created: ${alertName}" -ForegroundColor Green
     Write-Host "  Type: ${alertType}" -ForegroundColor Cyan
     Write-Host "  Threshold: ${threshold}" -ForegroundColor Cyan
     Write-Host "  Create Ticket: ${createTicket}" -ForegroundColor Cyan
@@ -1637,7 +1637,7 @@ try {
     
     New-CWARemoteMonitor @MonitorConfig
     
-    Write-Host "✓ Remote monitor created: ${monitorName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Remote monitor created: ${monitorName}" -ForegroundColor Green
     Write-Host "  Type: ${monitorType}" -ForegroundColor Cyan
     Write-Host "  Target: ${target}" -ForegroundColor Cyan
     Write-Host "  Interval: ${interval} minutes" -ForegroundColor Cyan
@@ -1693,7 +1693,7 @@ try {
                 JobId = $Result.JobId
             }
             
-            Write-Host "✓ Script started on computer $ComputerId" -ForegroundColor Green
+            Write-Host "[SUCCESS] Script started on computer $ComputerId" -ForegroundColor Green
             
         } catch {
             $Results += [PSCustomObject]@{
@@ -1775,7 +1775,7 @@ try {
     
     $TotalRevenue = ($Revenue | Measure-Object -Property EstimatedRevenue -Sum).Sum
     
-    Write-Host "✓ Revenue report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Revenue report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Date Range: ${startDate} to ${endDate}" -ForegroundColor Cyan
     Write-Host "  Total Estimated Revenue: $([Math]::Round($TotalRevenue, 2))" -ForegroundColor Cyan
     
@@ -1860,7 +1860,7 @@ try {
     $SLAMet = ($SLAReport | Where-Object SLAMet -eq "Yes").Count
     $Compliance = if ($TotalClosed -gt 0) { [Math]::Round(($SLAMet / $TotalClosed) * 100, 1) } else { 0 }
     
-    Write-Host "✓ SLA report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] SLA report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Date Range: ${startDate} to ${endDate}" -ForegroundColor Cyan
     Write-Host "  Total Tickets: $($SLAReport.Count)" -ForegroundColor Cyan
     Write-Host "  SLA Compliance: $Compliance%" -ForegroundColor $(if ($Compliance -ge 90) { "Green" } elseif ($Compliance -ge 75) { "Yellow" } else { "Red" })
@@ -1940,7 +1940,7 @@ try {
     $AvgUtilization = ($Utilization | Measure-Object -Property UtilizationPct -Average).Average
     $MetTarget = ($Utilization | Where-Object MeetsTarget -eq "Yes").Count
     
-    Write-Host "✓ Utilization report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Utilization report generated: ${exportPath}" -ForegroundColor Green
     Write-Host "  Date Range: ${startDate} to ${endDate}" -ForegroundColor Cyan
     Write-Host "  Working Days: $WorkingDays" -ForegroundColor Cyan
     Write-Host "  Avg Utilization: $([Math]::Round($AvgUtilization, 1))%" -ForegroundColor Cyan
@@ -2011,7 +2011,7 @@ try {
     
     $AgingReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Aging tickets report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Aging tickets report generated: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Aging Summary ===" -ForegroundColor Cyan
     $AgingReport | Group-Object AgeBucket | Sort-Object { 
@@ -2101,7 +2101,7 @@ try {
     
     $Performance | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Technician performance report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Technician performance report generated: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     $Performance | Sort-Object TicketsClosed -Descending | Format-Table -AutoSize
     
@@ -2151,7 +2151,7 @@ try {
         -ComputerIds $ComputerIds \`
         -SuppressAlerts $true
     
-    Write-Host "✓ Maintenance window '${windowName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Maintenance window '${windowName}' created!" -ForegroundColor Green
     Write-Host "  Start: $StartDateTime" -ForegroundColor Cyan
     Write-Host "  End: $EndDateTime" -ForegroundColor Cyan
     Write-Host "  Computers: $($ComputerIds.Count)" -ForegroundColor Cyan
@@ -2199,7 +2199,7 @@ try {
     
     New-CWAPatchApprovalList @ApprovalSettings
     
-    Write-Host "✓ Patch approval list '${approvalListName}' configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Patch approval list '${approvalListName}' configured!" -ForegroundColor Green
     Write-Host "  Auto-Approve: ${autoApprove}" -ForegroundColor Cyan
     
     # List current approval policies
@@ -2257,7 +2257,7 @@ ${inventoryType === 'All' || inventoryType === 'Network' ? `        @{N='IPAddre
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Inventory exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inventory exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Computers: $($Inventory.Count)" -ForegroundColor Cyan
     Write-Host "  Type: ${inventoryType}" -ForegroundColor Cyan
     
@@ -2314,7 +2314,7 @@ try {
         
         $Response = Invoke-RestMethod -Uri "$BaseUrl/service/tickets" -Method Post -Headers $Headers -Body $Body
         
-        Write-Host "✓ Automated ticket created: #$($Response.id)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Automated ticket created: #$($Response.id)" -ForegroundColor Green
         Write-Host "  Alert: ${alertType}" -ForegroundColor Cyan
         Write-Host "  Priority: ${priority}" -ForegroundColor Cyan
     } else {
@@ -2377,7 +2377,7 @@ Configure your monitoring rules to send actual alerts.
         -Body $AlertMessage \`
         -Credential $Credential
     
-    Write-Host "✓ Email alert integration configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Email alert integration configured!" -ForegroundColor Green
     Write-Host "  SMTP: ${smtpServer}" -ForegroundColor Cyan
     Write-Host "  From: ${fromEmail}" -ForegroundColor Cyan
     Write-Host "  To: ${toEmail}" -ForegroundColor Cyan
@@ -2443,7 +2443,7 @@ try {
         -ContentType "application/json" \`
         -Body $TeamsMessage
     
-    Write-Host "✓ Teams alert integration configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Teams alert integration configured!" -ForegroundColor Green
     Write-Host "  Webhook configured" -ForegroundColor Cyan
     Write-Host "  Test message sent to Teams channel" -ForegroundColor Green
     
@@ -2509,7 +2509,7 @@ try {
     $OfflineAgents = ($HealthReport | Where-Object Status -eq "Offline").Count
     $CriticalAgents = ($HealthReport | Where-Object HealthStatus -eq "Critical").Count
     
-    Write-Host "✓ Agent health report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Agent health report generated: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Agent Health Summary ===" -ForegroundColor Cyan
     Write-Host "Total Agents: $TotalAgents" -ForegroundColor White
@@ -2576,7 +2576,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Products catalog exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Products catalog exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Products: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -2632,7 +2632,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Team members exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Team members exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Members: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -2680,7 +2680,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Service boards exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service boards exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Boards: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -2730,7 +2730,7 @@ $Body = @{
 try {
     $Response = Invoke-RestMethod -Uri "$BaseUrl/service/tickets/$TicketId/notes" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Note added to ticket #$TicketId" -ForegroundColor Green
+    Write-Host "[SUCCESS] Note added to ticket #$TicketId" -ForegroundColor Green
     Write-Host "  Note ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Internal: ${internalFlag}" -ForegroundColor Cyan
     
@@ -2781,7 +2781,7 @@ try {
     
     $Tickets = Invoke-RestMethod -Uri $Uri -Method Get -Headers $Headers
     
-    Write-Host "✓ Search completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search completed!" -ForegroundColor Green
     Write-Host "  Found: $($Tickets.Count) tickets" -ForegroundColor Cyan
     Write-Host ""
     
@@ -2828,7 +2828,7 @@ try {
     $TotalHours = ($TimeEntries | Measure-Object -Property actualHours -Sum).Sum
     $BillableHours = ($TimeEntries | Where-Object { $_.billableOption -eq 'Billable' } | Measure-Object -Property actualHours -Sum).Sum
     
-    Write-Host "✓ Time entries retrieved for ticket #$TicketId" -ForegroundColor Green
+    Write-Host "[SUCCESS] Time entries retrieved for ticket #$TicketId" -ForegroundColor Green
     Write-Host "  Total Entries: $($TimeEntries.Count)" -ForegroundColor Cyan
     Write-Host "  Total Hours: $([Math]::Round($TotalHours, 2))" -ForegroundColor Cyan
     Write-Host "  Billable Hours: $([Math]::Round($BillableHours, 2))" -ForegroundColor Cyan
@@ -2909,7 +2909,7 @@ try {
     
     $Summary | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Weekly summary report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Weekly summary report generated: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Week of $($WeekStart.ToString('yyyy-MM-dd')) ===" -ForegroundColor Cyan
     Write-Host "New Tickets: $($Summary.NewTickets)" -ForegroundColor White
@@ -2977,7 +2977,7 @@ foreach ($TicketId in $TicketIds) {
         } | ConvertTo-Json
         Invoke-RestMethod -Uri "$BaseUrl/service/tickets/$TicketId/notes" -Method Post -Headers $Headers -Body $NoteBody` : ''}
         
-        Write-Host "✓ Ticket #$TicketId updated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Ticket #$TicketId updated" -ForegroundColor Green
         $SuccessCount++
         
     } catch {
@@ -3036,7 +3036,7 @@ try {
     
     $Response = Invoke-RestMethod -Uri "$BaseUrl/finance/agreements/$AgreementId" -Method Patch -Headers $Headers -Body $Update
     
-    Write-Host "✓ Agreement #$AgreementId cancelled!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Agreement #$AgreementId cancelled!" -ForegroundColor Green
     Write-Host "  Reason: ${reason}" -ForegroundColor Cyan
     Write-Host "  End Date: $(Get-Date -Format 'yyyy-MM-dd')" -ForegroundColor Cyan
     
@@ -3093,7 +3093,7 @@ try {
     
     $Response = Invoke-RestMethod -Uri "$BaseUrl/finance/agreements/$AgreementId/additions" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Addition added to agreement #$AgreementId!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Addition added to agreement #$AgreementId!" -ForegroundColor Green
     Write-Host "  Addition ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Product ID: ${productId}" -ForegroundColor Cyan
     Write-Host "  Quantity: ${quantity}" -ForegroundColor Cyan
@@ -3153,7 +3153,7 @@ try {
     
     $Response = Invoke-RestMethod -Uri "$BaseUrl/project/projects/$ProjectId/tickets" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Project ticket created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Project ticket created successfully!" -ForegroundColor Green
     Write-Host "  Ticket ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Project: #$ProjectId" -ForegroundColor Cyan
     Write-Host "  Phase: #$PhaseId" -ForegroundColor Cyan
@@ -3215,7 +3215,7 @@ try {
     
     $Response = Invoke-RestMethod -Uri "$BaseUrl/time/entries" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Project time entry added!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Project time entry added!" -ForegroundColor Green
     Write-Host "  Entry ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Project Ticket: #${projectTicketId}" -ForegroundColor Cyan
     Write-Host "  Hours: ${hours}" -ForegroundColor Cyan
@@ -3274,7 +3274,7 @@ try {
     
     $Response = Invoke-RestMethod -Uri "$BaseUrl/procurement/purchaseorders" -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Purchase Order created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Purchase Order created successfully!" -ForegroundColor Green
     Write-Host "  PO ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  PO Number: ${poNumber}" -ForegroundColor Cyan
     Write-Host "  Vendor ID: ${vendorId}" -ForegroundColor Cyan
@@ -3332,7 +3332,7 @@ try {
     
     $LineTotal = ${quantity} * ${unitCost}
     
-    Write-Host "✓ Line item added to PO #$PurchaseOrderId!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Line item added to PO #$PurchaseOrderId!" -ForegroundColor Green
     Write-Host "  Line Item ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Product ID: ${productId}" -ForegroundColor Cyan
     Write-Host "  Quantity: ${quantity}" -ForegroundColor Cyan
@@ -3402,7 +3402,7 @@ try {
     $TotalAmount = ($ExportData | Measure-Object -Property total -Sum).Sum
     $TotalBalance = ($ExportData | Measure-Object -Property Balance -Sum).Sum
     
-    Write-Host "✓ Invoice export completed: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Invoice export completed: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Export Summary ===" -ForegroundColor Cyan
     Write-Host "Date Range: ${startDate} to ${endDate}" -ForegroundColor White
@@ -3469,7 +3469,7 @@ try {
     
     $NewBalance = $Invoice.balance - ${amount}
     
-    Write-Host "✓ Payment applied successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Payment applied successfully!" -ForegroundColor Green
     Write-Host "  Payment ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Amount: $${amount}" -ForegroundColor Cyan
     Write-Host "  Method: ${paymentMethod}" -ForegroundColor Cyan
@@ -3569,7 +3569,7 @@ try {
     $TotalMRR = ($BillingReport | Where-Object Status -eq "Active" | ForEach-Object { $_.AnnualValue / 12 } | Measure-Object -Sum).Sum
     $TotalARR = ($BillingReport | Where-Object Status -eq "Active" | Measure-Object -Property AnnualValue -Sum).Sum
     
-    Write-Host "✓ Agreement billing report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Agreement billing report generated: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Billing Summary ===" -ForegroundColor Cyan
     Write-Host "Period: ${billingPeriod}" -ForegroundColor White

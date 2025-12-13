@@ -65,7 +65,7 @@ try {
         $Uri = "https://$FortiGate/api/v2/cmdb/firewall/address"
         Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
         
-        Write-Host "✓ Address object created: $($Addr.Name) = $($Addr.IP)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Address object created: $($Addr.Name) = $($Addr.IP)" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -123,7 +123,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall/policy"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Firewall policy '${policyName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall policy '${policyName}' created successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Policy creation failed: $_"
@@ -161,7 +161,7 @@ try {
     
     $Config | Out-File -FilePath "${backupPath}"
     
-    Write-Host "✓ Configuration backed up to: ${backupPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration backed up to: ${backupPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Backup failed: $_"
@@ -207,7 +207,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall/policy/${policyId}"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Firewall policy ${policyId} updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall policy ${policyId} updated successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Policy edit failed: $_"
@@ -250,7 +250,7 @@ try {
     
     Invoke-RestMethod -Uri "$Uri\`?$MoveParams" -Method Put -Headers $Headers -SkipCertificateCheck
     
-    Write-Host "✓ Policy ${policyId} moved ${position} policy ${targetId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy ${policyId} moved ${position} policy ${targetId}" -ForegroundColor Green
     
     # Verify new order
     $AllPolicies = Invoke-RestMethod -Uri "https://$FortiGate/api/v2/cmdb/firewall/policy" -Method Get -Headers $Headers -SkipCertificateCheck
@@ -304,7 +304,7 @@ try {
     Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers -SkipCertificateCheck
     
     Write-Host ""
-    Write-Host "✓ Firewall policy ${policyId} deleted successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall policy ${policyId} deleted successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Policy deletion failed: $_"
@@ -368,7 +368,7 @@ try {
     $CreateUri = "https://$FortiGate/api/v2/cmdb/firewall/policy"
     $Result = Invoke-RestMethod -Uri $CreateUri -Method Post -Headers $Headers -Body $NewPolicy -SkipCertificateCheck
     
-    Write-Host "✓ Policy cloned successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy cloned successfully!" -ForegroundColor Green
     Write-Host "  Source: Policy ${sourcePolicyId} ($($Policy.name))" -ForegroundColor Cyan
     Write-Host "  New Policy: ${newPolicyName}" -ForegroundColor Cyan
     
@@ -418,7 +418,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall.service/custom"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Service object '${serviceName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service object '${serviceName}' created successfully!" -ForegroundColor Green
     Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
     Write-Host "  Port(s): ${destPort}" -ForegroundColor Cyan
     
@@ -466,7 +466,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall.service/group"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Service group '${groupName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service group '${groupName}' created successfully!" -ForegroundColor Green
     Write-Host "  Members: ${members.join(', ')}" -ForegroundColor Cyan
     
 } catch {
@@ -519,7 +519,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall/policy"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ NAT rule created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] NAT rule created successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "NAT rule creation failed: $_"
@@ -555,7 +555,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall/policy/${policyId}"
     Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers -SkipCertificateCheck
     
-    Write-Host "✓ NAT rule ${policyId} deleted successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] NAT rule ${policyId} deleted successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "NAT rule deletion failed: $_"
@@ -601,7 +601,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall/addrgrp"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Address group '${groupName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Address group '${groupName}' created successfully!" -ForegroundColor Green
     Write-Host "  Members: ${members.join(', ')}" -ForegroundColor Cyan
     
 } catch {
@@ -659,7 +659,7 @@ try {
     
     $Phase1Uri = "https://$FortiGate/api/v2/cmdb/vpn.ipsec/phase1-interface"
     Invoke-RestMethod -Uri $Phase1Uri -Method Post -Headers $Headers -Body $Phase1Body -SkipCertificateCheck
-    Write-Host "✓ Phase 1 interface created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Phase 1 interface created" -ForegroundColor Green
     
     # Create Phase 2 Interface
     $Phase2Body = @{
@@ -673,10 +673,10 @@ try {
     
     $Phase2Uri = "https://$FortiGate/api/v2/cmdb/vpn.ipsec/phase2-interface"
     Invoke-RestMethod -Uri $Phase2Uri -Method Post -Headers $Headers -Body $Phase2Body -SkipCertificateCheck
-    Write-Host "✓ Phase 2 interface created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Phase 2 interface created" -ForegroundColor Green
     
     Write-Host ""
-    Write-Host "✓ IPSec VPN tunnel '${tunnelName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] IPSec VPN tunnel '${tunnelName}' created successfully!" -ForegroundColor Green
     Write-Host "  Remote Gateway: ${remoteGateway}" -ForegroundColor Cyan
     Write-Host "  Local Subnet: ${localSubnet}" -ForegroundColor Cyan
     Write-Host "  Remote Subnet: ${remoteSubnet}" -ForegroundColor Cyan
@@ -743,7 +743,7 @@ ${exportPath ? `
     }
     $Report | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ VPN status exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] VPN status exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "VPN monitoring failed: $_"
@@ -797,7 +797,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/vpn.ssl.web/portal"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ SSL VPN portal '${portalName}' configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SSL VPN portal '${portalName}' configured successfully!" -ForegroundColor Green
     Write-Host "  Tunnel Mode: ${tunnelMode ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
     Write-Host "  Web Mode: ${webMode ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
     Write-Host "  Split Tunneling: ${splitTunneling ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
@@ -853,7 +853,7 @@ try {
 ${exportPath ? `    
     $VpnStatus.results.users | Select-Object user_name, remote_addr, tunnel_ip, duration, rx_bytes, tx_bytes | 
         Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ User list exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] User list exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to get VPN users: $_"
@@ -908,7 +908,7 @@ ${index ? `        index = ${index}` : ''}
     $Uri = "https://$FortiGate/api/v2/monitor/vpn/ssl/logout"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ User '${username}' disconnected from SSL VPN!" -ForegroundColor Green
+    Write-Host "[SUCCESS] User '${username}' disconnected from SSL VPN!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to disconnect VPN user: $_"
@@ -951,7 +951,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/vpn.ipsec/phase1-interface/${tunnelName}"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ VPN tunnel '${tunnelName}' ${action}d successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VPN tunnel '${tunnelName}' ${action}d successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "VPN tunnel management failed: $_"
@@ -1000,7 +1000,7 @@ try {
     
     $UserUri = "https://$FortiGate/api/v2/cmdb/user/local"
     Invoke-RestMethod -Uri $UserUri -Method Post -Headers $Headers -Body $UserBody -SkipCertificateCheck
-    Write-Host "✓ SSL VPN user '${username}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SSL VPN user '${username}' created successfully!" -ForegroundColor Green
     
     # Create or update VPN Group
     $GroupBody = @{
@@ -1012,12 +1012,12 @@ ${quotaMB > 0 ? `        "firewall-policy-quota" = ${quotaMB}` : ''}
     $GroupUri = "https://$FortiGate/api/v2/cmdb/user/group"
     try {
         Invoke-RestMethod -Uri $GroupUri -Method Post -Headers $Headers -Body $GroupBody -SkipCertificateCheck
-        Write-Host "✓ VPN group '${groupName}' created with user '${username}'" -ForegroundColor Green
+        Write-Host "[SUCCESS] VPN group '${groupName}' created with user '${username}'" -ForegroundColor Green
     } catch {
         # Group may exist, try to update
         $GroupUpdateUri = "https://$FortiGate/api/v2/cmdb/user/group/${groupName}"
         Invoke-RestMethod -Uri $GroupUpdateUri -Method Put -Headers $Headers -Body $GroupBody -SkipCertificateCheck
-        Write-Host "✓ VPN group '${groupName}' updated with user '${username}'" -ForegroundColor Green
+        Write-Host "[SUCCESS] VPN group '${groupName}' updated with user '${username}'" -ForegroundColor Green
     }
     
 ${quotaMB > 0 ? `    Write-Host "  Bandwidth quota set: ${quotaMB} MB" -ForegroundColor Cyan` : ''}
@@ -1070,7 +1070,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/system/interface/${interfaceName}"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Interface '${interfaceName}' configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Interface '${interfaceName}' configured successfully!" -ForegroundColor Green
     Write-Host "  IP Address: ${ipAddress}/${netmask}" -ForegroundColor Cyan
     Write-Host "  Allow Access: ${allowAccess}" -ForegroundColor Cyan
     
@@ -1123,7 +1123,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/router/static"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Static route added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Static route added successfully!" -ForegroundColor Green
     Write-Host "  Destination: ${destination}" -ForegroundColor Cyan
     Write-Host "  Gateway: ${gateway}" -ForegroundColor Cyan
     Write-Host "  Interface: ${device}" -ForegroundColor Cyan
@@ -1175,7 +1175,7 @@ try {
 ${exportPath ? `    
     $Routes.results | Format-Table -Property ip_mask, gateway, interface, distance, type | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ Routing table exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Routing table exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to get routing table: $_"
@@ -1235,7 +1235,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/system.dhcp/server"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ DHCP server configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DHCP server configured successfully!" -ForegroundColor Green
     Write-Host "  Interface: ${iface}" -ForegroundColor Cyan
     Write-Host "  IP Range: ${startIp} - ${endIp}" -ForegroundColor Cyan
     Write-Host "  Gateway: ${gateway}" -ForegroundColor Cyan
@@ -1289,7 +1289,7 @@ ${secondaryDns ? `        secondary = "${secondaryDns}"` : ''}
     $Uri = "https://$FortiGate/api/v2/cmdb/system/dns"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ DNS settings configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS settings configured successfully!" -ForegroundColor Green
     Write-Host "  Primary DNS: ${primaryDns}" -ForegroundColor Cyan
 ${secondaryDns ? `    Write-Host "  Secondary DNS: ${secondaryDns}" -ForegroundColor Cyan` : ''}
     Write-Host "  DNS Cache: ${dnsCacheEnabled ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
@@ -1352,7 +1352,7 @@ try {
     
     $HealthCheckUri = "https://$FortiGate/api/v2/cmdb/system/sdwan/health-check"
     Invoke-RestMethod -Uri $HealthCheckUri -Method Post -Headers $Headers -Body $HealthCheckBody -SkipCertificateCheck
-    Write-Host "✓ SD-WAN health check created for ${healthCheckServer}" -ForegroundColor Green
+    Write-Host "[SUCCESS] SD-WAN health check created for ${healthCheckServer}" -ForegroundColor Green
     Write-Host "  SLA target: ${slaTarget}ms latency" -ForegroundColor Cyan
     
     # Create SD-WAN Rule
@@ -1369,7 +1369,7 @@ try {
     $RuleUri = "https://$FortiGate/api/v2/cmdb/system/sdwan/service"
     Invoke-RestMethod -Uri $RuleUri -Method Post -Headers $Headers -Body $RuleBody -SkipCertificateCheck
     
-    Write-Host "✓ SD-WAN rule '${ruleName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SD-WAN rule '${ruleName}' created successfully!" -ForegroundColor Green
     Write-Host "  Interfaces: ${interfaces.join(', ')}" -ForegroundColor Cyan
     
 } catch {
@@ -1424,7 +1424,7 @@ try {
     
     $AvUri = "https://$FortiGate/api/v2/cmdb/antivirus/profile"
     Invoke-RestMethod -Uri $AvUri -Method Post -Headers $Headers -Body $AvBody -SkipCertificateCheck
-    Write-Host "✓ Antivirus profile created: ${profileName}-av (${avProfile})" -ForegroundColor Green
+    Write-Host "[SUCCESS] Antivirus profile created: ${profileName}-av (${avProfile})" -ForegroundColor Green
     
     # Configure IPS Profile
     $IpsBody = @{
@@ -1439,7 +1439,7 @@ try {
     
     $IpsUri = "https://$FortiGate/api/v2/cmdb/ips/sensor"
     Invoke-RestMethod -Uri $IpsUri -Method Post -Headers $Headers -Body $IpsBody -SkipCertificateCheck
-    Write-Host "✓ IPS profile created: ${profileName}-ips (${ipsProfile})" -ForegroundColor Green
+    Write-Host "[SUCCESS] IPS profile created: ${profileName}-ips (${ipsProfile})" -ForegroundColor Green
     
 ${webfilterEnabled ? `    # Configure Web Filter Profile
     $WebFilterBody = @{
@@ -1453,7 +1453,7 @@ ${webfilterEnabled ? `    # Configure Web Filter Profile
     
     $WebFilterUri = "https://$FortiGate/api/v2/cmdb/webfilter/profile"
     Invoke-RestMethod -Uri $WebFilterUri -Method Post -Headers $Headers -Body $WebFilterBody -SkipCertificateCheck
-    Write-Host "✓ Web filter profile created: ${profileName}-webfilter" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Web filter profile created: ${profileName}-webfilter" -ForegroundColor Green` : ''}
     
     Write-Host ""
     Write-Host "Security profiles configured successfully!" -ForegroundColor Green
@@ -1512,7 +1512,7 @@ ${blockedCategories.map(c => `        @{
     $Uri = "https://$FortiGate/api/v2/cmdb/application/list"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Application control profile '${profileName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application control profile '${profileName}' created!" -ForegroundColor Green
     Write-Host "  Blocked categories: ${blockedCategories.join(', ')}" -ForegroundColor Cyan
     Write-Host "  Logging: ${logEnabled ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
     
@@ -1573,7 +1573,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall/ssl-ssh-profile"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ SSL inspection profile '${profileName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SSL inspection profile '${profileName}' created!" -ForegroundColor Green
     Write-Host "  Inspection Mode: ${inspectionMode}" -ForegroundColor Cyan
     Write-Host "  Untrusted CA Action: ${untrustedCaAction}" -ForegroundColor Cyan
     
@@ -1628,7 +1628,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/dlp/sensor"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ DLP profile '${profileName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DLP profile '${profileName}' created!" -ForegroundColor Green
     Write-Host "  Sensitivity: ${sensitivity}" -ForegroundColor Cyan
     Write-Host "  Action: ${action}" -ForegroundColor Cyan
     
@@ -1701,7 +1701,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/firewall/DoS-policy"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ DoS protection policy '${policyName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DoS protection policy '${policyName}' created!" -ForegroundColor Green
     Write-Host "  Interface: ${iface}" -ForegroundColor Cyan
     Write-Host "  TCP SYN Flood Threshold: ${tcpSynFloodThreshold}/sec" -ForegroundColor Cyan
     Write-Host "  ICMP Flood Threshold: ${icmpFloodThreshold}/sec" -ForegroundColor Cyan
@@ -1757,7 +1757,7 @@ ${twoFactor ? `        "two-factor" = "email"
     $Uri = "https://$FortiGate/api/v2/cmdb/user/local"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Local user '${username}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Local user '${username}' created successfully!" -ForegroundColor Green
 ${email ? `    Write-Host "  Email: ${email}" -ForegroundColor Cyan` : ''}
     Write-Host "  Two-Factor Auth: ${twoFactor ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
     
@@ -1818,7 +1818,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/user/ldap"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ LDAP server '${serverName}' configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] LDAP server '${serverName}' configured successfully!" -ForegroundColor Green
     Write-Host "  Server: ${ldapServer}" -ForegroundColor Cyan
     Write-Host "  Base DN: ${baseDn}" -ForegroundColor Cyan
     Write-Host "  Secure: ${secure ? 'LDAPS' : 'LDAP'}" -ForegroundColor Cyan
@@ -1877,7 +1877,7 @@ ${secondaryServer ? `        "secondary-server" = "${secondaryServer}"
     $Uri = "https://$FortiGate/api/v2/cmdb/user/radius"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ RADIUS server '${serverName}' configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] RADIUS server '${serverName}' configured successfully!" -ForegroundColor Green
     Write-Host "  Primary Server: ${radiusServer}" -ForegroundColor Cyan
 ${secondaryServer ? `    Write-Host "  Secondary Server: ${secondaryServer}" -ForegroundColor Cyan` : ''}
     Write-Host "  Auth Type: ${authType}" -ForegroundColor Cyan
@@ -1927,7 +1927,7 @@ ${method === 'sms' ? `        "sms-phone" = "${emailOrPhone}"` : ''}
     $Uri = "https://$FortiGate/api/v2/cmdb/user/local/${username}"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Two-factor authentication configured for '${username}'!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Two-factor authentication configured for '${username}'!" -ForegroundColor Green
     Write-Host "  Method: ${method}" -ForegroundColor Cyan
     Write-Host "  Destination: ${emailOrPhone}" -ForegroundColor Cyan
     
@@ -1986,7 +1986,7 @@ try {
     $HaUri = "https://$FortiGate/api/v2/cmdb/system/ha"
     Invoke-RestMethod -Uri $HaUri -Method Put -Headers $Headers -Body $HaBody -SkipCertificateCheck
     
-    Write-Host "✓ HA configuration applied successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] HA configuration applied successfully!" -ForegroundColor Green
     Write-Host "  Mode: ${haMode === 'a-p' ? 'Active-Passive' : 'Active-Active'}" -ForegroundColor Cyan
     Write-Host "  Group ID: ${groupId}" -ForegroundColor Cyan
     Write-Host "  Group Name: ${groupName}" -ForegroundColor Cyan
@@ -2079,7 +2079,7 @@ ${exportPath ? `
     }
     $Report | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ HA status exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] HA status exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to get HA status: $_"
@@ -2132,7 +2132,7 @@ try {
     Invoke-RestMethod -Uri $FailoverUri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
     Write-Host ""
-    Write-Host "✓ HA failover triggered successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] HA failover triggered successfully!" -ForegroundColor Green
     Write-Host "  Note: It may take a few seconds for the failover to complete." -ForegroundColor Yellow
     Write-Host "  Note: Your connection to the primary device may be interrupted." -ForegroundColor Yellow
     
@@ -2201,7 +2201,7 @@ ${forceSync ? `
         $SyncUri = "https://$FortiGate/api/v2/monitor/system/ha/sync"
         Invoke-RestMethod -Uri $SyncUri -Method Post -Headers $Headers -Body $SyncBody -SkipCertificateCheck
         
-        Write-Host "✓ Configuration sync initiated!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Configuration sync initiated!" -ForegroundColor Green
     }` : ''}
     
 } catch {
@@ -2243,7 +2243,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/monitor/system/ha/sync"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Configuration sync initiated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration sync initiated!" -ForegroundColor Green
     Write-Host "  Scope: ${syncScope}" -ForegroundColor Cyan
     
 } catch {
@@ -2286,7 +2286,7 @@ try {
     
 ${exportPath ? `    
     $Stats | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
-    Write-Host "✓ Statistics exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Statistics exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to retrieve session statistics: $_"
@@ -2386,7 +2386,7 @@ try {
     # Export to file
     $Logs | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ Logs exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Logs exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to get traffic logs: $_"
@@ -2446,7 +2446,7 @@ try {
     # Export to file
     $Logs | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ Logs exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Logs exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to get event logs: $_"
@@ -2492,7 +2492,7 @@ try {
     $Uri = "https://$FortiGate/api/v2/cmdb/log.syslogd/setting"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ Logging configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Logging configured successfully!" -ForegroundColor Green
     Write-Host "  Syslog Server: ${syslogServer}:${syslogPort}" -ForegroundColor Cyan
     
 } catch {
@@ -2544,7 +2544,7 @@ ${fazSerial ? `        "serial" = @("${fazSerial}")` : ''}
     $Uri = "https://$FortiGate/api/v2/cmdb/log.fortianalyzer/setting"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body -SkipCertificateCheck
     
-    Write-Host "✓ FortiAnalyzer connection configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] FortiAnalyzer connection configured!" -ForegroundColor Green
     Write-Host "  Server: ${fazServer}" -ForegroundColor Cyan
     Write-Host "  Encryption: ${encryptedConnection ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
 ${fazSerial ? `    Write-Host "  Serial: ${fazSerial}" -ForegroundColor Cyan` : ''}
@@ -2555,7 +2555,7 @@ ${fazSerial ? `    Write-Host "  Serial: ${fazSerial}" -ForegroundColor Cyan` : 
     
     Write-Host ""
     if ($TestResult.results.status -eq "success") {
-        Write-Host "✓ Connection test successful!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Connection test successful!" -ForegroundColor Green
     } else {
         Write-Host "Connection test failed: $($TestResult.results.message)" -ForegroundColor Yellow
     }
@@ -2603,7 +2603,7 @@ $ScriptBlock = {
         $Config = Invoke-RestMethod -Uri $Uri -Method Get -Headers $Headers -SkipCertificateCheck
         $Config | Out-File -FilePath $BackupFile
         
-        Write-Host "✓ Backup created: $BackupFile"
+        Write-Host "[SUCCESS] Backup created: $BackupFile"
     } catch {
         Write-Error "Backup failed: $_"
     }
@@ -2623,7 +2623,7 @@ $ScriptBlock.ToString() | Out-File -FilePath $ScriptPath -Force
 
 Register-ScheduledTask -TaskName "FortiGate-AutoBackup" -Trigger $Trigger -Action $Action -Description "Automated FortiGate configuration backup" -RunLevel Highest
 
-Write-Host "✓ Scheduled backup task created: $Schedule" -ForegroundColor Green
+Write-Host "[SUCCESS] Scheduled backup task created: $Schedule" -ForegroundColor Green
 Write-Host "  Script saved to: $ScriptPath" -ForegroundColor Cyan
 Write-Host "  Note: Store API token in $env:USERPROFILE\\fortigate-token.txt" -ForegroundColor Yellow`;
     },
@@ -2680,7 +2680,7 @@ ${autoUpdate ? `    # Configure Auto-Update
     
     $UpdateConfigUri = "https://$FortiGate/api/v2/cmdb/system/autoupdate/schedule"
     Invoke-RestMethod -Uri $UpdateConfigUri -Method Put -Headers $Headers -Body $AutoUpdateBody -SkipCertificateCheck
-    Write-Host "✓ Auto-update enabled for all FortiGuard services" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Auto-update enabled for all FortiGuard services" -ForegroundColor Green` : ''}
     
     # Trigger manual update
     $UpdateBody = @{
@@ -2693,7 +2693,7 @@ ${updateType === 'all'
     Invoke-RestMethod -Uri $UpdateUri -Method Post -Headers $Headers -Body $UpdateBody -SkipCertificateCheck
     
     Write-Host ""
-    Write-Host "✓ FortiGuard update triggered for: ${updateType}" -ForegroundColor Green
+    Write-Host "[SUCCESS] FortiGuard update triggered for: ${updateType}" -ForegroundColor Green
     Write-Host "  Note: Update may take several minutes to complete" -ForegroundColor Yellow
     
 } catch {
@@ -2742,19 +2742,19 @@ ${reportType === 'threat-logs' || reportType === 'comprehensive' ? `    # Fetch 
     $ThreatUri = "https://$FortiGate/api/v2/monitor/log/ips/select"
     $ThreatLogs = Invoke-RestMethod -Uri $ThreatUri -Method Get -Headers $Headers -SkipCertificateCheck
     $Report.ThreatLogs = $ThreatLogs.results
-    Write-Host "✓ Threat logs retrieved: $($ThreatLogs.results.Count) events" -ForegroundColor Green
+    Write-Host "[SUCCESS] Threat logs retrieved: $($ThreatLogs.results.Count) events" -ForegroundColor Green
     ` : ''}
 ${reportType === 'bandwidth' || reportType === 'comprehensive' ? `    # Fetch Bandwidth Statistics
     $BandwidthUri = "https://$FortiGate/api/v2/monitor/system/interface/select"
     $Bandwidth = Invoke-RestMethod -Uri $BandwidthUri -Method Get -Headers $Headers -SkipCertificateCheck
     $Report.BandwidthStats = $Bandwidth.results | Select-Object name, rx_bytes, tx_bytes, rx_packets, tx_packets
-    Write-Host "✓ Bandwidth statistics retrieved for $($Bandwidth.results.Count) interfaces" -ForegroundColor Green
+    Write-Host "[SUCCESS] Bandwidth statistics retrieved for $($Bandwidth.results.Count) interfaces" -ForegroundColor Green
     ` : ''}
 ${reportType === 'top-apps' || reportType === 'comprehensive' ? `    # Fetch Top Applications
     $AppsUri = "https://$FortiGate/api/v2/monitor/firewall/session/top"
     $TopApps = Invoke-RestMethod -Uri $AppsUri -Method Get -Headers $Headers -SkipCertificateCheck
     $Report.TopApplications = $TopApps.results
-    Write-Host "✓ Top applications retrieved" -ForegroundColor Green
+    Write-Host "[SUCCESS] Top applications retrieved" -ForegroundColor Green
     ` : ''}
     # Fetch System Status
     $StatusUri = "https://$FortiGate/api/v2/monitor/system/status"
@@ -2770,7 +2770,7 @@ ${reportType === 'top-apps' || reportType === 'comprehensive' ? `    # Fetch Top
     $Report | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
     
     Write-Host ""
-    Write-Host "✓ Security report generated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security report generated successfully!" -ForegroundColor Green
     Write-Host "  Report saved to: ${exportPath}" -ForegroundColor Cyan
     Write-Host "  Report type: ${reportType}" -ForegroundColor Cyan
     Write-Host "  Time range: ${timeRange} hours" -ForegroundColor Cyan
@@ -2835,7 +2835,7 @@ try {
         throw "Failed to login to FortiManager"
     }
     
-    Write-Host "✓ Connected to FortiManager" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connected to FortiManager" -ForegroundColor Green
     
     # Get managed devices
     $DevicesBody = @{
@@ -2870,7 +2870,7 @@ try {
     
 ${exportPath ? `    
     $DevicesResponse.result.data | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
-    Write-Host "✓ Device list exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Device list exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
     # Logout
     $LogoutBody = @{
@@ -2940,7 +2940,7 @@ try {
         throw "Failed to login to FortiManager"
     }
     
-    Write-Host "✓ Connected to FortiManager" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connected to FortiManager" -ForegroundColor Green
     
     # Install policy package to devices
     $Scope = $TargetDevices | ForEach-Object {
@@ -2996,7 +2996,7 @@ try {
         
         if ($TaskStatus.result.data.state -eq "done") {
             Write-Host ""
-            Write-Host "✓ Template deployment completed successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Template deployment completed successfully!" -ForegroundColor Green
             Write-Host "  Template: $TemplateName" -ForegroundColor Cyan
             Write-Host "  Devices: ${targetDevices.join(', ')}" -ForegroundColor Cyan
         } else {

@@ -83,7 +83,7 @@ Write-Host ""
 Write-Host "Total Processes: $(( Get-Process).Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Processes | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -149,10 +149,10 @@ if ($Processes) {
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - No processes stopped" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No processes stopped" -ForegroundColor Yellow
     } else {
         Stop-Process -Name $ProcessName -Force:$Force
-        Write-Host "✓ Processes stopped" -ForegroundColor Green
+        Write-Host "[SUCCESS] Processes stopped" -ForegroundColor Green
     }
 } else {
     Write-Host "No processes found matching '$ProcessName'" -ForegroundColor Gray
@@ -449,13 +449,13 @@ if ($ProcessName -match '^\\d+$') {
 
 if ($Process) {
     $Process.PriorityClass = $Priority
-    Write-Host "✓ Priority set to $Priority for $($Process.Name) (PID: $($Process.Id))" -ForegroundColor Green
+    Write-Host "[SUCCESS] Priority set to $Priority for $($Process.Name) (PID: $($Process.Id))" -ForegroundColor Green
     
     if ($Priority -eq "RealTime") {
-        Write-Host "⚠ WARNING: RealTime priority can destabilize the system" -ForegroundColor Yellow
+        Write-Host "[WARNING] WARNING: RealTime priority can destabilize the system" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
 }`;
     }
   },
@@ -533,7 +533,7 @@ Write-Host ""
 Write-Host "Total startup items: $($StartupItems.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$StartupItems | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -661,14 +661,14 @@ if ($Hung) {
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - No processes killed" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No processes killed" -ForegroundColor Yellow
     } else {
         $Hung | Stop-Process -Force
         Write-Host ""
-        Write-Host "✓ Killed $($Hung.Count) hung process(es)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Killed $($Hung.Count) hung process(es)" -ForegroundColor Green
     }
 } else {
-    Write-Host "✓ No hung processes detected" -ForegroundColor Green
+    Write-Host "[SUCCESS] No hung processes detected" -ForegroundColor Green
 }`;
     }
   },
@@ -736,10 +736,10 @@ if ($ProcessName -match '^\\d+$') {
 
 if ($Process) {
     $Process.ProcessorAffinity = $AffinityMask
-    Write-Host "✓ CPU affinity set for $($Process.Name) (PID: $($Process.Id))" -ForegroundColor Green
+    Write-Host "[SUCCESS] CPU affinity set for $($Process.Name) (PID: $($Process.Id))" -ForegroundColor Green
     Write-Host "  Cores: $($CPUCores -join ', ')" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
 }`;
     }
   },
@@ -801,9 +801,9 @@ if ($Processes) {
     $Processes | Format-Table -AutoSize
     
     Write-Host ""
-    Write-Host "⚠ High handle counts may indicate resource leaks" -ForegroundColor Yellow
+    Write-Host "[WARNING] High handle counts may indicate resource leaks" -ForegroundColor Yellow
 } else {
-    Write-Host "✓ No processes above threshold (${threshold} handles)" -ForegroundColor Green
+    Write-Host "[SUCCESS] No processes above threshold (${threshold} handles)" -ForegroundColor Green
 }`;
     }
   },
@@ -879,16 +879,16 @@ $ProcessParams = @{
 try {
     $Process = Start-Process @ProcessParams
     
-    Write-Host "✓ Process started successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Process started successfully" -ForegroundColor Green
     Write-Host "  Process ID: $($Process.Id)" -ForegroundColor Gray
     Write-Host "  Process Name: $($Process.ProcessName)" -ForegroundColor Gray
     
     ${waitForExit === '$true' ? `
     Write-Host "Waiting for process to exit..." -ForegroundColor Cyan
     $Process.WaitForExit()
-    Write-Host "✓ Process exited with code: $($Process.ExitCode)" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Process exited with code: $($Process.ExitCode)" -ForegroundColor Green` : ''}
 } catch {
-    Write-Host "✗ Failed to start process: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to start process: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -960,7 +960,7 @@ if ($Processes) {
         Write-Host ""
     }
 } else {
-    Write-Host "✗ No process found with name: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] No process found with name: $ProcessName" -ForegroundColor Red
 }`;
     }
   },
@@ -1054,11 +1054,11 @@ foreach ($p in $Final) {
 
 if ($Leaks.Count -gt 0) {
     Write-Host ""
-    Write-Host "⚠ Potential memory leaks detected:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Potential memory leaks detected:" -ForegroundColor Yellow
     $Leaks | Sort-Object GrowthMB -Descending | Format-Table -AutoSize
 } else {
     Write-Host ""
-    Write-Host "✓ No significant memory growth detected (threshold: ${thresholdMB}MB)" -ForegroundColor Green
+    Write-Host "[SUCCESS] No significant memory growth detected (threshold: ${thresholdMB}MB)" -ForegroundColor Green
 }`;
     }
   },
@@ -1139,7 +1139,7 @@ while ((Get-Date) -lt $EndTime) {
                     'CPU%' = [math]::Round($CPUDelta, 1)
                 }
                 $Spikes += $Spike
-                Write-Host "⚠ SPIKE: $($_.Name) at $($Spike.'CPU%')%" -ForegroundColor Yellow
+                Write-Host "[WARNING] SPIKE: $($_.Name) at $($Spike.'CPU%')%" -ForegroundColor Yellow
             }
         }
         $LastCPU[$_.Id] = $_.CPU
@@ -1151,7 +1151,7 @@ if ($Spikes.Count -gt 0) {
     Write-Host "Spike Summary ($($Spikes.Count) events):" -ForegroundColor Yellow
     $Spikes | Format-Table -AutoSize
 } else {
-    Write-Host "✓ No CPU spikes detected above ${thresholdPercent}%" -ForegroundColor Green
+    Write-Host "[SUCCESS] No CPU spikes detected above ${thresholdPercent}%" -ForegroundColor Green
 }`;
     }
   },
@@ -1220,7 +1220,7 @@ if ($Process) {
     Write-Host "Thread Details:" -ForegroundColor Yellow
     $ThreadData | Format-Table -AutoSize
 } else {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
 }`;
     }
   },
@@ -1291,7 +1291,7 @@ if ($Process) {
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - Would restart process with ${delaySeconds}s delay" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - Would restart process with ${delaySeconds}s delay" -ForegroundColor Yellow
     } else {
         Write-Host "Stopping process..." -ForegroundColor Yellow
         Stop-Process -Id $ProcessId -Force:$Force -ErrorAction Stop
@@ -1301,13 +1301,13 @@ if ($Process) {
         if ($ProcessPath) {
             Write-Host "Starting process..." -ForegroundColor Yellow
             $NewProcess = Start-Process -FilePath $ProcessPath -PassThru
-            Write-Host "✓ Process restarted (New PID: $($NewProcess.Id))" -ForegroundColor Green
+            Write-Host "[SUCCESS] Process restarted (New PID: $($NewProcess.Id))" -ForegroundColor Green
         } else {
-            Write-Host "✗ Cannot restart - process path not available" -ForegroundColor Red
+            Write-Host "[FAILED] Cannot restart - process path not available" -ForegroundColor Red
         }
     }
 } else {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
 }`;
     }
   },
@@ -1369,7 +1369,7 @@ Write-Host ""
 Write-Host "Total: $($Processes.Count) processes" -ForegroundColor Gray
 
 ${exportPath ? `$Processes | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1449,14 +1449,14 @@ Write-Host "Checked $Checked processes" -ForegroundColor Gray
 
 if ($Unsigned.Count -gt 0) {
     Write-Host ""
-    Write-Host "⚠ Found $($Unsigned.Count) unsigned/invalid processes:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($Unsigned.Count) unsigned/invalid processes:" -ForegroundColor Yellow
     $Unsigned | Format-Table -Wrap -AutoSize
 } else {
-    Write-Host "✓ All processes have valid signatures" -ForegroundColor Green
+    Write-Host "[SUCCESS] All processes have valid signatures" -ForegroundColor Green
 }
 
 ${exportPath ? `$Unsigned | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1537,12 +1537,12 @@ foreach ($PID in $AllPIDs) {
 
 Write-Host ""
 if ($Discrepancies.Count -gt 0) {
-    Write-Host "⚠ Discrepancies found:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Discrepancies found:" -ForegroundColor Yellow
     $Discrepancies | Format-Table -AutoSize
     Write-Host ""
     Write-Host "Note: Some discrepancies may be due to timing. Run again to confirm." -ForegroundColor Gray
 } else {
-    Write-Host "✓ No discrepancies detected - all methods report same processes" -ForegroundColor Green
+    Write-Host "[SUCCESS] No discrepancies detected - all methods report same processes" -ForegroundColor Green
 }`;
     }
   },
@@ -1624,14 +1624,14 @@ Get-Process | Where-Object { $_.Path } | ForEach-Object {
 
 Write-Host ""
 if ($Suspicious.Count -gt 0) {
-    Write-Host "⚠ Found $($Suspicious.Count) process(es) in suspicious locations:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($Suspicious.Count) process(es) in suspicious locations:" -ForegroundColor Yellow
     $Suspicious | Format-Table -Wrap -AutoSize
 } else {
-    Write-Host "✓ No processes found in suspicious locations" -ForegroundColor Green
+    Write-Host "[SUCCESS] No processes found in suspicious locations" -ForegroundColor Green
 }
 
 ${exportPath ? `$Suspicious | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1724,12 +1724,12 @@ foreach ($Proc in $Processes) {
 
 Write-Host ""
 if ($Suspicious.Count -gt 0) {
-    Write-Host "⚠ Found $($Suspicious.Count) potential injection indicator(s):" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($Suspicious.Count) potential injection indicator(s):" -ForegroundColor Yellow
     $Suspicious | Format-Table -Wrap -AutoSize
     Write-Host ""
     Write-Host "Note: These are indicators only. Further analysis required." -ForegroundColor Gray
 } else {
-    Write-Host "✓ No obvious injection indicators detected" -ForegroundColor Green
+    Write-Host "[SUCCESS] No obvious injection indicators detected" -ForegroundColor Green
 }`;
     }
   },
@@ -2038,7 +2038,7 @@ $HTML = @"
 
 $HTML | Out-File -FilePath $ReportPath -Encoding UTF8
 
-Write-Host "✓ Report generated: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report generated: $ReportPath" -ForegroundColor Green
 Write-Host "  Total processes: $ProcessCount" -ForegroundColor Gray
 Write-Host "  Total memory: $([math]::Round($TotalMemory/1024, 2)) GB" -ForegroundColor Gray`;
     }
@@ -2117,7 +2117,7 @@ $Inventory = Get-Process | ForEach-Object {
 $Inventory | Export-Csv -Path $ExportPath -NoTypeInformation
 
 $FileInfo = Get-Item $ExportPath
-Write-Host "✓ Process inventory exported" -ForegroundColor Green
+Write-Host "[SUCCESS] Process inventory exported" -ForegroundColor Green
 Write-Host "  Total processes: $($Inventory.Count)" -ForegroundColor Gray
 Write-Host "  File: $ExportPath" -ForegroundColor Gray
 Write-Host "  Size: $([math]::Round($FileInfo.Length/1KB, 2)) KB" -ForegroundColor Gray
@@ -2311,12 +2311,12 @@ if ($Service) {
             Write-Host "  └─ $($Dep.DisplayName) [$($Dep.Status)]" -ForegroundColor Gray
         }
         Write-Host ""
-        Write-Host "⚠ Stopping this service may affect dependent services" -ForegroundColor Yellow
+        Write-Host "[WARNING] Stopping this service may affect dependent services" -ForegroundColor Yellow
     } else {
         Write-Host "Dependent Services: None" -ForegroundColor Gray
     }
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }` : `Write-Host "Service Dependency Overview" -ForegroundColor Cyan
 Write-Host ""
 
@@ -2482,7 +2482,7 @@ $RestartDelayMs = ${restartDelayMs}
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -2501,14 +2501,14 @@ try {
     $FailureConfig = sc.exe qfailure $ServiceName
     
     Write-Host ""
-    Write-Host "✓ Recovery options configured:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Recovery options configured:" -ForegroundColor Green
     Write-Host "  First failure: ${firstFailure}" -ForegroundColor Gray
     Write-Host "  Second failure: ${secondFailure}" -ForegroundColor Gray
     Write-Host "  Subsequent failures: ${subsequentFailure}" -ForegroundColor Gray
     Write-Host "  Reset period: ${resetDays} day(s)" -ForegroundColor Gray
     Write-Host "  Restart delay: ${restartDelayMs}ms" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to configure recovery: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure recovery: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2640,7 +2640,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if ($PIDs.Count -eq 0) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -2722,7 +2722,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if (-not $Process) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -2817,19 +2817,19 @@ if ($Connection) {
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - Process not stopped" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - Process not stopped" -ForegroundColor Yellow
     } else {
         Write-Host ""
         Stop-Process -Id $Process.Id -Force:$Force -ErrorAction Stop
-        Write-Host "✓ Process stopped" -ForegroundColor Green
+        Write-Host "[SUCCESS] Process stopped" -ForegroundColor Green
         
         # Verify port is free
         Start-Sleep -Seconds 1
         $Check = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
         if (-not $Check) {
-            Write-Host "✓ Port ${port} is now free" -ForegroundColor Green
+            Write-Host "[SUCCESS] Port ${port} is now free" -ForegroundColor Green
         } else {
-            Write-Host "⚠ Port ${port} may still be in TIME_WAIT state" -ForegroundColor Yellow
+            Write-Host "[WARNING] Port ${port} may still be in TIME_WAIT state" -ForegroundColor Yellow
         }
     }
 } else {
@@ -2981,7 +2981,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if (-not $Process) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -3000,7 +3000,7 @@ while ((Get-Date) -lt $EndTime) {
     
     if (-not $Current) {
         Write-Host ""
-        Write-Host "⚠ Process terminated" -ForegroundColor Red
+        Write-Host "[WARNING] Process terminated" -ForegroundColor Red
         break
     }
     
@@ -3081,7 +3081,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if (-not $PID) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -3112,7 +3112,7 @@ try {
     Write-Host ""
     Write-Host "Total variables: $($EnvVars.Count)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Error reading environment: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Error reading environment: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3176,7 +3176,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if (-not $Process) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -3211,17 +3211,17 @@ if ($ProcDump) {
     $FileStream.Close()
     
     if (-not $Result) {
-        Write-Host "✗ Failed to create dump" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to create dump" -ForegroundColor Red
         exit 1
     }
 }
 
 if (Test-Path $DumpPath) {
     $FileInfo = Get-Item $DumpPath
-    Write-Host "✓ Dump created: $DumpPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dump created: $DumpPath" -ForegroundColor Green
     Write-Host "  Size: $([math]::Round($FileInfo.Length/1MB, 2)) MB" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Dump file not created" -ForegroundColor Red
+    Write-Host "[FAILED] Dump file not created" -ForegroundColor Red
 }`;
     }
   },
@@ -3312,7 +3312,7 @@ Write-Host "Service Accounts ($($ServiceProcesses.Count)):" -ForegroundColor Gra
 $ServiceProcesses | Select-Object Name, PID, Owner | Format-Table -AutoSize
 
 ${exportPath ? `$HighPrivilege | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3517,7 +3517,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if (-not $Process) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -3525,7 +3525,7 @@ Write-Host "Target: $($Process.Name) (PID: $($Process.Id))" -ForegroundColor Cya
 
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - Would attempt graceful shutdown with ${gracePeriodSeconds}s grace period" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - Would attempt graceful shutdown with ${gracePeriodSeconds}s grace period" -ForegroundColor Yellow
     exit 0
 }
 
@@ -3537,20 +3537,20 @@ $Process.CloseMainWindow() | Out-Null
 $Exited = $Process.WaitForExit($GracePeriodSeconds * 1000)
 
 if ($Exited) {
-    Write-Host "✓ Process exited gracefully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Process exited gracefully" -ForegroundColor Green
 } else {
     Write-Host "Grace period expired, force killing..." -ForegroundColor Yellow
     Stop-Process -Id $Process.Id -Force
-    Write-Host "✓ Process force killed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Process force killed" -ForegroundColor Green
 }
 
 # Verify
 Start-Sleep -Seconds 1
 $Check = Get-Process -Id $Process.Id -ErrorAction SilentlyContinue
 if (-not $Check) {
-    Write-Host "✓ Process terminated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Process terminated successfully" -ForegroundColor Green
 } else {
-    Write-Host "⚠ Process may still be running" -ForegroundColor Yellow
+    Write-Host "[WARNING] Process may still be running" -ForegroundColor Yellow
 }`;
     }
   },
@@ -3608,7 +3608,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if (-not $Process) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -3652,13 +3652,13 @@ try {
     
     if ($Suspicious.Count -gt 0) {
         Write-Host ""
-        Write-Host "⚠ Suspicious Modules ($($Suspicious.Count)):" -ForegroundColor Yellow
+        Write-Host "[WARNING] Suspicious Modules ($($Suspicious.Count)):" -ForegroundColor Yellow
         $Suspicious | ForEach-Object {
             Write-Host "  $($_.ModuleName): $($_.FileName)" -ForegroundColor Yellow
         }
     }
 } catch {
-    Write-Host "✗ Unable to enumerate modules: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Unable to enumerate modules: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3718,7 +3718,7 @@ if ($ProcessName -match '^\\d+$') {
 }
 
 if (-not $Process) {
-    Write-Host "✗ Process not found: $ProcessName" -ForegroundColor Red
+    Write-Host "[FAILED] Process not found: $ProcessName" -ForegroundColor Red
     exit 1
 }
 
@@ -3735,13 +3735,13 @@ try {
     $Process.MaxWorkingSet = $MaxWorkingSet
     
     Write-Host ""
-    Write-Host "✓ Working set limits applied" -ForegroundColor Green
+    Write-Host "[SUCCESS] Working set limits applied" -ForegroundColor Green
     Write-Host "  Min: $([math]::Round($MinWorkingSet/1MB, 2)) MB" -ForegroundColor Gray
     Write-Host "  Max: $MaxMemoryMB MB" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Note: For strict limits, use Windows Job Objects with additional scripting" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to set memory limit: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to set memory limit: $_" -ForegroundColor Red
     Write-Host "Administrator privileges may be required" -ForegroundColor Yellow
 }`;
     }
@@ -3811,7 +3811,7 @@ if ($Orphans.Count -gt 0) {
     Write-Host ""
     Write-Host "Note: Some orphaned processes are normal (services, background tasks)" -ForegroundColor Gray
 } else {
-    Write-Host "✓ No orphaned processes found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No orphaned processes found" -ForegroundColor Green
 }`;
     }
   },
@@ -3894,7 +3894,7 @@ Write-Host ""
 Write-Host "Total: $($Sorted.Count) processes" -ForegroundColor Gray
 
 ${exportPath ? `$Sorted | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3979,7 +3979,7 @@ Write-Host "Summary:" -ForegroundColor Gray
 $Grouped | Select-Object Name, Count | Format-Table -AutoSize
 
 ${exportPath ? `$ProcessOwners | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 

@@ -103,7 +103,7 @@ try {
     # Check if collection already exists
     $ExistingCollection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction SilentlyContinue
     if ($ExistingCollection) {
-        Write-Host "⚠ Collection already exists: $CollectionName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Collection already exists: $CollectionName" -ForegroundColor Yellow
         Write-Host "  Update existing? Modify script to use Set-CMDeviceCollection" -ForegroundColor Gray
         exit 0
     }
@@ -128,7 +128,7 @@ try {
         -LimitingCollectionName $LimitingCollection \`
         -Comment "[AUTO] Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
     
-    Write-Host "✓ Collection created: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection created: $CollectionName" -ForegroundColor Green
     
     # Add query rule
     Add-CMDeviceCollectionQueryMembershipRule \`
@@ -136,16 +136,16 @@ try {
         -QueryExpression $WQLQuery \`
         -RuleName "Query-$CollectionName"
     
-    Write-Host "✓ Query rule added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Query rule added" -ForegroundColor Green
     
     # Configure incremental updates
     if ($EnableIncremental) {
         Set-CMCollection -Name $CollectionName -RefreshType Periodic -RefreshSchedule $Schedule
         Set-CMCollection -Name $CollectionName -RefreshType Both
-        Write-Host "✓ Incremental updates enabled" -ForegroundColor Green
+        Write-Host "[SUCCESS] Incremental updates enabled" -ForegroundColor Green
     } elseif ($Schedule) {
         Set-CMCollection -Name $CollectionName -RefreshType Periodic -RefreshSchedule $Schedule
-        Write-Host "✓ Refresh schedule set: $RefreshSchedule" -ForegroundColor Green
+        Write-Host "[SUCCESS] Refresh schedule set: $RefreshSchedule" -ForegroundColor Green
     }
 ${folderPath ? `    
     # Move to folder
@@ -153,7 +153,7 @@ ${folderPath ? `
     $Folder = Get-Item -Path "$SiteCode:\\DeviceCollection\\$FolderPath" -ErrorAction SilentlyContinue
     if ($Folder) {
         Move-CMObject -FolderPath "$SiteCode:\\DeviceCollection\\$FolderPath" -InputObject $Collection
-        Write-Host "✓ Moved to folder: $FolderPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Moved to folder: $FolderPath" -ForegroundColor Green
     }
 ` : ''}
     Write-Host ""
@@ -233,7 +233,7 @@ if (-not (Test-Path $CsvPath)) {
 # Validate collection exists
 try {
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Target Collection: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Collection: $CollectionName" -ForegroundColor Green
 } catch {
     Write-Error "Collection not found: $CollectionName"
     exit 1
@@ -251,7 +251,7 @@ Write-Host ""
 
 foreach ($Device in $Devices) {
     if (-not $Device.DeviceName) {
-        Write-Host "⚠ Skipping row with missing DeviceName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing DeviceName" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -271,18 +271,18 @@ foreach ($Device in $Devices) {
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($Device.DeviceName): Would be added (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($Device.DeviceName): Would be added (TEST MODE)" -ForegroundColor Cyan
             $SuccessCount++
         } else {
             Add-CMDeviceCollectionDirectMembershipRule \`
                 -CollectionName $CollectionName \`
                 -ResourceId $CMDevice.ResourceID
-            Write-Host "✓ $($Device.DeviceName): Added successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Device.DeviceName): Added successfully" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($Device.DeviceName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($Device.DeviceName): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -296,7 +296,7 @@ Write-Host "  Already Members: $AlreadyMemberCount" -ForegroundColor Gray
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -366,7 +366,7 @@ $ExcludeVIPs = ${excludeVIPs}
 try {
     # Validate source collection
     $Source = Get-CMDeviceCollection -Name $SourceCollection -ErrorAction Stop
-    Write-Host "✓ Source collection: $SourceCollection" -ForegroundColor Green
+    Write-Host "[SUCCESS] Source collection: $SourceCollection" -ForegroundColor Green
     
     # Get all devices from source
     $AllDevices = Get-CMDevice -CollectionName $SourceCollection
@@ -397,7 +397,7 @@ try {
         -LimitingCollectionName $SourceCollection \`
         -Comment "[AUTO] Pilot collection - $SamplePercent% random sample. Created $(Get-Date -Format 'yyyy-MM-dd')"
     
-    Write-Host "✓ Pilot collection created: $PilotName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Pilot collection created: $PilotName" -ForegroundColor Green
     
     # Add direct membership rules
     Write-Host ""
@@ -410,7 +410,7 @@ try {
                 -ResourceId $Device.ResourceID \`
                 -ErrorAction Stop
         } catch {
-            Write-Host "  ⚠ Could not add: $($Device.Name)" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Could not add: $($Device.Name)" -ForegroundColor Yellow
         }
     }
     
@@ -418,7 +418,7 @@ try {
     Invoke-CMDeviceCollectionUpdate -Name $PilotName
     
     Write-Host ""
-    Write-Host "✓ Pilot collection ready!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Pilot collection ready!" -ForegroundColor Green
     Write-Host "  Name: $PilotName" -ForegroundColor Gray
     Write-Host "  Devices: $($PilotDevices.Count) ($SamplePercent% of $($EligibleDevices.Count))" -ForegroundColor Gray
     
@@ -502,7 +502,7 @@ Write-Host ""
 
 foreach ($Coll in $Collections) {
     if (-not $Coll.Name -or -not $Coll.Limiting -or -not $Coll.Query) {
-        Write-Host "⚠ Skipping row with missing Name, Limiting, or Query" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing Name, Limiting, or Query" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -516,7 +516,7 @@ foreach ($Coll in $Collections) {
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($Coll.Name): Would create with limiting '$($Coll.Limiting)' (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($Coll.Name): Would create with limiting '$($Coll.Limiting)' (TEST MODE)" -ForegroundColor Cyan
             $SuccessCount++
         } else {
             # Create collection
@@ -542,12 +542,12 @@ ${folderPath ? `
                 Move-CMObject -FolderPath "$SiteCode:\\DeviceCollection\\$FolderPath" -InputObject $NewColl
             }
 ` : ''}            
-            Write-Host "✓ $($Coll.Name): Created successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Coll.Name): Created successfully" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($Coll.Name): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($Coll.Name): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -560,7 +560,7 @@ Write-Host "  Created: $SuccessCount" -ForegroundColor Green
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -642,20 +642,20 @@ try {
     # Check if app already exists
     $ExistingApp = Get-CMApplication -Name $AppName -ErrorAction SilentlyContinue
     if ($ExistingApp) {
-        Write-Host "⚠ Application already exists: $AppName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Application already exists: $AppName" -ForegroundColor Yellow
         Write-Host "  Consider versioning or updating existing app" -ForegroundColor Gray
         exit 0
     }
     
     # Validate source path
     if (-not (Test-Path $SourcePath)) {
-        Write-Host "⚠ Warning: Source path not accessible: $SourcePath" -ForegroundColor Yellow
+        Write-Host "[WARNING] Warning: Source path not accessible: $SourcePath" -ForegroundColor Yellow
         Write-Host "  Continuing anyway - verify path is accessible from MECM" -ForegroundColor Gray
     }
     
     # Create the application
     $App = New-CMApplication -Name $AppName -SoftwareVersion "1.0"
-    Write-Host "✓ Application created: $AppName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application created: $AppName" -ForegroundColor Green
     
     # Add deployment type
     $DTParams = @{
@@ -695,7 +695,7 @@ ${detectionValue}
         }
     }
     
-    Write-Host "✓ Deployment type added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment type added" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "Application created successfully!" -ForegroundColor Green
@@ -789,7 +789,7 @@ $UserNotification = "${userNotification}"
 # Validate application exists
 try {
     $App = Get-CMApplication -Name $AppName -ErrorAction Stop
-    Write-Host "✓ Application found: $AppName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application found: $AppName" -ForegroundColor Green
 } catch {
     Write-Error "Application not found: $AppName"
     exit 1
@@ -837,11 +837,11 @@ foreach ($CollectionName in $Collections) {
         # Create deployment
         New-CMApplicationDeployment @DeployParams
         
-        Write-Host "✓ $CollectionName: Deployment created" -ForegroundColor Green
+        Write-Host "[SUCCESS] $CollectionName: Deployment created" -ForegroundColor Green
         $SuccessCount++
         
     } catch {
-        Write-Host "✗ $CollectionName: Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $CollectionName: Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -939,9 +939,9 @@ try {
     $Pilot = Get-CMDeviceCollection -Name $PilotCollection -ErrorAction Stop
     $Broad = Get-CMDeviceCollection -Name $BroadCollection -ErrorAction Stop
     
-    Write-Host "✓ Application: $AppName" -ForegroundColor Green
-    Write-Host "✓ Pilot Collection: $PilotCollection" -ForegroundColor Green
-    Write-Host "✓ Broad Collection: $BroadCollection" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application: $AppName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Pilot Collection: $PilotCollection" -ForegroundColor Green
+    Write-Host "[SUCCESS] Broad Collection: $BroadCollection" -ForegroundColor Green
     
     # Create phased deployment
     $PhasedDeployment = New-CMApplicationAutoPhasedDeployment \`
@@ -957,7 +957,7 @@ try {
         -Description "Phased deployment: $PilotDuration day pilot, $SuccessThreshold% success threshold"
     
     Write-Host ""
-    Write-Host "✓ Phased deployment created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Phased deployment created!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Deployment Timeline:" -ForegroundColor Cyan
     Write-Host "  Phase 1 (Pilot): Now → +$PilotDuration days" -ForegroundColor Gray
@@ -1038,7 +1038,7 @@ $RetryCollectionName = "${retryCollectionName}"
 try {
     # Validate application
     $App = Get-CMApplication -Name $AppName -ErrorAction Stop
-    Write-Host "✓ Application: $AppName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application: $AppName" -ForegroundColor Green
     
     # Get deployment status
     $Deployment = Get-CMApplicationDeployment -Name $AppName -CollectionName $OriginalCollection -ErrorAction Stop
@@ -1058,7 +1058,7 @@ AND SMS_AppDeploymentAssetDetails.ComplianceState IN (2, 4)
         -LimitingCollectionName $OriginalCollection \`
         -Comment "[AUTO] Retry collection for failed $AppName deployments"
     
-    Write-Host "✓ Retry collection created: $RetryCollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retry collection created: $RetryCollectionName" -ForegroundColor Green
     
     # Add query rule for failed devices
     Add-CMDeviceCollectionQueryMembershipRule \`
@@ -1072,7 +1072,7 @@ AND SMS_AppDeploymentAssetDetails.ComplianceState IN (2, 4)
     # Trigger collection update
     Invoke-CMDeviceCollectionUpdate -Name $RetryCollectionName
     
-    Write-Host "✓ Collection configured with failed device query" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection configured with failed device query" -ForegroundColor Green
     
     # Create new deployment to retry collection
     New-CMApplicationDeployment \`
@@ -1084,7 +1084,7 @@ AND SMS_AppDeploymentAssetDetails.ComplianceState IN (2, 4)
         -AvailableDateTime (Get-Date) \`
         -DeadlineDateTime (Get-Date).AddHours(24)
     
-    Write-Host "✓ Retry deployment created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retry deployment created" -ForegroundColor Green
     Write-Host ""
     Write-Host "Retry deployment ready!" -ForegroundColor Green
     Write-Host "  Collection: $RetryCollectionName" -ForegroundColor Gray
@@ -1180,7 +1180,7 @@ try {
     # Check if ADR already exists
     $ExistingADR = Get-CMSoftwareUpdateAutoDeploymentRule -Name $ADRName -ErrorAction SilentlyContinue
     if ($ExistingADR) {
-        Write-Host "⚠ ADR already exists: $ADRName" -ForegroundColor Yellow
+        Write-Host "[WARNING] ADR already exists: $ADRName" -ForegroundColor Yellow
         Write-Host "  Modify script to update existing or choose different name" -ForegroundColor Gray
         exit 0
     }
@@ -1228,7 +1228,7 @@ try {
     
     $ADR = New-CMSoftwareUpdateAutoDeploymentRule @ADRParams
     
-    Write-Host "✓ ADR created: $ADRName" -ForegroundColor Green
+    Write-Host "[SUCCESS] ADR created: $ADRName" -ForegroundColor Green
     
     # Add deployments to each collection
     foreach ($CollectionName in $Collections) {
@@ -1249,15 +1249,15 @@ try {
                 -SuppressRestartServer $false \`
                 -WriteFilterHandling $false
             
-            Write-Host "✓ Deployment added for: $CollectionName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Deployment added for: $CollectionName" -ForegroundColor Green
             
         } catch {
-            Write-Host "✗ Failed to add deployment for: $CollectionName" -ForegroundColor Red
+            Write-Host "[FAILED] Failed to add deployment for: $CollectionName" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ ADR created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] ADR created successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "ADR Details:" -ForegroundColor Cyan
     Write-Host "  Name: $ADRName" -ForegroundColor Gray
@@ -1371,10 +1371,10 @@ try {
                     # Expire the SUG
                     Set-CMSoftwareUpdateGroup -Id $SUG.CI_ID -Expired $true
                     
-                    Write-Host "✓ Expired: $($SUG.LocalizedDisplayName)" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Expired: $($SUG.LocalizedDisplayName)" -ForegroundColor Green
                     $ExpiredCount++
                 } catch {
-                    Write-Host "✗ Failed to expire: $($SUG.LocalizedDisplayName) - $_" -ForegroundColor Red
+                    Write-Host "[FAILED] Failed to expire: $($SUG.LocalizedDisplayName) - $_" -ForegroundColor Red
                 }
             }
         } else {
@@ -1397,7 +1397,7 @@ try {
     Write-Host "  Kept: $KeptCount" -ForegroundColor Gray
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
         Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
     }
     Write-Host "======================================" -ForegroundColor Cyan
@@ -1472,7 +1472,7 @@ $TopCount = ${topCount}
 try {
     # Validate collection
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Collection: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection: $CollectionName" -ForegroundColor Green
     
     # Get collection members
     $Devices = Get-CMDevice -CollectionName $CollectionName
@@ -1532,7 +1532,7 @@ try {
     
     # Display summary
     Write-Host ""
-    Write-Host "✓ Report generated: $ReportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report generated: $ReportPath" -ForegroundColor Green
     Write-Host ""
     Write-Host "Top $TopCount Failed Updates:" -ForegroundColor Cyan
     Write-Host ""
@@ -1608,9 +1608,9 @@ $Devices = ${d}
 foreach ($Dev in $Devices) {
     try {
         Invoke-CMClientAction -DeviceName $Dev -ActionType ClientNotificationRequestMachinePolicyNow
-        Write-Host "✓ $Dev: Policy refresh triggered" -ForegroundColor Green
+        Write-Host "[SUCCESS] $Dev: Policy refresh triggered" -ForegroundColor Green
     } catch {
-        Write-Host "✗ $Dev: Failed" -ForegroundColor Red
+        Write-Host "[FAILED] $Dev: Failed" -ForegroundColor Red
     }
 }`;
     }
@@ -1688,7 +1688,7 @@ try {
         Start-Process "\\\\$m\\SMS_$s\\Client\\ccmsetup.exe" -ArgumentList "SMSSITECODE=$s", "MP=$m", "/forceinstall" -Wait
     } -ArgumentList $Site, $MP
     
-    Write-Host "✓ Client repair completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Client repair completed" -ForegroundColor Green
 } catch {
     Write-Error "Failed: $_"
 }`;
@@ -1767,7 +1767,7 @@ $Report = $Devices | ForEach {
 
 $Report | Export-Csv $Export -NoTypeInformation
 
-Write-Host "✓ Report: $Export" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Report: $Export" -ForegroundColor Green`;
     }
   },
 
@@ -1839,9 +1839,9 @@ foreach ($Dev in $Devices) {
             }
         } -ArgumentList $AgeDays
         
-        Write-Host "✓ $Dev: Cache cleared" -ForegroundColor Green
+        Write-Host "[SUCCESS] $Dev: Cache cleared" -ForegroundColor Green
     } catch {
-        Write-Host "✗ $Dev: Failed" -ForegroundColor Red
+        Write-Host "[FAILED] $Dev: Failed" -ForegroundColor Red
     }
 }`;
     }
@@ -1924,7 +1924,7 @@ foreach ($Dev in $Devices) {
     try {
         if ($ActionMap[$Action] -ne 'Undefined') {
             Invoke-CMClientAction -DeviceName $Dev -ActionType $ActionMap[$Action]
-            Write-Host "✓ $Dev: $Action triggered" -ForegroundColor Green
+            Write-Host "[SUCCESS] $Dev: $Action triggered" -ForegroundColor Green
         } else {
             Invoke-Command -ComputerName $Dev -ScriptBlock {
                 param($a)
@@ -1936,10 +1936,10 @@ foreach ($Dev in $Devices) {
                     shutdown /l
                 }
             } -ArgumentList $Action
-            Write-Host "✓ $Dev: $Action completed" -ForegroundColor Green
+            Write-Host "[SUCCESS] $Dev: $Action completed" -ForegroundColor Green
         }
     } catch {
-        Write-Host "✗ $Dev: Failed" -ForegroundColor Red
+        Write-Host "[FAILED] $Dev: Failed" -ForegroundColor Red
     }
 }`;
     }
@@ -2009,10 +2009,10 @@ Set-Location "$SiteCode:"
 
 try {
     $Pkg = New-CMPackage -Name "${n}" -Path "${s}" -Description "[AUTO] Created by PSForge"
-    Write-Host "✓ Package created: ${n}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package created: ${n}" -ForegroundColor Green
     
     $Prog = New-CMProgram -PackageName "${n}" -StandardProgramName "${pn}" -CommandLine "${c}" -RunType Normal -ProgramRunType WhetherOrNotUserIsLoggedOn
-    Write-Host "✓ Program created: ${pn}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Program created: ${pn}" -ForegroundColor Green
 } catch {
     Write-Error "Failed: $_"
 }`;
@@ -2101,7 +2101,7 @@ try {
         }
     }
     
-    Write-Host "✓ Distribution started to: $DPGroup" -ForegroundColor Green
+    Write-Host "[SUCCESS] Distribution started to: $DPGroup" -ForegroundColor Green
 } catch {
     Write-Error "Failed: $_"
 }`;
@@ -2180,7 +2180,7 @@ try {
     $Report | Format-Table -AutoSize
     ${e ? `
     $Report | Export-Csv "${e}" -NoTypeInformation
-    Write-Host "✓ Report: ${e}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Report: ${e}" -ForegroundColor Green` : ''}
 } catch {
     Write-Error "Failed: $_"
 }`;
@@ -2250,10 +2250,10 @@ try {
     
     if (${e}) {
         Set-CMBootImage -Name "${n}" -EnableCommandSupport $true
-        Write-Host "✓ Command support enabled" -ForegroundColor Green
+        Write-Host "[SUCCESS] Command support enabled" -ForegroundColor Green
     }
     
-    Write-Host "✓ Boot image created: ${n}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Boot image created: ${n}" -ForegroundColor Green
     Write-Host "Next: Distribute to DPs" -ForegroundColor Cyan
 } catch {
     Write-Error "Failed: $_"
@@ -2323,7 +2323,7 @@ try {
     
     $Drivers = Import-CMDriver -Path "${s}" -ImportFolder${c ? ` -DriverCategory "${c}"` : ''}
     
-    Write-Host "✓ Imported: $($Drivers.Count) drivers" -ForegroundColor Green
+    Write-Host "[SUCCESS] Imported: $($Drivers.Count) drivers" -ForegroundColor Green
     
     $Pkg = New-CMDriverPackage -Name "${n}" -Path "\\\\$($env:COMPUTERNAME)\\SMS_$SiteCode\\Drivers\\${n}"
     
@@ -2331,7 +2331,7 @@ try {
         Add-CMDriverToDriverPackage -DriverId $Drv.CI_ID -DriverPackageName "${n}"
     }
     
-    Write-Host "✓ Driver package created: ${n}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Driver package created: ${n}" -ForegroundColor Green
 } catch {
     Write-Error "Failed: $_"
 }`;
@@ -2405,7 +2405,7 @@ try {
     
     $TS = New-CMTaskSequence -Name "${n}" -BootImagePackageId $Boot.PackageID -OperatingSystemImagePackageId $OS.PackageID -InstallOperatingSystemImage${k ? ` -ProductKey "${k}"` : ''} -JoinDomain WorkGroup -WorkgroupName "WORKGROUP"
     
-    Write-Host "✓ Task sequence created: ${n}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Task sequence created: ${n}" -ForegroundColor Green
     Write-Host "Next: Customize steps and deploy" -ForegroundColor Cyan
 } catch {
     Write-Error "Failed: $_"
@@ -2479,7 +2479,7 @@ Set-Location "$SiteCode:"
 try {
     New-CMTaskSequenceDeployment -TaskSequenceName "${t}" -CollectionName "${c}" -DeployPurpose Available -AvailableDateTime (Get-Date) -MakeAvailableTo ClientsMediaAndPxe -ShowTaskSequenceProgress $true${px ? ` -AllowUsersRunIndependently $true` : ''}${m ? ` -AllowUseUnprotectedDP $true` : ''}
     
-    Write-Host "✓ Task sequence deployed: ${t}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Task sequence deployed: ${t}" -ForegroundColor Green
     Write-Host "  Collection: ${c}" -ForegroundColor Gray
 } catch {
     Write-Error "Failed: $_"
@@ -2561,7 +2561,7 @@ $Report = $Devices | ForEach {
 }
 
 $Report | Export-Csv "${e}" -NoTypeInformation
-Write-Host "✓ Report: ${e}" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Report: ${e}" -ForegroundColor Green`;
     }
   },
 
@@ -2639,7 +2639,7 @@ foreach ($Dev in $Devices) {
 }
 
 $Report | Export-Csv "${e}" -NoTypeInformation
-Write-Host "✓ Report: ${e} ($($Report.Count) items)" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Report: ${e} ($($Report.Count) items)" -ForegroundColor Green`;
     }
   },
 
@@ -2704,10 +2704,10 @@ try {
     
     $Results = Get-WmiObject -Namespace "root\\sms\\site_$SiteCode" -Query "${q}"
     
-    Write-Host "✓ Found: $($Results.Count) results" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found: $($Results.Count) results" -ForegroundColor Green
     
     $Results | Export-Csv "${e}" -NoTypeInformation
-    Write-Host "✓ Exported: ${e}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported: ${e}" -ForegroundColor Green
 } catch {
     Write-Error "Query failed: $_"
 }`;
@@ -2786,7 +2786,7 @@ foreach ($Coll in $Collections) {
 }
 
 $Report | Export-Csv "${e}" -NoTypeInformation
-Write-Host "✓ Report: ${e}" -ForegroundColor Green
+Write-Host "[SUCCESS] Report: ${e}" -ForegroundColor Green
 Write-Host "  Total members: $($Report.Count)" -ForegroundColor Gray`;
     }
   },
@@ -2879,7 +2879,7 @@ try {
     
     New-CMMaintenanceWindow -CollectionId $Collection.CollectionID -Name $Name -Schedule $Schedule -ApplyTo SoftwareUpdatesOnly
     
-    Write-Host "✓ Maintenance window created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Maintenance window created" -ForegroundColor Green
     Write-Host "  Collection: $Coll" -ForegroundColor Gray
     Write-Host "  Window: $Name" -ForegroundColor Gray
     Write-Host "  Start: $Start (Duration: $Duration hours)" -ForegroundColor Gray
@@ -2950,7 +2950,7 @@ Set-Location "$SiteCode:"
 
 try {
     $BG = New-CMBoundaryGroup -Name "${n}" -DefaultSiteCode "${s}"
-    Write-Host "✓ Boundary group created: ${n}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Boundary group created: ${n}" -ForegroundColor Green
     
     $Boundaries = ${b}
     
@@ -2967,7 +2967,7 @@ try {
         Write-Host "  Added boundary: $Bound ($Type)" -ForegroundColor Gray
     }
     
-    Write-Host "✓ Configuration complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration complete" -ForegroundColor Green
     Write-Host "  Remember to assign distribution points and management points in console" -ForegroundColor Yellow
 } catch {
     Write-Error "Failed to create boundary group: $_"
@@ -3040,7 +3040,7 @@ try {
     $Summary | Format-Table -AutoSize
     ${e ? `
     $Summary | Export-Csv "${e}" -NoTypeInformation
-    Write-Host "✓ Report: ${e}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Report: ${e}" -ForegroundColor Green` : ''}
     
     $Overall = if (($Summary | Measure -Property Errors -Sum).Sum -eq 0) { 'Healthy' } else { 'Issues Detected' }
     Write-Host "Overall Status: $Overall" -ForegroundColor $(if ($Overall -eq 'Healthy') {'Green'} else {'Yellow'})
@@ -3123,13 +3123,13 @@ try {
     # Validate packages exist
     $BootImage = Get-CMBootImage -Id $BootImageId -ErrorAction Stop
     $OSImage = Get-CMOperatingSystemImage -Id $OSImageId -ErrorAction Stop
-    Write-Host "✓ Boot image validated: $($BootImage.Name)" -ForegroundColor Green
-    Write-Host "✓ OS image validated: $($OSImage.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Boot image validated: $($BootImage.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] OS image validated: $($OSImage.Name)" -ForegroundColor Green
     
 ${drvPkg ? `    # Validate driver package if provided
     $DriverPackageId = "${drvPkg}"
     $DriverPkg = Get-CMDriverPackage -Id $DriverPackageId -ErrorAction Stop
-    Write-Host "✓ Driver package validated: $($DriverPkg.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Driver package validated: $($DriverPkg.Name)" -ForegroundColor Green
 ` : ''}    
     # Create task sequence
     $TS = New-CMTaskSequence \`
@@ -3139,7 +3139,7 @@ ${drvPkg ? `    # Validate driver package if provided
         -ApplyAll $true \`
         -JoinDomain DomainType
     
-    Write-Host "✓ Task sequence created: $TSName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Task sequence created: $TSName" -ForegroundColor Green
     
 ${drvPkg ? `    # Add driver package step
     $StepParams = @{
@@ -3148,7 +3148,7 @@ ${drvPkg ? `    # Add driver package step
         DriverPackageId = $DriverPackageId
     }
     Add-CMTaskSequenceStep -TaskSequenceName $TSName -Step (New-CMTaskSequenceStepApplyDriverPackage @StepParams)
-    Write-Host "✓ Driver package step added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Driver package step added" -ForegroundColor Green
 ` : ''}    
     # Validate collection exists
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
@@ -3163,7 +3163,7 @@ ${drvPkg ? `    # Add driver package step
         -MakeAvailableTo ClientsMediaAndPxe \`
         -ShowTaskSequenceProgress $true
     
-    Write-Host "✓ Deployment created to collection: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment created to collection: $CollectionName" -ForegroundColor Green
     Write-Host ""
     Write-Host "Task Sequence Ready!" -ForegroundColor Cyan
     Write-Host "  Name: $TSName" -ForegroundColor Gray
@@ -3256,21 +3256,21 @@ try {
     Write-Host "  Found: $($Updates.Count) updates" -ForegroundColor Gray
     
     if ($Updates.Count -eq 0) {
-        Write-Host "⚠ No matching updates found. Exiting." -ForegroundColor Yellow
+        Write-Host "[WARNING] No matching updates found. Exiting." -ForegroundColor Yellow
         exit 0
     }
     
     # Create software update group
     $SUG = New-CMSoftwareUpdateGroup -Name $GroupName -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
-    Write-Host "✓ Software update group created: $GroupName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Software update group created: $GroupName" -ForegroundColor Green
     
     # Add updates to group
     Add-CMSoftwareUpdateToGroup -SoftwareUpdateGroupName $GroupName -SoftwareUpdateId $Updates.CI_ID
-    Write-Host "✓ Added $($Updates.Count) updates to group" -ForegroundColor Green
+    Write-Host "[SUCCESS] Added $($Updates.Count) updates to group" -ForegroundColor Green
     
     # Validate collection
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Target collection validated: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target collection validated: $CollectionName" -ForegroundColor Green
     
     # Calculate deadline
     $DeadlineDate = (Get-Date).AddHours($DeadlineHours)
@@ -3295,7 +3295,7 @@ try {
     
     New-CMSoftwareUpdateDeployment @DeploymentParams
     
-    Write-Host "✓ Deployment created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment created" -ForegroundColor Green
     Write-Host ""
     Write-Host "Software Update Deployment Summary:" -ForegroundColor Cyan
     Write-Host "  Group: $GroupName" -ForegroundColor Gray
@@ -3378,14 +3378,14 @@ $EnableSWInventory = ${swInventory}
 try {
     # Validate collection exists
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Target collection validated: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target collection validated: $CollectionName" -ForegroundColor Green
     
     # Determine settings type parameter
     $TypeParam = if ($SettingsType -eq "Device") { "-SettingsType Device" } else { "-SettingsType User" }
     
     # Create client settings
     $ClientSettings = New-CMClientSetting -Name $SettingsName -Type $TypeParam -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
-    Write-Host "✓ Client settings created: $SettingsName ($SettingsType)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Client settings created: $SettingsName ($SettingsType)" -ForegroundColor Green
     
     # Configure hardware inventory
     if ($HWSchedule -ne "None") {
@@ -3400,7 +3400,7 @@ try {
             -Enable $true \`
             -Schedule $Schedule
         
-        Write-Host "✓ Hardware inventory configured: $HWSchedule" -ForegroundColor Green
+        Write-Host "[SUCCESS] Hardware inventory configured: $HWSchedule" -ForegroundColor Green
     }
     
     # Configure software inventory
@@ -3411,7 +3411,7 @@ try {
             -Enable $true \`
             -Schedule $SWSchedule
         
-        Write-Host "✓ Software inventory enabled (weekly)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Software inventory enabled (weekly)" -ForegroundColor Green
     } else {
         Set-CMClientSettingSoftwareInventory -Name $SettingsName -Enable $false
         Write-Host "ℹ Software inventory disabled" -ForegroundColor Gray
@@ -3419,7 +3419,7 @@ try {
     
     # Deploy to collection
     Start-CMClientSettingDeployment -ClientSettingName $SettingsName -CollectionName $CollectionName
-    Write-Host "✓ Client settings deployed to: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Client settings deployed to: $CollectionName" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "Client Settings Configuration Complete!" -ForegroundColor Cyan
@@ -3513,7 +3513,7 @@ $DetectionValue = "${detectionValue}"
 try {
     # Validate application exists
     $App = Get-CMApplication -Name $AppName -ErrorAction Stop
-    Write-Host "✓ Application found: $AppName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application found: $AppName" -ForegroundColor Green
     
     # Prepare detection clause based on method
     $DetectionClause = switch ($DetectionMethod) {
@@ -3567,7 +3567,7 @@ if (Test-Path "$DetectionValue") {
     
     Add-CMScriptDeploymentType @DTParams
     
-    Write-Host "✓ Deployment type added: $DTName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment type added: $DTName" -ForegroundColor Green
     Write-Host ""
     Write-Host "Deployment Type Configuration:" -ForegroundColor Cyan
     Write-Host "  Application: $AppName" -ForegroundColor Gray
@@ -3645,7 +3645,7 @@ $DPServers = ${dpServers}
 try {
     # Create DP group
     $DPGroup = New-CMDistributionPointGroup -Name $GroupName -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
-    Write-Host "✓ Distribution point group created: $GroupName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Distribution point group created: $GroupName" -ForegroundColor Green
     
     # Add distribution points to group
     $AddedCount = 0
@@ -3659,11 +3659,11 @@ try {
             # Add to group
             Add-CMDistributionPointToGroup -DistributionPointGroupName $GroupName -DistributionPointName $DPServer
             
-            Write-Host "  ✓ Added: $DPServer" -ForegroundColor Green
+            Write-Host "  [OK] Added: $DPServer" -ForegroundColor Green
             $AddedCount++
             
         } catch {
-            Write-Host "  ✗ Failed: $DPServer - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $DPServer - $($_.Exception.Message)" -ForegroundColor Red
             $FailedCount++
         }
     }
@@ -3685,16 +3685,16 @@ ${packageName ? `    # Distribute package to DP group
         $App = Get-CMApplication -Name $PackageName -ErrorAction SilentlyContinue
         if ($App) {
             Start-CMContentDistribution -ApplicationName $PackageName -DistributionPointGroupName $GroupName
-            Write-Host "✓ Application distribution started: $PackageName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Application distribution started: $PackageName" -ForegroundColor Green
         } else {
             # Try as package
             $Package = Get-CMPackage -Name $PackageName -ErrorAction Stop
             Start-CMContentDistribution -PackageName $PackageName -DistributionPointGroupName $GroupName
-            Write-Host "✓ Package distribution started: $PackageName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Package distribution started: $PackageName" -ForegroundColor Green
         }
         
     } catch {
-        Write-Host "⚠ Failed to distribute content: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "[WARNING] Failed to distribute content: $($_.Exception.Message)" -ForegroundColor Yellow
     }
 ` : ''}    
     Write-Host ""
@@ -3779,7 +3779,7 @@ $DurationHours = ${duration}
 try {
     # Validate collection exists
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Collection found: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection found: $CollectionName" -ForegroundColor Green
     
     # Parse start time
     $TimeParts = $StartTime -split ':'
@@ -3819,7 +3819,7 @@ try {
         -Schedule $ScheduleObj \`
         -ApplyTo $ApplyTo
     
-    Write-Host "✓ Maintenance window created: $WindowName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Maintenance window created: $WindowName" -ForegroundColor Green
     Write-Host ""
     Write-Host "Maintenance Window Configuration:" -ForegroundColor Cyan
     Write-Host "  Collection: $CollectionName" -ForegroundColor Gray
@@ -3912,11 +3912,11 @@ $EnableMedia = ${media}
 try {
     # Validate task sequence exists
     $TS = Get-CMTaskSequence -Name $TSName -ErrorAction Stop
-    Write-Host "✓ Task sequence found: $TSName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Task sequence found: $TSName" -ForegroundColor Green
     
     # Validate collection exists
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Target collection found: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target collection found: $CollectionName" -ForegroundColor Green
     Write-Host "  Member count: $($Collection.MemberCount)" -ForegroundColor Gray
     
     # Determine availability
@@ -3937,7 +3937,7 @@ try {
     # Warning for Required deployments
     if ($DeployPurpose -eq "Required") {
         Write-Host ""
-        Write-Host "⚠ WARNING: Required OS deployment will automatically deploy!" -ForegroundColor Yellow
+        Write-Host "[WARNING] WARNING: Required OS deployment will automatically deploy!" -ForegroundColor Yellow
         Write-Host "  This will REIMAGE devices in the collection!" -ForegroundColor Yellow
         Write-Host "  Ensure collection contains only intended devices!" -ForegroundColor Yellow
         Write-Host ""
@@ -3958,7 +3958,7 @@ try {
     
     New-CMTaskSequenceDeployment @DeployParams
     
-    Write-Host "✓ OS deployment created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] OS deployment created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "OS Deployment Configuration:" -ForegroundColor Cyan
     Write-Host "  Task Sequence: $TSName" -ForegroundColor Gray
@@ -3971,7 +3971,7 @@ try {
     if ($DeployPurpose -eq "Available") {
         Write-Host "Users can initiate deployment from Software Center" -ForegroundColor Gray
     } else {
-        Write-Host "⚠ Deployment will run automatically on collection members!" -ForegroundColor Yellow
+        Write-Host "[WARNING] Deployment will run automatically on collection members!" -ForegroundColor Yellow
     }
     
 } catch {
@@ -4092,7 +4092,7 @@ try {
     
     # Export report
     $HealthResults | Export-Csv -Path $ExportPath -NoTypeInformation
-    Write-Host "✓ Health report exported: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Health report exported: $ExportPath" -ForegroundColor Green
     
     # Remediation
     if ($RunRemediation -and $UnhealthyDevices.Count -gt 0) {
@@ -4106,25 +4106,25 @@ try {
                     Invoke-Command -ComputerName $DeviceName -ScriptBlock {
                         Restart-Service -Name CcmExec -Force
                     } -ErrorAction Stop
-                    Write-Host "  ✓ $DeviceName: CCMExec service restarted" -ForegroundColor Green
+                    Write-Host "  [OK] $DeviceName: CCMExec service restarted" -ForegroundColor Green
                 }
                 
                 if ($RemediationAction -eq "PolicyRefresh" -or $RemediationAction -eq "All") {
                     Invoke-Command -ComputerName $DeviceName -ScriptBlock {
                         Invoke-WmiMethod -Namespace root\\ccm -Class SMS_CLIENT -Name TriggerSchedule "{00000000-0000-0000-0000-000000000021}"
                     } -ErrorAction Stop
-                    Write-Host "  ✓ $DeviceName: Policy refresh triggered" -ForegroundColor Green
+                    Write-Host "  [OK] $DeviceName: Policy refresh triggered" -ForegroundColor Green
                 }
                 
                 if ($RemediationAction -eq "RepairClient" -or $RemediationAction -eq "All") {
                     Invoke-Command -ComputerName $DeviceName -ScriptBlock {
                         Start-Process -FilePath "C:\\Windows\\ccmsetup\\ccmsetup.exe" -ArgumentList "/mp:SCCM-SERVER.contoso.com SMSSITECODE=AUTO" -NoNewWindow -Wait
                     } -ErrorAction Stop
-                    Write-Host "  ✓ $DeviceName: Client repair initiated" -ForegroundColor Green
+                    Write-Host "  [OK] $DeviceName: Client repair initiated" -ForegroundColor Green
                 }
                 
             } catch {
-                Write-Host "  ✗ $DeviceName: Remediation failed - $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host "  [FAILED] $DeviceName: Remediation failed - $($_.Exception.Message)" -ForegroundColor Red
             }
         }
         
@@ -4204,7 +4204,7 @@ try {
         -DefaultSiteCode $DefaultSiteCode \`
         -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')"
     
-    Write-Host "✓ Boundary group created: $GroupName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Boundary group created: $GroupName" -ForegroundColor Green
     Write-Host "  Default site code: $DefaultSiteCode" -ForegroundColor Gray
     Write-Host ""
     
@@ -4237,11 +4237,11 @@ try {
                 -BoundaryGroupId $BG.GroupID \`
                 -BoundaryId $Boundary.BoundaryID
             
-            Write-Host "  ✓ Added: $BoundaryValue ($BoundaryType)" -ForegroundColor Green
+            Write-Host "  [OK] Added: $BoundaryValue ($BoundaryType)" -ForegroundColor Green
             $SuccessCount++
             
         } catch {
-            Write-Host "  ✗ Failed: $BoundaryValue - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $BoundaryValue - $($_.Exception.Message)" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -4344,7 +4344,7 @@ try {
         -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')" \`
         -CreationType WindowsOS
     
-    Write-Host "✓ Configuration item created: $CIName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration item created: $CIName" -ForegroundColor Green
     
     # Add script-based setting
     $Setting = New-CMComplianceSettingScript \`
@@ -4359,7 +4359,7 @@ ${remediationScript ? `
         -RemediationScriptLanguage PowerShell \`
         -RemediationScriptText "${remediationScript}"
     
-    Write-Host "✓ Remediation script configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Remediation script configured" -ForegroundColor Green
 ` : ''}    
     # Add setting to CI
     Add-CMComplianceSetting -InputObject $CI -Setting $Setting
@@ -4375,7 +4375,7 @@ ${remediationScript ? `
 ${remediationScript ? `        -Remediate $true` : ''}
     
     Add-CMComplianceSettingRule -InputObject $CI -Rule $Rule
-    Write-Host "✓ Compliance rule added: Expected value = $ExpectedValue" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance rule added: Expected value = $ExpectedValue" -ForegroundColor Green
     
     # Create baseline
     $Baseline = New-CMBaseline \`
@@ -4385,7 +4385,7 @@ ${remediationScript ? `        -Remediate $true` : ''}
     # Add CI to baseline
     Set-CMBaseline -Name $BaselineName -AddOSConfigurationItem $CI.CI_ID
     
-    Write-Host "✓ Compliance baseline created: $BaselineName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance baseline created: $BaselineName" -ForegroundColor Green
     
     # Validate collection
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
@@ -4398,7 +4398,7 @@ ${remediationScript ? `        -Remediate $true` : ''}
         -MonitoredByScom $false \`
         -Schedule (New-CMSchedule -RecurInterval Days -RecurCount 1)
     
-    Write-Host "✓ Baseline deployed to: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Baseline deployed to: $CollectionName" -ForegroundColor Green
     Write-Host ""
     Write-Host "Compliance Baseline Configuration Complete!" -ForegroundColor Cyan
     Write-Host "  Baseline: $BaselineName" -ForegroundColor Gray
@@ -4511,17 +4511,17 @@ ${manufacturer ? `
             # Filter by manufacturer if specified
             if ($Driver.DriverProvider -like "*${manufacturer}*") {
                 $ImportedDrivers += $Driver
-                Write-Host "  ✓ Imported: $($Driver.DriverName)" -ForegroundColor Green
+                Write-Host "  [OK] Imported: $($Driver.DriverName)" -ForegroundColor Green
             } else {
                 # Remove non-matching driver
                 Remove-CMDriver -Id $Driver.CI_ID -Force
             }
 ` : `            
             $ImportedDrivers += $Driver
-            Write-Host "  ✓ Imported: $($Driver.DriverName)" -ForegroundColor Green
+            Write-Host "  [OK] Imported: $($Driver.DriverName)" -ForegroundColor Green
 `}            
         } catch {
-            Write-Host "  ⚠ Skipped: $($InfFile.Name) - $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Skipped: $($InfFile.Name) - $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
     
@@ -4529,7 +4529,7 @@ ${manufacturer ? `
     Write-Host "Successfully imported: $($ImportedDrivers.Count) drivers" -ForegroundColor Green
     
     if ($ImportedDrivers.Count -eq 0) {
-        Write-Host "⚠ No drivers imported. Exiting." -ForegroundColor Yellow
+        Write-Host "[WARNING] No drivers imported. Exiting." -ForegroundColor Yellow
         exit 0
     }
     
@@ -4539,7 +4539,7 @@ ${manufacturer ? `
         -Description "Created by PSForge on $(Get-Date -Format 'yyyy-MM-dd')" \`
         -Path $PackageSourcePath
     
-    Write-Host "✓ Driver package created: $PackageName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Driver package created: $PackageName" -ForegroundColor Green
     
     # Add drivers to package
     Write-Host ""
@@ -4552,11 +4552,11 @@ ${manufacturer ? `
                 -DriverPackageName $PackageName \`
                 -ErrorAction Stop
         } catch {
-            Write-Host "  ⚠ Could not add driver: $($Driver.DriverName)" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Could not add driver: $($Driver.DriverName)" -ForegroundColor Yellow
         }
     }
     
-    Write-Host "✓ Drivers added to package" -ForegroundColor Green
+    Write-Host "[SUCCESS] Drivers added to package" -ForegroundColor Green
     Write-Host ""
     Write-Host "======================================" -ForegroundColor Cyan
     Write-Host "Driver Package Configuration Complete!" -ForegroundColor Cyan
@@ -4706,10 +4706,10 @@ try {
                 $AllResults += $DeviceInfo
             }
             
-            Write-Host "  ✓ Processed: $($Devices.Count) devices" -ForegroundColor Green
+            Write-Host "  [OK] Processed: $($Devices.Count) devices" -ForegroundColor Green
             
         } catch {
-            Write-Host "  ✗ Failed: $CollectionName - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $CollectionName - $($_.Exception.Message)" -ForegroundColor Red
         }
     }
     
@@ -4726,7 +4726,7 @@ try {
         Write-Host "  AD Information: $(if ($IncludeAD) {'Yes'} else {'No'})" -ForegroundColor Gray
         Write-Host "======================================" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ No devices found to export" -ForegroundColor Yellow
+        Write-Host "[WARNING] No devices found to export" -ForegroundColor Yellow
     }
     
 } catch {
@@ -4736,16 +4736,16 @@ try {
     }
   },
 
-  {id:'clear-client-cache',name:'Clear Client Cache',category:'Client Management & Health',description:'Clear MECM client cache to free disk space',parameters:[{id:'devices',label:'Device Names (comma-separated)',type:'textarea',required:true,placeholder:'PC001,PC002'}],scriptTemplate:p=>{const d=p.devices?buildPowerShellArray(p.devices):'';return `$Devices=${d};foreach($Dev in $Devices){try{Invoke-Command -ComputerName $Dev -ScriptBlock{$UIResource=New-Object -ComObject UIResource.UIResourceMgr;$Cache=$UIResource.GetCacheInfo();$Cache.GetCacheElements()|ForEach{$Cache.DeleteCacheElement($_.CacheElementID)}};Write-Host "✓ $Dev: Cache cleared" -ForegroundColor Green}catch{Write-Host "✗ $Dev: Failed" -ForegroundColor Red}}`;}},
-  {id:'export-hardware-inventory',name:'Export Hardware Inventory',category:'Inventory & Reporting',description:'Export hardware inventory for devices',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\HWInventory.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Devices=Get-CMDevice -CollectionName "${c}";$Results=$Devices|Select Name,Manufacturer,Model,TotalPhysicalMemory,OSVersion;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'create-dynamic-collection',name:'Create Dynamic Device Collection',category:'Collections',description:'Create query-based device collection',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'Windows 11 Devices'},{id:'queryExpression',label:'WQL Query',type:'textarea',required:true,placeholder:'SELECT * FROM SMS_R_System WHERE OperatingSystemNameAndVersion LIKE "%Windows 11%"'}],scriptTemplate:p=>{const n=escapePowerShellString(p.collectionName),q=escapePowerShellString(p.queryExpression);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Collection=New-CMDeviceCollection -Name "${n}" -LimitingCollectionName "All Systems";Add-CMDeviceCollectionQueryMembershipRule -CollectionName "${n}" -QueryExpression "${q}" -RuleName "Query-${n}";Write-Host "✓ Collection created: ${n}" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'deploy-os-image',name:'Deploy OS Task Sequence',category:'OS Deployment',description:'Deploy operating system to collection',parameters:[{id:'taskSequenceName',label:'Task Sequence Name',type:'text',required:true,placeholder:'Windows 11 23H2'},{id:'collectionName',label:'Target Collection',type:'text',required:true,placeholder:'Pilot-Workstations'}],scriptTemplate:p=>{const t=escapePowerShellString(p.taskSequenceName),c=escapePowerShellString(p.collectionName);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{New-CMTaskSequenceDeployment -TaskSequenceName "${t}" -CollectionName "${c}" -DeployPurpose Available -AllowSharedContent $true -AllowFallback $true -MakeAvailableTo ClientsMediaAndPxe;Write-Host "✓ OS deployment created" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'export-software-inventory',name:'Export Software Inventory',category:'Inventory & Reporting',description:'Export installed software for devices',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\SWInventory.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Query="SELECT SMS_R_System.Name,SMS_G_System_INSTALLED_SOFTWARE.ProductName,SMS_G_System_INSTALLED_SOFTWARE.ProductVersion FROM SMS_R_System JOIN SMS_G_System_INSTALLED_SOFTWARE ON SMS_R_System.ResourceId=SMS_G_System_INSTALLED_SOFTWARE.ResourceID";$Results=Get-WmiObject -Namespace "root\\\\SMS\\\\site_$SiteCode" -Query $Query;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Software inventory exported" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'distribute-content',name:'Distribute Content to DP Group',category:'Content Distribution',description:'Distribute packages to distribution point group',parameters:[{id:'packageName',label:'Package/Application Name',type:'text',required:true,placeholder:'Microsoft Office'},{id:'dpGroupName',label:'DP Group Name',type:'text',required:true,placeholder:'All Distribution Points'}],scriptTemplate:p=>{const pkg=escapePowerShellString(p.packageName),dp=escapePowerShellString(p.dpGroupName);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{Start-CMContentDistribution -ApplicationName "${pkg}" -DistributionPointGroupName "${dp}";Write-Host "✓ Content distribution started" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'monitor-dp-status',name:'Monitor Distribution Point Status',category:'Content Distribution',description:'Check distribution point health and content status',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\DPStatus.csv'}],scriptTemplate:p=>{const e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$DPs=Get-CMDistributionPoint;$Results=$DPs|Select ServerName,IsPeerDP,IsPullDP,IsActive;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ DP status exported: $($DPs.Count) DPs" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'export-compliance-settings',name:'Export Compliance Settings Report',category:'Compliance Settings',description:'Export compliance baseline results',parameters:[{id:'baselineName',label:'Baseline Name',type:'text',required:true,placeholder:'Security Baseline'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\Compliance.csv'}],scriptTemplate:p=>{const b=escapePowerShellString(p.baselineName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Baseline=Get-CMBaseline -Name "${b}";$Results=Get-CMBaselineDeploymentStatus -Id $Baseline.CI_ID|Select DeviceName,ComplianceStatus,IsCompliant;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Compliance exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'deploy-baseline',name:'Deploy Compliance Baseline',category:'Compliance Settings',description:'Deploy configuration baseline to collection',parameters:[{id:'baselineName',label:'Baseline Name',type:'text',required:true,placeholder:'Security Baseline'},{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'}],scriptTemplate:p=>{const b=escapePowerShellString(p.baselineName),c=escapePowerShellString(p.collectionName);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{New-CMBaselineDeployment -Name "${b}" -CollectionName "${c}" -GenerateAlert $true;Write-Host "✓ Baseline deployed to ${c}" -ForegroundColor Green}catch{Write-Error $_}`;}},
-  {id:'export-app-deployment-status',name:'Export Application Deployment Status',category:'Applications & Deployments',description:'Export deployment success/failure statistics',parameters:[{id:'applicationName',label:'Application Name',type:'text',required:true,placeholder:'Microsoft 365'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AppDeployment.csv'}],scriptTemplate:p=>{const a=escapePowerShellString(p.applicationName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Status=Get-CMApplicationDeploymentStatus -Name "${a}";$Results=$Status|Select DeviceName,UserName,StatusType,ErrorCode,LastStatusTime;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "✓ Deployment status exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'clear-client-cache',name:'Clear Client Cache',category:'Client Management & Health',description:'Clear MECM client cache to free disk space',parameters:[{id:'devices',label:'Device Names (comma-separated)',type:'textarea',required:true,placeholder:'PC001,PC002'}],scriptTemplate:p=>{const d=p.devices?buildPowerShellArray(p.devices):'';return `$Devices=${d};foreach($Dev in $Devices){try{Invoke-Command -ComputerName $Dev -ScriptBlock{$UIResource=New-Object -ComObject UIResource.UIResourceMgr;$Cache=$UIResource.GetCacheInfo();$Cache.GetCacheElements()|ForEach{$Cache.DeleteCacheElement($_.CacheElementID)}};Write-Host "[SUCCESS] $Dev: Cache cleared" -ForegroundColor Green}catch{Write-Host "[FAILED] $Dev: Failed" -ForegroundColor Red}}`;}},
+  {id:'export-hardware-inventory',name:'Export Hardware Inventory',category:'Inventory & Reporting',description:'Export hardware inventory for devices',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\HWInventory.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Devices=Get-CMDevice -CollectionName "${c}";$Results=$Devices|Select Name,Manufacturer,Model,TotalPhysicalMemory,OSVersion;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "[SUCCESS] Exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'create-dynamic-collection',name:'Create Dynamic Device Collection',category:'Collections',description:'Create query-based device collection',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'Windows 11 Devices'},{id:'queryExpression',label:'WQL Query',type:'textarea',required:true,placeholder:'SELECT * FROM SMS_R_System WHERE OperatingSystemNameAndVersion LIKE "%Windows 11%"'}],scriptTemplate:p=>{const n=escapePowerShellString(p.collectionName),q=escapePowerShellString(p.queryExpression);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Collection=New-CMDeviceCollection -Name "${n}" -LimitingCollectionName "All Systems";Add-CMDeviceCollectionQueryMembershipRule -CollectionName "${n}" -QueryExpression "${q}" -RuleName "Query-${n}";Write-Host "[SUCCESS] Collection created: ${n}" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'deploy-os-image',name:'Deploy OS Task Sequence',category:'OS Deployment',description:'Deploy operating system to collection',parameters:[{id:'taskSequenceName',label:'Task Sequence Name',type:'text',required:true,placeholder:'Windows 11 23H2'},{id:'collectionName',label:'Target Collection',type:'text',required:true,placeholder:'Pilot-Workstations'}],scriptTemplate:p=>{const t=escapePowerShellString(p.taskSequenceName),c=escapePowerShellString(p.collectionName);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{New-CMTaskSequenceDeployment -TaskSequenceName "${t}" -CollectionName "${c}" -DeployPurpose Available -AllowSharedContent $true -AllowFallback $true -MakeAvailableTo ClientsMediaAndPxe;Write-Host "[SUCCESS] OS deployment created" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'export-software-inventory',name:'Export Software Inventory',category:'Inventory & Reporting',description:'Export installed software for devices',parameters:[{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\SWInventory.csv'}],scriptTemplate:p=>{const c=escapePowerShellString(p.collectionName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Query="SELECT SMS_R_System.Name,SMS_G_System_INSTALLED_SOFTWARE.ProductName,SMS_G_System_INSTALLED_SOFTWARE.ProductVersion FROM SMS_R_System JOIN SMS_G_System_INSTALLED_SOFTWARE ON SMS_R_System.ResourceId=SMS_G_System_INSTALLED_SOFTWARE.ResourceID";$Results=Get-WmiObject -Namespace "root\\\\SMS\\\\site_$SiteCode" -Query $Query;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "[SUCCESS] Software inventory exported" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'distribute-content',name:'Distribute Content to DP Group',category:'Content Distribution',description:'Distribute packages to distribution point group',parameters:[{id:'packageName',label:'Package/Application Name',type:'text',required:true,placeholder:'Microsoft Office'},{id:'dpGroupName',label:'DP Group Name',type:'text',required:true,placeholder:'All Distribution Points'}],scriptTemplate:p=>{const pkg=escapePowerShellString(p.packageName),dp=escapePowerShellString(p.dpGroupName);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{Start-CMContentDistribution -ApplicationName "${pkg}" -DistributionPointGroupName "${dp}";Write-Host "[SUCCESS] Content distribution started" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'monitor-dp-status',name:'Monitor Distribution Point Status',category:'Content Distribution',description:'Check distribution point health and content status',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\DPStatus.csv'}],scriptTemplate:p=>{const e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$DPs=Get-CMDistributionPoint;$Results=$DPs|Select ServerName,IsPeerDP,IsPullDP,IsActive;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "[SUCCESS] DP status exported: $($DPs.Count) DPs" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'export-compliance-settings',name:'Export Compliance Settings Report',category:'Compliance Settings',description:'Export compliance baseline results',parameters:[{id:'baselineName',label:'Baseline Name',type:'text',required:true,placeholder:'Security Baseline'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\Compliance.csv'}],scriptTemplate:p=>{const b=escapePowerShellString(p.baselineName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Baseline=Get-CMBaseline -Name "${b}";$Results=Get-CMBaselineDeploymentStatus -Id $Baseline.CI_ID|Select DeviceName,ComplianceStatus,IsCompliant;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "[SUCCESS] Compliance exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'deploy-baseline',name:'Deploy Compliance Baseline',category:'Compliance Settings',description:'Deploy configuration baseline to collection',parameters:[{id:'baselineName',label:'Baseline Name',type:'text',required:true,placeholder:'Security Baseline'},{id:'collectionName',label:'Collection Name',type:'text',required:true,placeholder:'All Workstations'}],scriptTemplate:p=>{const b=escapePowerShellString(p.baselineName),c=escapePowerShellString(p.collectionName);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{New-CMBaselineDeployment -Name "${b}" -CollectionName "${c}" -GenerateAlert $true;Write-Host "[SUCCESS] Baseline deployed to ${c}" -ForegroundColor Green}catch{Write-Error $_}`;}},
+  {id:'export-app-deployment-status',name:'Export Application Deployment Status',category:'Applications & Deployments',description:'Export deployment success/failure statistics',parameters:[{id:'applicationName',label:'Application Name',type:'text',required:true,placeholder:'Microsoft 365'},{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AppDeployment.csv'}],scriptTemplate:p=>{const a=escapePowerShellString(p.applicationName),e=escapePowerShellString(p.exportPath);return `Import-Module "\$($ENV:SMS_ADMIN_UI_PATH)\\..\\ConfigurationManager.psd1";$SiteCode=Get-PSDrive -PSProvider CMSite|Select -ExpandProperty Name;Set-Location "$SiteCode:";try{$Status=Get-CMApplicationDeploymentStatus -Name "${a}";$Results=$Status|Select DeviceName,UserName,StatusType,ErrorCode,LastStatusTime;$Results|Export-Csv "${e}" -NoTypeInformation;Write-Host "[SUCCESS] Deployment status exported: $($Results.Count) devices" -ForegroundColor Green}catch{Write-Error $_}`;}},
 
   // ========================================
   // ADDITIONAL PROFESSIONAL TASKS
@@ -4809,11 +4809,11 @@ $UninstallOld = ${uninstallOld}
 try {
     # Validate new (superseding) application exists
     $NewApp = Get-CMApplication -Name $NewAppName -ErrorAction Stop
-    Write-Host "✓ New application found: $NewAppName" -ForegroundColor Green
+    Write-Host "[SUCCESS] New application found: $NewAppName" -ForegroundColor Green
     
     # Validate old (superseded) application exists
     $OldApp = Get-CMApplication -Name $OldAppName -ErrorAction Stop
-    Write-Host "✓ Old application found: $OldAppName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Old application found: $OldAppName" -ForegroundColor Green
     
     # Get deployment types for both applications
     $NewDT = Get-CMDeploymentType -ApplicationName $NewAppName | Select-Object -First 1
@@ -4843,7 +4843,7 @@ try {
     
     Write-Host ""
     Write-Host "======================================" -ForegroundColor Green
-    Write-Host "✓ Supersedence configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Supersedence configured successfully!" -ForegroundColor Green
     Write-Host "  Superseding: $NewAppName" -ForegroundColor Gray
     Write-Host "  Superseded: $OldAppName" -ForegroundColor Gray
     Write-Host "  Auto-uninstall: $(if ($UninstallOld) {'Enabled'} else {'Disabled'})" -ForegroundColor Gray
@@ -4931,7 +4931,7 @@ foreach ($Device in $TargetDevices) {
     try {
         # Test connectivity
         if (-not (Test-Connection -ComputerName $Device -Count 1 -Quiet)) {
-            Write-Host "  ✗ Device offline or unreachable" -ForegroundColor Red
+            Write-Host "  [FAILED] Device offline or unreachable" -ForegroundColor Red
             $FailCount++
             continue
         }
@@ -4957,7 +4957,7 @@ foreach ($Device in $TargetDevices) {
             Invoke-WMIMethod -Namespace "root\\CCM" -Class SMS_Client -Name TriggerSchedule -ArgumentList $using:SoftwareUpdateEvalID | Out-Null
         } -ErrorAction Stop
         
-        Write-Host "  ✓ Update scan triggered successfully" -ForegroundColor Green
+        Write-Host "  [OK] Update scan triggered successfully" -ForegroundColor Green
         $SuccessCount++
         
         # Wait for completion if requested
@@ -4981,7 +4981,7 @@ foreach ($Device in $TargetDevices) {
         }
         
     } catch {
-        Write-Host "  ✗ Failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed: $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
     
@@ -5077,7 +5077,7 @@ foreach ($Device in $TargetDevices) {
     try {
         # Test connectivity
         if (-not (Test-Connection -ComputerName $Device -Count 1 -Quiet)) {
-            Write-Host "  ✗ Device offline or unreachable" -ForegroundColor Red
+            Write-Host "  [FAILED] Device offline or unreachable" -ForegroundColor Red
             continue
         }
         
@@ -5103,7 +5103,7 @@ foreach ($Device in $TargetDevices) {
         } -ErrorAction Stop
         
         $ClientInfo | Export-Csv (Join-Path $DeviceOutputPath "ClientInfo.csv") -NoTypeInformation
-        Write-Host "  ✓ Client info collected" -ForegroundColor Green
+        Write-Host "  [OK] Client info collected" -ForegroundColor Green
         
         # Collect cache information
         if ($CollectCacheInfo) {
@@ -5128,7 +5128,7 @@ foreach ($Device in $TargetDevices) {
             } -ErrorAction Stop
             
             $CacheInfo | ConvertTo-Json -Depth 3 | Out-File (Join-Path $DeviceOutputPath "CacheInfo.json")
-            Write-Host "  ✓ Cache info collected" -ForegroundColor Green
+            Write-Host "  [OK] Cache info collected" -ForegroundColor Green
         }
         
         # Collect log files
@@ -5147,7 +5147,7 @@ foreach ($Device in $TargetDevices) {
                     Copy-Item -Path $SourceLog -Destination $LogOutputPath -Force -ErrorAction SilentlyContinue
                 }
             }
-            Write-Host "  ✓ Log files collected" -ForegroundColor Green
+            Write-Host "  [OK] Log files collected" -ForegroundColor Green
         }
         
         # Collect service status
@@ -5158,12 +5158,12 @@ foreach ($Device in $TargetDevices) {
         }
         
         $ServiceInfo | Export-Csv (Join-Path $DeviceOutputPath "Services.csv") -NoTypeInformation
-        Write-Host "  ✓ Service status collected" -ForegroundColor Green
+        Write-Host "  [OK] Service status collected" -ForegroundColor Green
         
-        Write-Host "  ✓ Diagnostics saved to: $DeviceOutputPath" -ForegroundColor Green
+        Write-Host "  [OK] Diagnostics saved to: $DeviceOutputPath" -ForegroundColor Green
         
     } catch {
-        Write-Host "  ✗ Failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed: $($_.Exception.Message)" -ForegroundColor Red
         $_.Exception.Message | Out-File (Join-Path $DeviceOutputPath "Error.txt")
     }
     
@@ -5244,7 +5244,7 @@ $InactiveThreshold = (Get-Date).AddDays(-$InactiveDays)
 try {
     # Validate collection exists
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Collection: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection: $CollectionName" -ForegroundColor Green
     Write-Host "  Total members: $($Collection.MemberCount)" -ForegroundColor Gray
     Write-Host ""
     
@@ -5459,12 +5459,12 @@ try {
     
     # Validate Software Update Group exists
     $SUG = Get-CMSoftwareUpdateGroup -Name $SUGName -ErrorAction Stop
-    Write-Host "✓ Software Update Group: $SUGName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Software Update Group: $SUGName" -ForegroundColor Green
     Write-Host "  Updates in group: $($SUG.NumberOfUpdates)" -ForegroundColor Gray
     
     # Validate collection exists
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Target Collection: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Collection: $CollectionName" -ForegroundColor Green
     Write-Host "  Member count: $($Collection.MemberCount)" -ForegroundColor Gray
     
     Write-Host ""
@@ -5497,7 +5497,7 @@ try {
     
     Write-Host ""
     Write-Host "======================================" -ForegroundColor Green
-    Write-Host "✓ Software Update Deployment Created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Software Update Deployment Created!" -ForegroundColor Green
     Write-Host "======================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "Deployment Details:" -ForegroundColor Cyan
@@ -5588,18 +5588,18 @@ $ExportPath = "${exportPath}"
 try {
     # Validate collection
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Collection: $CollectionName ($($Collection.MemberCount) devices)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection: $CollectionName ($($Collection.MemberCount) devices)" -ForegroundColor Green
     
     # Determine which updates to report on
     $Updates = @()
     
     if ($SUGName) {
-        Write-Host "✓ Reporting on Software Update Group: $SUGName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Reporting on Software Update Group: $SUGName" -ForegroundColor Green
         $SUG = Get-CMSoftwareUpdateGroup -Name $SUGName -ErrorAction Stop
         $Updates = Get-CMSoftwareUpdate -UpdateGroupId $SUG.CI_ID -Fast
         Write-Host "  Updates in group: $($Updates.Count)" -ForegroundColor Gray
     } elseif ($KBArticle) {
-        Write-Host "✓ Reporting on KB Article: $KBArticle" -ForegroundColor Green
+        Write-Host "[SUCCESS] Reporting on KB Article: $KBArticle" -ForegroundColor Green
         $Updates = Get-CMSoftwareUpdate -ArticleId $KBArticle -Fast
         Write-Host "  Matching updates: $($Updates.Count)" -ForegroundColor Gray
     } else {
@@ -5765,14 +5765,14 @@ $HealthThresholdDays = ${healthThresholdDays}
 try {
     # Validate collection
     $Collection = Get-CMDeviceCollection -Name $CollectionName -ErrorAction Stop
-    Write-Host "✓ Collection: $CollectionName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection: $CollectionName" -ForegroundColor Green
     
     # Get devices in collection
     $Devices = Get-CMDevice -CollectionName $CollectionName
     Write-Host "  Devices to analyze: $($Devices.Count)" -ForegroundColor Gray
     
     if ($Devices.Count -eq 0) {
-        Write-Host "⚠ No devices found in collection" -ForegroundColor Yellow
+        Write-Host "[WARNING] No devices found in collection" -ForegroundColor Yellow
         exit 0
     }
     
@@ -5888,7 +5888,7 @@ try {
     
     if ($Stats.Unhealthy -gt 0 -or $Stats.NoClient -gt 0) {
         Write-Host ""
-        Write-Host "⚠ Remediation Recommended:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Remediation Recommended:" -ForegroundColor Yellow
         Write-Host "  Review exported CSV for devices needing attention" -ForegroundColor Gray
         Write-Host "  Consider client push or reinstallation for problem devices" -ForegroundColor Gray
     }
@@ -5993,21 +5993,21 @@ try {
             exit 1
         }
         $Devices += $Device
-        Write-Host "✓ Target: Single device - $TargetDevice" -ForegroundColor Green
+        Write-Host "[SUCCESS] Target: Single device - $TargetDevice" -ForegroundColor Green
     } elseif ($TargetCollection) {
         $Collection = Get-CMDeviceCollection -Name $TargetCollection -ErrorAction Stop
         $Devices = Get-CMDevice -CollectionName $TargetCollection
-        Write-Host "✓ Target: Collection - $TargetCollection ($($Devices.Count) devices)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Target: Collection - $TargetCollection ($($Devices.Count) devices)" -ForegroundColor Green
     } else {
         Write-Error "Please specify either a target device or collection"
         exit 1
     }
     
-    Write-Host "✓ Action: $($ActionDisplayName[$ClientAction])" -ForegroundColor Green
+    Write-Host "[SUCCESS] Action: $($ActionDisplayName[$ClientAction])" -ForegroundColor Green
     Write-Host ""
     
     if ($Devices.Count -eq 0) {
-        Write-Host "⚠ No devices found" -ForegroundColor Yellow
+        Write-Host "[WARNING] No devices found" -ForegroundColor Yellow
         exit 0
     }
     
@@ -6021,20 +6021,20 @@ try {
     foreach ($Device in $Devices) {
         # Check if device has active client
         if (-not $Device.Client) {
-            Write-Host "⚠ $($Device.Name): Skipped - No MECM client installed" -ForegroundColor Yellow
+            Write-Host "[WARNING] $($Device.Name): Skipped - No MECM client installed" -ForegroundColor Yellow
             $SkippedCount++
             continue
         }
         
         if (-not $Device.IsActive) {
-            Write-Host "⚠ $($Device.Name): Skipped - Device is inactive" -ForegroundColor Yellow
+            Write-Host "[WARNING] $($Device.Name): Skipped - Device is inactive" -ForegroundColor Yellow
             $SkippedCount++
             continue
         }
         
         try {
             if ($TestMode) {
-                Write-Host "✓ $($Device.Name): Would trigger $ClientAction (TEST MODE)" -ForegroundColor Cyan
+                Write-Host "[SUCCESS] $($Device.Name): Would trigger $ClientAction (TEST MODE)" -ForegroundColor Cyan
                 $SuccessCount++
             } else {
                 # Use Invoke-CMClientAction for client notification
@@ -6044,11 +6044,11 @@ try {
                     -NotificationType $ClientAction \`
                     -ErrorAction Stop
                 
-                Write-Host "✓ $($Device.Name): Action triggered successfully" -ForegroundColor Green
+                Write-Host "[SUCCESS] $($Device.Name): Action triggered successfully" -ForegroundColor Green
                 $SuccessCount++
             }
         } catch {
-            Write-Host "✗ $($Device.Name): Failed - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "[FAILED] $($Device.Name): Failed - $($_.Exception.Message)" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -6067,7 +6067,7 @@ try {
     Write-Host ""
     
     if ($TestMode) {
-        Write-Host "⚠ TEST MODE - No actions were triggered" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No actions were triggered" -ForegroundColor Yellow
         Write-Host "  Set TestMode to \$false to trigger actions" -ForegroundColor Yellow
     } else {
         Write-Host "ℹ Actions are executed asynchronously on clients" -ForegroundColor Gray

@@ -59,7 +59,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Message posted to $Channel" -ForegroundColor Green
+        Write-Host "[SUCCESS] Message posted to $Channel" -ForegroundColor Green
     } else {
         Write-Error "Failed: $($Response.error)"
     }
@@ -106,7 +106,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Channel created: #${channelName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Channel created: #${channelName}" -ForegroundColor Green
     } else {
         Write-Error "Failed: $($Response.error)"
     }
@@ -154,7 +154,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ Channel archived successfully" -ForegroundColor Green
+                Write-Host "[SUCCESS] Channel archived successfully" -ForegroundColor Green
             } else {
                 Write-Error "Failed: $($Response.error)"
             }
@@ -168,7 +168,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ Channel renamed to: ${newValue}" -ForegroundColor Green
+                Write-Host "[SUCCESS] Channel renamed to: ${newValue}" -ForegroundColor Green
             } else {
                 Write-Error "Failed: $($Response.error)"
             }
@@ -182,7 +182,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ Channel topic updated" -ForegroundColor Green
+                Write-Host "[SUCCESS] Channel topic updated" -ForegroundColor Green
             } else {
                 Write-Error "Failed: $($Response.error)"
             }
@@ -196,7 +196,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ Channel purpose updated" -ForegroundColor Green
+                Write-Host "[SUCCESS] Channel purpose updated" -ForegroundColor Green
             } else {
                 Write-Error "Failed: $($Response.error)"
             }
@@ -260,7 +260,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ User invited to channel" -ForegroundColor Green
+                Write-Host "[SUCCESS] User invited to channel" -ForegroundColor Green
                 Write-Host "  User: $UserEmail" -ForegroundColor Cyan
             } else {
                 Write-Error "Failed: $($Response.error)"
@@ -276,7 +276,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ User removed from channel" -ForegroundColor Green
+                Write-Host "[SUCCESS] User removed from channel" -ForegroundColor Green
             } else {
                 Write-Error "Failed: $($Response.error)"
             }
@@ -286,7 +286,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Get -Headers $Headers
             
             if ($Response.ok) {
-                Write-Host "✓ User Information" -ForegroundColor Green
+                Write-Host "[SUCCESS] User Information" -ForegroundColor Green
                 Write-Host "  Name: $($Response.user.real_name)" -ForegroundColor Cyan
                 Write-Host "  Email: $($Response.user.profile.email)" -ForegroundColor Cyan
                 Write-Host "  Status: $($Response.user.profile.status_text)" -ForegroundColor Cyan
@@ -368,7 +368,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body ([System.Text.Encoding]::GetEncoding("iso-8859-1").GetBytes($Body))
     
     if ($Response.ok) {
-        Write-Host "✓ File uploaded successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] File uploaded successfully" -ForegroundColor Green
         Write-Host "  File: $FileName" -ForegroundColor Cyan
         Write-Host "  URL: $($Response.file.permalink)" -ForegroundColor Cyan
     } else {
@@ -434,7 +434,7 @@ try {
     
     $ActivityData | Export-Csv -Path $ExportPath -NoTypeInformation
     
-    Write-Host "✓ Activity report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Activity report generated" -ForegroundColor Green
     Write-Host "  Total Messages: $($ActivityData.Count)" -ForegroundColor Cyan
     Write-Host "  Exported to: $ExportPath" -ForegroundColor Cyan
     
@@ -480,7 +480,7 @@ try {
             $ChannelsUri = "https://slack.com/api/conversations.list?limit=1000"
             $ChannelsResponse = Invoke-RestMethod -Uri $ChannelsUri -Method Get -Headers $Headers
             
-            Write-Host "✓ Workspace Statistics" -ForegroundColor Green
+            Write-Host "[SUCCESS] Workspace Statistics" -ForegroundColor Green
             Write-Host "  Team Name: $($TeamResponse.team.name)" -ForegroundColor Cyan
             Write-Host "  Total Users: $($UsersResponse.members.Count)" -ForegroundColor Cyan
             Write-Host "  Total Channels: $($ChannelsResponse.channels.Count)" -ForegroundColor Cyan
@@ -499,7 +499,7 @@ try {
                 }
             }
             
-            Write-Host "✓ Channel Statistics Retrieved" -ForegroundColor Green
+            Write-Host "[SUCCESS] Channel Statistics Retrieved" -ForegroundColor Green
             $ChannelStats | Format-Table -AutoSize
         }
         "User Activity" {
@@ -509,7 +509,7 @@ try {
             $ActiveUsers = ($Response.members | Where-Object { -not $_.deleted -and -not $_.is_bot }).Count
             $BotUsers = ($Response.members | Where-Object { $_.is_bot }).Count
             
-            Write-Host "✓ User Activity Statistics" -ForegroundColor Green
+            Write-Host "[SUCCESS] User Activity Statistics" -ForegroundColor Green
             Write-Host "  Active Users: $ActiveUsers" -ForegroundColor Cyan
             Write-Host "  Bot Users: $BotUsers" -ForegroundColor Cyan
             Write-Host "  Total: $($Response.members.Count)" -ForegroundColor Cyan
@@ -555,7 +555,7 @@ try {
     $Response = Invoke-RestMethod -Uri $WebhookUrl -Method Post -Headers $Headers -Body $Body
     
     if ($Response -eq "ok") {
-        Write-Host "✓ Webhook message sent successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Webhook message sent successfully" -ForegroundColor Green
         Write-Host "  Message: ${message}" -ForegroundColor Cyan
     } else {
         Write-Error "Webhook failed: $Response"
@@ -630,7 +630,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Monitoring alert sent" -ForegroundColor Green
+        Write-Host "[SUCCESS] Monitoring alert sent" -ForegroundColor Green
         Write-Host "  Level: $AlertLevel" -ForegroundColor Cyan
         Write-Host "  Channel: $ChannelId" -ForegroundColor Cyan
     } else {
@@ -686,7 +686,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Channel archived successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Channel archived successfully" -ForegroundColor Green
         Write-Host "  Channel: #$ChannelName" -ForegroundColor Cyan
         Write-Host "  ID: $ChannelId" -ForegroundColor Cyan
     } else {
@@ -732,7 +732,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Channel unarchived successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Channel unarchived successfully" -ForegroundColor Green
         Write-Host "  Channel ID: $ChannelId" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $($Response.error)"
@@ -806,14 +806,14 @@ foreach ($Channel in $Channels) {
                 Status = "Created"
                 ChannelId = $Response.channel.id
             }
-            Write-Host "✓ Created: #$ChannelName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Created: #$ChannelName" -ForegroundColor Green
         } else {
             $Results += [PSCustomObject]@{
                 Name = $ChannelName
                 Status = "Failed: $($Response.error)"
                 ChannelId = $null
             }
-            Write-Host "✗ Failed: #$ChannelName - $($Response.error)" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: #$ChannelName - $($Response.error)" -ForegroundColor Red
         }
     } catch {
         $Results += [PSCustomObject]@{
@@ -885,7 +885,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Channel converted to private successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Channel converted to private successfully" -ForegroundColor Green
     } else {
         Write-Error "Failed: $($Response.error)"
     }
@@ -950,7 +950,7 @@ try {
         }
     }
     
-    Write-Host "✓ Found $($ArchivedChannels.Count) archived channels" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($ArchivedChannels.Count) archived channels" -ForegroundColor Green
     $ArchivedChannels | Format-Table -AutoSize
     
     ${exportPath ? `if ($ExportPath) {
@@ -1013,7 +1013,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $JsonBody
     
     if ($Response.ok) {
-        Write-Host "✓ User invitation sent successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] User invitation sent successfully" -ForegroundColor Green
         Write-Host "  Email: $Email" -ForegroundColor Cyan
         if ($IsRestricted) {
             Write-Host "  Type: Guest Account" -ForegroundColor Cyan
@@ -1073,7 +1073,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ User deactivated successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] User deactivated successfully" -ForegroundColor Green
         Write-Host "  User ID: $UserId" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $($Response.error)"
@@ -1156,7 +1156,7 @@ try {
     
     $UserAudit | Export-Csv -Path $ExportPath -NoTypeInformation
     
-    Write-Host "✓ User Audit Report Generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] User Audit Report Generated" -ForegroundColor Green
     Write-Host "  Total Users: $($UserAudit.Count)" -ForegroundColor Cyan
     Write-Host "  Admins: $(($UserAudit | Where-Object { $_.IsAdmin }).Count)" -ForegroundColor Cyan
     Write-Host "  Guests: $(($UserAudit | Where-Object { $_.IsRestricted -or $_.IsUltraRestricted }).Count)" -ForegroundColor Cyan
@@ -1210,7 +1210,7 @@ try {
         "List Guests" {
             $Guests = $Response.members | Where-Object { $_.is_restricted -or $_.is_ultra_restricted }
             
-            Write-Host "✓ Guest Users in Workspace" -ForegroundColor Green
+            Write-Host "[SUCCESS] Guest Users in Workspace" -ForegroundColor Green
             Write-Host ""
             
             foreach ($Guest in $Guests) {
@@ -1234,12 +1234,12 @@ try {
             }
             
             ${exportPath ? `$Guests | Export-Csv -Path $ExportPath -NoTypeInformation
-            Write-Host "✓ Guest report exported to: $ExportPath" -ForegroundColor Green` : 'Write-Host "No export path specified" -ForegroundColor Yellow'}
+            Write-Host "[SUCCESS] Guest report exported to: $ExportPath" -ForegroundColor Green` : 'Write-Host "No export path specified" -ForegroundColor Yellow'}
         }
         "List Single-Channel Guests" {
             $SingleChannelGuests = $Response.members | Where-Object { $_.is_ultra_restricted }
             
-            Write-Host "✓ Single-Channel Guests" -ForegroundColor Green
+            Write-Host "[SUCCESS] Single-Channel Guests" -ForegroundColor Green
             foreach ($Guest in $SingleChannelGuests) {
                 Write-Host "  $($Guest.real_name) - $($Guest.profile.email)" -ForegroundColor Cyan
             }
@@ -1310,10 +1310,10 @@ foreach ($User in $Users) {
         
         if ($Response.ok) {
             $Results += [PSCustomObject]@{ UserId = $UserId; Name = $UserName; Status = "Deactivated" }
-            Write-Host "✓ Deactivated: $UserName ($UserId)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Deactivated: $UserName ($UserId)" -ForegroundColor Green
         } else {
             $Results += [PSCustomObject]@{ UserId = $UserId; Name = $UserName; Status = "Failed: $($Response.error)" }
-            Write-Host "✗ Failed: $UserName - $($Response.error)" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $UserName - $($Response.error)" -ForegroundColor Red
         }
     } catch {
         $Results += [PSCustomObject]@{ UserId = $UserId; Name = "Unknown"; Status = "Error: $_" }
@@ -1400,7 +1400,7 @@ try {
     
     $AllMessages | ConvertTo-Json -Depth 10 | Out-File -FilePath $ExportPath -Encoding UTF8
     
-    Write-Host "✓ Messages exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Messages exported successfully" -ForegroundColor Green
     Write-Host "  Total Messages: $($AllMessages.Count)" -ForegroundColor Cyan
     Write-Host "  Exported to: $ExportPath" -ForegroundColor Cyan
     
@@ -1444,7 +1444,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Get -Headers $Headers
             
             if ($Response.ok) {
-                Write-Host "✓ Current Workspace Settings" -ForegroundColor Green
+                Write-Host "[SUCCESS] Current Workspace Settings" -ForegroundColor Green
                 Write-Host "  Team Name: $($Response.team.name)" -ForegroundColor Cyan
                 Write-Host "  Domain: $($Response.team.domain)" -ForegroundColor Cyan
                 Write-Host ""
@@ -1558,7 +1558,7 @@ try {
     if ($Findings.Count -gt 0) {
         $Findings | Export-Csv -Path $ExportPath -NoTypeInformation
         
-        Write-Host "⚠ DLP Scan Complete - Findings Detected" -ForegroundColor Yellow
+        Write-Host "[WARNING] DLP Scan Complete - Findings Detected" -ForegroundColor Yellow
         Write-Host "  Total Findings: $($Findings.Count)" -ForegroundColor Red
         Write-Host "  Report: $ExportPath" -ForegroundColor Cyan
         
@@ -1566,7 +1566,7 @@ try {
             Write-Host "  $($_.Name): $($_.Count) occurrences" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "✓ DLP Scan Complete - No sensitive content detected" -ForegroundColor Green
+        Write-Host "[SUCCESS] DLP Scan Complete - No sensitive content detected" -ForegroundColor Green
     }
     
 } catch {
@@ -1691,7 +1691,7 @@ try {
             if ($Response.ok) {
                 $FilePath = Join-Path $ExportPath "users_$ExportTimestamp.json"
                 $Response.members | ConvertTo-Json -Depth 10 | Out-File $FilePath -Encoding UTF8
-                Write-Host "✓ Users exported: $FilePath" -ForegroundColor Green
+                Write-Host "[SUCCESS] Users exported: $FilePath" -ForegroundColor Green
             }
         }
         "Channels" {
@@ -1701,7 +1701,7 @@ try {
             if ($Response.ok) {
                 $FilePath = Join-Path $ExportPath "channels_$ExportTimestamp.json"
                 $Response.channels | ConvertTo-Json -Depth 10 | Out-File $FilePath -Encoding UTF8
-                Write-Host "✓ Channels exported: $FilePath" -ForegroundColor Green
+                Write-Host "[SUCCESS] Channels exported: $FilePath" -ForegroundColor Green
             }
         }
         "Files Metadata" {
@@ -1711,7 +1711,7 @@ try {
             if ($Response.ok) {
                 $FilePath = Join-Path $ExportPath "files_$ExportTimestamp.json"
                 $Response.files | ConvertTo-Json -Depth 10 | Out-File $FilePath -Encoding UTF8
-                Write-Host "✓ Files metadata exported: $FilePath" -ForegroundColor Green
+                Write-Host "[SUCCESS] Files metadata exported: $FilePath" -ForegroundColor Green
             }
         }
         "Full Workspace" {
@@ -1720,7 +1720,7 @@ try {
             if ($UsersResponse.ok) {
                 $UsersPath = Join-Path $ExportPath "users_$ExportTimestamp.json"
                 $UsersResponse.members | ConvertTo-Json -Depth 10 | Out-File $UsersPath -Encoding UTF8
-                Write-Host "✓ Users exported" -ForegroundColor Green
+                Write-Host "[SUCCESS] Users exported" -ForegroundColor Green
             }
             
             $ChannelsUri = "https://slack.com/api/conversations.list?limit=1000&types=public_channel,private_channel"
@@ -1728,7 +1728,7 @@ try {
             if ($ChannelsResponse.ok) {
                 $ChannelsPath = Join-Path $ExportPath "channels_$ExportTimestamp.json"
                 $ChannelsResponse.channels | ConvertTo-Json -Depth 10 | Out-File $ChannelsPath -Encoding UTF8
-                Write-Host "✓ Channels exported" -ForegroundColor Green
+                Write-Host "[SUCCESS] Channels exported" -ForegroundColor Green
             }
             
             $TeamUri = "https://slack.com/api/team.info"
@@ -1736,7 +1736,7 @@ try {
             if ($TeamResponse.ok) {
                 $TeamPath = Join-Path $ExportPath "team_$ExportTimestamp.json"
                 $TeamResponse.team | ConvertTo-Json -Depth 10 | Out-File $TeamPath -Encoding UTF8
-                Write-Host "✓ Team info exported" -ForegroundColor Green
+                Write-Host "[SUCCESS] Team info exported" -ForegroundColor Green
             }
         }
     }
@@ -1793,7 +1793,7 @@ try {
             }
         }
         
-        Write-Host "✓ Installed Apps/Bots in Workspace" -ForegroundColor Green
+        Write-Host "[SUCCESS] Installed Apps/Bots in Workspace" -ForegroundColor Green
         Write-Host ""
         $Apps | Format-Table -AutoSize
         
@@ -1844,7 +1844,7 @@ try {
         exit
     }
     
-    Write-Host "✓ Current Token Permissions" -ForegroundColor Green
+    Write-Host "[SUCCESS] Current Token Permissions" -ForegroundColor Green
     Write-Host "  App: $($AuthResponse.bot_id)" -ForegroundColor Cyan
     Write-Host "  Team: $($AuthResponse.team)" -ForegroundColor Cyan
     Write-Host ""
@@ -1926,7 +1926,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ App approved: $AppId" -ForegroundColor Green
+                Write-Host "[SUCCESS] App approved: $AppId" -ForegroundColor Green
             } else {
                 Write-Host "Note: App approval requires admin.apps.approve scope" -ForegroundColor Yellow
                 Write-Host "Error: $($Response.error)" -ForegroundColor Red
@@ -1942,7 +1942,7 @@ try {
             $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
             
             if ($Response.ok) {
-                Write-Host "✓ App restricted: $AppId" -ForegroundColor Green
+                Write-Host "[SUCCESS] App restricted: $AppId" -ForegroundColor Green
             } else {
                 Write-Host "Note: App restriction requires admin.apps.restrict scope" -ForegroundColor Yellow
                 Write-Host "Error: $($Response.error)" -ForegroundColor Red
@@ -1998,7 +1998,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ App uninstalled successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] App uninstalled successfully" -ForegroundColor Green
     } else {
         Write-Error "Failed: $($Response.error)"
     }
@@ -2063,7 +2063,7 @@ try {
             }
         }
         
-        Write-Host "✓ App Activity Log (Last $DaysBack days)" -ForegroundColor Green
+        Write-Host "[SUCCESS] App Activity Log (Last $DaysBack days)" -ForegroundColor Green
         Write-Host ""
         
         $ActiveApps = $ActivityLog | Where-Object { $_.IsActive }
@@ -2138,7 +2138,7 @@ try {
         GeneratedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     }
     
-    Write-Host "✓ Workspace Analytics Report" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workspace Analytics Report" -ForegroundColor Green
     Write-Host ""
     Write-Host "Team: $($Analytics.TeamName)" -ForegroundColor Cyan
     Write-Host ""
@@ -2216,7 +2216,7 @@ try {
             [DateTimeOffset]::FromUnixTimeSeconds([double]$_.ts).DateTime.Date.ToString("yyyy-MM-dd")
         } | Sort-Object Name
         
-        Write-Host "✓ Channel Analytics: #$($InfoResponse.channel.name)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Channel Analytics: #$($InfoResponse.channel.name)" -ForegroundColor Green
         Write-Host ""
         Write-Host "Channel Info:" -ForegroundColor Yellow
         Write-Host "  Members: $($InfoResponse.channel.num_members)" -ForegroundColor Cyan
@@ -2312,7 +2312,7 @@ try {
     
     $UserActivity | Export-Csv -Path $ExportPath -NoTypeInformation
     
-    Write-Host "✓ User Activity Analytics Report" -ForegroundColor Green
+    Write-Host "[SUCCESS] User Activity Analytics Report" -ForegroundColor Green
     Write-Host ""
     Write-Host "Activity Summary:" -ForegroundColor Yellow
     $UserActivity | Group-Object ActivityStatus | ForEach-Object {
@@ -2370,22 +2370,22 @@ try {
     $TwoFAPercent = [math]::Round((($ActiveUsers.Count - $UsersWithout2FA.Count) / $ActiveUsers.Count) * 100, 1)
     
     if ($TwoFAPercent -ge 90) {
-        Write-Host "✓ 2FA Adoption: $TwoFAPercent% ($($ActiveUsers.Count - $UsersWithout2FA.Count)/$($ActiveUsers.Count))" -ForegroundColor Green
+        Write-Host "[SUCCESS] 2FA Adoption: $TwoFAPercent% ($($ActiveUsers.Count - $UsersWithout2FA.Count)/$($ActiveUsers.Count))" -ForegroundColor Green
     } elseif ($TwoFAPercent -ge 70) {
-        Write-Host "⚠ 2FA Adoption: $TwoFAPercent% - Needs improvement" -ForegroundColor Yellow
+        Write-Host "[WARNING] 2FA Adoption: $TwoFAPercent% - Needs improvement" -ForegroundColor Yellow
     } else {
-        Write-Host "✗ 2FA Adoption: $TwoFAPercent% - Critical security risk" -ForegroundColor Red
+        Write-Host "[FAILED] 2FA Adoption: $TwoFAPercent% - Critical security risk" -ForegroundColor Red
     }
     
     $AdminCount = ($ActiveUsers | Where-Object { $_.is_admin }).Count
     $AdminPercent = [math]::Round(($AdminCount / $ActiveUsers.Count) * 100, 1)
     
     if ($AdminPercent -le 5) {
-        Write-Host "✓ Admin Ratio: $AdminPercent% ($AdminCount admins)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Admin Ratio: $AdminPercent% ($AdminCount admins)" -ForegroundColor Green
     } elseif ($AdminPercent -le 15) {
-        Write-Host "⚠ Admin Ratio: $AdminPercent% - Consider reducing" -ForegroundColor Yellow
+        Write-Host "[WARNING] Admin Ratio: $AdminPercent% - Consider reducing" -ForegroundColor Yellow
     } else {
-        Write-Host "✗ Admin Ratio: $AdminPercent% - Too many admins" -ForegroundColor Red
+        Write-Host "[FAILED] Admin Ratio: $AdminPercent% - Too many admins" -ForegroundColor Red
     }
     
     $GuestCount = ($ActiveUsers | Where-Object { $_.is_restricted -or $_.is_ultra_restricted }).Count
@@ -2401,7 +2401,7 @@ try {
     
     $EmptyChannels = $ChannelsResponse.channels | Where-Object { $_.num_members -eq 0 -or $_.num_members -eq 1 }
     if ($EmptyChannels.Count -gt 0) {
-        Write-Host "⚠ Empty/Single-member Channels: $($EmptyChannels.Count) - Consider cleanup" -ForegroundColor Yellow
+        Write-Host "[WARNING] Empty/Single-member Channels: $($EmptyChannels.Count) - Consider cleanup" -ForegroundColor Yellow
     }
     
     $BotCount = ($UsersResponse.members | Where-Object { $_.is_bot -and -not $_.deleted }).Count
@@ -2483,7 +2483,7 @@ try {
         PrivateChannelPercent = [math]::Round((($ChannelsResponse.channels | Where-Object { $_.is_private }).Count / $ChannelsResponse.channels.Count) * 100, 1)
     }
     
-    Write-Host "✓ Usage Trends Report" -ForegroundColor Green
+    Write-Host "[SUCCESS] Usage Trends Report" -ForegroundColor Green
     Write-Host ""
     Write-Host "User Engagement:" -ForegroundColor Yellow
     Write-Host "  7-day active: $($TrendsReport.UsersActive7Days) ($($TrendsReport.Engagement7DayPercent)%)" -ForegroundColor Cyan
@@ -2547,7 +2547,7 @@ try {
     
     if ($Response.ok) {
         $ScheduledDateTime = [DateTimeOffset]::FromUnixTimeSeconds($ScheduleTime).DateTime
-        Write-Host "✓ Message scheduled successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Message scheduled successfully" -ForegroundColor Green
         Write-Host "  Channel: $Channel" -ForegroundColor Cyan
         Write-Host "  Scheduled for: $ScheduledDateTime" -ForegroundColor Cyan
         Write-Host "  Message ID: $($Response.scheduled_message_id)" -ForegroundColor Cyan
@@ -2598,7 +2598,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Scheduled message deleted" -ForegroundColor Green
+        Write-Host "[SUCCESS] Scheduled message deleted" -ForegroundColor Green
         Write-Host "  Message ID: $ScheduledMessageId" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $($Response.error)"
@@ -2642,7 +2642,7 @@ try {
         if ($Response.scheduled_messages.Count -eq 0) {
             Write-Host "No scheduled messages found for this channel" -ForegroundColor Yellow
         } else {
-            Write-Host "✓ Scheduled Messages" -ForegroundColor Green
+            Write-Host "[SUCCESS] Scheduled Messages" -ForegroundColor Green
             Write-Host ""
             
             foreach ($Msg in $Response.scheduled_messages) {
@@ -2744,7 +2744,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Block message posted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Block message posted successfully" -ForegroundColor Green
         Write-Host "  Channel: $Channel" -ForegroundColor Cyan
         Write-Host "  Timestamp: $($Response.ts)" -ForegroundColor Cyan
     } else {
@@ -2798,7 +2798,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Message updated successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Message updated successfully" -ForegroundColor Green
         Write-Host "  Channel: $Channel" -ForegroundColor Cyan
         Write-Host "  Message TS: $MessageTs" -ForegroundColor Cyan
     } else {
@@ -2848,7 +2848,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Message deleted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Message deleted successfully" -ForegroundColor Green
         Write-Host "  Channel: $Channel" -ForegroundColor Cyan
         Write-Host "  Message TS: $MessageTs" -ForegroundColor Cyan
     } else {
@@ -2902,7 +2902,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Reaction added successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Reaction added successfully" -ForegroundColor Green
         Write-Host "  Emoji: :$Emoji:" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $($Response.error)"
@@ -2951,7 +2951,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Message pinned successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Message pinned successfully" -ForegroundColor Green
         Write-Host "  Channel: $Channel" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $($Response.error)"
@@ -2995,7 +2995,7 @@ try {
         if ($Response.items.Count -eq 0) {
             Write-Host "No pinned messages in this channel" -ForegroundColor Yellow
         } else {
-            Write-Host "✓ Pinned Messages" -ForegroundColor Green
+            Write-Host "[SUCCESS] Pinned Messages" -ForegroundColor Green
             Write-Host ""
             
             foreach ($Item in $Response.items) {
@@ -3058,7 +3058,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Channel topic updated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Channel topic updated" -ForegroundColor Green
         Write-Host "  Channel: $Channel" -ForegroundColor Cyan
         Write-Host "  Topic: $Topic" -ForegroundColor Cyan
     } else {
@@ -3104,7 +3104,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Joined channel successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Joined channel successfully" -ForegroundColor Green
         Write-Host "  Channel: #$($Response.channel.name)" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $($Response.error)"
@@ -3149,7 +3149,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Left channel successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Left channel successfully" -ForegroundColor Green
         Write-Host "  Channel: $Channel" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $($Response.error)"
@@ -3225,7 +3225,7 @@ try {
         }
     }
     
-    Write-Host "✓ Channel Members" -ForegroundColor Green
+    Write-Host "[SUCCESS] Channel Members" -ForegroundColor Green
     Write-Host "  Total: $($MemberDetails.Count)" -ForegroundColor Cyan
     Write-Host ""
     $MemberDetails | Format-Table -AutoSize
@@ -3290,7 +3290,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
     if ($Response.ok) {
-        Write-Host "✓ Status updated successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Status updated successfully" -ForegroundColor Green
         Write-Host "  Status: $StatusEmoji $StatusText" -ForegroundColor Cyan
         if ($ExpirationMinutes -gt 0) {
             Write-Host "  Expires in: $ExpirationMinutes minutes" -ForegroundColor Cyan
@@ -3338,7 +3338,7 @@ try {
     $Response = Invoke-RestMethod -Uri $Uri -Method Get -Headers $Headers
     
     if ($Response.ok) {
-        Write-Host "✓ Search Results" -ForegroundColor Green
+        Write-Host "[SUCCESS] Search Results" -ForegroundColor Green
         Write-Host "  Query: $Query" -ForegroundColor Cyan
         Write-Host "  Total matches: $($Response.messages.total)" -ForegroundColor Cyan
         Write-Host ""
@@ -3433,7 +3433,7 @@ try {
     
     $FileReport | Export-Csv -Path $ExportPath -NoTypeInformation
     
-    Write-Host "✓ Workspace Files Report" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workspace Files Report" -ForegroundColor Green
     Write-Host "  Total Files: $($FileReport.Count)" -ForegroundColor Cyan
     Write-Host "  Total Size: $([math]::Round(($AllFiles | Measure-Object -Property size -Sum).Sum / 1MB, 2)) MB" -ForegroundColor Cyan
     Write-Host "  Exported to: $ExportPath" -ForegroundColor Cyan

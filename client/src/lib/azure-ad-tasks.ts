@@ -123,7 +123,7 @@ try {
     
     # Create the user
     $User = New-MgUser @UserParams
-    Write-Host "✓ User created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] User created successfully!" -ForegroundColor Green
     Write-Host "  User ID: $($User.Id)" -ForegroundColor Gray
     
     ${licenseSku ? `
@@ -137,7 +137,7 @@ try {
             Write-Error "License SKU not found: $LicenseSku. Run 'Get-MgSubscribedSku | Select SkuPartNumber, SkuId' to see available SKUs"
         } else {
             Set-MgUserLicense -UserId $User.Id -AddLicenses @{SkuId = $Sku.SkuId} -RemoveLicenses @()
-            Write-Host "✓ License assigned: $LicenseSku" -ForegroundColor Green
+            Write-Host "[SUCCESS] License assigned: $LicenseSku" -ForegroundColor Green
         }
     }
     ` : ''}
@@ -265,23 +265,23 @@ Processing: $($User.DisplayName) ($($User.UPN))" -ForegroundColor Cyan
                 
                 # Create user
                 $NewUser = New-MgUser @UserParams
-                Write-Host "  ✓ User created" -ForegroundColor Green
+                Write-Host "  [OK] User created" -ForegroundColor Green
                 
                 # Assign license if specified
                 if ($User.LicenseSku) {
                     $Sku = Get-MgSubscribedSku -All | Where-Object { $_.SkuPartNumber -eq $User.LicenseSku }
                     if ($Sku) {
                         Set-MgUserLicense -UserId $NewUser.Id -AddLicenses @{SkuId = $Sku.SkuId} -RemoveLicenses @()
-                        Write-Host "  ✓ License assigned: $($User.LicenseSku)" -ForegroundColor Green
+                        Write-Host "  [OK] License assigned: $($User.LicenseSku)" -ForegroundColor Green
                     } else {
-                        Write-Host "  ⚠ SKU not found: $($User.LicenseSku)" -ForegroundColor Yellow
+                        Write-Host "  [WARNING] SKU not found: $($User.LicenseSku)" -ForegroundColor Yellow
                     }
                 }
                 
                 $SuccessCount++
             }
         } catch {
-            Write-Host "  ✗ Failed: $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -379,17 +379,17 @@ try {
         # Set usage location if specified
         if ($UsageLocation) {
             Update-MgUser -UserId $UPN -UsageLocation $UsageLocation
-            Write-Host "✓ Usage location set: $UsageLocation" -ForegroundColor Green
+            Write-Host "[SUCCESS] Usage location set: $UsageLocation" -ForegroundColor Green
         }
         ` : ''}
         
         # Assign license
         Set-MgUserLicense -UserId $UPN -AddLicenses @{SkuId = $Sku.SkuId} -RemoveLicenses @()
-        Write-Host "✓ License assigned successfully: $LicenseSku" -ForegroundColor Green
+        Write-Host "[SUCCESS] License assigned successfully: $LicenseSku" -ForegroundColor Green
     } else {
         # Remove license
         Set-MgUserLicense -UserId $UPN -AddLicenses @() -RemoveLicenses @($Sku.SkuId)
-        Write-Host "✓ License removed successfully: $LicenseSku" -ForegroundColor Green
+        Write-Host "[SUCCESS] License removed successfully: $LicenseSku" -ForegroundColor Green
     }
     
 } catch {
@@ -477,7 +477,7 @@ try {
     # Update user
     if ($UpdateParams.Count -gt 0) {
         Update-MgUser -UserId $UPN @UpdateParams
-        Write-Host "✓ User attributes updated:" -ForegroundColor Green
+        Write-Host "[SUCCESS] User attributes updated:" -ForegroundColor Green
         foreach ($Key in $UpdateParams.Keys) {
             Write-Host "  $Key : $($UpdateParams[$Key])" -ForegroundColor Gray
         }
@@ -491,7 +491,7 @@ try {
             "@odata.id" = "https://graph.microsoft.com/v1.0/users/$($Manager.Id)"
         }
         Set-MgUserManagerByRef -UserId $UPN -BodyParameter $ManagerRef
-        Write-Host "✓ Manager updated: $ManagerUPN" -ForegroundColor Green
+        Write-Host "[SUCCESS] Manager updated: $ManagerUPN" -ForegroundColor Green
     }
     ` : ''}
     
@@ -572,13 +572,13 @@ try {
     
     # Update account status
     Update-MgUser -UserId $UPN -AccountEnabled $NewStatus
-    Write-Host "✓ Account ${operation}d successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Account ${operation}d successfully" -ForegroundColor Green
     
     # Revoke tokens if disabling and requested
     if ($Operation -eq "Disable" -and $RevokeTokens) {
         Write-Host "Revoking refresh tokens..." -ForegroundColor Cyan
         Revoke-MgUserSignInSession -UserId $UPN
-        Write-Host "✓ Refresh tokens revoked - user must re-authenticate" -ForegroundColor Green
+        Write-Host "[SUCCESS] Refresh tokens revoked - user must re-authenticate" -ForegroundColor Green
     }
     
     Write-Host "
@@ -667,7 +667,7 @@ try {
     
     # Update password
     Update-MgUser -UserId $UPN -PasswordProfile $PasswordProfile
-    Write-Host "✓ Password reset successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Password reset successfully" -ForegroundColor Green
     
     if ($ForcePasswordChange) {
         Write-Host "  User will be required to change password at next sign-in" -ForegroundColor Gray
@@ -677,7 +677,7 @@ try {
     if ($RevokeTokens) {
         Write-Host "Revoking refresh tokens..." -ForegroundColor Cyan
         Revoke-MgUserSignInSession -UserId $UPN
-        Write-Host "✓ Refresh tokens revoked - user must re-authenticate on all devices" -ForegroundColor Green
+        Write-Host "[SUCCESS] Refresh tokens revoked - user must re-authenticate on all devices" -ForegroundColor Green
     }
     
     Write-Host "
@@ -797,7 +797,7 @@ try {
     if ($ExportPath) {
         $Results | Export-Csv -Path $ExportPath -NoTypeInformation
         Write-Host "
-✓ Report exported to: $ExportPath" -ForegroundColor Green
+[OK] Report exported to: $ExportPath" -ForegroundColor Green
     }
     ` : ''}
     
@@ -893,7 +893,7 @@ try {
     
     # Create group
     $Group = New-MgGroup @GroupParams
-    Write-Host "✓ Group created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group created successfully!" -ForegroundColor Green
     Write-Host "  Group ID: $($Group.Id)" -ForegroundColor Gray
     Write-Host "  Type: $GroupType" -ForegroundColor Gray
     
@@ -906,7 +906,7 @@ try {
             "@odata.id" = "https://graph.microsoft.com/v1.0/users/$($Owner.Id)"
         }
         New-MgGroupOwnerByRef -GroupId $Group.Id -BodyParameter $OwnerRef
-        Write-Host "✓ Owner added" -ForegroundColor Green
+        Write-Host "[SUCCESS] Owner added" -ForegroundColor Green
     }
     ` : ''}
     
@@ -1029,16 +1029,16 @@ try {
                         "@odata.id" = "https://graph.microsoft.com/v1.0/users/$($MgUser.Id)"
                     }
                     New-MgGroupMemberByRef -GroupId $Group.Id -BodyParameter $MemberRef
-                    Write-Host "  ✓ Member added" -ForegroundColor Green
+                    Write-Host "  [OK] Member added" -ForegroundColor Green
                 } else {
                     Remove-MgGroupMemberByRef -GroupId $Group.Id -DirectoryObjectId $MgUser.Id
-                    Write-Host "  ✓ Member removed" -ForegroundColor Green
+                    Write-Host "  [OK] Member removed" -ForegroundColor Green
                 }
                 
                 $SuccessCount++
             }
         } catch {
-            Write-Host "  ✗ Failed: $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -1133,7 +1133,7 @@ try {
         "@odata.id" = "https://graph.microsoft.com/v1.0/users/$($Owner.Id)"
     }
     New-MgGroupOwnerByRef -GroupId $Group.Id -BodyParameter $OwnerRef
-    Write-Host "✓ Owner added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Owner added successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to assign group owner: $_"
@@ -1245,7 +1245,7 @@ try {
     
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
-    Write-Host "✓ Group membership exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group membership exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total members: $($Results.Count)" -ForegroundColor Gray
     
 } catch {
@@ -1334,7 +1334,7 @@ try {
     
     # Create dynamic group
     $Group = New-MgGroup @GroupParams
-    Write-Host "✓ Dynamic group created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dynamic group created successfully!" -ForegroundColor Green
     Write-Host "  Group ID: $($Group.Id)" -ForegroundColor Gray
     Write-Host "  Membership will be evaluated automatically" -ForegroundColor Gray
     
@@ -1444,7 +1444,7 @@ try {
     
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
-    Write-Host "✓ Groups inventory exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Groups inventory exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total groups: $($Results.Count)" -ForegroundColor Gray
     
 } catch {
@@ -1553,7 +1553,7 @@ try {
     
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
-    Write-Host "✓ Sign-in logs exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sign-in logs exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total records: $($Results.Count)" -ForegroundColor Gray
     
 } catch {
@@ -1656,7 +1656,7 @@ try {
     
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
-    Write-Host "✓ Audit logs exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit logs exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total records: $($Results.Count)" -ForegroundColor Gray
     
 } catch {
@@ -1779,7 +1779,7 @@ try {
                     Write-Host "  [TEST] Would disable: $($User.DisplayName)" -ForegroundColor Gray
                 } else {
                     Update-MgUser -UserId $User.Id -AccountEnabled $false
-                    Write-Host "  ✓ Disabled: $($User.DisplayName)" -ForegroundColor Yellow
+                    Write-Host "  [OK] Disabled: $($User.DisplayName)" -ForegroundColor Yellow
                     $DisabledCount++
                 }
             }
@@ -1789,7 +1789,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host "
-✓ Inactive accounts report exported to: $ExportPath" -ForegroundColor Green
+[OK] Inactive accounts report exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total inactive accounts: $($Results.Count)" -ForegroundColor Gray
     if ($DisableAccounts -and -not $TestMode) {
         Write-Host "  Accounts disabled: $DisabledCount" -ForegroundColor Yellow
@@ -1883,14 +1883,14 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host "
-✓ License usage report exported to: $ExportPath" -ForegroundColor Green
+[OK] License usage report exported to: $ExportPath" -ForegroundColor Green
     
     # Summary
     $LowLicenses = ($Results | Where-Object { $_.Warning -eq "Low" }).Count
     $CriticalLicenses = ($Results | Where-Object { $_.Warning -eq "Critical" }).Count
     if ($LowLicenses -gt 0 -or $CriticalLicenses -gt 0) {
         Write-Host "
-⚠ WARNING:" -ForegroundColor Yellow
+[WARNING] WARNING:" -ForegroundColor Yellow
         if ($CriticalLicenses -gt 0) {
             Write-Host "  $CriticalLicenses license types have NO available licenses!" -ForegroundColor Red
         }
@@ -2011,7 +2011,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host "
-✓ MFA compliance report exported to: $ExportPath" -ForegroundColor Green
+[OK] MFA compliance report exported to: $ExportPath" -ForegroundColor Green
     
     # Summary
     $ComplianceRate = [Math]::Round(($CompliantCount / $Users.Count) * 100, 2)
@@ -2135,7 +2135,7 @@ try {
     
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
-    Write-Host "✓ Devices exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Devices exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total devices: $($Results.Count)" -ForegroundColor Gray
     
     # Summary by join type
@@ -2258,10 +2258,10 @@ try {
             if (-not $TestMode) {
                 if ($Action -eq "Disable") {
                     Update-MgDevice -DeviceId $Device.Id -AccountEnabled $false
-                    Write-Host "  ✓ Disabled: $($Device.DisplayName)" -ForegroundColor Yellow
+                    Write-Host "  [OK] Disabled: $($Device.DisplayName)" -ForegroundColor Yellow
                 } elseif ($Action -eq "Delete") {
                     Remove-MgDevice -DeviceId $Device.Id
-                    Write-Host "  ✓ Deleted: $($Device.DisplayName)" -ForegroundColor Red
+                    Write-Host "  [OK] Deleted: $($Device.DisplayName)" -ForegroundColor Red
                 }
                 $ActionedCount++
             } else {
@@ -2275,7 +2275,7 @@ try {
     if ($ExportPath) {
         $Results | Export-Csv -Path $ExportPath -NoTypeInformation
         Write-Host "
-✓ Stale devices report exported to: $ExportPath" -ForegroundColor Green
+[OK] Stale devices report exported to: $ExportPath" -ForegroundColor Green
     }
     ` : ''}
     
@@ -2389,7 +2389,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host "
-✓ Device compliance report exported to: $ExportPath" -ForegroundColor Green
+[OK] Device compliance report exported to: $ExportPath" -ForegroundColor Green
     
     # Summary
     $Compliant = ($Results | Where-Object { $_.ComplianceStatus -eq "Compliant" }).Count
@@ -2505,7 +2505,7 @@ try {
     
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
-    Write-Host "✓ Device inventory exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device inventory exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total devices: $($Results.Count)" -ForegroundColor Gray
     
     # Summary by OS
@@ -2633,7 +2633,7 @@ try {
                     Write-Host "  [TEST] Would remove: $($Guest.DisplayName)" -ForegroundColor Gray
                 } else {
                     Remove-MgUser -UserId $Guest.Id
-                    Write-Host "  ✓ Removed: $($Guest.DisplayName)" -ForegroundColor Red
+                    Write-Host "  [OK] Removed: $($Guest.DisplayName)" -ForegroundColor Red
                     $RemovedCount++
                 }
             }
@@ -2643,7 +2643,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host "
-✓ Inactive guests report exported to: $ExportPath" -ForegroundColor Green
+[OK] Inactive guests report exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total inactive guests: $($Results.Count)" -ForegroundColor Gray
     if ($RemoveGuests -and -not $TestMode) {
         Write-Host "  Guests removed: $RemovedCount" -ForegroundColor Red
@@ -2756,12 +2756,12 @@ try {
                 }
                 
                 $Invitation = New-MgInvitation @InviteParams
-                Write-Host "  ✓ Invitation sent to: $($Guest.Email)" -ForegroundColor Green
+                Write-Host "  [OK] Invitation sent to: $($Guest.Email)" -ForegroundColor Green
                 Write-Host "    Invitation ID: $($Invitation.Id)" -ForegroundColor Gray
                 $SuccessCount++
             }
         } catch {
-            Write-Host "  ✗ Failed: $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -2878,10 +2878,10 @@ try {
             if ($Action -ne "Report" -and -not $TestMode) {
                 if ($Action -eq "Disable") {
                     Update-MgUser -UserId $User.Id -AccountEnabled $false
-                    Write-Host "  ✓ Disabled: $($User.DisplayName)" -ForegroundColor Yellow
+                    Write-Host "  [OK] Disabled: $($User.DisplayName)" -ForegroundColor Yellow
                 } elseif ($Action -eq "Delete") {
                     Remove-MgUser -UserId $User.Id
-                    Write-Host "  ✓ Deleted: $($User.DisplayName)" -ForegroundColor Red
+                    Write-Host "  [OK] Deleted: $($User.DisplayName)" -ForegroundColor Red
                 }
                 $ActionedCount++
             } elseif ($Action -ne "Report") {
@@ -2893,7 +2893,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host "
-✓ Unlicensed accounts report exported to: $ExportPath" -ForegroundColor Green
+[OK] Unlicensed accounts report exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Total unlicensed accounts: $($Results.Count)" -ForegroundColor Gray
     if ($Action -ne "Report" -and -not $TestMode) {
         Write-Host "  Accounts $($Action.ToLower())d: $ActionedCount" -ForegroundColor Yellow
@@ -3030,13 +3030,13 @@ try {
     # Create the policy
     $Policy = New-MgIdentityConditionalAccessPolicy -BodyParameter $PolicyParams
     
-    Write-Host "✓ Conditional Access Policy created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Conditional Access Policy created successfully!" -ForegroundColor Green
     Write-Host "  Policy ID: $($Policy.Id)" -ForegroundColor Gray
     Write-Host "  State: $PolicyState" -ForegroundColor Gray
     
     if ($PolicyState -eq "enabledForReportingButNotEnforced") {
         Write-Host "
-⚠ Policy is in Report-only mode - Review sign-in logs before enabling" -ForegroundColor Yellow
+[WARNING] Policy is in Report-only mode - Review sign-in logs before enabling" -ForegroundColor Yellow
     }
     
 } catch {
@@ -3149,7 +3149,7 @@ try {
         }
         
         $Assignment = New-MgRoleManagementDirectoryRoleEligibilityScheduleRequest -BodyParameter $AssignmentParams -Action "AdminAssign"
-        Write-Host "✓ Eligible role assignment created!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Eligible role assignment created!" -ForegroundColor Green
         Write-Host "  Assignment ID: $($Assignment.Id)" -ForegroundColor Gray
         Write-Host "  Valid for: $DurationHours hours" -ForegroundColor Gray
         Write-Host "  User must activate this role when needed" -ForegroundColor Yellow
@@ -3170,9 +3170,9 @@ try {
         }
         
         $Assignment = New-MgRoleManagementDirectoryRoleAssignmentScheduleRequest -BodyParameter $AssignmentParams -Action "AdminAssign"
-        Write-Host "✓ Active role assignment created!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Active role assignment created!" -ForegroundColor Green
         Write-Host "  Assignment ID: $($Assignment.Id)" -ForegroundColor Gray
-        Write-Host "  ⚠ Active assignments grant immediate permanent access" -ForegroundColor Yellow
+        Write-Host "  [WARNING] Active assignments grant immediate permanent access" -ForegroundColor Yellow
         
     } elseif ($Operation -eq "Activate") {
         # Activate existing eligible assignment
@@ -3191,7 +3191,7 @@ try {
         }
         
         $Activation = New-MgRoleManagementDirectoryRoleAssignmentScheduleRequest -BodyParameter $ActivationParams -Action "SelfActivate"
-        Write-Host "✓ Role activated successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Role activated successfully!" -ForegroundColor Green
         Write-Host "  Activation ID: $($Activation.Id)" -ForegroundColor Gray
         Write-Host "  Active for: $DurationHours hours" -ForegroundColor Gray
     }
@@ -3327,14 +3327,14 @@ try {
     
     $Policy = New-MgIdentityConditionalAccessPolicy -BodyParameter $PolicyParams
     
-    Write-Host "✓ Identity Protection policy created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Identity Protection policy created!" -ForegroundColor Green
     Write-Host "  Policy ID: $($Policy.Id)" -ForegroundColor Gray
     Write-Host "  Policy Type: $PolicyType" -ForegroundColor Gray
     Write-Host "  State: $PolicyState" -ForegroundColor Gray
     
     if ($PolicyState -eq "enabledForReportingButNotEnforced") {
         Write-Host "
-⚠ Policy in Report-only mode - Monitor impact before enforcement" -ForegroundColor Yellow
+[WARNING] Policy in Report-only mode - Monitor impact before enforcement" -ForegroundColor Yellow
     }
     
 } catch {
@@ -3423,11 +3423,11 @@ try {
         }
         
         ${membershipType === 'Dynamic' ? `
-        Write-Host "⚠ Dynamic membership specified - Configure membership rule in Azure Portal" -ForegroundColor Yellow
+        Write-Host "[WARNING] Dynamic membership specified - Configure membership rule in Azure Portal" -ForegroundColor Yellow
         ` : ''}
         
         $AU = New-MgDirectoryAdministrativeUnit -BodyParameter $AUParams
-        Write-Host "✓ Administrative Unit created!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Administrative Unit created!" -ForegroundColor Green
         Write-Host "  AU ID: $($AU.Id)" -ForegroundColor Gray
         Write-Host "  Name: $($AU.DisplayName)" -ForegroundColor Gray
         
@@ -3452,13 +3452,13 @@ try {
                         "@odata.id" = "https://graph.microsoft.com/v1.0/users/$($User.Id)"
                     }
                     New-MgDirectoryAdministrativeUnitMemberByRef -AdministrativeUnitId $AU.Id -BodyParameter $MemberRef
-                    Write-Host "  ✓ Added: $UPN" -ForegroundColor Green
+                    Write-Host "  [OK] Added: $UPN" -ForegroundColor Green
                 } else {
                     Remove-MgDirectoryAdministrativeUnitMemberByRef -AdministrativeUnitId $AU.Id -DirectoryObjectId $User.Id
-                    Write-Host "  ✓ Removed: $UPN" -ForegroundColor Green
+                    Write-Host "  [OK] Removed: $UPN" -ForegroundColor Green
                 }
             } catch {
-                Write-Host "  ✗ Failed: $UPN - $_" -ForegroundColor Red
+                Write-Host "  [FAILED] Failed: $UPN - $_" -ForegroundColor Red
             }
         }
         ` : `Write-Error "No member UPNs provided"`}
@@ -3492,7 +3492,7 @@ Total members: $($Members.Count)" -ForegroundColor Green
         }
         
         Remove-MgDirectoryAdministrativeUnit -AdministrativeUnitId $AU.Id
-        Write-Host "✓ Administrative Unit deleted: $AUName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Administrative Unit deleted: $AUName" -ForegroundColor Green
     }
     
     Write-Host "
@@ -3692,7 +3692,7 @@ try {
     
     $Review = New-MgIdentityGovernanceAccessReviewDefinition -BodyParameter $ReviewParams
     
-    Write-Host "✓ Access Review created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Access Review created successfully!" -ForegroundColor Green
     Write-Host "  Review ID: $($Review.Id)" -ForegroundColor Gray
     Write-Host "  Recurrence: ${recurrence}" -ForegroundColor Gray
     Write-Host "  Duration: $DurationDays days" -ForegroundColor Gray
@@ -3700,7 +3700,7 @@ try {
     
     if ($AutoApply) {
         Write-Host "
-⚠ Auto-apply enabled - Access will be removed automatically on deny decisions" -ForegroundColor Yellow
+[WARNING] Auto-apply enabled - Access will be removed automatically on deny decisions" -ForegroundColor Yellow
     }
     
 } catch {
@@ -3795,17 +3795,17 @@ Connectors:" -ForegroundColor Cyan
         Write-Host "Starting delta synchronization cycle..." -ForegroundColor Yellow
         Start-ADSyncSyncCycle -PolicyType Delta
         
-        Write-Host "✓ Delta sync initiated successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Delta sync initiated successfully!" -ForegroundColor Green
         Write-Host "  Monitor progress with Get-ADSyncScheduler" -ForegroundColor Gray
         
     } elseif ($Operation -eq "Force Full Sync") {
         # Start full synchronization
-        Write-Host "⚠ Starting FULL synchronization cycle - This may take time!" -ForegroundColor Yellow
+        Write-Host "[WARNING] Starting FULL synchronization cycle - This may take time!" -ForegroundColor Yellow
         Start-ADSyncSyncCycle -PolicyType Initial
         
-        Write-Host "✓ Full sync initiated successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Full sync initiated successfully!" -ForegroundColor Green
         Write-Host "  Monitor progress with Get-ADSyncScheduler" -ForegroundColor Gray
-        Write-Host "  ⚠ Full sync processes all objects - May impact performance" -ForegroundColor Yellow
+        Write-Host "  [WARNING] Full sync processes all objects - May impact performance" -ForegroundColor Yellow
         
     } elseif ($Operation -eq "Export Sync Errors") {
         # Export synchronization errors
@@ -3832,7 +3832,7 @@ Connectors:" -ForegroundColor Cyan
         }
         
         $AllErrors | Export-Csv -Path $ExportPath -NoTypeInformation
-        Write-Host "✓ Sync errors exported: $($AllErrors.Count) errors found" -ForegroundColor Green
+        Write-Host "[SUCCESS] Sync errors exported: $($AllErrors.Count) errors found" -ForegroundColor Green
         Write-Host "  Export path: $ExportPath" -ForegroundColor Gray
         ` : `
         Write-Error "Export path required for Export Sync Errors operation"
@@ -3931,7 +3931,7 @@ To view custom banned password list, use Azure Portal:" -ForegroundColor Yellow
         ${bannedPasswords ? `
         # Configure custom banned password list
         Write-Host "Configuring custom banned passwords..." -ForegroundColor Cyan
-        Write-Host "⚠ This requires Azure AD Premium P1 or P2 license" -ForegroundColor Yellow
+        Write-Host "[WARNING] This requires Azure AD Premium P1 or P2 license" -ForegroundColor Yellow
         
         $BannedList = "${bannedPasswords}" -split ","
         $BannedList = $BannedList | ForEach-Object { $_.Trim() }
@@ -3961,7 +3961,7 @@ Enforcement Mode: ${enforcementMode}" -ForegroundColor $(if ("${enforcementMode}
         # Note: Graph API has limited support for password protection
         # Recommend using Azure Portal for full configuration
         Write-Host "
-⚠ Complete configuration in Azure Portal:" -ForegroundColor Yellow
+[WARNING] Complete configuration in Azure Portal:" -ForegroundColor Yellow
         Write-Host "  1. Navigate to: Azure AD > Security > Authentication Methods > Password Protection" -ForegroundColor Gray
         Write-Host "  2. Add custom banned passwords: $(($BannedList -join ', '))" -ForegroundColor Gray
         Write-Host "  3. Set Mode: ${enforcementMode}" -ForegroundColor Gray
@@ -3979,7 +3979,7 @@ Enforcement Mode: ${enforcementMode}" -ForegroundColor $(if ("${enforcementMode}
         
         # Smart lockout configuration via Graph API
         Write-Host "
-⚠ Smart Lockout configured in Azure Portal:" -ForegroundColor Yellow
+[WARNING] Smart Lockout configured in Azure Portal:" -ForegroundColor Yellow
         Write-Host "  1. Navigate to: Azure AD > Security > Authentication Methods > Password Protection" -ForegroundColor Gray
         Write-Host "  2. Set Lockout threshold: ${lockoutThreshold}" -ForegroundColor Gray
         Write-Host "  3. Set Lockout duration: ${lockoutDurationSeconds} seconds" -ForegroundColor Gray
@@ -3987,7 +3987,7 @@ Enforcement Mode: ${enforcementMode}" -ForegroundColor $(if ("${enforcementMode}
         Write-Host "  5. Click Save" -ForegroundColor Gray
         
         Write-Host "
-✓ Lockout policy settings prepared" -ForegroundColor Green
+[OK] Lockout policy settings prepared" -ForegroundColor Green
         Write-Host "  Apply settings in Azure Portal (Graph API support limited)" -ForegroundColor Yellow
     }
     
@@ -4092,7 +4092,7 @@ try {
         # Send invitation
         $Invitation = New-MgInvitation -BodyParameter $InviteParams
         
-        Write-Host "✓ Guest invitation sent successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Guest invitation sent successfully!" -ForegroundColor Green
         Write-Host "  Invitation ID: $($Invitation.Id)" -ForegroundColor Gray
         Write-Host "  Invited User ID: $($Invitation.InvitedUser.Id)" -ForegroundColor Gray
         Write-Host "  Invite Redeem URL: $($Invitation.InviteRedeemUrl)" -ForegroundColor Gray
@@ -4115,7 +4115,7 @@ try {
         Write-Host "
 === Guest Users ($($Guests.Count) total) ===" -ForegroundColor Cyan
         foreach ($Guest in $Guests) {
-            $Status = if ($Guest.ExternalUserState -eq "Accepted") { "✓" } else { "⏳" }
+            $Status = if ($Guest.ExternalUserState -eq "Accepted") { "[OK]" } else { "⏳" }
             Write-Host "$Status $($Guest.DisplayName) - $($Guest.Mail)" -ForegroundColor Gray
             Write-Host "    UPN: $($Guest.UserPrincipalName)" -ForegroundColor DarkGray
             Write-Host "    Status: $($Guest.ExternalUserState)" -ForegroundColor DarkGray
@@ -4139,7 +4139,7 @@ try {
         # Remove guest
         Remove-MgUser -UserId $Guest.Id
         
-        Write-Host "✓ Guest user removed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Guest user removed successfully" -ForegroundColor Green
         Write-Host "  Removed: $($Guest.DisplayName)" -ForegroundColor Gray
         ` : `
         Write-Error "Guest email required for Remove operation"
@@ -4233,7 +4233,7 @@ try {
     
     if ($Operation -eq "Enable User MFA" -or $Operation -eq "Disable User MFA") {
         ${upn ? `
-        Write-Host "⚠ Per-user MFA is legacy - Consider using Conditional Access policies instead" -ForegroundColor Yellow
+        Write-Host "[WARNING] Per-user MFA is legacy - Consider using Conditional Access policies instead" -ForegroundColor Yellow
         Write-Host "
 Note: Enabling MFA per-user via Graph API requires MSOnline module" -ForegroundColor Yellow
         Write-Host "Modern approach: Use Conditional Access policy to require MFA" -ForegroundColor Cyan
@@ -4252,10 +4252,10 @@ Note: Enabling MFA per-user via Graph API requires MSOnline module" -ForegroundC
                 $User.StrongAuthenticationRequirements = @($Auth)
                 
                 Set-MsolUser -UserPrincipalName $UPN -StrongAuthenticationRequirements $User.StrongAuthenticationRequirements
-                Write-Host "✓ MFA enabled for user: $UPN" -ForegroundColor Green
+                Write-Host "[SUCCESS] MFA enabled for user: $UPN" -ForegroundColor Green
             } else {
                 Set-MsolUser -UserPrincipalName $UPN -StrongAuthenticationRequirements @()
-                Write-Host "✓ MFA disabled for user: $UPN" -ForegroundColor Green
+                Write-Host "[SUCCESS] MFA disabled for user: $UPN" -ForegroundColor Green
             }
         } else {
             Write-Error "MSOnline module not installed. Install with: Install-Module MSOnline"
@@ -4291,7 +4291,7 @@ Registered Authentication Methods:" -ForegroundColor Cyan
 MFA Registered: $MfaRegistered" -ForegroundColor $(if ($MfaRegistered) { "Green" } else { "Red" })
         
         if (-not $MfaRegistered) {
-            Write-Host "  ⚠ User has not registered for MFA" -ForegroundColor Yellow
+            Write-Host "  [WARNING] User has not registered for MFA" -ForegroundColor Yellow
         }
         ` : `
         # Get MFA status for all users (summary)
@@ -4415,10 +4415,10 @@ try {
 Current Consent Policy:" -ForegroundColor Cyan
         $CanConsent = $AuthPolicy.DefaultUserRolePermissions.AllowedToConsentToApps
         if ($CanConsent) {
-            Write-Host "  ✓ Users CAN consent to applications" -ForegroundColor Yellow
+            Write-Host "  [OK] Users CAN consent to applications" -ForegroundColor Yellow
             Write-Host "  Recommended: Restrict to verified publishers only" -ForegroundColor Yellow
         } else {
-            Write-Host "  ✗ User consent DISABLED - Admin consent required for all apps" -ForegroundColor Green
+            Write-Host "  [FAILED] User consent DISABLED - Admin consent required for all apps" -ForegroundColor Green
         }
         
         Write-Host "
@@ -4429,20 +4429,20 @@ To configure detailed consent policies:" -ForegroundColor Yellow
         Write-Host "Configuring user consent policy: $UserConsentSetting" -ForegroundColor Cyan
         
         Write-Host "
-⚠ Detailed consent policies configured in Azure Portal:" -ForegroundColor Yellow
+[WARNING] Detailed consent policies configured in Azure Portal:" -ForegroundColor Yellow
         Write-Host "  1. Navigate to: Azure AD > Enterprise applications > Consent and permissions" -ForegroundColor Gray
         Write-Host "  2. Under 'User consent settings', select:" -ForegroundColor Gray
         
         if ($UserConsentSetting -eq "Allow All") {
             Write-Host "     - 'Allow user consent for apps'" -ForegroundColor Red
-            Write-Host "     ⚠ WARNING: Allows users to consent to ANY application (not recommended)" -ForegroundColor Red
+            Write-Host "     [WARNING] WARNING: Allows users to consent to ANY application (not recommended)" -ForegroundColor Red
         } elseif ($UserConsentSetting -eq "Allow Verified Publishers") {
             Write-Host "     - 'Allow user consent for apps from verified publishers, for selected permissions'" -ForegroundColor Green
-            Write-Host "     ✓ RECOMMENDED: Balances security and usability" -ForegroundColor Green
+            Write-Host "     [OK] RECOMMENDED: Balances security and usability" -ForegroundColor Green
         } else {
             Write-Host "     - 'Do not allow user consent'" -ForegroundColor Yellow
-            Write-Host "     ✓ Most secure - Admin approval required for all apps" -ForegroundColor Green
-            Write-Host "     ⚠ Increases admin workload" -ForegroundColor Yellow
+            Write-Host "     [OK] Most secure - Admin approval required for all apps" -ForegroundColor Green
+            Write-Host "     [WARNING] Increases admin workload" -ForegroundColor Yellow
         }
         
         Write-Host "
@@ -4452,7 +4452,7 @@ To configure detailed consent policies:" -ForegroundColor Yellow
         Write-Host "  4. Click Save" -ForegroundColor Gray
         
         Write-Host "
-✓ Consent policy guidance provided" -ForegroundColor Green
+[OK] Consent policy guidance provided" -ForegroundColor Green
         Write-Host "  Apply settings in Azure Portal (Graph API support limited)" -ForegroundColor Yellow
     }
     
@@ -4592,7 +4592,7 @@ Retrieving sign-in logs (this may take time)..." -ForegroundColor Yellow
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     
     Write-Host "
-✓ Sign-in logs exported successfully!" -ForegroundColor Green
+[OK] Sign-in logs exported successfully!" -ForegroundColor Green
     Write-Host "  Export path: $ExportPath" -ForegroundColor Gray
     Write-Host "  Total records: $($Results.Count)" -ForegroundColor Gray
     
@@ -4607,7 +4607,7 @@ Summary:" -ForegroundColor Cyan
     
     if ($FailureCount -gt 0) {
         Write-Host "
-⚠ Review failed sign-ins for potential security issues" -ForegroundColor Yellow
+[WARNING] Review failed sign-ins for potential security issues" -ForegroundColor Yellow
     }
     
 } catch {
@@ -4715,10 +4715,10 @@ try {
             $Location = New-MgIdentityConditionalAccessNamedLocation -BodyParameter $LocationParams
             
             Write-Host "
-✓ IP-based named location created!" -ForegroundColor Green
+[OK] IP-based named location created!" -ForegroundColor Green
             Write-Host "  Location ID: $($Location.Id)" -ForegroundColor Gray
             if ($IsTrusted) {
-                Write-Host "  ⚠ Marked as TRUSTED - Can bypass MFA" -ForegroundColor Yellow
+                Write-Host "  [WARNING] Marked as TRUSTED - Can bypass MFA" -ForegroundColor Yellow
             }
             ` : `
             Write-Error "IP ranges required for IP-based location"
@@ -4745,7 +4745,7 @@ try {
             $Location = New-MgIdentityConditionalAccessNamedLocation -BodyParameter $LocationParams
             
             Write-Host "
-✓ Country-based named location created!" -ForegroundColor Green
+[OK] Country-based named location created!" -ForegroundColor Green
             Write-Host "  Location ID: $($Location.Id)" -ForegroundColor Gray
             Write-Host "  Use in Conditional Access to block/allow these countries" -ForegroundColor Yellow
             ` : `
@@ -4768,7 +4768,7 @@ try {
 === Named Locations ($($Locations.Count) total) ===" -ForegroundColor Cyan
         foreach ($Location in $Locations) {
             $Type = if ($Location.AdditionalProperties.'@odata.type' -match 'ipNamedLocation') { "IP" } else { "Country" }
-            $Trusted = if ($Location.AdditionalProperties.isTrusted) { "✓ Trusted" } else { "" }
+            $Trusted = if ($Location.AdditionalProperties.isTrusted) { "[OK] Trusted" } else { "" }
             
             Write-Host "
 $($Location.DisplayName) ($Type) $Trusted" -ForegroundColor White
@@ -4800,7 +4800,7 @@ $($Location.DisplayName) ($Type) $Trusted" -ForegroundColor White
         
         Remove-MgIdentityConditionalAccessNamedLocation -NamedLocationId $Location.Id
         
-        Write-Host "✓ Named location deleted: $LocationName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Named location deleted: $LocationName" -ForegroundColor Green
         ` : `
         Write-Error "Location name required for Delete operation"
         exit 1
@@ -4896,7 +4896,7 @@ try {
         # Check if role assignment already exists
         $ExistingAssignments = Get-MgRoleManagementDirectoryRoleAssignment -Filter "principalId eq '$($User.Id)' and roleDefinitionId eq '$($RoleDefinition.Id)'"
         if ($ExistingAssignments) {
-            Write-Host "⚠ User already has this role assigned" -ForegroundColor Yellow
+            Write-Host "[WARNING] User already has this role assigned" -ForegroundColor Yellow
             exit 0
         }
         
@@ -4909,7 +4909,7 @@ try {
         
         $Assignment = New-MgRoleManagementDirectoryRoleAssignment -BodyParameter $AssignmentParams
         
-        Write-Host "✓ Role assigned successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Role assigned successfully!" -ForegroundColor Green
         Write-Host "  Assignment ID: $($Assignment.Id)" -ForegroundColor Gray
         Write-Host "  User: $($User.DisplayName)" -ForegroundColor Gray
         Write-Host "  Role: $RoleName" -ForegroundColor Gray
@@ -4932,13 +4932,13 @@ try {
         $Assignments = Get-MgRoleManagementDirectoryRoleAssignment -Filter "principalId eq '$($User.Id)' and roleDefinitionId eq '$($RoleDefinition.Id)'"
         
         if (-not $Assignments) {
-            Write-Host "⚠ User does not have this role assigned" -ForegroundColor Yellow
+            Write-Host "[WARNING] User does not have this role assigned" -ForegroundColor Yellow
             exit 0
         }
         
         foreach ($Assignment in $Assignments) {
             Remove-MgRoleManagementDirectoryRoleAssignment -UnifiedRoleAssignmentId $Assignment.Id
-            Write-Host "✓ Role removed successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Role removed successfully" -ForegroundColor Green
         }
         ` : `
         Write-Error "Role name and User Principal Name required for Remove operation"
@@ -5088,7 +5088,7 @@ Available Authentication Methods:" -ForegroundColor Cyan
     } elseif ($Operation -eq "Enable SSPR (Guidance)") {
         Write-Host "Enabling Self-Service Password Reset..." -ForegroundColor Cyan
         Write-Host "
-⚠ SSPR configuration is done via Azure Portal (Graph API support limited)" -ForegroundColor Yellow
+[WARNING] SSPR configuration is done via Azure Portal (Graph API support limited)" -ForegroundColor Yellow
         
         Write-Host "
 Step-by-Step SSPR Configuration:" -ForegroundColor Cyan
@@ -5106,13 +5106,13 @@ Step-by-Step SSPR Configuration:" -ForegroundColor Cyan
         Write-Host "   - Navigate to: Authentication methods" -ForegroundColor Gray
         Write-Host "   - Set 'Number of methods required to reset': $MethodsRequired" -ForegroundColor Gray
         if ($MethodsRequired -eq "2") {
-            Write-Host "   ✓ RECOMMENDED: 2 methods for better security" -ForegroundColor Green
+            Write-Host "   [OK] RECOMMENDED: 2 methods for better security" -ForegroundColor Green
         }
         Write-Host "   - Enable methods:" -ForegroundColor Gray
-        Write-Host "     ✓ Mobile app notification" -ForegroundColor Green
-        Write-Host "     ✓ Mobile app code" -ForegroundColor Green
-        Write-Host "     ✓ Email (external email required)" -ForegroundColor Green
-        Write-Host "     ✓ Mobile phone" -ForegroundColor Green
+        Write-Host "     [OK] Mobile app notification" -ForegroundColor Green
+        Write-Host "     [OK] Mobile app code" -ForegroundColor Green
+        Write-Host "     [OK] Email (external email required)" -ForegroundColor Green
+        Write-Host "     [OK] Mobile phone" -ForegroundColor Green
         
         Write-Host "
 3. Configure Registration:" -ForegroundColor White
@@ -5136,7 +5136,7 @@ Step-by-Step SSPR Configuration:" -ForegroundColor Cyan
 6. Click 'Save' to apply settings" -ForegroundColor White
         
         Write-Host "
-✓ SSPR configuration guidance provided" -ForegroundColor Green
+[OK] SSPR configuration guidance provided" -ForegroundColor Green
         Write-Host "  Apply these settings in Azure Portal > Password reset" -ForegroundColor Yellow
         
         Write-Host "
@@ -5159,11 +5159,11 @@ Disconnect-MgGraph`;
     }
   },
 
-  {id:'export-group-membership',name:'Export Group Membership Report',description:'List all groups and their members',category:'Reporting',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\GroupMembership.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-MgGraph -Scopes "Group.Read.All"\ntry{$Groups=Get-MgGroup -All;$Results=@();foreach($Group in $Groups){$Members=Get-MgGroupMember -GroupId $Group.Id -All;foreach($Member in $Members){$Results+=[PSCustomObject]@{GroupName=$Group.DisplayName;GroupId=$Group.Id;MemberName=(Get-MgUser -UserId $Member.Id -ErrorAction SilentlyContinue).DisplayName;MemberId=$Member.Id}}};$Results|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "✓ Group membership exported: $($Results.Count) records" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
-  {id:'configure-password-policy',name:'Configure Password Policy',description:'Set password expiration days for domain',category:'Security & Compliance',parameters:[{id:'passwordExpiryDays',label:'Password Expiry (Days)',type:'number',required:true,defaultValue:90}],scriptTemplate:p=>{const expiryDays=p.passwordExpiryDays||90;return `Connect-MgGraph -Scopes "Domain.ReadWrite.All"\ntry{Write-Host "Configuring password expiry policy..." -ForegroundColor Cyan;$Domain=Get-MgDomain|Where-Object{$_.IsDefault}|Select-Object -First 1;$PolicyParams=@{PasswordValidityPeriodInDays=${expiryDays};PasswordNotificationWindowInDays=14};Update-MgDomain -DomainId $Domain.Id -BodyParameter $PolicyParams;Write-Host "✓ Password expiry set to ${expiryDays} days" -ForegroundColor Green;Write-Host "  Notification window: 14 days before expiry" -ForegroundColor Yellow}catch{Write-Error $_};Disconnect-MgGraph`;}},
-  {id:'audit-admin-roles',name:'Audit Admin Role Assignments',description:'Export all users with administrative roles',category:'Security & Compliance',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AdminRoles.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-MgGraph -Scopes "RoleManagement.Read.Directory"\ntry{Write-Host "Collecting admin role assignments..." -ForegroundColor Cyan;$Roles=Get-MgDirectoryRole -All;$Results=@();foreach($Role in $Roles){$Members=Get-MgDirectoryRoleMember -DirectoryRoleId $Role.Id -All;foreach($Member in $Members){$User=Get-MgUser -UserId $Member.Id -ErrorAction SilentlyContinue;$Results+=[PSCustomObject]@{RoleName=$Role.DisplayName;UserName=$User.DisplayName;UserPrincipalName=$User.UserPrincipalName;AccountEnabled=$User.AccountEnabled}}};$Results|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "✓ Admin roles exported: $($Results.Count) assignments" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
-  {id:'remove-stale-devices',name:'Remove Stale Devices',description:'Find and remove devices inactive for specified days',category:'Maintenance & Governance',parameters:[{id:'inactiveDays',label:'Inactive Days',type:'number',required:true,defaultValue:90},{id:'testMode',label:'Test Mode (Report Only)',type:'boolean',required:false,defaultValue:true}],scriptTemplate:p=>{const inactiveDays=p.inactiveDays||90;const testMode=p.testMode!==false;return `Connect-MgGraph -Scopes "Device.Read.All","Device.ReadWrite.All"\ntry{Write-Host "Finding stale devices (${inactiveDays}+ days)..." -ForegroundColor Cyan;$Cutoff=(Get-Date).AddDays(-${inactiveDays});$Devices=Get-MgDevice -All|Where-Object{$_.ApproximateLastSignInDateTime -lt $Cutoff};Write-Host "Found $($Devices.Count) stale devices" -ForegroundColor Yellow;foreach($Device in $Devices){if(${testMode}){Write-Host "  [TEST] Would remove: $($Device.DisplayName)" -ForegroundColor Gray}else{Remove-MgDevice -DeviceId $Device.Id;Write-Host "  ✓ Removed: $($Device.DisplayName)" -ForegroundColor Green}};Write-Host "✓ Stale device cleanup complete" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
-  {id:'export-app-registrations',name:'Export App Registrations',description:'List all registered applications and their permissions',category:'Reporting',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AppRegistrations.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-MgGraph -Scopes "Application.Read.All"\ntry{Write-Host "Collecting app registrations..." -ForegroundColor Cyan;$Apps=Get-MgApplication -All;$Results=$Apps|Select DisplayName,AppId,@{N='CreatedDateTime';E={$_.CreatedDateTime}},@{N='Owners';E={(Get-MgApplicationOwner -ApplicationId $_.Id -All).AdditionalProperties.userPrincipalName -join '; '}};$Results|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "✓ App registrations exported: $($Results.Count) apps" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
+  {id:'export-group-membership',name:'Export Group Membership Report',description:'List all groups and their members',category:'Reporting',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\GroupMembership.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-MgGraph -Scopes "Group.Read.All"\ntry{$Groups=Get-MgGroup -All;$Results=@();foreach($Group in $Groups){$Members=Get-MgGroupMember -GroupId $Group.Id -All;foreach($Member in $Members){$Results+=[PSCustomObject]@{GroupName=$Group.DisplayName;GroupId=$Group.Id;MemberName=(Get-MgUser -UserId $Member.Id -ErrorAction SilentlyContinue).DisplayName;MemberId=$Member.Id}}};$Results|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "[SUCCESS] Group membership exported: $($Results.Count) records" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
+  {id:'configure-password-policy',name:'Configure Password Policy',description:'Set password expiration days for domain',category:'Security & Compliance',parameters:[{id:'passwordExpiryDays',label:'Password Expiry (Days)',type:'number',required:true,defaultValue:90}],scriptTemplate:p=>{const expiryDays=p.passwordExpiryDays||90;return `Connect-MgGraph -Scopes "Domain.ReadWrite.All"\ntry{Write-Host "Configuring password expiry policy..." -ForegroundColor Cyan;$Domain=Get-MgDomain|Where-Object{$_.IsDefault}|Select-Object -First 1;$PolicyParams=@{PasswordValidityPeriodInDays=${expiryDays};PasswordNotificationWindowInDays=14};Update-MgDomain -DomainId $Domain.Id -BodyParameter $PolicyParams;Write-Host "[SUCCESS] Password expiry set to ${expiryDays} days" -ForegroundColor Green;Write-Host "  Notification window: 14 days before expiry" -ForegroundColor Yellow}catch{Write-Error $_};Disconnect-MgGraph`;}},
+  {id:'audit-admin-roles',name:'Audit Admin Role Assignments',description:'Export all users with administrative roles',category:'Security & Compliance',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AdminRoles.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-MgGraph -Scopes "RoleManagement.Read.Directory"\ntry{Write-Host "Collecting admin role assignments..." -ForegroundColor Cyan;$Roles=Get-MgDirectoryRole -All;$Results=@();foreach($Role in $Roles){$Members=Get-MgDirectoryRoleMember -DirectoryRoleId $Role.Id -All;foreach($Member in $Members){$User=Get-MgUser -UserId $Member.Id -ErrorAction SilentlyContinue;$Results+=[PSCustomObject]@{RoleName=$Role.DisplayName;UserName=$User.DisplayName;UserPrincipalName=$User.UserPrincipalName;AccountEnabled=$User.AccountEnabled}}};$Results|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "[SUCCESS] Admin roles exported: $($Results.Count) assignments" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
+  {id:'remove-stale-devices',name:'Remove Stale Devices',description:'Find and remove devices inactive for specified days',category:'Maintenance & Governance',parameters:[{id:'inactiveDays',label:'Inactive Days',type:'number',required:true,defaultValue:90},{id:'testMode',label:'Test Mode (Report Only)',type:'boolean',required:false,defaultValue:true}],scriptTemplate:p=>{const inactiveDays=p.inactiveDays||90;const testMode=p.testMode!==false;return `Connect-MgGraph -Scopes "Device.Read.All","Device.ReadWrite.All"\ntry{Write-Host "Finding stale devices (${inactiveDays}+ days)..." -ForegroundColor Cyan;$Cutoff=(Get-Date).AddDays(-${inactiveDays});$Devices=Get-MgDevice -All|Where-Object{$_.ApproximateLastSignInDateTime -lt $Cutoff};Write-Host "Found $($Devices.Count) stale devices" -ForegroundColor Yellow;foreach($Device in $Devices){if(${testMode}){Write-Host "  [TEST] Would remove: $($Device.DisplayName)" -ForegroundColor Gray}else{Remove-MgDevice -DeviceId $Device.Id;Write-Host "  [OK] Removed: $($Device.DisplayName)" -ForegroundColor Green}};Write-Host "[SUCCESS] Stale device cleanup complete" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
+  {id:'export-app-registrations',name:'Export App Registrations',description:'List all registered applications and their permissions',category:'Reporting',parameters:[{id:'exportPath',label:'Export Path',type:'text',required:true,placeholder:'C:\\\\Reports\\\\AppRegistrations.csv'}],scriptTemplate:p=>{const exportPath=escapePowerShellString(p.exportPath);return `Connect-MgGraph -Scopes "Application.Read.All"\ntry{Write-Host "Collecting app registrations..." -ForegroundColor Cyan;$Apps=Get-MgApplication -All;$Results=$Apps|Select DisplayName,AppId,@{N='CreatedDateTime';E={$_.CreatedDateTime}},@{N='Owners';E={(Get-MgApplicationOwner -ApplicationId $_.Id -All).AdditionalProperties.userPrincipalName -join '; '}};$Results|Export-Csv "${exportPath}" -NoTypeInformation;Write-Host "[SUCCESS] App registrations exported: $($Results.Count) apps" -ForegroundColor Green}catch{Write-Error $_};Disconnect-MgGraph`;}},
 
   // ========================================
   // Premium Common Admin Tasks (Tasks 15-18)
@@ -5244,7 +5244,7 @@ try {
         exit 1
     }
     
-    Write-Host "✓ Found application: $($App.DisplayName) (ID: $($App.Id))" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found application: $($App.DisplayName) (ID: $($App.Id))" -ForegroundColor Green
     
     # Configure SSO based on mode
     switch ($SSOMode) {
@@ -5263,7 +5263,7 @@ Configuring SAML SSO..." -ForegroundColor Cyan
             # This sets the basic SSO mode
             Update-MgServicePrincipal -ServicePrincipalId $App.Id -PreferredSingleSignOnMode "saml"
             
-            Write-Host "✓ SAML SSO mode enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] SAML SSO mode enabled" -ForegroundColor Green
             Write-Host "
 MANUAL STEPS REQUIRED:" -ForegroundColor Yellow
             Write-Host "1. In Azure Portal, navigate to:" -ForegroundColor White
@@ -5284,8 +5284,8 @@ MANUAL STEPS REQUIRED:" -ForegroundColor Yellow
             Write-Host "   - Logout URL" -ForegroundColor Gray
             ` : `
             Update-MgServicePrincipal -ServicePrincipalId $App.Id -PreferredSingleSignOnMode "saml"
-            Write-Host "✓ SAML SSO mode enabled" -ForegroundColor Green
-            Write-Host "⚠ Entity ID and Reply URL required for full SAML configuration" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] SAML SSO mode enabled" -ForegroundColor Green
+            Write-Host "[WARNING] Entity ID and Reply URL required for full SAML configuration" -ForegroundColor Yellow
             `}
         }
         
@@ -5297,7 +5297,7 @@ Configuring OAuth SSO..." -ForegroundColor Cyan
             # Update OAuth redirect URI
             Update-MgServicePrincipal -ServicePrincipalId $App.Id -PreferredSingleSignOnMode "oidc"
             
-            Write-Host "✓ OAuth/OIDC SSO mode enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] OAuth/OIDC SSO mode enabled" -ForegroundColor Green
             Write-Host "
 MANUAL STEPS REQUIRED:" -ForegroundColor Yellow
             Write-Host "1. In Azure Portal, navigate to:" -ForegroundColor White
@@ -5315,8 +5315,8 @@ MANUAL STEPS REQUIRED:" -ForegroundColor Yellow
             Write-Host "   - Provide secret to application vendor" -ForegroundColor Gray
             ` : `
             Update-MgServicePrincipal -ServicePrincipalId $App.Id -PreferredSingleSignOnMode "oidc"
-            Write-Host "✓ OAuth/OIDC SSO mode enabled" -ForegroundColor Green
-            Write-Host "⚠ Reply URL required for full OAuth configuration" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] OAuth/OIDC SSO mode enabled" -ForegroundColor Green
+            Write-Host "[WARNING] Reply URL required for full OAuth configuration" -ForegroundColor Yellow
             `}
         }
         
@@ -5326,7 +5326,7 @@ Configuring Password SSO..." -ForegroundColor Cyan
             
             Update-MgServicePrincipal -ServicePrincipalId $App.Id -PreferredSingleSignOnMode "password"
             
-            Write-Host "✓ Password SSO mode enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Password SSO mode enabled" -ForegroundColor Green
             Write-Host "
 NEXT STEPS:" -ForegroundColor Yellow
             Write-Host "1. Users must install My Apps browser extension:" -ForegroundColor White
@@ -5344,7 +5344,7 @@ NEXT STEPS:" -ForegroundColor Yellow
     }
     
     Write-Host "
-✓ SSO configuration updated for: $ApplicationName" -ForegroundColor Green
+[OK] SSO configuration updated for: $ApplicationName" -ForegroundColor Green
     Write-Host "  SSO Mode: $SSOMode" -ForegroundColor Gray
     Write-Host "  Login URL: $LoginUrl" -ForegroundColor Gray
     
@@ -5445,7 +5445,7 @@ try {
     $AuditLogs = Get-MgAuditLogDirectoryAudit -Filter $Filter -All
     
     if ($AuditLogs.Count -eq 0) {
-        Write-Host "⚠ No audit logs found for the specified criteria" -ForegroundColor Yellow
+        Write-Host "[WARNING] No audit logs found for the specified criteria" -ForegroundColor Yellow
         Write-Host "
 Common reasons:" -ForegroundColor White
         Write-Host "  - Date range outside retention period (7 days free, 30 days Premium)" -ForegroundColor Gray
@@ -5454,7 +5454,7 @@ Common reasons:" -ForegroundColor White
         exit 0
     }
     
-    Write-Host "✓ Retrieved $($AuditLogs.Count) audit log entries" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retrieved $($AuditLogs.Count) audit log entries" -ForegroundColor Green
     
     # Process and export
     $Results = @()
@@ -5489,7 +5489,7 @@ Common reasons:" -ForegroundColor White
     
     # Export to CSV
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation -Encoding UTF8
-    Write-Host "✓ Audit logs exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit logs exported to: $ExportPath" -ForegroundColor Green
     
     # Summary statistics
     Write-Host "
@@ -5513,7 +5513,7 @@ Results:" -ForegroundColor White
     
     if ($FailureCount -gt 0) {
         Write-Host "
-⚠ Review failures for potential security issues" -ForegroundColor Yellow
+[WARNING] Review failures for potential security issues" -ForegroundColor Yellow
     }
     
 } catch {
@@ -5607,7 +5607,7 @@ try {
         exit 1
     }
     
-    Write-Host "✓ PDF validated: $($FileInfo.Name) ($FileSizeMB MB)" -ForegroundColor Green
+    Write-Host "[SUCCESS] PDF validated: $($FileInfo.Name) ($FileSizeMB MB)" -ForegroundColor Green
     
     # Read PDF as base64
     $PdfBytes = [System.IO.File]::ReadAllBytes($PdfFilePath)
@@ -5641,7 +5641,7 @@ Follow these steps:" -ForegroundColor Cyan
     Write-Host "
 3. Configure Re-Acceptance Settings:" -ForegroundColor White
     if ($RequireReAcceptance) {
-        Write-Host "   ✓ Require users to re-consent: Yes" -ForegroundColor Green
+        Write-Host "   [OK] Require users to re-consent: Yes" -ForegroundColor Green
         Write-Host "   - Frequency: Every $ReAcceptanceDays days" -ForegroundColor Gray
         Write-Host "   - Expires on: (optional)" -ForegroundColor Gray
     } else {
@@ -5681,7 +5681,7 @@ Follow these steps:" -ForegroundColor Cyan
     Write-Host "   - Export acceptance records for compliance audits" -ForegroundColor Gray
     
     Write-Host "
-✓ Terms of Use configuration guidance provided" -ForegroundColor Green
+[OK] Terms of Use configuration guidance provided" -ForegroundColor Green
     Write-Host "
 Expected Behavior:" -ForegroundColor Cyan
     Write-Host "  - Users see ToU prompt during first sign-in after policy applied" -ForegroundColor Gray
@@ -5800,7 +5800,7 @@ To create Azure AD DS:" -ForegroundColor Yellow
         exit 1
     }
     
-    Write-Host "✓ Found domain: $($Aadds.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found domain: $($Aadds.Name)" -ForegroundColor Green
     Write-Host "  Resource Group: $($Aadds.ResourceGroupName)" -ForegroundColor Gray
     Write-Host "  Location: $($Aadds.Location)" -ForegroundColor Gray
     
@@ -5844,12 +5844,12 @@ Enabling Azure AD Domain Services features..." -ForegroundColor Cyan
             }
             
             Write-Host "
-✓ Enable guidance provided" -ForegroundColor Green
+[OK] Enable guidance provided" -ForegroundColor Green
         }
         
         "Disable" {
             Write-Host "
-⚠ DISABLING AZURE AD DOMAIN SERVICES ⚠" -ForegroundColor Red
+[WARNING] DISABLING AZURE AD DOMAIN SERVICES [WARNING]" -ForegroundColor Red
             Write-Host "This is a destructive operation!" -ForegroundColor Yellow
             
             Write-Host "
@@ -5868,7 +5868,7 @@ To disable via Azure Portal:" -ForegroundColor Yellow
             Write-Host "5. Deletion takes 15-30 minutes" -ForegroundColor White
             
             Write-Host "
-⚠ This script will NOT perform deletion (safety protection)" -ForegroundColor Yellow
+[WARNING] This script will NOT perform deletion (safety protection)" -ForegroundColor Yellow
         }
         
         "MonitorHealth" {
@@ -5886,7 +5886,7 @@ Monitoring Azure AD Domain Services health..." -ForegroundColor Cyan
                 Write-Host "
 Health Monitors:" -ForegroundColor White
                 foreach ($Monitor in $AaddsDetails.Properties.healthMonitors) {
-                    $Status = if ($Monitor.health -eq "Healthy") { "✓" } else { "✗" }
+                    $Status = if ($Monitor.health -eq "Healthy") { "[OK]" } else { "[FAILED]" }
                     $Color = if ($Monitor.health -eq "Healthy") { "Green" } else { "Red" }
                     Write-Host "  $Status $($Monitor.name): $($Monitor.health)" -ForegroundColor $Color
                 }
@@ -5902,7 +5902,7 @@ Replica Sets:" -ForegroundColor White
                     if ($ReplicaSet.domainControllers) {
                         Write-Host "    Domain Controllers:" -ForegroundColor Gray
                         foreach ($DC in $ReplicaSet.domainControllers) {
-                            $Health = if ($DC.health -eq "Healthy") { "✓" } else { "✗" }
+                            $Health = if ($DC.health -eq "Healthy") { "[OK]" } else { "[FAILED]" }
                             $Color = if ($DC.health -eq "Healthy") { "Green" } else { "Red" }
                             Write-Host "      $Health $($DC.name): $($DC.health)" -ForegroundColor $Color
                         }
@@ -5912,7 +5912,7 @@ Replica Sets:" -ForegroundColor White
             
             Write-Host "
 Security Settings:" -ForegroundColor White
-            $LdapsStatus = if ($AaddsDetails.Properties.ldapsSettings.ldaps -eq "Enabled") { "✓ Enabled" } else { "✗ Disabled" }
+            $LdapsStatus = if ($AaddsDetails.Properties.ldapsSettings.ldaps -eq "Enabled") { "[OK] Enabled" } else { "[FAILED] Disabled" }
             Write-Host "  Secure LDAP: $LdapsStatus" -ForegroundColor $(if ($AaddsDetails.Properties.ldapsSettings.ldaps -eq "Enabled") { "Green" } else { "Yellow" })
             
             Write-Host "
@@ -5926,7 +5926,7 @@ Monitoring Recommendations:" -ForegroundColor Cyan
             Write-Host "4. Monitor synchronized users count" -ForegroundColor White
             
             Write-Host "
-✓ Health monitoring completed" -ForegroundColor Green
+[OK] Health monitoring completed" -ForegroundColor Green
         }
     }
     
@@ -6026,7 +6026,7 @@ try {
             $ExistingUser = Get-MgUser -Filter "mail eq '$Email' or userPrincipalName eq '$Email'" -ErrorAction SilentlyContinue
             
             if ($ExistingUser) {
-                Write-Host "  ⚠ User already exists: $Email" -ForegroundColor Yellow
+                Write-Host "  [WARNING] User already exists: $Email" -ForegroundColor Yellow
                 Write-Host "    UserType: $($ExistingUser.UserType)" -ForegroundColor Gray
                 $FailCount++
                 continue
@@ -6047,7 +6047,7 @@ try {
             
             $Invitation = New-MgInvitation @InviteParams
             
-            Write-Host "  ✓ Invitation sent: $Email" -ForegroundColor Green
+            Write-Host "  [OK] Invitation sent: $Email" -ForegroundColor Green
             Write-Host "    Invitation ID: $($Invitation.Id)" -ForegroundColor Gray
             Write-Host "    Redemption URL: $($Invitation.InviteRedeemUrl)" -ForegroundColor Gray
             
@@ -6062,7 +6062,7 @@ try {
             $SuccessCount++
             
         } catch {
-            Write-Host "  ✗ Failed: $Email - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $Email - $_" -ForegroundColor Red
             $FailCount++
             
             $Results += [PSCustomObject]@{
@@ -6164,7 +6164,7 @@ try {
     if ($TestMode) {
         Write-Host "=== TEST MODE - No users will be deleted ===" -ForegroundColor Yellow
     } else {
-        Write-Host "⚠ WARNING: This will PERMANENTLY DELETE inactive guests" -ForegroundColor Red
+        Write-Host "[WARNING] WARNING: This will PERMANENTLY DELETE inactive guests" -ForegroundColor Red
     }
     Write-Host ""
     
@@ -6208,11 +6208,11 @@ try {
             if (-not $TestMode) {
                 try {
                     Remove-MgUser -UserId $Guest.Id -Confirm:$false
-                    Write-Host "  ✓ Deleted: $($Guest.DisplayName) ($($Guest.Mail))" -ForegroundColor Yellow
+                    Write-Host "  [OK] Deleted: $($Guest.DisplayName) ($($Guest.Mail))" -ForegroundColor Yellow
                     Write-Host "    Last sign-in: $(if ($LastSignIn) { $LastSignInDate.ToString('yyyy-MM-dd') } else { 'Never' })" -ForegroundColor Gray
                     $RemovedCount++
                 } catch {
-                    Write-Host "  ✗ Failed to delete: $($Guest.DisplayName) - $_" -ForegroundColor Red
+                    Write-Host "  [FAILED] Failed to delete: $($Guest.DisplayName) - $_" -ForegroundColor Red
                 }
             } else {
                 Write-Host "  [TEST] Would delete: $($Guest.DisplayName) ($($Guest.Mail))" -ForegroundColor Gray
@@ -6226,7 +6226,7 @@ try {
     if ($ExportPath) {
         $Results | Export-Csv -Path $ExportPath -NoTypeInformation
         Write-Host ""
-        Write-Host "✓ Inactive guests report exported to: $ExportPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Inactive guests report exported to: $ExportPath" -ForegroundColor Green
     }
     ` : ''}
     
@@ -6352,7 +6352,7 @@ try {
     
     Update-MgPolicyAuthorizationPolicy -AuthorizationPolicyId $Policy.Id -BodyParameter $UpdateParams
     
-    Write-Host "✓ Guest user settings updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Guest user settings updated successfully" -ForegroundColor Green
     Write-Host ""
     
     # Display security recommendations
@@ -6478,7 +6478,7 @@ try {
         -HashAlgorithm SHA256 \`
         -NotAfter $CertNotAfter
     
-    Write-Host "✓ Certificate created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Certificate created" -ForegroundColor Green
     Write-Host "  Thumbprint: $($Cert.Thumbprint)" -ForegroundColor Gray
     Write-Host "  Valid until: $CertNotAfter" -ForegroundColor Gray
     
@@ -6489,7 +6489,7 @@ try {
     $CertPasswordSecure = ConvertTo-SecureString -String $CertPassword -Force -AsPlainText
     Export-PfxCertificate -Cert $Cert -FilePath $CertExportPath -Password $CertPasswordSecure | Out-Null
     
-    Write-Host "✓ Certificate exported to: $CertExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Certificate exported to: $CertExportPath" -ForegroundColor Green
     
     # Get certificate key credentials for app registration
     $CertBase64 = [System.Convert]::ToBase64String($Cert.GetRawCertData())
@@ -6511,7 +6511,7 @@ try {
     
     $App = New-MgApplication @AppParams
     
-    Write-Host "✓ App registration created" -ForegroundColor Green
+    Write-Host "[SUCCESS] App registration created" -ForegroundColor Green
     Write-Host "  Application ID: $($App.AppId)" -ForegroundColor Gray
     Write-Host "  Object ID: $($App.Id)" -ForegroundColor Gray
     
@@ -6525,7 +6525,7 @@ try {
     
     $ServicePrincipal = New-MgServicePrincipal @SpParams
     
-    Write-Host "✓ Service principal created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service principal created" -ForegroundColor Green
     Write-Host "  Service Principal ID: $($ServicePrincipal.Id)" -ForegroundColor Gray
     
     # Export connection details
@@ -6649,7 +6649,7 @@ try {
         exit 1
     }
     
-    Write-Host "✓ Found application: $($App.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found application: $($App.DisplayName)" -ForegroundColor Green
     Write-Host "  Object ID: $($App.Id)" -ForegroundColor Gray
     
     # Get Microsoft Graph service principal
@@ -6671,10 +6671,10 @@ try {
                     Id = $AppRole.Id
                     Type = "Role"
                 }
-                Write-Host "  ✓ Found application permission: $Permission" -ForegroundColor Green
+                Write-Host "  [OK] Found application permission: $Permission" -ForegroundColor Green
                 Write-Host "    Role ID: $($AppRole.Id)" -ForegroundColor Gray
             } else {
-                Write-Host "  ✗ Permission not found: $Permission" -ForegroundColor Red
+                Write-Host "  [FAILED] Permission not found: $Permission" -ForegroundColor Red
             }
         } else {
             # Find delegated permission (OAuth2Permission)
@@ -6685,10 +6685,10 @@ try {
                     Id = $OAuth2Permission.Id
                     Type = "Scope"
                 }
-                Write-Host "  ✓ Found delegated permission: $Permission" -ForegroundColor Green
+                Write-Host "  [OK] Found delegated permission: $Permission" -ForegroundColor Green
                 Write-Host "    Scope ID: $($OAuth2Permission.Id)" -ForegroundColor Gray
             } else {
-                Write-Host "  ✗ Permission not found: $Permission" -ForegroundColor Red
+                Write-Host "  [FAILED] Permission not found: $Permission" -ForegroundColor Red
             }
         }
     }
@@ -6709,7 +6709,7 @@ try {
     
     Update-MgApplication -ApplicationId $App.Id -RequiredResourceAccess @($RequiredResourceAccess)
     
-    Write-Host "✓ Permissions added to app registration" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions added to app registration" -ForegroundColor Green
     
     # Grant admin consent if requested
     if ($GrantAdminConsent -and $PermissionType -eq "Application") {
@@ -6730,12 +6730,12 @@ try {
                 New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $AppSp.Id -BodyParameter $GrantParams
                 
                 $PermissionName = ($GraphSp.AppRoles | Where-Object { $_.Id -eq $Access.Id }).Value
-                Write-Host "  ✓ Admin consent granted: $PermissionName" -ForegroundColor Green
+                Write-Host "  [OK] Admin consent granted: $PermissionName" -ForegroundColor Green
             } catch {
                 if ($_.Exception.Message -like "*already exists*") {
-                    Write-Host "  ⚠ Permission already granted" -ForegroundColor Yellow
+                    Write-Host "  [WARNING] Permission already granted" -ForegroundColor Yellow
                 } else {
-                    Write-Host "  ✗ Failed to grant consent: $_" -ForegroundColor Red
+                    Write-Host "  [FAILED] Failed to grant consent: $_" -ForegroundColor Red
                 }
             }
         }
@@ -6760,7 +6760,7 @@ try {
     
     if (-not $GrantAdminConsent -or $PermissionType -eq "Delegated") {
         Write-Host ""
-        Write-Host "⚠ Admin consent required - Complete in Azure Portal:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Admin consent required - Complete in Azure Portal:" -ForegroundColor Yellow
         Write-Host "1. Navigate to: Azure AD > App Registrations > $($App.DisplayName)" -ForegroundColor White
         Write-Host "2. Select: API Permissions" -ForegroundColor White
         Write-Host "3. Click: Grant admin consent for [tenant]" -ForegroundColor White
@@ -6836,7 +6836,7 @@ try {
     if ($TestMode) {
         Write-Host "=== TEST MODE - No apps will be deleted ===" -ForegroundColor Yellow
     } else {
-        Write-Host "⚠ WARNING: This will PERMANENTLY DELETE unused apps" -ForegroundColor Red
+        Write-Host "[WARNING] WARNING: This will PERMANENTLY DELETE unused apps" -ForegroundColor Red
     }
     Write-Host ""
     
@@ -6899,11 +6899,11 @@ try {
             if (-not $TestMode) {
                 try {
                     Remove-MgApplication -ApplicationId $App.Id -Confirm:$false
-                    Write-Host "  ✓ Deleted: $($App.DisplayName)" -ForegroundColor Yellow
+                    Write-Host "  [OK] Deleted: $($App.DisplayName)" -ForegroundColor Yellow
                     Write-Host "    Last activity: $LastSignIn" -ForegroundColor Gray
                     $DeletedCount++
                 } catch {
-                    Write-Host "  ✗ Failed to delete: $($App.DisplayName) - $_" -ForegroundColor Red
+                    Write-Host "  [FAILED] Failed to delete: $($App.DisplayName) - $_" -ForegroundColor Red
                 }
             } else {
                 Write-Host "  [TEST] Would delete: $($App.DisplayName)" -ForegroundColor Gray
@@ -6917,7 +6917,7 @@ try {
     if ($ExportPath) {
         $Results | Export-Csv -Path $ExportPath -NoTypeInformation
         Write-Host ""
-        Write-Host "✓ Unused apps report exported to: $ExportPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Unused apps report exported to: $ExportPath" -ForegroundColor Green
     }
     ` : ''}
     
@@ -7085,7 +7085,7 @@ try {
         
         # Display high-risk users in console
         if ($RiskyUser.RiskLevel -eq "high") {
-            Write-Host "  ⚠ HIGH RISK: $($RiskyUser.UserPrincipalName)" -ForegroundColor Red
+            Write-Host "  [WARNING] HIGH RISK: $($RiskyUser.UserPrincipalName)" -ForegroundColor Red
             Write-Host "    State: $($RiskyUser.RiskState) | Detail: $($RiskyUser.RiskDetail)" -ForegroundColor Gray
         }
     }
@@ -7104,14 +7104,14 @@ try {
             $RiskDetections | Select-Object UserPrincipalName, RiskLevel, RiskState, RiskDetail, 
                 RiskEventType, DetectedDateTime, IpAddress, Location, Activity |
                 Export-Csv -Path $HistoryPath -NoTypeInformation
-            Write-Host "✓ Risk detection history exported: $HistoryPath" -ForegroundColor Green
+            Write-Host "[SUCCESS] Risk detection history exported: $HistoryPath" -ForegroundColor Green
         }
     }
     
     # Export main report
     $Results | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Risky users report exported: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Risky users report exported: $ExportPath" -ForegroundColor Green
     
     # Summary
     Write-Host ""

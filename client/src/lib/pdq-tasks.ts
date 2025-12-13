@@ -48,7 +48,7 @@ try {
     foreach ($Target in $Targets) {
         Write-Host "Deploying to: $Target..." -ForegroundColor Yellow
         Start-PDQDeploy -Package $Package -Target $Target
-        Write-Host "✓ Deployment initiated for $Target" -ForegroundColor Green
+        Write-Host "[SUCCESS] Deployment initiated for $Target" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -92,7 +92,7 @@ try {
         -Package $Package \`
         -Targets $Targets
     
-    Write-Host "✓ Deployment scheduled for $ScheduleDateTime" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment scheduled for $ScheduleDateTime" -ForegroundColor Green
     Write-Host "  Package: ${packageName}" -ForegroundColor Cyan
     Write-Host "  Targets: $($Targets.Count) computers" -ForegroundColor Cyan
     
@@ -188,7 +188,7 @@ ${useHeartbeat ? `        UseHeartbeat = $true` : ''}
     
     Start-PDQDeploy @DeployParams
     
-    Write-Host "✓ Deployment initiated to collection '${collectionName}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment initiated to collection '${collectionName}'" -ForegroundColor Green
     
 } catch {
     Write-Error "Collection deployment failed: $_"
@@ -239,7 +239,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Retry initiated for $($FailedTargets.Count) targets" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retry initiated for $($FailedTargets.Count) targets" -ForegroundColor Green
     
 } catch {
     Write-Error "Retry operation failed: $_"
@@ -282,7 +282,7 @@ ${deploymentId ? `    $Deployments = Get-PDQDeployment -Id "${deploymentId}" | W
     }
     
     Write-Host ""
-    Write-Host "✓ Cancelled $($Deployments.Count) deployment(s)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cancelled $($Deployments.Count) deployment(s)" -ForegroundColor Green
     
 } catch {
     Write-Error "Cancel operation failed: $_"
@@ -340,7 +340,7 @@ try {
             -Package $Package \`
             -Targets $Targets
         
-        Write-Host "✓ Deployment scheduled for next maintenance window" -ForegroundColor Green
+        Write-Host "[SUCCESS] Deployment scheduled for next maintenance window" -ForegroundColor Green
     } else {
         Write-Host "Within maintenance window - deploying now" -ForegroundColor Green
         
@@ -349,7 +349,7 @@ try {
             Write-Host "  Deployed to: $Target" -ForegroundColor Cyan
         }
         
-        Write-Host "✓ Deployment initiated for $($Targets.Count) targets" -ForegroundColor Green
+        Write-Host "[SUCCESS] Deployment initiated for $($Targets.Count) targets" -ForegroundColor Green
     }
     
 } catch {
@@ -405,7 +405,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Chained deployment completed for $($Packages.Count) packages" -ForegroundColor Green
+    Write-Host "[SUCCESS] Chained deployment completed for $($Packages.Count) packages" -ForegroundColor Green
     
 } catch {
     Write-Error "Chained deployment failed: $_"
@@ -504,7 +504,7 @@ ${uninstallFirst ? `        Write-Host "  Uninstalling on $Target first..." -For
     }
     
     Write-Host ""
-    Write-Host "✓ Force deployment initiated for $($Targets.Count) targets" -ForegroundColor Green
+    Write-Host "[SUCCESS] Force deployment initiated for $($Targets.Count) targets" -ForegroundColor Green
     
 } catch {
     Write-Error "Force deployment failed: $_"
@@ -541,7 +541,7 @@ try {
         -Type "Install" \`
         -Path "${installerPath}"${installParams ? ` \`\n        -Parameters "${installParams}"` : ''}
     
-    Write-Host "✓ Package '${packageName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package '${packageName}' created successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create package: $_"
@@ -573,11 +573,11 @@ try {
     $Package = Get-PDQPackage -Name "${packageName}"
     
 ${newInstallerPath ? `    Set-PDQPackageStep -Package $Package -Path "${newInstallerPath}"
-    Write-Host "✓ Updated installer path" -ForegroundColor Green
+    Write-Host "[SUCCESS] Updated installer path" -ForegroundColor Green
 ` : ''}${newParameters ? `    Set-PDQPackageStep -Package $Package -Parameters "${newParameters}"
-    Write-Host "✓ Updated install parameters" -ForegroundColor Green
+    Write-Host "[SUCCESS] Updated install parameters" -ForegroundColor Green
 ` : ''}    
-    Write-Host "✓ Package '${packageName}' updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package '${packageName}' updated successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to edit package: $_"
@@ -628,7 +628,7 @@ try {
     
     Add-PDQStep @StepParams
     
-    Write-Host "✓ Added ${stepType} step to '${packageName}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Added ${stepType} step to '${packageName}'" -ForegroundColor Green
     Write-Host "  Step Order: ${stepOrder}" -ForegroundColor Cyan
     
 } catch {
@@ -670,7 +670,7 @@ try {
     
     Add-PDQCondition -Package $Package @Condition
     
-    Write-Host "✓ Condition added to '${packageName}':" -ForegroundColor Green
+    Write-Host "[SUCCESS] Condition added to '${packageName}':" -ForegroundColor Green
     Write-Host "  ${conditionType} ${conditionOperator} '${conditionValue}'" -ForegroundColor Cyan
     
 } catch {
@@ -706,7 +706,7 @@ try {
     
     Copy-PDQPackage -Package $Source -NewName "${newPackageName}"
     
-    Write-Host "✓ Package cloned successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package cloned successfully!" -ForegroundColor Green
     Write-Host "  Source: ${sourcePackage}" -ForegroundColor Cyan
     Write-Host "  New Package: ${newPackageName}" -ForegroundColor Cyan
     
@@ -749,7 +749,7 @@ ${includeFiles ? `        IncludeFiles = $true` : `        IncludeFiles = $false
     
     $FileInfo = Get-Item "${exportPath}"
     
-    Write-Host "✓ Package exported successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package exported successfully!" -ForegroundColor Green
     Write-Host "  Package: ${packageName}" -ForegroundColor Cyan
     Write-Host "  File: ${exportPath}" -ForegroundColor Cyan
     Write-Host "  Size: $([Math]::Round($FileInfo.Length / 1MB, 2)) MB" -ForegroundColor Cyan
@@ -790,7 +790,7 @@ ${newPackageName ? `    $ImportParams.NewName = "${newPackageName}"` : ''}
     
     $ImportedPackage = Import-PDQPackage @ImportParams
     
-    Write-Host "✓ Package imported successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package imported successfully!" -ForegroundColor Green
     Write-Host "  Name: $($ImportedPackage.Name)" -ForegroundColor Cyan
     Write-Host "  Steps: $($ImportedPackage.Steps.Count)" -ForegroundColor Cyan
     
@@ -830,7 +830,7 @@ try {
         -RetryCount ${retryCount} \`
         -RetryInterval ${retryInterval}
     
-    Write-Host "✓ Package timeout configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package timeout configured!" -ForegroundColor Green
     Write-Host "  Package: ${packageName}" -ForegroundColor Cyan
     Write-Host "  Timeout: ${timeout} minutes" -ForegroundColor Cyan
     Write-Host "  Retries: ${retryCount} (every ${retryInterval} min)" -ForegroundColor Cyan
@@ -876,7 +876,7 @@ ${filter ? `    $Packages = $Packages | Where-Object { $_.Name -like "*${filter}
     Write-Host "Total Packages: $($Packages.Count)" -ForegroundColor Cyan
 ${exportPath ? `
     $PackageInfo | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Failed to list packages: $_"
@@ -909,7 +909,7 @@ try {
         throw "Package '${packageName}' not found"
     }
     
-${confirm ? '' : `    Write-Host "⚠ Deletion not confirmed. Set 'Confirm Deletion' to true to proceed." -ForegroundColor Yellow
+${confirm ? '' : `    Write-Host "[WARNING] Deletion not confirmed. Set 'Confirm Deletion' to true to proceed." -ForegroundColor Yellow
     return
 `}
     $DeployCount = (Get-PDQDeployment -Package "${packageName}").Count
@@ -920,7 +920,7 @@ ${confirm ? '' : `    Write-Host "⚠ Deletion not confirmed. Set 'Confirm Delet
     
     Remove-PDQPackage -Package $Package -Force
     
-    Write-Host "✓ Package '${packageName}' deleted successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package '${packageName}' deleted successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to delete package: $_"
@@ -954,7 +954,7 @@ try {
     foreach ($Target in $Targets) {
         Write-Host "Scanning: $Target..." -ForegroundColor Yellow
         Start-PDQScan -Computer $Target -ScanProfile "${scanType}"
-        Write-Host "✓ Scan initiated for $Target" -ForegroundColor Green
+        Write-Host "[SUCCESS] Scan initiated for $Target" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -1001,7 +1001,7 @@ try {
     
     New-PDQScanProfile @ScanOptions
     
-    Write-Host "✓ Scan profile '${profileName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scan profile '${profileName}' created!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Profile Settings:" -ForegroundColor Cyan
     Write-Host "  Applications: ${scanApps ? 'Yes' : 'No'}"
@@ -1051,7 +1051,7 @@ try {
     
     New-PDQScanSchedule @ScheduleParams
     
-    Write-Host "✓ Scan schedule created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scan schedule created!" -ForegroundColor Green
     Write-Host "  Collection: ${collectionName}" -ForegroundColor Cyan
     Write-Host "  Profile: ${scanProfile}" -ForegroundColor Cyan
     Write-Host "  Frequency: ${frequency} at ${scanTime}" -ForegroundColor Cyan
@@ -1152,7 +1152,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Initiated scans for $($NewComputers.Count) new computers" -ForegroundColor Green
+    Write-Host "[SUCCESS] Initiated scans for $($NewComputers.Count) new computers" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to scan new computers: $_"
@@ -1202,7 +1202,7 @@ ${detailLevel === 'Full' || detailLevel === 'Hardware' ? `        $Base | Add-Me
     
     $Results | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Scan results exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scan results exported!" -ForegroundColor Green
     Write-Host "  Computers: $($Results.Count)" -ForegroundColor Cyan
     Write-Host "  File: ${exportPath}" -ForegroundColor Cyan
     
@@ -1243,7 +1243,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Software inventory exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Software inventory exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Applications: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -1288,7 +1288,7 @@ ${includeDetails === 'All' || includeDetails === 'Network' ? `        @{N='IPAdd
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Hardware inventory exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Hardware inventory exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Computers: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -1340,7 +1340,7 @@ try {
     $CompliantCount = ($Computers | Where-Object Status -eq "Compliant").Count
     $NonCompliantCount = ($Computers | Where-Object Status -eq "Non-Compliant").Count
     
-    Write-Host "✓ Compliance report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance report exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Computers: $($Computers.Count)" -ForegroundColor Cyan
     Write-Host "  Compliant (>=${threshold}%): $CompliantCount" -ForegroundColor Green
     Write-Host "  Non-Compliant (<${threshold}%): $NonCompliantCount" -ForegroundColor Red
@@ -1396,7 +1396,7 @@ try {
     
     $Summary = $Computers | Group-Object Status
     
-    Write-Host "✓ Computer age report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Computer age report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Summary:" -ForegroundColor Cyan
     foreach ($Group in $Summary) {
@@ -1456,7 +1456,7 @@ try {
     $Critical = ($Computers | Where-Object Status -eq 'Critical').Count
     $Warning = ($Computers | Where-Object Status -eq 'Warning').Count
     
-    Write-Host "✓ Disk space report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disk space report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Summary:" -ForegroundColor Cyan
     Write-Host "  Critical (<${criticalGB}GB): $Critical" -ForegroundColor Red
@@ -1511,7 +1511,7 @@ try {
     
     $NeedsReboot = ($Computers | Where-Object NeedsReboot -eq 'Yes').Count
     
-    Write-Host "✓ Last boot report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Last boot report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Computers needing reboot (>${daysThreshold} days): $NeedsReboot" -ForegroundColor $(if ($NeedsReboot -gt 0) { 'Yellow' } else { 'Green' })
     
@@ -1567,7 +1567,7 @@ ${collectionFilter ? `    $Collection = Get-PDQCollection -Name "${collectionFil
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Missing software report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Missing software report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Summary:" -ForegroundColor Cyan
     Write-Host "  Total Computers Checked: $($AllComputers.Count)"
@@ -1621,7 +1621,7 @@ try {
     $Summary = $Summary | Sort-Object TotalDeployments -Descending
     $Summary | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Deployment summary report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment summary report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Summary (Last ${daysBack} days):" -ForegroundColor Cyan
     Write-Host "  Total Packages Deployed: $($Summary.Count)"
@@ -1669,7 +1669,7 @@ try {
     
     New-PDQCollection @Filter
     
-    Write-Host "✓ Dynamic collection '${collectionName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dynamic collection '${collectionName}' created!" -ForegroundColor Green
     Write-Host "  Criteria: ${criteriaType} contains '${criteriaValue}'" -ForegroundColor Cyan
     
     $Members = Get-PDQCollectionMember -Collection "${collectionName}"
@@ -1718,7 +1718,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Static collection '${collectionName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Static collection '${collectionName}' created!" -ForegroundColor Green
     Write-Host "  Members: $(Get-PDQCollectionMember -Collection $Collection).Count" -ForegroundColor Cyan
     
 } catch {
@@ -1760,7 +1760,7 @@ try {
         Add-PDQCollectionMember -Collection $Collection -Computer $Computer
     }
     
-    Write-Host "✓ PDQ collection '${collectionName}' created and synced with AD!" -ForegroundColor Green
+    Write-Host "[SUCCESS] PDQ collection '${collectionName}' created and synced with AD!" -ForegroundColor Green
     Write-Host "  Members: $($ADComputers.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -1812,7 +1812,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Added $Added computer(s) to '${collectionName}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Added $Added computer(s) to '${collectionName}'" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to add computers: $_"
@@ -1863,7 +1863,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Removed $Removed computer(s) from '${collectionName}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Removed $Removed computer(s) from '${collectionName}'" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to remove computers: $_"
@@ -1939,7 +1939,7 @@ try {
         throw "Collection '${collectionName}' not found"
     }
     
-${confirm ? '' : `    Write-Host "⚠ Deletion not confirmed. Set 'Confirm Deletion' to true to proceed." -ForegroundColor Yellow
+${confirm ? '' : `    Write-Host "[WARNING] Deletion not confirmed. Set 'Confirm Deletion' to true to proceed." -ForegroundColor Yellow
     return
 `}
     $MemberCount = (Get-PDQCollectionMember -Collection $Collection).Count
@@ -1947,7 +1947,7 @@ ${confirm ? '' : `    Write-Host "⚠ Deletion not confirmed. Set 'Confirm Delet
     
     Remove-PDQCollection -Collection $Collection -Force
     
-    Write-Host "✓ Collection '${collectionName}' deleted!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collection '${collectionName}' deleted!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to delete collection: $_"
@@ -1981,7 +1981,7 @@ try {
     
     Set-PDQCredential -Name "${credentialName}" -Credential $Credential
     
-    Write-Host "✓ Credential '${credentialName}' saved successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Credential '${credentialName}' saved successfully!" -ForegroundColor Green
     Write-Host "  Username: ${username}" -ForegroundColor Cyan
     
 } catch {
@@ -2013,11 +2013,11 @@ try {
         Set-PDQPreference -Name "RepositoryPath" -Value "${repositoryPath}"
         Set-PDQPreference -Name "RepositoryName" -Value "${repositoryName}"
         
-        Write-Host "✓ Repository configured successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Repository configured successfully!" -ForegroundColor Green
         Write-Host "  Name: ${repositoryName}" -ForegroundColor Cyan
         Write-Host "  Path: ${repositoryPath}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Warning: Repository path not accessible: ${repositoryPath}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Warning: Repository path not accessible: ${repositoryPath}" -ForegroundColor Yellow
         Write-Host "  Please ensure the path exists and you have permissions" -ForegroundColor Yellow
     }
     
@@ -2056,7 +2056,7 @@ ${backupType === 'Both' || backupType === 'Deploy' ? `    # Backup PDQ Deploy da
     if (Test-Path $DeployDB) {
         $DeployBackup = Join-Path $BackupPath "PDQDeploy_$Timestamp.db"
         Copy-Item $DeployDB $DeployBackup -Force
-        Write-Host "✓ PDQ Deploy database backed up" -ForegroundColor Green
+        Write-Host "[SUCCESS] PDQ Deploy database backed up" -ForegroundColor Green
         Write-Host "  File: $DeployBackup" -ForegroundColor Cyan
     }
 ` : ''}
@@ -2065,7 +2065,7 @@ ${backupType === 'Both' || backupType === 'Inventory' ? `    # Backup PDQ Invent
     if (Test-Path $InventoryDB) {
         $InventoryBackup = Join-Path $BackupPath "PDQInventory_$Timestamp.db"
         Copy-Item $InventoryDB $InventoryBackup -Force
-        Write-Host "✓ PDQ Inventory database backed up" -ForegroundColor Green
+        Write-Host "[SUCCESS] PDQ Inventory database backed up" -ForegroundColor Green
         Write-Host "  File: $InventoryBackup" -ForegroundColor Cyan
     }
 ` : ''}
@@ -2116,7 +2116,7 @@ try {
     
     New-PDQAutoDeployment @TriggerParams
     
-    Write-Host "✓ Auto-deployment trigger '${triggerName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auto-deployment trigger '${triggerName}' created!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Configuration:" -ForegroundColor Cyan
     Write-Host "  Package: ${packageName}"
@@ -2159,7 +2159,7 @@ try {
     Set-PDQPreference -Name "DefaultTimeout" -Value ${deployTimeout}
     Set-PDQPreference -Name "KeepHistoryDays" -Value ${historyDays}
     
-    Write-Host "✓ PDQ Deploy preferences updated:" -ForegroundColor Green
+    Write-Host "[SUCCESS] PDQ Deploy preferences updated:" -ForegroundColor Green
     Write-Host "  Max Concurrent: ${concurrent}"
     Write-Host "  Default Timeout: ${deployTimeout} minutes"
     Write-Host "  Keep History: ${historyDays} days"
@@ -2169,7 +2169,7 @@ try {
     Set-PDQInventoryPreference -Name "KeepHistoryDays" -Value ${historyDays}
     
     Write-Host ""
-    Write-Host "✓ PDQ Inventory preferences updated:" -ForegroundColor Green
+    Write-Host "[SUCCESS] PDQ Inventory preferences updated:" -ForegroundColor Green
     Write-Host "  Default Scan Timeout: ${scanTimeout} minutes"
     Write-Host "  Keep History: ${historyDays} days"
     
@@ -2258,7 +2258,7 @@ try {
     Write-Host "Found $($OldDeployments.Count) deployments older than ${daysToKeep} days" -ForegroundColor Cyan
     
 ${confirm ? '' : `    Write-Host ""
-    Write-Host "⚠ Cleanup not confirmed. Set 'Confirm Cleanup' to true to proceed." -ForegroundColor Yellow
+    Write-Host "[WARNING] Cleanup not confirmed. Set 'Confirm Cleanup' to true to proceed." -ForegroundColor Yellow
     return
 `}
     if ($OldDeployments.Count -eq 0) {
@@ -2269,7 +2269,7 @@ ${confirm ? '' : `    Write-Host ""
     Clear-PDQDeploymentHistory -Before $CutoffDate -Force
     
     Write-Host ""
-    Write-Host "✓ Cleaned up $($OldDeployments.Count) old deployment records" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cleaned up $($OldDeployments.Count) old deployment records" -ForegroundColor Green
     Write-Host "  Kept deployments from the last ${daysToKeep} days" -ForegroundColor Cyan
     
 } catch {
@@ -2378,7 +2378,7 @@ ${includeCredentials ? `        Credentials = Get-PDQCredential | Select-Object 
     
     $Settings | Export-Clixml -Path "${exportPath}"
     
-    Write-Host "✓ PDQ settings exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] PDQ settings exported!" -ForegroundColor Green
     Write-Host "  File: ${exportPath}" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Exported:" -ForegroundColor Cyan
@@ -2428,7 +2428,7 @@ try {
     $DaysToExpiry = ($DeployLicense.ExpirationDate - (Get-Date)).Days
     if ($DaysToExpiry -lt 30) {
         Write-Host ""
-        Write-Host "⚠ License expires in $DaysToExpiry days!" -ForegroundColor Yellow
+        Write-Host "[WARNING] License expires in $DaysToExpiry days!" -ForegroundColor Yellow
     }
     
 } catch {

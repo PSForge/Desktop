@@ -76,11 +76,11 @@ try {
             -Location $Location \`
             -ErrorAction Stop
         
-        Write-Host "✓ VM $VMName created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] VM $VMName created successfully" -ForegroundColor Green
         
         if (${powerOn}) {
             Start-VM -VM $NewVM -Confirm:$false
-            Write-Host "✓ VM $VMName powered on" -ForegroundColor Green
+            Write-Host "[SUCCESS] VM $VMName powered on" -ForegroundColor Green
         }
     }
     
@@ -129,13 +129,13 @@ try {
         
 ${action === 'Create' ? `        Write-Host "Creating snapshot for: $VMName..." -ForegroundColor Yellow
         New-Snapshot -VM $VM -Name "${snapshotName}"${description ? ` -Description "${description}"` : ''} -Confirm:$false
-        Write-Host "✓ Snapshot created for $VMName" -ForegroundColor Green` : `        Write-Host "Removing snapshot from: $VMName..." -ForegroundColor Yellow
+        Write-Host "[SUCCESS] Snapshot created for $VMName" -ForegroundColor Green` : `        Write-Host "Removing snapshot from: $VMName..." -ForegroundColor Yellow
         $Snapshot = Get-Snapshot -VM $VM -Name "${snapshotName}" -ErrorAction SilentlyContinue
         if ($Snapshot) {
             Remove-Snapshot -Snapshot $Snapshot -Confirm:$false
-            Write-Host "✓ Snapshot removed from $VMName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Snapshot removed from $VMName" -ForegroundColor Green
         } else {
-            Write-Host "⚠ Snapshot not found on $VMName" -ForegroundColor Yellow
+            Write-Host "[WARNING] Snapshot not found on $VMName" -ForegroundColor Yellow
         }`}
     }
     
@@ -184,7 +184,7 @@ try {
         $VM = Get-VM -Name $VMName
         Move-VM -VM $VM -Datastore $TargetDS -DiskStorageFormat ${storageFormat} -Confirm:$false
         
-        Write-Host "✓ $VMName migrated successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] $VMName migrated successfully" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -241,7 +241,7 @@ try {
         -GuestId ${params.guestOS} \`
         -ErrorAction Stop
     
-    Write-Host "✓ VM '${vmName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM '${vmName}' created successfully!" -ForegroundColor Green
     Write-Host "  CPU: ${params.numCPU} vCPUs" -ForegroundColor Cyan
     Write-Host "  Memory: ${params.memoryGB} GB" -ForegroundColor Cyan
     Write-Host "  Disk: ${params.diskGB} GB" -ForegroundColor Cyan
@@ -283,11 +283,11 @@ try {
         $VM = Get-VM -Name $VMName -ErrorAction Stop
         
 ${action === 'PowerOn' ? `        Start-VM -VM $VM -Confirm:$false
-        Write-Host "✓ $VMName powered on" -ForegroundColor Green` : 
+        Write-Host "[SUCCESS] $VMName powered on" -ForegroundColor Green` : 
 action === 'PowerOff' ? `        Stop-VM -VM $VM -Confirm:$false
-        Write-Host "✓ $VMName powered off" -ForegroundColor Green` :
+        Write-Host "[SUCCESS] $VMName powered off" -ForegroundColor Green` :
 `        Restart-VM -VM $VM -Confirm:$false
-        Write-Host "✓ $VMName restarted" -ForegroundColor Green`}
+        Write-Host "[SUCCESS] $VMName restarted" -ForegroundColor Green`}
     }
     
     Write-Host ""
@@ -341,7 +341,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inventory exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total VMs: $($Report.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -385,7 +385,7 @@ try {
         -CpuSharesLevel ${params.cpuShares} \`
         -MemSharesLevel ${params.memoryShares}
     
-    Write-Host "✓ Resource pool '${poolName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Resource pool '${poolName}' created successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create resource pool: $_"
@@ -424,12 +424,12 @@ ${action === 'Mount' ? `    $VMHosts = Get-VMHost
     foreach ($VMHost in $VMHosts) {
         Mount-Datastore -Datastore $DS -VMHost $VMHost
     }
-    Write-Host "✓ Datastore mounted on all hosts" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Datastore mounted on all hosts" -ForegroundColor Green` :
 action === 'Unmount' ? `    $VMHosts = Get-VMHost
     foreach ($VMHost in $VMHosts) {
         Unmount-Datastore -Datastore $DS -VMHost $VMHost -Confirm:$false
     }
-    Write-Host "✓ Datastore unmounted from all hosts" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Datastore unmounted from all hosts" -ForegroundColor Green` :
 `    Write-Host "Datastore Information:" -ForegroundColor Cyan
     Write-Host "  Name: $($DS.Name)"
     Write-Host "  Capacity: $([math]::Round($DS.CapacityGB,2)) GB"
@@ -481,7 +481,7 @@ try {
     # Convert to template
     Set-VM -VM $VM -ToTemplate -Name "${templateName}" -Confirm:$false
     
-    Write-Host "✓ Template '${templateName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Template '${templateName}' created successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create template: $_"
@@ -542,7 +542,7 @@ try {
             -ResourcePool ($Cluster | Get-ResourcePool | Select-Object -First 1) \`
             -ErrorAction Stop
         
-        Write-Host "✓ Linked clone $VMName created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Linked clone $VMName created" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -592,12 +592,12 @@ ${action === 'Revert' ? `    if ("${snapshotName}") {
     
     if ($Snapshot) {
         Set-VM -VM $VM -Snapshot $Snapshot -Confirm:$false
-        Write-Host "✓ VM reverted to snapshot: $($Snapshot.Name)" -ForegroundColor Green
+        Write-Host "[SUCCESS] VM reverted to snapshot: $($Snapshot.Name)" -ForegroundColor Green
     } else {
         Write-Error "No snapshot found"
     }` : `    # Consolidate all snapshots
     $VM | Remove-Snapshot -Confirm:$false
-    Write-Host "✓ Snapshots consolidated for ${vmName}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Snapshots consolidated for ${vmName}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Snapshot operation failed: $_"
@@ -639,13 +639,13 @@ try {
     $vSwitch = Get-VirtualSwitch -VMHost $VMHost -Name "${vSwitchName}" -ErrorAction SilentlyContinue
     if (-not $vSwitch) {
         $vSwitch = New-VirtualSwitch -VMHost $VMHost -Name "${vSwitchName}"
-        Write-Host "✓ vSwitch '${vSwitchName}' created" -ForegroundColor Green
+        Write-Host "[SUCCESS] vSwitch '${vSwitchName}' created" -ForegroundColor Green
     }
     
     # Create port group
     New-VirtualPortGroup -VirtualSwitch $vSwitch -Name "${portGroupName}" -VLanId ${params.vlanId}
     
-    Write-Host "✓ Port group '${portGroupName}' created with VLAN ${params.vlanId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Port group '${portGroupName}' created with VLAN ${params.vlanId}" -ForegroundColor Green
     
 } catch {
     Write-Error "Configuration failed: $_"
@@ -688,7 +688,7 @@ ${action === 'CreateRole' ? `    # Create new role with basic VM privileges
         Get-VIPrivilege -Name "Virtual machine.Interaction.Power Off",
         Get-VIPrivilege -Name "Virtual machine.Interaction.Reset"
     )
-    Write-Host "✓ Role '${roleName}' created" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Role '${roleName}' created" -ForegroundColor Green` :
 action === 'AssignPermission' ? `    $Role = Get-VIRole -Name "${roleName}"
     $Entity = Get-Folder -Name "${entityName}" -ErrorAction SilentlyContinue
     if (-not $Entity) {
@@ -697,13 +697,13 @@ action === 'AssignPermission' ? `    $Role = Get-VIRole -Name "${roleName}"
     
     if ($Entity) {
         New-VIPermission -Entity $Entity -Principal "${userName}" -Role $Role
-        Write-Host "✓ Permission assigned to ${userName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Permission assigned to ${userName}" -ForegroundColor Green
     } else {
         Write-Error "Entity ${entityName} not found"
     }` :
 `    $Permission = Get-VIPermission -Entity (Get-Folder -Name "${entityName}") -Principal "${userName}"
     Remove-VIPermission -Permission $Permission -Confirm:$false
-    Write-Host "✓ Permission removed from ${userName}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Permission removed from ${userName}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Operation failed: $_"
@@ -759,7 +759,7 @@ try {
     $HealthReport | Format-Table -AutoSize
     
     ${exportPath ? `$HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
     Write-Host ""
     Write-Host "Health check completed for $($HealthReport.Count) host(s)" -ForegroundColor Green
@@ -806,16 +806,16 @@ try {
     ${migrationType === 'vMotion' ? `
     $TargetHost = Get-VMHost -Name "${targetHost}"
     Move-VM -VM $VM -Destination $TargetHost
-    Write-Host "✓ VM migrated to host: ${targetHost}" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM migrated to host: ${targetHost}" -ForegroundColor Green
     ` : migrationType === 'Storage vMotion' ? `
     $TargetDatastore = Get-Datastore -Name "${targetDatastore}"
     Move-VM -VM $VM -Datastore $TargetDatastore
-    Write-Host "✓ VM storage migrated to: ${targetDatastore}" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM storage migrated to: ${targetDatastore}" -ForegroundColor Green
     ` : `
     $TargetHost = Get-VMHost -Name "${targetHost}"
     $TargetDatastore = Get-Datastore -Name "${targetDatastore}"
     Move-VM -VM $VM -Destination $TargetHost -Datastore $TargetDatastore
-    Write-Host "✓ VM and storage migrated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM and storage migrated successfully" -ForegroundColor Green
     `}
     
 } catch {
@@ -856,16 +856,16 @@ try {
     
     ${action === 'CreateCategory' ? `
     New-TagCategory -Name "${categoryName}" -Cardinality "Single" -EntityType "VirtualMachine"
-    Write-Host "✓ Tag category created: ${categoryName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tag category created: ${categoryName}" -ForegroundColor Green
     ` : action === 'CreateTag' ? `
     $Category = Get-TagCategory -Name "${categoryName}"
     New-Tag -Name "${tagName}" -Category $Category
-    Write-Host "✓ Tag created: ${tagName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tag created: ${tagName}" -ForegroundColor Green
     ` : `
     $Tag = Get-Tag -Name "${tagName}"
     $VM = Get-VM -Name "${vmName}"
     New-TagAssignment -Entity $VM -Tag $Tag
-    Write-Host "✓ Tag '${tagName}' assigned to VM: ${vmName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tag '${tagName}' assigned to VM: ${vmName}" -ForegroundColor Green
     `}
     
 } catch {
@@ -909,7 +909,7 @@ try {
         -DrsMigrationThreshold ${params.migrationThreshold} \`
         -Confirm:$false
     
-    Write-Host "✓ DRS configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DRS configured successfully" -ForegroundColor Green
     Write-Host "  Cluster: ${cluster}" -ForegroundColor Cyan
     Write-Host "  Automation Level: ${automationLevel}" -ForegroundColor Cyan
     Write-Host "  Migration Threshold: ${params.migrationThreshold}" -ForegroundColor Cyan
@@ -961,7 +961,7 @@ try {
         -SubnetMask "${subnetMask}" \`
         -VMotionEnabled:$true
     
-    Write-Host "✓ vmkernel adapter configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] vmkernel adapter configured" -ForegroundColor Green
     Write-Host "  Host: ${vmHost}" -ForegroundColor Cyan
     Write-Host "  IP: ${ipAddress}" -ForegroundColor Cyan
     Write-Host "  Port Group: ${portGroup}" -ForegroundColor Cyan
@@ -1008,7 +1008,7 @@ try {
         -HAFailoverLevel ${params.failoverLevel} \`
         -Confirm:$false
     
-    Write-Host "✓ vSphere HA configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] vSphere HA configured successfully" -ForegroundColor Green
     Write-Host "  Cluster: ${cluster}" -ForegroundColor Cyan
     Write-Host "  Admission Control: ${params.admissionControl}" -ForegroundColor Cyan
     Write-Host "  Failover Level: ${params.failoverLevel}" -ForegroundColor Cyan
@@ -1065,7 +1065,7 @@ try {
     
     $CapacityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Capacity report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Capacity report exported to: ${exportPath}" -ForegroundColor Green
     
     $CapacityReport | Format-Table -AutoSize
     
@@ -1108,10 +1108,10 @@ try {
     
 ${action === 'Enter' ? `    Write-Host "Entering maintenance mode for: ${hostName}..." -ForegroundColor Yellow
     Set-VMHost -VMHost $VMHost -State Maintenance -Evacuate:${evacuateVMs} -Confirm:$false
-    Write-Host "✓ Host ${hostName} is now in maintenance mode" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Host ${hostName} is now in maintenance mode" -ForegroundColor Green` :
 `    Write-Host "Exiting maintenance mode for: ${hostName}..." -ForegroundColor Yellow
     Set-VMHost -VMHost $VMHost -State Connected -Confirm:$false
-    Write-Host "✓ Host ${hostName} has exited maintenance mode" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Host ${hostName} has exited maintenance mode" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Maintenance mode operation failed: $_"
@@ -1154,11 +1154,11 @@ try {
     }
     
 ${action === 'Start' ? `    Start-VMHostService -HostService $Service -Confirm:$false
-    Write-Host "✓ Service '${serviceName}' started on ${hostName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Service '${serviceName}' started on ${hostName}" -ForegroundColor Green` :
 action === 'Stop' ? `    Stop-VMHostService -HostService $Service -Confirm:$false
-    Write-Host "✓ Service '${serviceName}' stopped on ${hostName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Service '${serviceName}' stopped on ${hostName}" -ForegroundColor Green` :
 `    Restart-VMHostService -HostService $Service -Confirm:$false
-    Write-Host "✓ Service '${serviceName}' restarted on ${hostName}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Service '${serviceName}' restarted on ${hostName}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Service management failed: $_"
@@ -1212,10 +1212,10 @@ try {
         $NTPService = Get-VMHostService -VMHost $VMHost | Where-Object { $_.Key -eq 'ntpd' }
         Set-VMHostService -HostService $NTPService -Policy On
         Start-VMHostService -HostService $NTPService -Confirm:$false
-        Write-Host "✓ NTP service started and set to start with host" -ForegroundColor Green
+        Write-Host "[SUCCESS] NTP service started and set to start with host" -ForegroundColor Green
     }
     
-    Write-Host "✓ NTP configuration completed for ${hostName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] NTP configuration completed for ${hostName}" -ForegroundColor Green
     
 } catch {
     Write-Error "NTP configuration failed: $_"
@@ -1257,7 +1257,7 @@ try {
     $esxcli = Get-EsxCli -VMHost $VMHost -V2
     $esxcli.system.syslog.reload.Invoke()
     
-    Write-Host "✓ Syslog configured for ${hostName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Syslog configured for ${hostName}" -ForegroundColor Green
     Write-Host "  Syslog Server: ${syslogServer}" -ForegroundColor Cyan
     
 } catch {
@@ -1302,7 +1302,7 @@ try {
         # Attach the host profile
         Apply-VMHostProfile -Profile $Profile -Entity $VMHost -Confirm:$false
         
-        Write-Host "✓ Host profile applied to $HostName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Host profile applied to $HostName" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -1354,7 +1354,7 @@ try {
     # Add physical NIC to vSwitch
     Add-VirtualSwitchPhysicalNetworkAdapter -VirtualSwitch $vSwitch -VMHostPhysicalNic $vmnic -Confirm:$false
     
-    Write-Host "✓ Added ${vmnicName} to ${vSwitchName} on ${hostName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Added ${vmnicName} to ${vSwitchName} on ${hostName}" -ForegroundColor Green
     
     # Display current vSwitch configuration
     $vSwitch = Get-VirtualSwitch -VMHost $VMHost -Name "${vSwitchName}"
@@ -1414,7 +1414,7 @@ try {
         -Vmfs \`
         -FileSystemVersion ${vmfsVersion}
     
-    Write-Host "✓ Datastore '${datastoreName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Datastore '${datastoreName}' created successfully!" -ForegroundColor Green
     Write-Host "  Capacity: $([math]::Round($Datastore.CapacityGB, 2)) GB" -ForegroundColor Cyan
     Write-Host "  VMFS Version: ${vmfsVersion}" -ForegroundColor Cyan
     
@@ -1464,7 +1464,7 @@ try {
     # Get updated datastore info
     $Datastore = Get-Datastore -Name "${datastoreName}" -Refresh
     
-    Write-Host "✓ Datastore refresh completed for '${datastoreName}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Datastore refresh completed for '${datastoreName}'" -ForegroundColor Green
     Write-Host "  Current Capacity: $([math]::Round($Datastore.CapacityGB, 2)) GB" -ForegroundColor Cyan
     Write-Host "  Free Space: $([math]::Round($Datastore.FreeSpaceGB, 2)) GB" -ForegroundColor Cyan
     
@@ -1511,7 +1511,7 @@ try {
         -IOLatencyThresholdMillisecond ${ioLatencyThreshold} \`
         -Confirm:$false
     
-    Write-Host "✓ Storage DRS configured for '${datastoreCluster}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage DRS configured for '${datastoreCluster}'" -ForegroundColor Green
     Write-Host "  Automation Level: ${automationLevel}" -ForegroundColor Cyan
     Write-Host "  Space Threshold: ${spaceThreshold}%" -ForegroundColor Cyan
     Write-Host "  I/O Latency Threshold: ${ioLatencyThreshold}ms" -ForegroundColor Cyan
@@ -1552,7 +1552,7 @@ try {
         -Name "${policyName}" \`
         -Description "${description}"
     
-    Write-Host "✓ Storage policy '${policyName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage policy '${policyName}' created successfully!" -ForegroundColor Green
     
     # List all storage policies
     Write-Host ""
@@ -1597,7 +1597,7 @@ try {
     # Create datastore cluster
     $DSCluster = New-DatastoreCluster -Name "${clusterName}" -Location $DC
     
-    Write-Host "✓ Datastore cluster '${clusterName}' created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Datastore cluster '${clusterName}' created" -ForegroundColor Green
     
     # Add datastores to cluster
     $DatastoreNames = @(${datastoresRaw.map(n => `"${escapePowerShellString(n)}"`).join(', ')})
@@ -1656,7 +1656,7 @@ try {
         -NumUplinkPorts ${numUplinks} \`
         -Mtu ${mtu}
     
-    Write-Host "✓ Distributed switch '${dvsName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Distributed switch '${dvsName}' created successfully!" -ForegroundColor Green
     Write-Host "  Datacenter: ${datacenter}" -ForegroundColor Cyan
     Write-Host "  Uplinks: ${numUplinks}" -ForegroundColor Cyan
     Write-Host "  MTU: ${mtu}" -ForegroundColor Cyan
@@ -1704,7 +1704,7 @@ try {
         -VlanId ${vlanId} \`
         -NumPorts ${numPorts}
     
-    Write-Host "✓ Distributed port group '${portGroupName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Distributed port group '${portGroupName}' created!" -ForegroundColor Green
     Write-Host "  DVS: ${dvsName}" -ForegroundColor Cyan
     Write-Host "  VLAN ID: ${vlanId}" -ForegroundColor Cyan
     Write-Host "  Ports: ${numPorts}" -ForegroundColor Cyan
@@ -1747,7 +1747,7 @@ try {
     
     # Add host to DVS
     Add-VDSwitchVMHost -VDSwitch $DVS -VMHost $VMHost
-    Write-Host "✓ Host ${hostName} added to DVS ${dvsName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Host ${hostName} added to DVS ${dvsName}" -ForegroundColor Green
     
     # Get physical NICs
     $VmnicNames = @(${vmnicNamesRaw.map(n => `"${escapePowerShellString(n)}"`).join(', ')})
@@ -1799,7 +1799,7 @@ try {
     # Enable/Disable NIOC
     Set-VDSwitch -VDSwitch $DVS -EnableNetworkResourceManagement:${enableNIOC} -Confirm:$false
     
-    Write-Host "✓ Network I/O Control ${enableNIOC ? 'enabled' : 'disabled'} on ${dvsName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Network I/O Control ${enableNIOC ? 'enabled' : 'disabled'} on ${dvsName}" -ForegroundColor Green
     
     # Display resource pools
     if (${enableNIOC}) {
@@ -1853,7 +1853,7 @@ try {
             Write-Host "  Migrated adapter $($Adapter.Name) to ${targetPortGroup}" -ForegroundColor Cyan
         }
         
-        Write-Host "✓ $VMName network migration complete" -ForegroundColor Green
+        Write-Host "[SUCCESS] $VMName network migration complete" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -1901,7 +1901,7 @@ try {
         -DrsAutomationLevel ${automationLevel} \`
         -Confirm:$false
     
-    Write-Host "✓ DRS configured for cluster '${cluster}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] DRS configured for cluster '${cluster}'" -ForegroundColor Green
     Write-Host "  Automation Level: ${automationLevel}" -ForegroundColor Cyan
     Write-Host "  Migration Threshold: ${migrationThreshold}" -ForegroundColor Cyan
     
@@ -1958,7 +1958,7 @@ try {
         -KeepTogether:${ruleType === 'Affinity' ? '$true' : '$false'} \`
         -Enabled:$true
     
-    Write-Host "✓ DRS ${ruleType} rule '${ruleName}' created" -ForegroundColor Green
+    Write-Host "[SUCCESS] DRS ${ruleType} rule '${ruleName}' created" -ForegroundColor Green
     Write-Host "  VMs in rule: $($VMNames -join ', ')" -ForegroundColor Cyan
     
 } catch {
@@ -2004,13 +2004,13 @@ ${groupType === 'VM' ? `    # Get VMs
     
     # Create VM Group
     New-DrsClusterGroup -Cluster $Cluster -Name "${groupName}" -VM $Members
-    Write-Host "✓ DRS VM Group '${groupName}' created" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] DRS VM Group '${groupName}' created" -ForegroundColor Green` :
 `    # Get Hosts
     $Members = $MemberNames | ForEach-Object { Get-VMHost -Name $_ }
     
     # Create Host Group
     New-DrsClusterGroup -Cluster $Cluster -Name "${groupName}" -VMHost $Members
-    Write-Host "✓ DRS Host Group '${groupName}' created" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] DRS Host Group '${groupName}' created" -ForegroundColor Green`}
     
     Write-Host "  Members: $($MemberNames -join ', ')" -ForegroundColor Cyan
     
@@ -2052,7 +2052,7 @@ try {
     
     Set-Cluster -Cluster $Cluster -EVCMode "${evcMode}" -Confirm:$false
     
-    Write-Host "✓ EVC mode '${evcMode}' configured for cluster '${cluster}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] EVC mode '${evcMode}' configured for cluster '${cluster}'" -ForegroundColor Green
     
 } catch {
     Write-Error "EVC configuration failed: $_"
@@ -2094,7 +2094,7 @@ try {
         $VM = Get-VM -Name $VMName
         
         if ($VM.PowerState -ne 'PoweredOff') {
-            Write-Host "⚠ $VMName must be powered off to upgrade hardware" -ForegroundColor Yellow
+            Write-Host "[WARNING] $VMName must be powered off to upgrade hardware" -ForegroundColor Yellow
             continue
         }
         
@@ -2102,7 +2102,7 @@ try {
         
         Set-VM -VM $VM -Version ${targetVersion} -Confirm:$false
         
-        Write-Host "✓ $VMName upgraded to ${targetVersion}" -ForegroundColor Green
+        Write-Host "[SUCCESS] $VMName upgraded to ${targetVersion}" -ForegroundColor Green
     }
     
 } catch {
@@ -2154,7 +2154,7 @@ ${datastore ? `    $Datastore = Get-Datastore -Name "${datastore}"
     
     $NewDisk = New-HardDisk @DiskParams
     
-    Write-Host "✓ New disk added to ${vmName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] New disk added to ${vmName}" -ForegroundColor Green
     Write-Host "  Size: ${diskSizeGB} GB" -ForegroundColor Cyan
     Write-Host "  Format: ${storageFormat}" -ForegroundColor Cyan
     Write-Host "  SCSI: $($NewDisk.ExtensionData.ControllerKey):$($NewDisk.ExtensionData.UnitNumber)" -ForegroundColor Cyan
@@ -2202,7 +2202,7 @@ try {
         $VMView = $VM | Get-View
         if (-not $VMView.Config.CpuHotAddEnabled -or -not $VMView.Config.MemoryHotAddEnabled) {
             $NeedsPowerOff = $true
-            Write-Host "⚠ VM may need to be powered off for resource changes" -ForegroundColor Yellow
+            Write-Host "[WARNING] VM may need to be powered off for resource changes" -ForegroundColor Yellow
         }
     }
     
@@ -2211,7 +2211,7 @@ try {
         -MemoryGB ${memoryGB} \`
         -Confirm:$false
     
-    Write-Host "✓ VM '${vmName}' resources modified" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM '${vmName}' resources modified" -ForegroundColor Green
     Write-Host "  vCPUs: ${numCPU}" -ForegroundColor Cyan
     Write-Host "  Memory: ${memoryGB} GB" -ForegroundColor Cyan
     
@@ -2266,11 +2266,11 @@ try {
         -Datastore $Datastore \`
         -Location $Cluster
     
-    Write-Host "✓ Clone '${cloneName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Clone '${cloneName}' created successfully!" -ForegroundColor Green
     
     if (${powerOn}) {
         Start-VM -VM $Clone -Confirm:$false
-        Write-Host "✓ Clone powered on" -ForegroundColor Green
+        Write-Host "[SUCCESS] Clone powered on" -ForegroundColor Green
     }
     
 } catch {
@@ -2313,7 +2313,7 @@ try {
     
     Move-VM -VM $VM -Destination $TargetHost -VMotionPriority ${priority}
     
-    Write-Host "✓ vMotion completed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] vMotion completed successfully!" -ForegroundColor Green
     Write-Host "  VM: ${vmName}" -ForegroundColor Cyan
     Write-Host "  New Host: ${targetHost}" -ForegroundColor Cyan
     
@@ -2378,7 +2378,7 @@ try {
     $AlarmSpec.Expression = New-Object VMware.Vim.OrAlarmExpression
     $AlarmSpec.Expression.Expression = @($Expression)
     
-    Write-Host "✓ Alarm configuration prepared: ${alarmName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alarm configuration prepared: ${alarmName}" -ForegroundColor Green
     Write-Host "  Entity Type: ${alarmType}" -ForegroundColor Cyan
     Write-Host "  Metric: ${metric}" -ForegroundColor Cyan
     Write-Host "  Warning: ${warningThreshold}%" -ForegroundColor Yellow
@@ -2443,7 +2443,7 @@ ${vmNames === '*' ? `    $VMs = Get-VM` : `    $VMNames = @(${vmNames.split(',')
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Performance report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Performance report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     $Report | Format-Table -AutoSize
     
@@ -2511,7 +2511,7 @@ ${cluster ? `    $VMHosts = Get-Cluster -Name "${cluster}" | Get-VMHost` : `    
     $Report | Format-Table -AutoSize
     
 ${exportPath ? `    $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Health check failed: $_"
@@ -2554,7 +2554,7 @@ try {
     # Create new role
     $Role = New-VIRole -Name "${roleName}" -Privilege $Privileges
     
-    Write-Host "✓ Custom role '${roleName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Custom role '${roleName}' created successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Assigned Privileges:" -ForegroundColor Cyan
     $Privileges | ForEach-Object { Write-Host "  - $($_.Id)" }
@@ -2612,7 +2612,7 @@ entityType === 'Cluster' ? `    $Entity = Get-Cluster -Name "${entityName}"` :
         -Role $Role \`
         -Propagate:${propagate}
     
-    Write-Host "✓ Permission assigned successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permission assigned successfully!" -ForegroundColor Green
     Write-Host "  Principal: ${principal}" -ForegroundColor Cyan
     Write-Host "  Role: ${roleName}" -ForegroundColor Cyan
     Write-Host "  Entity: ${entityName}" -ForegroundColor Cyan
@@ -2659,7 +2659,7 @@ try {
     
     $Permissions | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Permissions exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Permissions: $($Permissions.Count)" -ForegroundColor Cyan
     
     # Summary
@@ -2706,14 +2706,14 @@ try {
     
 ${lockdownMode === 'Disabled' ? `    # Disable lockdown mode
     $LockdownMgr.ChangeLockdownMode('lockdownDisabled')
-    Write-Host "✓ Lockdown mode DISABLED on ${hostName}" -ForegroundColor Yellow` :
+    Write-Host "[SUCCESS] Lockdown mode DISABLED on ${hostName}" -ForegroundColor Yellow` :
 lockdownMode === 'Normal' ? `    # Enable Normal lockdown mode
     $LockdownMgr.ChangeLockdownMode('lockdownNormal')
-    Write-Host "✓ Normal lockdown mode ENABLED on ${hostName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Normal lockdown mode ENABLED on ${hostName}" -ForegroundColor Green` :
 `    # Enable Strict lockdown mode
     $LockdownMgr.ChangeLockdownMode('lockdownStrict')
-    Write-Host "✓ Strict lockdown mode ENABLED on ${hostName}" -ForegroundColor Green
-    Write-Host "⚠ WARNING: Direct console access is now restricted!" -ForegroundColor Red`}
+    Write-Host "[SUCCESS] Strict lockdown mode ENABLED on ${hostName}" -ForegroundColor Green
+    Write-Host "[WARNING] WARNING: Direct console access is now restricted!" -ForegroundColor Red`}
     
 } catch {
     Write-Error "Lockdown mode configuration failed: $_"
@@ -2776,14 +2776,14 @@ try {
     # Set network adapter
     Get-NetworkAdapter -VM $NewVM | Set-NetworkAdapter -Portgroup $PortGroup -Confirm:$false
     
-    Write-Host "✓ VM '${vmName}' deployed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM '${vmName}' deployed successfully!" -ForegroundColor Green
     Write-Host "  Template: ${templateName}" -ForegroundColor Cyan
     Write-Host "  Customization: ${customizationSpec}" -ForegroundColor Cyan
     Write-Host "  Network: ${portGroup}" -ForegroundColor Cyan
     
     # Power on VM to start customization
     Start-VM -VM $NewVM -Confirm:$false
-    Write-Host "✓ VM powered on - customization in progress" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM powered on - customization in progress" -ForegroundColor Green
     
 } catch {
     Write-Error "Deployment failed: $_"
@@ -2839,7 +2839,7 @@ ${joinDomain && domainName ? `    # Domain join settings
     
     $Spec = New-OSCustomizationSpec @SpecParams
     
-    Write-Host "✓ Customization spec '${specName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Customization spec '${specName}' created successfully!" -ForegroundColor Green
     Write-Host ""
     Get-OSCustomizationSpec -Name "${specName}" | Format-List
     
@@ -2892,7 +2892,7 @@ ${vmNames === '*' ? `    $VMs = Get-VM | Where-Object { $_.PowerState -eq 'Power
             }
             
             Update-Tools @UpdateParams
-            Write-Host "✓ Tools update initiated for $($VM.Name)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Tools update initiated for $($VM.Name)" -ForegroundColor Green
         } else {
             Write-Host "  $($VM.Name): Tools are current ($ToolsStatus)" -ForegroundColor Gray
         }
@@ -2949,7 +2949,7 @@ try {
         -Format ${format} \`
         -Force
     
-    Write-Host "✓ Export completed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Export completed successfully!" -ForegroundColor Green
     Write-Host "  Location: ${exportPath}" -ForegroundColor Cyan
     
 } catch {

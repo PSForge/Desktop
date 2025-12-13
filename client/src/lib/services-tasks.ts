@@ -94,7 +94,7 @@ Write-Host ""
 Write-Host "Total services: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -151,7 +151,7 @@ if ($Service) {
         Write-Host "Service is already running: $ServiceName" -ForegroundColor Yellow
     } else {
         Start-Service -Name $ServiceName
-        Write-Host "✓ Service started: $ServiceName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service started: $ServiceName" -ForegroundColor Green
         
         # Wait and verify
         Start-Sleep -Seconds 2
@@ -159,7 +159,7 @@ if ($Service) {
         Write-Host "  Current status: $Status" -ForegroundColor Gray
     }
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }`;
     }
   },
@@ -226,7 +226,7 @@ if ($Service) {
             Stop-Service -Name $ServiceName
         }
         
-        Write-Host "✓ Service stopped: $ServiceName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service stopped: $ServiceName" -ForegroundColor Green
         
         # Wait and verify
         Start-Sleep -Seconds 2
@@ -234,7 +234,7 @@ if ($Service) {
         Write-Host "  Current status: $Status" -ForegroundColor Gray
     }
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }`;
     }
   },
@@ -297,13 +297,13 @@ if ($Service) {
     $Status = (Get-Service -Name $ServiceName).Status
     
     if ($Status -eq "Running") {
-        Write-Host "✓ Service restarted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service restarted successfully" -ForegroundColor Green
         Write-Host "  Current status: $Status" -ForegroundColor Gray
     } else {
-        Write-Host "⚠ Service restart completed but status is: $Status" -ForegroundColor Yellow
+        Write-Host "[WARNING] Service restart completed but status is: $Status" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }`;
     }
   },
@@ -361,13 +361,13 @@ $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if ($Service) {
     Set-Service -Name $ServiceName -StartupType $StartupType
-    Write-Host "✓ Startup type set to $StartupType for $ServiceName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Startup type set to $StartupType for $ServiceName" -ForegroundColor Green
     
     # Verify
     $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
     Write-Host "  Current startup type: $($WMIService.StartMode)" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }`;
     }
   },
@@ -438,7 +438,7 @@ if ($Account -eq "LocalSystem") {
     $Credential = "${customAccount}"
     ${password ? `$Password = "${password}"` : `$Password = ""`}
 } else {
-    Write-Host "✗ Invalid account type" -ForegroundColor Red
+    Write-Host "[FAILED] Invalid account type" -ForegroundColor Red
     exit 1
 }
 
@@ -451,13 +451,13 @@ if ($Service) {
         $Service.Change($null, $null, $null, $null, $null, $null, $Credential, $null)
     }
     
-    Write-Host "✓ Service account changed:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service account changed:" -ForegroundColor Green
     Write-Host "  Service: $ServiceName" -ForegroundColor Gray
     Write-Host "  Account: $Credential" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ Restart service for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] Restart service for changes to take effect" -ForegroundColor Yellow
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }`;
     }
   },
@@ -529,7 +529,7 @@ if ($Service) {
         Write-Host "  (None)" -ForegroundColor Gray
     }
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }`;
     }
   },
@@ -596,13 +596,13 @@ if ($Service) {
     # Use sc.exe to configure recovery
     sc.exe failure $ServiceName reset= 86400 actions= ${first}/60000/${second}/60000/${subsequent}/60000
     
-    Write-Host "✓ Service recovery actions configured:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service recovery actions configured:" -ForegroundColor Green
     Write-Host "  Service: $ServiceName" -ForegroundColor Gray
     Write-Host "  First failure: ${params.firstFailure}" -ForegroundColor Gray
     Write-Host "  Second failure: ${params.secondFailure}" -ForegroundColor Gray
     Write-Host "  Subsequent failures: ${params.subsequentFailures}" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
 }`;
     }
   },
@@ -666,16 +666,16 @@ if ($Services) {
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - No services started" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No services started" -ForegroundColor Yellow
     } else {
         Write-Host ""
         Write-Host "Starting services..." -ForegroundColor Cyan
         foreach ($Service in $Services) {
             try {
                 Start-Service -Name $Service.Name -ErrorAction Stop
-                Write-Host "  ✓ $($Service.Name)" -ForegroundColor Green
+                Write-Host "  [OK] $($Service.Name)" -ForegroundColor Green
             } catch {
-                Write-Host "  ✗ $($Service.Name): $_" -ForegroundColor Red
+                Write-Host "  [FAILED] $($Service.Name): $_" -ForegroundColor Red
             }
         }
     }
@@ -744,16 +744,16 @@ if ($Services) {
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - No services stopped" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No services stopped" -ForegroundColor Yellow
     } else {
         Write-Host ""
-        Write-Host "⚠ WARNING: Stopping services..." -ForegroundColor Red
+        Write-Host "[WARNING] WARNING: Stopping services..." -ForegroundColor Red
         foreach ($Service in $Services) {
             try {
                 Stop-Service -Name $Service.Name -Force -ErrorAction Stop
-                Write-Host "  ✓ $($Service.Name)" -ForegroundColor Green
+                Write-Host "  [OK] $($Service.Name)" -ForegroundColor Green
             } catch {
-                Write-Host "  ✗ $($Service.Name): $_" -ForegroundColor Red
+                Write-Host "  [FAILED] $($Service.Name): $_" -ForegroundColor Red
             }
         }
     }
@@ -814,7 +814,7 @@ $Services = Get-WmiObject Win32_Service | Select-Object Name, DisplayName, State
 
 $Services | Export-Csv $ExportPath -NoTypeInformation
 
-Write-Host "✓ Service configuration exported:" -ForegroundColor Green
+Write-Host "[SUCCESS] Service configuration exported:" -ForegroundColor Green
 Write-Host "  File: $ExportPath" -ForegroundColor Gray
 Write-Host "  Total services: $($Services.Count)" -ForegroundColor Gray`;
     }
@@ -868,13 +868,13 @@ $StoppedAuto = Get-WmiObject Win32_Service | Where-Object {
 
 if ($StoppedAuto) {
     Write-Host ""
-    Write-Host "⚠ Found $($StoppedAuto.Count) stopped automatic service(s):" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($StoppedAuto.Count) stopped automatic service(s):" -ForegroundColor Yellow
     $StoppedAuto | Format-Table -AutoSize
     
     Write-Host ""
     Write-Host "These services may need attention" -ForegroundColor Yellow
 } else {
-    Write-Host "✓ All automatic services are running" -ForegroundColor Green
+    Write-Host "[SUCCESS] All automatic services are running" -ForegroundColor Green
 }`;
     }
   },
@@ -951,7 +951,7 @@ foreach ($ServiceName in $ServicesToDisable) {
             } else {
                 Set-Service -Name $ServiceName -StartupType Disabled
                 Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
-                Write-Host "  ✓ Disabled: $($Service.DisplayName)" -ForegroundColor Green
+                Write-Host "  [OK] Disabled: $($Service.DisplayName)" -ForegroundColor Green
             }
         } else {
             Write-Host "  Already disabled: $($Service.DisplayName)" -ForegroundColor Gray
@@ -960,8 +960,8 @@ foreach ($ServiceName in $ServicesToDisable) {
 }
 
 ${testMode ? `Write-Host ""
-Write-Host "⚠ TEST MODE - No services were actually disabled" -ForegroundColor Yellow` : `Write-Host ""
-Write-Host "✓ Security hardening complete" -ForegroundColor Green`}`;
+Write-Host "[WARNING] TEST MODE - No services were actually disabled" -ForegroundColor Yellow` : `Write-Host ""
+Write-Host "[SUCCESS] Security hardening complete" -ForegroundColor Green`}`;
     }
   },
 
@@ -1021,7 +1021,7 @@ $Events = Get-WinEvent -FilterHashtable @{LogName='System'; ID=7034,7031; StartT
 
 if ($Events) {
     Write-Host ""
-    Write-Host "⚠ Found $($Events.Count) service failure event(s):" -ForegroundColor Red
+    Write-Host "[WARNING] Found $($Events.Count) service failure event(s):" -ForegroundColor Red
     
     $Events | ForEach-Object {
         Write-Host ""
@@ -1029,7 +1029,7 @@ if ($Events) {
         Write-Host "  $($_.Message.Substring(0, [Math]::Min(200, $_.Message.Length)))" -ForegroundColor Gray
     }
 } else {
-    Write-Host "✓ No service failures detected" -ForegroundColor Green
+    Write-Host "[SUCCESS] No service failures detected" -ForegroundColor Green
 }`;
     }
   },
@@ -1088,7 +1088,7 @@ $Dependencies = "${dependencies}"
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -1104,7 +1104,7 @@ foreach ($Dep in $DepList) {
 }
 
 if ($InvalidDeps.Count -gt 0) {
-    Write-Host "✗ Invalid dependency service(s): $($InvalidDeps -join ', ')" -ForegroundColor Red
+    Write-Host "[FAILED] Invalid dependency service(s): $($InvalidDeps -join ', ')" -ForegroundColor Red
     exit 1
 }
 
@@ -1113,12 +1113,12 @@ $DepString = $DepList -join '/'
 sc.exe config $ServiceName depend= $DepString
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "✓ Dependencies configured for $ServiceName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dependencies configured for $ServiceName" -ForegroundColor Green
     Write-Host "  Dependencies: $Dependencies" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ Restart service for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] Restart service for changes to take effect" -ForegroundColor Yellow
 } else {
-    Write-Host "✗ Failed to configure dependencies" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure dependencies" -ForegroundColor Red
 }`;
     }
   },
@@ -1215,7 +1215,7 @@ Write-Host "Service Details:" -ForegroundColor Yellow
 $Services | Format-Table ServiceName, Account, AccountType, Status -AutoSize
 
 ${exportPath ? `$Services | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1273,14 +1273,14 @@ $NewPassword = "${newPassword}"
 $Service = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
 # Check if using custom account
 $BuiltInAccounts = @("LocalSystem", "NT AUTHORITY\\LocalService", "NT AUTHORITY\\NetworkService", "NT AUTHORITY\\SYSTEM")
 if ($BuiltInAccounts -contains $Service.StartName) {
-    Write-Host "✗ Service uses built-in account: $($Service.StartName)" -ForegroundColor Red
+    Write-Host "[FAILED] Service uses built-in account: $($Service.StartName)" -ForegroundColor Red
     Write-Host "  Cannot reset password for built-in accounts" -ForegroundColor Yellow
     exit 1
 }
@@ -1292,12 +1292,12 @@ Write-Host "Account: $($Service.StartName)" -ForegroundColor Gray
 $Result = $Service.Change($null, $null, $null, $null, $null, $null, $null, $NewPassword)
 
 if ($Result.ReturnValue -eq 0) {
-    Write-Host "✓ Password updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Password updated successfully" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠ IMPORTANT: Restart the service for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] IMPORTANT: Restart the service for changes to take effect" -ForegroundColor Yellow
     Write-Host "  Run: Restart-Service -Name $ServiceName -Force" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Failed to update password. Error code: $($Result.ReturnValue)" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to update password. Error code: $($Result.ReturnValue)" -ForegroundColor Red
 }`;
     }
   },
@@ -1383,7 +1383,7 @@ if ($HealthScore -ge 90) {
 Write-Host ""
 
 if ($StoppedAutoServices.Count -gt 0) {
-    Write-Host "⚠ AUTO-START SERVICES THAT ARE STOPPED:" -ForegroundColor Red
+    Write-Host "[WARNING] AUTO-START SERVICES THAT ARE STOPPED:" -ForegroundColor Red
     $StoppedAutoServices | ForEach-Object {
         Write-Host "  - $($_.DisplayName) ($($_.Name))" -ForegroundColor Yellow
     }
@@ -1404,7 +1404,7 @@ $Report = $Services | ForEach-Object {
 }
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Full report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Full report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1474,11 +1474,11 @@ $Events = Get-WinEvent -FilterHashtable @{
 } -ErrorAction SilentlyContinue
 
 if (-not $Events -or $Events.Count -eq 0) {
-    Write-Host "✓ No service failures found in the last $DaysBack days" -ForegroundColor Green
+    Write-Host "[SUCCESS] No service failures found in the last $DaysBack days" -ForegroundColor Green
     exit 0
 }
 
-Write-Host "⚠ Found $($Events.Count) service failure event(s)" -ForegroundColor Yellow
+Write-Host "[WARNING] Found $($Events.Count) service failure event(s)" -ForegroundColor Yellow
 Write-Host ""
 
 # Group by service (extract from message)
@@ -1515,7 +1515,7 @@ $Summary | Select-Object -First 5 | ForEach-Object {
 
 ${exportPath ? `$FailureReport | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Detailed report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Detailed report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1577,19 +1577,19 @@ $HungServices = Get-Service | Where-Object {
 }
 
 if ($HungServices.Count -eq 0) {
-    Write-Host "✓ No hung services detected" -ForegroundColor Green
+    Write-Host "[SUCCESS] No hung services detected" -ForegroundColor Green
     exit 0
 }
 
 Write-Host ""
-Write-Host "⚠ Found $($HungServices.Count) hung service(s):" -ForegroundColor Yellow
+Write-Host "[WARNING] Found $($HungServices.Count) hung service(s):" -ForegroundColor Yellow
 $HungServices | ForEach-Object {
     Write-Host "  - $($_.DisplayName) ($($_.Name)) - Status: $($_.Status)" -ForegroundColor Yellow
 }
 
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No actions taken" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No actions taken" -ForegroundColor Yellow
     Write-Host "  Set Test Mode to false to restart these services" -ForegroundColor Gray
     exit 0
 }
@@ -1618,12 +1618,12 @@ foreach ($Service in $HungServices) {
         
         $NewStatus = (Get-Service -Name $Service.Name).Status
         if ($NewStatus -eq 'Running') {
-            Write-Host "  ✓ Service recovered and running" -ForegroundColor Green
+            Write-Host "  [OK] Service recovered and running" -ForegroundColor Green
         } else {
-            Write-Host "  ⚠ Service status: $NewStatus" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Service status: $NewStatus" -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "  ✗ Failed to recover: $_" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed to recover: $_" -ForegroundColor Red
     }
 }`;
     }
@@ -1698,7 +1698,7 @@ if ($ServiceGroup -eq "Custom") {
 }
 
 if (-not $Services -or $Services.Count -eq 0) {
-    Write-Host "✗ No services specified" -ForegroundColor Red
+    Write-Host "[FAILED] No services specified" -ForegroundColor Red
     exit 1
 }
 
@@ -1713,10 +1713,10 @@ foreach ($ServiceName in $Services) {
     if ($Service) {
         $ValidServices += $ServiceName
     } elseif (-not $IgnoreMissing) {
-        Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+        Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
         exit 1
     } else {
-        Write-Host "⚠ Skipping missing service: $ServiceName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping missing service: $ServiceName" -ForegroundColor Yellow
     }
 }
 
@@ -1728,7 +1728,7 @@ for ($i = $ValidServices.Count - 1; $i -ge 0; $i--) {
         Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
         Write-Host "  Stopped: $ServiceName" -ForegroundColor Gray
     } catch {
-        Write-Host "  ⚠ Could not stop: $ServiceName" -ForegroundColor Yellow
+        Write-Host "  [WARNING] Could not stop: $ServiceName" -ForegroundColor Yellow
     }
 }
 
@@ -1740,14 +1740,14 @@ Write-Host "Starting services..." -ForegroundColor Yellow
 foreach ($ServiceName in $ValidServices) {
     try {
         Start-Service -Name $ServiceName -ErrorAction Stop
-        Write-Host "  ✓ Started: $ServiceName" -ForegroundColor Green
+        Write-Host "  [OK] Started: $ServiceName" -ForegroundColor Green
     } catch {
-        Write-Host "  ✗ Failed to start: $ServiceName - $_" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed to start: $ServiceName - $_" -ForegroundColor Red
     }
 }
 
 Write-Host ""
-Write-Host "✓ Service group restart completed" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Service group restart completed" -ForegroundColor Green`;
     }
   },
 
@@ -1811,9 +1811,9 @@ if ($BackupFirst) {
     
     try {
         wevtutil epl System $BackupPath
-        Write-Host "✓ Backup created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backup created successfully" -ForegroundColor Green
     } catch {
-        Write-Host "✗ Backup failed: $_" -ForegroundColor Red
+        Write-Host "[FAILED] Backup failed: $_" -ForegroundColor Red
         Write-Host "  Aborting clear operation for safety" -ForegroundColor Yellow
         exit 1
     }
@@ -1824,7 +1824,7 @@ Write-Host "Clearing System Event Log..." -ForegroundColor Yellow
 
 try {
     wevtutil cl System
-    Write-Host "✓ System Event Log cleared" -ForegroundColor Green
+    Write-Host "[SUCCESS] System Event Log cleared" -ForegroundColor Green
     
     # Create baseline entry
     Write-EventLog -LogName System -Source "EventLog" -EventId 1 -EntryType Information -Message "Event log cleared by administrator for service troubleshooting." -ErrorAction SilentlyContinue
@@ -1840,7 +1840,7 @@ try {
         Write-Host "  To restore: wevtutil im $BackupPath" -ForegroundColor Gray
     }
 } catch {
-    Write-Host "✗ Failed to clear log: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to clear log: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1904,7 +1904,7 @@ Write-Host "============================================" -ForegroundColor Gray
 # Verify service exists
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -1921,7 +1921,7 @@ $Events = Get-WinEvent -FilterHashtable @{
 
 if (-not $Events -or $Events.Count -eq 0) {
     Write-Host ""
-    Write-Host "✓ No failure events found for $ServiceName in the last $DaysBack days" -ForegroundColor Green
+    Write-Host "[SUCCESS] No failure events found for $ServiceName in the last $DaysBack days" -ForegroundColor Green
     exit 0
 }
 
@@ -2046,7 +2046,7 @@ Write-Host "============================================" -ForegroundColor Gray
 # Check if service exists in registry
 $RegPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\$ServiceName"
 if (-not (Test-Path $RegPath)) {
-    Write-Host "✗ Service not found in registry: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found in registry: $ServiceName" -ForegroundColor Red
     Write-Host "  Service may need to be reinstalled" -ForegroundColor Yellow
     exit 1
 }
@@ -2101,14 +2101,14 @@ try {
     
     if ($Status -eq 'Running') {
         Write-Host ""
-        Write-Host "✓ Service repaired and running successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service repaired and running successfully" -ForegroundColor Green
     } else {
         Write-Host ""
-        Write-Host "⚠ Service started but status is: $Status" -ForegroundColor Yellow
+        Write-Host "[WARNING] Service started but status is: $Status" -ForegroundColor Yellow
     }
 } catch {
     Write-Host ""
-    Write-Host "✗ Service failed to start after repair" -ForegroundColor Red
+    Write-Host "[FAILED] Service failed to start after repair" -ForegroundColor Red
     Write-Host "  Error: $_" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Additional steps to try:" -ForegroundColor Yellow
@@ -2178,7 +2178,7 @@ Write-Host "============================================" -ForegroundColor Gray
 if ($TargetService) {
     $Services = Get-WmiObject Win32_Service -Filter "Name='$TargetService'"
     if (-not $Services) {
-        Write-Host "✗ Service not found: $TargetService" -ForegroundColor Red
+        Write-Host "[FAILED] Service not found: $TargetService" -ForegroundColor Red
         exit 1
     }
 } else {
@@ -2238,7 +2238,7 @@ $AccountAnalysis | Group-Object Risk | Sort-Object @{Expression={
 $HighRisk = $AccountAnalysis | Where-Object { $_.Risk -eq "High" }
 if ($HighRisk) {
     Write-Host ""
-    Write-Host "⚠ HIGH PRIVILEGE SERVICES (LocalSystem):" -ForegroundColor Red
+    Write-Host "[WARNING] HIGH PRIVILEGE SERVICES (LocalSystem):" -ForegroundColor Red
     $HighRisk | ForEach-Object {
         Write-Host "  - $($_.DisplayName)" -ForegroundColor Yellow
     }
@@ -2323,7 +2323,7 @@ $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
 
 if (-not $Service -or -not $WMIService) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -2387,18 +2387,18 @@ if ($WMIService.Description) {
 # Display results
 Write-Host ""
 Write-Host "PASSED CHECKS ($($Passed.Count)):" -ForegroundColor Green
-$Passed | ForEach-Object { Write-Host "  ✓ $_" -ForegroundColor Green }
+$Passed | ForEach-Object { Write-Host "  [OK] $_" -ForegroundColor Green }
 
 if ($Warnings.Count -gt 0) {
     Write-Host ""
     Write-Host "WARNINGS ($($Warnings.Count)):" -ForegroundColor Yellow
-    $Warnings | ForEach-Object { Write-Host "  ⚠ $_" -ForegroundColor Yellow }
+    $Warnings | ForEach-Object { Write-Host "  [WARNING] $_" -ForegroundColor Yellow }
 }
 
 if ($Issues.Count -gt 0) {
     Write-Host ""
     Write-Host "ISSUES ($($Issues.Count)):" -ForegroundColor Red
-    $Issues | ForEach-Object { Write-Host "  ✗ $_" -ForegroundColor Red }
+    $Issues | ForEach-Object { Write-Host "  [FAILED] $_" -ForegroundColor Red }
 }
 
 # Overall score
@@ -2465,17 +2465,17 @@ $ServiceName = "${serviceName}"
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
 if ($Service.Status -ne "Running") {
-    Write-Host "✗ Service is not running: $ServiceName (Status: $($Service.Status))" -ForegroundColor Red
+    Write-Host "[FAILED] Service is not running: $ServiceName (Status: $($Service.Status))" -ForegroundColor Red
     exit 1
 }
 
 if (-not $Service.CanPauseAndContinue) {
-    Write-Host "✗ Service does not support pause: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service does not support pause: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -2487,10 +2487,10 @@ Start-Sleep -Seconds 2
 $Status = (Get-Service -Name $ServiceName).Status
 
 if ($Status -eq "Paused") {
-    Write-Host "✓ Service paused successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service paused successfully" -ForegroundColor Green
     Write-Host "  Current status: $Status" -ForegroundColor Gray
 } else {
-    Write-Host "⚠ Pause command sent but status is: $Status" -ForegroundColor Yellow
+    Write-Host "[WARNING] Pause command sent but status is: $Status" -ForegroundColor Yellow
 }`;
     }
   },
@@ -2543,12 +2543,12 @@ $ServiceName = "${serviceName}"
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
 if ($Service.Status -ne "Paused") {
-    Write-Host "✗ Service is not paused: $ServiceName (Status: $($Service.Status))" -ForegroundColor Red
+    Write-Host "[FAILED] Service is not paused: $ServiceName (Status: $($Service.Status))" -ForegroundColor Red
     exit 1
 }
 
@@ -2560,10 +2560,10 @@ Start-Sleep -Seconds 2
 $Status = (Get-Service -Name $ServiceName).Status
 
 if ($Status -eq "Running") {
-    Write-Host "✓ Service resumed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service resumed successfully" -ForegroundColor Green
     Write-Host "  Current status: $Status" -ForegroundColor Gray
 } else {
-    Write-Host "⚠ Continue command sent but status is: $Status" -ForegroundColor Yellow
+    Write-Host "[WARNING] Continue command sent but status is: $Status" -ForegroundColor Yellow
 }`;
     }
   },
@@ -2627,7 +2627,7 @@ Write-Host ""
 
 # Test connectivity first
 if (-not (Test-Connection -ComputerName $ComputerName -Count 1 -Quiet)) {
-    Write-Host "✗ Cannot reach computer: $ComputerName" -ForegroundColor Red
+    Write-Host "[FAILED] Cannot reach computer: $ComputerName" -ForegroundColor Red
     exit 1
 }
 
@@ -2643,12 +2643,12 @@ try {
         Write-Host "  Account: $($Service.StartName)" -ForegroundColor Gray
         Write-Host "  Process ID: $($Service.ProcessId)" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "✓ Query completed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Query completed successfully" -ForegroundColor Green
     } else {
-        Write-Host "✗ Service not found on $ComputerName\`: $ServiceName" -ForegroundColor Red
+        Write-Host "[FAILED] Service not found on $ComputerName\`: $ServiceName" -ForegroundColor Red
     }
 } catch {
-    Write-Host "✗ Failed to query remote service" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to query remote service" -ForegroundColor Red
     Write-Host "  Error: $_" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Troubleshooting:" -ForegroundColor Yellow
@@ -2719,9 +2719,9 @@ Write-Host ""
 # Test WinRM connectivity
 try {
     $TestResult = Test-WSMan -ComputerName $ComputerName -ErrorAction Stop
-    Write-Host "✓ WinRM connectivity verified" -ForegroundColor Green
+    Write-Host "[SUCCESS] WinRM connectivity verified" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Cannot connect via WinRM to: $ComputerName" -ForegroundColor Red
+    Write-Host "[FAILED] Cannot connect via WinRM to: $ComputerName" -ForegroundColor Red
     Write-Host "  Ensure WinRM is enabled: Enable-PSRemoting -Force" -ForegroundColor Yellow
     exit 1
 }
@@ -2750,16 +2750,16 @@ try {
     
     if ($Result.Success) {
         Write-Host ""
-        Write-Host "✓ Service restarted successfully on $ComputerName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service restarted successfully on $ComputerName" -ForegroundColor Green
         Write-Host "  Current status: $($Result.Status)" -ForegroundColor Gray
     } else {
         Write-Host ""
-        Write-Host "✗ Failed to restart service" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to restart service" -ForegroundColor Red
         Write-Host "  Error: $($Result.Message)" -ForegroundColor Gray
     }
 } catch {
     Write-Host ""
-    Write-Host "✗ Remote command failed" -ForegroundColor Red
+    Write-Host "[FAILED] Remote command failed" -ForegroundColor Red
     Write-Host "  Error: $_" -ForegroundColor Gray
 }`;
     }
@@ -2827,7 +2827,7 @@ Write-Host "============================================" -ForegroundColor Gray
 Write-Host ""
 
 if ($ServerList.Count -eq 0) {
-    Write-Host "✗ No servers specified" -ForegroundColor Red
+    Write-Host "[FAILED] No servers specified" -ForegroundColor Red
     exit 1
 }
 
@@ -2836,7 +2836,7 @@ $ServerList | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
 Write-Host ""
 
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - No actions will be taken" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No actions will be taken" -ForegroundColor Yellow
     Write-Host ""
     
     # Test connectivity
@@ -2844,9 +2844,9 @@ if ($TestMode) {
     foreach ($Server in $ServerList) {
         $Ping = Test-Connection -ComputerName $Server -Count 1 -Quiet
         if ($Ping) {
-            Write-Host "  ✓ $Server - Reachable" -ForegroundColor Green
+            Write-Host "  [OK] $Server - Reachable" -ForegroundColor Green
         } else {
-            Write-Host "  ✗ $Server - Unreachable" -ForegroundColor Red
+            Write-Host "  [FAILED] $Server - Unreachable" -ForegroundColor Red
         }
     }
     exit 0
@@ -2875,14 +2875,14 @@ foreach ($Server in $ServerList) {
         } -ArgumentList $ServiceName -ErrorAction Stop
         
         if ($Result.Success) {
-            Write-Host "  ✓ Success - Status: $($Result.Status)" -ForegroundColor Green
+            Write-Host "  [OK] Success - Status: $($Result.Status)" -ForegroundColor Green
             $Results += [PSCustomObject]@{ Server = $Server; Status = "Success"; Details = $Result.Status }
         } else {
-            Write-Host "  ✗ Failed - $($Result.Error)" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed - $($Result.Error)" -ForegroundColor Red
             $Results += [PSCustomObject]@{ Server = $Server; Status = "Failed"; Details = $Result.Error }
         }
     } catch {
-        Write-Host "  ✗ Connection failed - $_" -ForegroundColor Red
+        Write-Host "  [FAILED] Connection failed - $_" -ForegroundColor Red
         $Results += [PSCustomObject]@{ Server = $Server; Status = "Error"; Details = $_.Exception.Message }
     }
 }
@@ -2980,11 +2980,11 @@ foreach ($Service in $Services) {
 }
 
 if ($OrphanedServices.Count -eq 0) {
-    Write-Host "✓ No orphaned services found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No orphaned services found" -ForegroundColor Green
     exit 0
 }
 
-Write-Host "⚠ Found $($OrphanedServices.Count) orphaned service(s):" -ForegroundColor Yellow
+Write-Host "[WARNING] Found $($OrphanedServices.Count) orphaned service(s):" -ForegroundColor Yellow
 Write-Host ""
 
 $OrphanedServices | ForEach-Object {
@@ -3003,7 +3003,7 @@ Write-Host "  3. Use 'sc.exe delete ServiceName' to remove (caution!)" -Foregrou
 ${exportPath ? `
 $OrphanedServices | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3123,7 +3123,7 @@ Write-Host "Total third-party services: $($ThirdPartyServices.Count)" -Foregroun
 
 ${exportPath ? `
 $ThirdPartyServices | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3250,7 +3250,7 @@ Write-Host "  Use: sc.exe config ServiceName start= delayed-auto" -ForegroundCol
 ${exportPath ? `
 $Analysis | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Full analysis exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Full analysis exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3307,14 +3307,14 @@ $EnableDelayed = ${enableDelayed}
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
 $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
 
 if ($WMIService.StartMode -ne "Auto") {
-    Write-Host "✗ Service is not set to Automatic startup" -ForegroundColor Red
+    Write-Host "[FAILED] Service is not set to Automatic startup" -ForegroundColor Red
     Write-Host "  Current startup type: $($WMIService.StartMode)" -ForegroundColor Yellow
     Write-Host "  Delayed start only applies to Automatic services" -ForegroundColor Gray
     exit 1
@@ -3324,10 +3324,10 @@ Write-Host "Configuring delayed auto-start for: $($Service.DisplayName)" -Foregr
 
 if ($EnableDelayed) {
     sc.exe config $ServiceName start= delayed-auto | Out-Null
-    Write-Host "✓ Delayed auto-start ENABLED" -ForegroundColor Green
+    Write-Host "[SUCCESS] Delayed auto-start ENABLED" -ForegroundColor Green
 } else {
     sc.exe config $ServiceName start= auto | Out-Null
-    Write-Host "✓ Delayed auto-start DISABLED (standard auto)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Delayed auto-start DISABLED (standard auto)" -ForegroundColor Green
 }
 
 # Verify
@@ -3340,7 +3340,7 @@ Write-Host "Current configuration:" -ForegroundColor Gray
 Write-Host "  Service: $ServiceName" -ForegroundColor Gray
 Write-Host "  Startup Type: Automatic $(if ($IsDelayed) { '(Delayed Start)' } else { '(Immediate)' })" -ForegroundColor Gray
 Write-Host ""
-Write-Host "⚠ Changes take effect on next system boot" -ForegroundColor Yellow`;
+Write-Host "[WARNING] Changes take effect on next system boot" -ForegroundColor Yellow`;
     }
   },
 
@@ -3413,7 +3413,7 @@ Write-Host ""
 if ($ServiceFilter) {
     $Services = Get-WmiObject Win32_Service -Filter "Name='$ServiceFilter'"
     if (-not $Services) {
-        Write-Host "✗ Service not found: $ServiceFilter" -ForegroundColor Red
+        Write-Host "[FAILED] Service not found: $ServiceFilter" -ForegroundColor Red
         exit 1
     }
 } else {
@@ -3463,7 +3463,7 @@ $CsvFile = Join-Path $ExportPath "ServiceConfig_$Timestamp.csv"
 $ExportData | Export-Csv $CsvFile -NoTypeInformation
 
 Write-Host ""
-Write-Host "✓ Export completed successfully" -ForegroundColor Green
+Write-Host "[SUCCESS] Export completed successfully" -ForegroundColor Green
 Write-Host ""
 Write-Host "Exported files:" -ForegroundColor Yellow
 Write-Host "  JSON: $JsonFile" -ForegroundColor Gray
@@ -3531,14 +3531,14 @@ Write-Host ""
 
 # Load baseline
 if (-not (Test-Path $BaselinePath)) {
-    Write-Host "✗ Baseline file not found: $BaselinePath" -ForegroundColor Red
+    Write-Host "[FAILED] Baseline file not found: $BaselinePath" -ForegroundColor Red
     exit 1
 }
 
 try {
     $Baseline = Get-Content $BaselinePath -Raw | ConvertFrom-Json
 } catch {
-    Write-Host "✗ Invalid baseline JSON file" -ForegroundColor Red
+    Write-Host "[FAILED] Invalid baseline JSON file" -ForegroundColor Red
     exit 1
 }
 
@@ -3620,7 +3620,7 @@ Write-Host "  Modified services: $($Changes.Count - $NewServices.Count - $Remove
 Write-Host ""
 
 if ($Changes.Count -eq 0) {
-    Write-Host "✓ No changes detected - configuration matches baseline" -ForegroundColor Green
+    Write-Host "[SUCCESS] No changes detected - configuration matches baseline" -ForegroundColor Green
 } else {
     Write-Host "CHANGES DETECTED:" -ForegroundColor Red
     Write-Host ""
@@ -3639,7 +3639,7 @@ if ($Changes.Count -eq 0) {
 ${exportPath ? `
 $Changes | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3703,7 +3703,7 @@ Write-Host ""
 # Verify service exists
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -3790,7 +3790,7 @@ $ServiceEvents | Select-Object -First 20 | ForEach-Object {
 ${exportPath ? `
 $ServiceEvents | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Full history exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Full history exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3852,7 +3852,7 @@ Write-Host ""
 
 # Verify domain membership
 if (-not (Get-WmiObject Win32_ComputerSystem).PartOfDomain) {
-    Write-Host "✗ This computer is not domain-joined" -ForegroundColor Red
+    Write-Host "[FAILED] This computer is not domain-joined" -ForegroundColor Red
     Write-Host "  gMSA requires Active Directory domain membership" -ForegroundColor Yellow
     exit 1
 }
@@ -3860,13 +3860,13 @@ if (-not (Get-WmiObject Win32_ComputerSystem).PartOfDomain) {
 # Verify service exists
 $Service = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
 # Validate gMSA account format
 if ($GMSAAccount -notmatch '\\$\$') {
-    Write-Host "⚠ gMSA account should end with \$ (e.g., DOMAIN\\account\$)" -ForegroundColor Yellow
+    Write-Host "[WARNING] gMSA account should end with \$ (e.g., DOMAIN\\account\$)" -ForegroundColor Yellow
 }
 
 # Test gMSA access (requires AD module)
@@ -3876,15 +3876,15 @@ try {
         $AccountName = ($GMSAAccount -split '\\\\')[1]
         $TestResult = Test-ADServiceAccount -Identity $AccountName -ErrorAction Stop
         if ($TestResult) {
-            Write-Host "✓ gMSA access verified" -ForegroundColor Green
+            Write-Host "[SUCCESS] gMSA access verified" -ForegroundColor Green
         } else {
-            Write-Host "⚠ gMSA test returned false - computer may not have access" -ForegroundColor Yellow
+            Write-Host "[WARNING] gMSA test returned false - computer may not have access" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "⚠ AD PowerShell module not available - skipping gMSA test" -ForegroundColor Yellow
+        Write-Host "[WARNING] AD PowerShell module not available - skipping gMSA test" -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "⚠ Could not test gMSA access: $_" -ForegroundColor Yellow
+    Write-Host "[WARNING] Could not test gMSA access: $_" -ForegroundColor Yellow
 }
 
 # Configure service
@@ -3896,15 +3896,15 @@ $Result = sc.exe config $ServiceName obj= $GMSAAccount password= "" 2>&1
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "✓ Service configured to use gMSA" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service configured to use gMSA" -ForegroundColor Green
     Write-Host "  Service: $ServiceName" -ForegroundColor Gray
     Write-Host "  Account: $GMSAAccount" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ IMPORTANT: Restart the service for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] IMPORTANT: Restart the service for changes to take effect" -ForegroundColor Yellow
     Write-Host "  Run: Restart-Service -Name $ServiceName -Force" -ForegroundColor Gray
 } else {
     Write-Host ""
-    Write-Host "✗ Failed to configure service" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure service" -ForegroundColor Red
     Write-Host "  Error: $Result" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Verify:" -ForegroundColor Yellow
@@ -3966,7 +3966,7 @@ $Description = "${description}"
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -3981,12 +3981,12 @@ if ($LASTEXITCODE -eq 0) {
     $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
     
     Write-Host ""
-    Write-Host "✓ Description updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Description updated successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Current description:" -ForegroundColor Yellow
     Write-Host "  $($WMIService.Description)" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Failed to update description" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to update description" -ForegroundColor Red
 }`;
     }
   },
@@ -4044,7 +4044,7 @@ $Confirm = ${confirm}
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -4064,7 +4064,7 @@ if ($Service.ServicesDependedOn.Count -gt 0) {
 Write-Host ""
 
 if (-not $Confirm) {
-    Write-Host "⚠ Confirmation required to clear dependencies" -ForegroundColor Yellow
+    Write-Host "[WARNING] Confirmation required to clear dependencies" -ForegroundColor Yellow
     Write-Host "  Set 'Confirm Removal' to true to proceed" -ForegroundColor Gray
     exit 0
 }
@@ -4075,12 +4075,12 @@ sc.exe config $ServiceName depend= "" | Out-Null
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "✓ Dependencies cleared successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dependencies cleared successfully" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠ Restart service for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] Restart service for changes to take effect" -ForegroundColor Yellow
 } else {
     Write-Host ""
-    Write-Host "✗ Failed to clear dependencies" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to clear dependencies" -ForegroundColor Red
 }`;
     }
   },
@@ -4134,7 +4134,7 @@ $ServiceName = "${serviceName}"
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if (-not $Service) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -4147,7 +4147,7 @@ Write-Host ""
 $SDDL = sc.exe sdshow $ServiceName 2>$null
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "✗ Failed to retrieve security descriptor" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve security descriptor" -ForegroundColor Red
     exit 1
 }
 
@@ -4370,7 +4370,7 @@ ${exportPath ? `
 $AllFindings = $ComplianceIssues + $Warnings
 $AllFindings | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Full report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Full report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -4435,7 +4435,7 @@ Write-Host ""
 $Services = Get-Service -Name $Pattern -ErrorAction SilentlyContinue
 
 if (-not $Services) {
-    Write-Host "✗ No services found matching pattern: $Pattern" -ForegroundColor Red
+    Write-Host "[FAILED] No services found matching pattern: $Pattern" -ForegroundColor Red
     exit 1
 }
 
@@ -4447,7 +4447,7 @@ $Services | ForEach-Object {
 Write-Host ""
 
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - No changes will be made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes will be made" -ForegroundColor Yellow
     Write-Host "  Set Test Mode to false to apply changes" -ForegroundColor Gray
     exit 0
 }
@@ -4461,10 +4461,10 @@ $Failed = 0
 foreach ($Service in $Services) {
     try {
         Set-Service -Name $Service.Name -StartupType $StartupType -ErrorAction Stop
-        Write-Host "  ✓ $($Service.Name)" -ForegroundColor Green
+        Write-Host "  [OK] $($Service.Name)" -ForegroundColor Green
         $Success++
     } catch {
-        Write-Host "  ✗ $($Service.Name): $_" -ForegroundColor Red
+        Write-Host "  [FAILED] $($Service.Name): $_" -ForegroundColor Red
         $Failed++
     }
 }
@@ -4538,19 +4538,19 @@ Write-Host ""
 $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
 
 if (-not $WMIService) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
 if ($WMIService.State -ne "Running") {
-    Write-Host "✗ Service is not running: $ServiceName (Status: $($WMIService.State))" -ForegroundColor Red
+    Write-Host "[FAILED] Service is not running: $ServiceName (Status: $($WMIService.State))" -ForegroundColor Red
     exit 1
 }
 
 $ProcessId = $WMIService.ProcessId
 
 if ($ProcessId -eq 0) {
-    Write-Host "✗ Service has no associated process" -ForegroundColor Red
+    Write-Host "[FAILED] Service has no associated process" -ForegroundColor Red
     exit 1
 }
 
@@ -4559,7 +4559,7 @@ Write-Host "Process ID: $ProcessId" -ForegroundColor Gray
 # Check if svchost (shared)
 $Process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
 if ($Process.Name -eq "svchost") {
-    Write-Host "⚠ Service runs in shared svchost - resource usage may include other services" -ForegroundColor Yellow
+    Write-Host "[WARNING] Service runs in shared svchost - resource usage may include other services" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -4572,7 +4572,7 @@ for ($i = 1; $i -le $Samples; $i++) {
     $Process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
     
     if (-not $Process) {
-        Write-Host "⚠ Process terminated during monitoring" -ForegroundColor Yellow
+        Write-Host "[WARNING] Process terminated during monitoring" -ForegroundColor Yellow
         break
     }
     
@@ -4615,13 +4615,13 @@ Write-Host "  Peak Handles: $MaxHandles" -ForegroundColor Gray
 # Simple assessment
 if ($MaxMemory -gt 500) {
     Write-Host ""
-    Write-Host "⚠ High memory usage detected (>500 MB)" -ForegroundColor Yellow
+    Write-Host "[WARNING] High memory usage detected (>500 MB)" -ForegroundColor Yellow
 } elseif ($MaxMemory -gt 200) {
     Write-Host ""
     Write-Host "Memory usage is moderate" -ForegroundColor Gray
 } else {
     Write-Host ""
-    Write-Host "✓ Memory usage is within normal range" -ForegroundColor Green
+    Write-Host "[SUCCESS] Memory usage is within normal range" -ForegroundColor Green
 }`;
     }
   },
@@ -4714,7 +4714,7 @@ Write-Host "  Stopped: $Stopped" -ForegroundColor Gray
 ${exportPath ? `
 $Services | Select-Object Name, DisplayName, State, StartMode, StartName | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -4777,7 +4777,7 @@ Write-Host "  Delay: $DelaySeconds seconds between restarts" -ForegroundColor Gr
 Write-Host ""
 
 if ($ServiceList.Count -eq 0) {
-    Write-Host "✗ No services specified" -ForegroundColor Red
+    Write-Host "[FAILED] No services specified" -ForegroundColor Red
     exit 1
 }
 
@@ -4788,22 +4788,22 @@ foreach ($SvcName in $ServiceList) {
     $Svc = Get-Service -Name $SvcName -ErrorAction SilentlyContinue
     if (-not $Svc) {
         $InvalidServices += $SvcName
-        Write-Host "  ✗ $SvcName - Not found" -ForegroundColor Red
+        Write-Host "  [FAILED] $SvcName - Not found" -ForegroundColor Red
     } else {
-        Write-Host "  ✓ $($Svc.DisplayName) [$($Svc.Status)]" -ForegroundColor Green
+        Write-Host "  [OK] $($Svc.DisplayName) [$($Svc.Status)]" -ForegroundColor Green
     }
 }
 
 if ($InvalidServices.Count -gt 0) {
     Write-Host ""
-    Write-Host "✗ Some services not found. Aborting." -ForegroundColor Red
+    Write-Host "[FAILED] Some services not found. Aborting." -ForegroundColor Red
     exit 1
 }
 
 Write-Host ""
 
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - Restart order preview:" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - Restart order preview:" -ForegroundColor Yellow
     for ($i = 0; $i -lt $ServiceList.Count; $i++) {
         Write-Host "  $($i + 1). $($ServiceList[$i])" -ForegroundColor Gray
         if ($i -lt $ServiceList.Count - 1) {
@@ -4830,14 +4830,14 @@ for ($i = 0; $i -lt $ServiceList.Count; $i++) {
         $Status = (Get-Service -Name $SvcName).Status
         
         if ($Status -eq "Running") {
-            Write-Host "  ✓ Running" -ForegroundColor Green
+            Write-Host "  [OK] Running" -ForegroundColor Green
             $Results += [PSCustomObject]@{ Service = $SvcName; Status = "Success"; FinalState = $Status }
         } else {
-            Write-Host "  ⚠ Status: $Status" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Status: $Status" -ForegroundColor Yellow
             $Results += [PSCustomObject]@{ Service = $SvcName; Status = "Warning"; FinalState = $Status }
         }
     } catch {
-        Write-Host "  ✗ Failed: $_" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed: $_" -ForegroundColor Red
         $Results += [PSCustomObject]@{ Service = $SvcName; Status = "Failed"; FinalState = "Error" }
     }
     
@@ -4923,11 +4923,11 @@ if ($ExcludeTrigger) {
 }
 
 if ($AutoServices.Count -eq 0) {
-    Write-Host "✓ All auto-start services are running" -ForegroundColor Green
+    Write-Host "[SUCCESS] All auto-start services are running" -ForegroundColor Green
     exit 0
 }
 
-Write-Host "⚠ Found $($AutoServices.Count) stopped auto-start service(s):" -ForegroundColor Yellow
+Write-Host "[WARNING] Found $($AutoServices.Count) stopped auto-start service(s):" -ForegroundColor Yellow
 Write-Host ""
 
 $Report = $AutoServices | ForEach-Object {
@@ -4957,7 +4957,7 @@ Write-Host "  4. Try starting services manually to see errors" -ForegroundColor 
 ${exportPath ? `
 $Report | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -5066,7 +5066,7 @@ Write-Host "NOTE: Modification date may indicate update, not just new installati
 ${exportPath ? `
 $RecentServices | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -5127,7 +5127,7 @@ Write-Host ""
 $WMIService = Get-WmiObject Win32_Service -Filter "Name='$ServiceName'"
 
 if (-not $WMIService) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     exit 1
 }
 
@@ -5139,7 +5139,7 @@ Write-Host ""
 $ProcessId = $WMIService.ProcessId
 
 if (-not $ProcessId -or $ProcessId -eq 0) {
-    Write-Host "✗ Service has no associated process (may already be stopped)" -ForegroundColor Red
+    Write-Host "[FAILED] Service has no associated process (may already be stopped)" -ForegroundColor Red
     exit 1
 }
 
@@ -5147,7 +5147,7 @@ if (-not $ProcessId -or $ProcessId -eq 0) {
 $Process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
 
 if (-not $Process) {
-    Write-Host "✗ Process ID $ProcessId not found" -ForegroundColor Red
+    Write-Host "[FAILED] Process ID $ProcessId not found" -ForegroundColor Red
     exit 1
 }
 
@@ -5158,13 +5158,13 @@ Write-Host "  Memory: $([Math]::Round($Process.WorkingSet64 / 1MB, 2)) MB" -Fore
 Write-Host ""
 
 if ($Process.ProcessName -eq "svchost") {
-    Write-Host "⚠ WARNING: This is a svchost process!" -ForegroundColor Red
+    Write-Host "[WARNING] WARNING: This is a svchost process!" -ForegroundColor Red
     Write-Host "  Killing may affect multiple services" -ForegroundColor Yellow
     Write-Host ""
 }
 
 if (-not $Confirm) {
-    Write-Host "⚠ This action will forcefully terminate the process" -ForegroundColor Yellow
+    Write-Host "[WARNING] This action will forcefully terminate the process" -ForegroundColor Yellow
     Write-Host "  This may cause data loss or system instability" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Set 'Confirm Force Kill' to true to proceed" -ForegroundColor Gray
@@ -5180,15 +5180,15 @@ try {
     
     $Service = Get-Service -Name $ServiceName
     Write-Host ""
-    Write-Host "✓ Process terminated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Process terminated" -ForegroundColor Green
     Write-Host "  Service status: $($Service.Status)" -ForegroundColor Gray
     
     if ($Service.Status -eq "Running") {
-        Write-Host "  ⚠ Service has restarted (recovery options may have triggered)" -ForegroundColor Yellow
+        Write-Host "  [WARNING] Service has restarted (recovery options may have triggered)" -ForegroundColor Yellow
     }
 } catch {
     Write-Host ""
-    Write-Host "✗ Failed to terminate process" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to terminate process" -ForegroundColor Red
     Write-Host "  Error: $_" -ForegroundColor Gray
 }`;
     }

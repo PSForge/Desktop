@@ -128,7 +128,7 @@ try {
         -Enabled $true \`
         -ChangePasswordAtLogon $true
     
-    Write-Host "✓ User account created: $Username" -ForegroundColor Green
+    Write-Host "[SUCCESS] User account created: $Username" -ForegroundColor Green
     ${homeDrivePath ? `
     # Create home drive
     $HomePath = "${homeDrivePath}$Username"
@@ -139,13 +139,13 @@ try {
     Set-Acl $HomePath $Acl
     
     Set-ADUser -Identity $Username -HomeDrive "H:" -HomeDirectory $HomePath
-    Write-Host "✓ Home drive created and configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Home drive created and configured" -ForegroundColor Green
 ` : ''}${groups ? `
     # Add to security groups
     $Groups = ${groups}
     foreach ($Group in $Groups) {
         Add-ADGroupMember -Identity $Group -Members $Username -ErrorAction SilentlyContinue
-        Write-Host "✓ Added to group: $Group" -ForegroundColor Green
+        Write-Host "[SUCCESS] Added to group: $Group" -ForegroundColor Green
     }
 ` : ''}
     Write-Host ""
@@ -228,7 +228,7 @@ try {
     
     # Disable account
     Disable-ADAccount -Identity $Username
-    Write-Host "✓ Account disabled: $Username" -ForegroundColor Green
+    Write-Host "[SUCCESS] Account disabled: $Username" -ForegroundColor Green
     
     # Set description with disable date
     $Description = "Disabled on $(Get-Date -Format 'yyyy-MM-dd') - Former: $($User.Title)"
@@ -239,19 +239,19 @@ try {
         $Groups = $User.MemberOf | Where-Object { $_ -notlike "*Domain Users*" }
         foreach ($Group in $Groups) {
             Remove-ADGroupMember -Identity $Group -Members $Username -Confirm:$false
-            Write-Host "✓ Removed from: $((Get-ADGroup $Group).Name)" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] Removed from: $((Get-ADGroup $Group).Name)" -ForegroundColor Yellow
         }
     }
 ` : ''}
     # Move to disabled OU
     Move-ADObject -Identity $User.DistinguishedName -TargetPath $DisabledOU
-    Write-Host "✓ Moved to disabled OU" -ForegroundColor Green
+    Write-Host "[SUCCESS] Moved to disabled OU" -ForegroundColor Green
     ${archivePath ? `
     # Archive home drive
     if ($User.HomeDirectory -and (Test-Path $User.HomeDirectory)) {
         $ArchivePath = "${archivePath}$Username-$(Get-Date -Format 'yyyyMMdd')"
         Copy-Item -Path $User.HomeDirectory -Destination $ArchivePath -Recurse -Force
-        Write-Host "✓ Home drive archived to: $ArchivePath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Home drive archived to: $ArchivePath" -ForegroundColor Green
     }
 ` : ''}
     Write-Host ""
@@ -375,7 +375,7 @@ IT Department
         Send-MailMessage -To $User.Email -From $FromEmail -Subject $Subject \`
             -Body $Body -SmtpServer $SMTPServer -ErrorAction SilentlyContinue
         
-        Write-Host "✓ Notification sent to $($User.Name) ($($User.DaysLeft) days)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Notification sent to $($User.Name) ($($User.DaysLeft) days)" -ForegroundColor Green
     }
 }
 
@@ -465,17 +465,17 @@ foreach ($Computer in $StaleComputers) {
     switch ($Action) {
         "Disable" {
             Disable-ADAccount -Identity $Computer
-            Write-Host "  ✓ Disabled" -ForegroundColor Green
+            Write-Host "  [OK] Disabled" -ForegroundColor Green
         }
         "Move to Quarantine OU" {
             ${quarantineOU ? `
             Move-ADObject -Identity $Computer.DistinguishedName -TargetPath $QuarantineOU
-            Write-Host "  ✓ Moved to quarantine" -ForegroundColor Green
-            ` : `Write-Host "  ⚠ Quarantine OU not specified" -ForegroundColor Red`}
+            Write-Host "  [OK] Moved to quarantine" -ForegroundColor Green
+            ` : `Write-Host "  [WARNING] Quarantine OU not specified" -ForegroundColor Red`}
         }
         "Delete" {
             Remove-ADComputer -Identity $Computer -Confirm:$false
-            Write-Host "  ✓ Deleted" -ForegroundColor Red
+            Write-Host "  [OK] Deleted" -ForegroundColor Red
         }
         default {
             Write-Host "  ℹ Report only - no action taken" -ForegroundColor Gray
@@ -569,9 +569,9 @@ try {
     foreach ($GPO in $GPOs) {
         try {
             Backup-GPO -Guid $GPO.Id -Path $BackupFolder ${comment ? `-Comment "${comment}"` : ''} | Out-Null
-            Write-Host "✓ $($GPO.DisplayName)" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($GPO.DisplayName)" -ForegroundColor Green
         } catch {
-            Write-Host "✗ $($GPO.DisplayName) - Error: $_" -ForegroundColor Red
+            Write-Host "[FAILED] $($GPO.DisplayName) - Error: $_" -ForegroundColor Red
         }
     }
     ${retentionDays ? `
@@ -583,7 +583,7 @@ try {
         Where-Object { $_.CreationTime -lt $CutoffDate } |
         ForEach-Object {
             Remove-Item $_.FullName -Recurse -Force
-            Write-Host "✓ Deleted: $($_.Name)" -ForegroundColor Gray
+            Write-Host "[SUCCESS] Deleted: $($_.Name)" -ForegroundColor Gray
         }
 ` : ''}
     Write-Host ""
@@ -688,7 +688,7 @@ foreach ($GroupName in $Groups) {
             
             if ($Added -or $Removed) {
                 Write-Host ""
-                Write-Host "⚠ Changes detected in: $GroupName" -ForegroundColor Yellow
+                Write-Host "[WARNING] Changes detected in: $GroupName" -ForegroundColor Yellow
                 
                 if ($Added) {
                     Write-Host "  Added:" -ForegroundColor Green
@@ -713,7 +713,7 @@ foreach ($GroupName in $Groups) {
                     Timestamp = Get-Date
                 }
             } else {
-                Write-Host "✓ No changes: $GroupName" -ForegroundColor Green
+                Write-Host "[SUCCESS] No changes: $GroupName" -ForegroundColor Green
             }
         } else {
             Write-Host "ℹ Creating baseline: $GroupName" -ForegroundColor Cyan
@@ -733,11 +733,11 @@ if ($Changes.Count -gt 0) {
     $Body += $Changes | Format-Table -AutoSize | Out-String
     
     Send-MailMessage -To $AlertEmail -From "ad-audit@$((Get-ADDomain).DNSRoot)" \`
-        -Subject "⚠ Privileged Group Changes Detected" -Body $Body \`
+        -Subject "[WARNING] Privileged Group Changes Detected" -Body $Body \`
         -SmtpServer $SMTPServer
     
     Write-Host ""
-    Write-Host "✓ Alert sent to $AlertEmail" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alert sent to $AlertEmail" -ForegroundColor Green
 }
 ` : ''}
 Write-Host ""
@@ -841,7 +841,7 @@ foreach ($GPOFolder in $LatestGPOs) {
             $PreviousHash = (Get-FileHash $PreviousReport -Algorithm SHA256).Hash
             
             if ($LatestHash -ne $PreviousHash) {
-                Write-Host "⚠ Drift detected: $GPOName" -ForegroundColor Yellow
+                Write-Host "[WARNING] Drift detected: $GPOName" -ForegroundColor Yellow
                 $DriftDetected += [PSCustomObject]@{
                     GPOName = $GPOName
                     LatestHash = $LatestHash
@@ -849,7 +849,7 @@ foreach ($GPOFolder in $LatestGPOs) {
                     Timestamp = Get-Date
                 }
             } else {
-                Write-Host "✓ No change: $GPOName" -ForegroundColor Green
+                Write-Host "[SUCCESS] No change: $GPOName" -ForegroundColor Green
             }
         }
     } else {
@@ -887,16 +887,16 @@ $Html = @"
 
 $Html | Out-File -FilePath $ReportPath -Encoding UTF8
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 ${alertEmail && smtpServer ? `
 # Send alert if drift detected
 if ($DriftDetected.Count -gt 0) {
     Send-MailMessage -To $AlertEmail -From "gpo-audit@$((Get-ADDomain).DNSRoot)" \`
-        -Subject "⚠ GPO Drift Detected ($($DriftDetected.Count) GPOs)" \`
+        -Subject "[WARNING] GPO Drift Detected ($($DriftDetected.Count) GPOs)" \`
         -Body "GPO configuration drift detected. See attached report." \`
         -Attachments $ReportPath -SmtpServer $SMTPServer
     
-    Write-Host "✓ Alert sent to $AlertEmail" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alert sent to $AlertEmail" -ForegroundColor Green
 }
 ` : ''}`;
     }
@@ -1045,7 +1045,7 @@ $Html = @"
 
 $Html | Out-File -FilePath $ReportPath -Encoding UTF8
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 ${emailTo && smtpServer ? `
 # Email report
 Send-MailMessage -To $EmailTo -From "ad-health@$((Get-ADDomain).DNSRoot)" \`
@@ -1053,7 +1053,7 @@ Send-MailMessage -To $EmailTo -From "ad-health@$((Get-ADDomain).DNSRoot)" \`
     -Body "Weekly AD health report attached." \`
     -Attachments $ReportPath -SmtpServer $SMTPServer
 
-Write-Host "✓ Report emailed to $EmailTo" -ForegroundColor Green
+Write-Host "[SUCCESS] Report emailed to $EmailTo" -ForegroundColor Green
 ` : ''}`;
     }
   },
@@ -1146,7 +1146,7 @@ foreach ($DC in $DCs) {
                 Username = $Username
             }
             
-            Write-Host "  ✓ Found lockout at $($Event.TimeCreated)" -ForegroundColor Green
+            Write-Host "  [OK] Found lockout at $($Event.TimeCreated)" -ForegroundColor Green
             Write-Host "    Source: $CallerComputer" -ForegroundColor Cyan
         }
     } catch {
@@ -1283,7 +1283,7 @@ foreach ($Account in $Accounts) {
 
 # Export results
 $Results | Export-Csv -Path $ReportPath -NoTypeInformation
-Write-Host "✓ Report exported to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report exported to: $ReportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Total accounts with SPNs: $($Results.Count)" -ForegroundColor Gray
@@ -1386,7 +1386,7 @@ foreach ($Record in $Records) {
         $Ping = Test-Connection -ComputerName $ComputerName -Count 1 -Quiet -ErrorAction SilentlyContinue
         
         if (-not $Ping) {
-            Write-Host "⚠ Stale: $ComputerName ($RecordAge days old, offline)" -ForegroundColor Yellow
+            Write-Host "[WARNING] Stale: $ComputerName ($RecordAge days old, offline)" -ForegroundColor Yellow
             
             $StaleRecords += [PSCustomObject]@{
                 HostName = $ComputerName
@@ -1402,7 +1402,7 @@ foreach ($Record in $Records) {
 # Export results
 $StaleRecords | Export-Csv -Path $ReportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report exported to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report exported to: $ReportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Total records scanned: $($Records.Count)" -ForegroundColor Gray
@@ -1495,7 +1495,7 @@ foreach ($Computer in $Computers) {
     $Site = $Computer.Site
     
     if (-not $Site) {
-        Write-Host "⚠ $($Computer.Name): No site assigned" -ForegroundColor Yellow
+        Write-Host "[WARNING] $($Computer.Name): No site assigned" -ForegroundColor Yellow
         $Skipped++
         continue
     }
@@ -1512,10 +1512,10 @@ foreach ($Computer in $Computers) {
             } else {
                 try {
                     Move-ADObject -Identity $Computer.DistinguishedName -TargetPath $TargetOU
-                    Write-Host "✓ Moved: $($Computer.Name) to $TargetOU" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Moved: $($Computer.Name) to $TargetOU" -ForegroundColor Green
                     $Moved++
                 } catch {
-                    Write-Host "✗ Failed to move $($Computer.Name): $_" -ForegroundColor Red
+                    Write-Host "[FAILED] Failed to move $($Computer.Name): $_" -ForegroundColor Red
                     $Skipped++
                 }
             }
@@ -1523,7 +1523,7 @@ foreach ($Computer in $Computers) {
             Write-Host "  Already in correct OU: $($Computer.Name)" -ForegroundColor Gray
         }
     } else {
-        Write-Host "⚠ No OU mapping for site: $Site (Computer: $($Computer.Name))" -ForegroundColor Yellow
+        Write-Host "[WARNING] No OU mapping for site: $Site (Computer: $($Computer.Name))" -ForegroundColor Yellow
         $Skipped++
     }
 }
@@ -1638,10 +1638,10 @@ foreach ($User in $Users) {
             -Enabled $true \`
             -ChangePasswordAtLogon $true
         
-        Write-Host "✓ Created: $Username" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created: $Username" -ForegroundColor Green
         $Created++
     } catch {
-        Write-Host "✗ Failed to create $Username: $_" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to create $Username: $_" -ForegroundColor Red
         $Failed++
     }
 }
@@ -1727,18 +1727,18 @@ try {
     
     # Reset password
     Set-ADAccountPassword -Identity $Username -NewPassword $NewPassword -Reset
-    Write-Host "✓ Password reset" -ForegroundColor Green
+    Write-Host "[SUCCESS] Password reset" -ForegroundColor Green
     
     # Set must change password
     Set-ADUser -Identity $Username -ChangePasswordAtLogon $MustChangePassword
-    Write-Host "✓ Must change password: $MustChangePassword" -ForegroundColor Gray
+    Write-Host "[SUCCESS] Must change password: $MustChangePassword" -ForegroundColor Gray
     
     # Unlock if requested and locked
     if ($UnlockAccount -and $User.LockedOut) {
         Unlock-ADAccount -Identity $Username
-        Write-Host "✓ Account unlocked" -ForegroundColor Green
+        Write-Host "[SUCCESS] Account unlocked" -ForegroundColor Green
     } elseif ($User.LockedOut) {
-        Write-Host "⚠ Account is locked but unlock not requested" -ForegroundColor Yellow
+        Write-Host "[WARNING] Account is locked but unlock not requested" -ForegroundColor Yellow
     }
     
     Write-Host ""
@@ -1813,7 +1813,7 @@ foreach ($Group in $AllGroups) {
     $Members = Get-ADGroupMember -Identity $Group -ErrorAction SilentlyContinue
     
     if ($Members.Count -eq 0) {
-        Write-Host "⚠ Empty: $($Group.Name)" -ForegroundColor Yellow
+        Write-Host "[WARNING] Empty: $($Group.Name)" -ForegroundColor Yellow
         
         $EmptyGroups += [PSCustomObject]@{
             Name = $Group.Name
@@ -1825,9 +1825,9 @@ foreach ($Group in $AllGroups) {
         if ($DeleteEmpty) {
             try {
                 Remove-ADGroup -Identity $Group -Confirm:$false
-                Write-Host "  ✓ Deleted" -ForegroundColor Red
+                Write-Host "  [OK] Deleted" -ForegroundColor Red
             } catch {
-                Write-Host "  ✗ Failed to delete: $_" -ForegroundColor Red
+                Write-Host "  [FAILED] Failed to delete: $_" -ForegroundColor Red
             }
         }
     }
@@ -1836,7 +1836,7 @@ foreach ($Group in $AllGroups) {
 # Export report
 $EmptyGroups | Export-Csv -Path $ReportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Total groups scanned: $($AllGroups.Count)" -ForegroundColor Gray
@@ -1916,10 +1916,10 @@ foreach ($Computer in $Computers) {
                 RecoveryPassword = $Key.'msFVE-RecoveryPassword'
             }
         }
-        Write-Host "✓ $($Computer.Name): $($RecoveryKeys.Count) key(s)" -ForegroundColor Green
+        Write-Host "[SUCCESS] $($Computer.Name): $($RecoveryKeys.Count) key(s)" -ForegroundColor Green
     } else {
         $WithoutKeys++
-        Write-Host "⚠ $($Computer.Name): No keys" -ForegroundColor Yellow
+        Write-Host "[WARNING] $($Computer.Name): No keys" -ForegroundColor Yellow
         
         $Results += [PSCustomObject]@{
             ComputerName = $Computer.Name
@@ -1932,13 +1932,13 @@ foreach ($Computer in $Computers) {
 # Export results
 $Results | Export-Csv -Path $ExportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report exported to: $ExportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report exported to: $ExportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Computers with BitLocker keys: $WithKeys" -ForegroundColor Green
 Write-Host "  Computers without keys: $WithoutKeys" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "⚠ WARNING: Handle this file securely - it contains recovery keys!" -ForegroundColor Red`;
+Write-Host "[WARNING] WARNING: Handle this file securely - it contains recovery keys!" -ForegroundColor Red`;
     }
   },
   {
@@ -2022,7 +2022,7 @@ foreach ($Account in $Accounts) {
     
     $Risk = if ($IsMemberOfPrivilegedGroup) { "High" } else { "Medium" }
     
-    Write-Host "⚠ $($Account.SamAccountName) - $Risk Risk" -ForegroundColor Yellow
+    Write-Host "[WARNING] $($Account.SamAccountName) - $Risk Risk" -ForegroundColor Yellow
     
     $Results += [PSCustomObject]@{
         Username = $Account.SamAccountName
@@ -2039,7 +2039,7 @@ foreach ($Account in $Accounts) {
 # Export report
 $Results | Export-Csv -Path $ReportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Total accounts: $($Results.Count)" -ForegroundColor Yellow
@@ -2120,7 +2120,7 @@ foreach ($DC in $DCs) {
             $Consecutive Failures = $Partner.ConsecutiveReplicationFailures
             
             if ($ConsecutiveFailures -gt 0) {
-                Write-Host "  ✗ Failure with $($Partner.Partner)" -ForegroundColor Red
+                Write-Host "  [FAILED] Failure with $($Partner.Partner)" -ForegroundColor Red
                 Write-Host "    Last success: $LastSuccess" -ForegroundColor Gray
                 Write-Host "    Last attempt: $LastAttempt" -ForegroundColor Gray
                 Write-Host "    Failures: $ConsecutiveFailures" -ForegroundColor Red
@@ -2134,7 +2134,7 @@ foreach ($DC in $DCs) {
                     LastResult = $Partner.LastReplicationResult
                 }
             } else {
-                Write-Host "  ✓ OK with $($Partner.Partner)" -ForegroundColor Green
+                Write-Host "  [OK] OK with $($Partner.Partner)" -ForegroundColor Green
             }
         }
     } catch {
@@ -2172,17 +2172,17 @@ $Html = @"
 
 $Html | Out-File -FilePath $ReportPath -Encoding UTF8
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 
 ${alertEmail && smtpServer ? `
 # Send alert if failures detected
 if ($Failures.Count -gt 0) {
     Send-MailMessage -To $AlertEmail -From "repl-monitor@$((Get-ADDomain).DNSRoot)" \`
-        -Subject "⚠ AD Replication Failures Detected ($($Failures.Count))" \`
+        -Subject "[WARNING] AD Replication Failures Detected ($($Failures.Count))" \`
         -Body "Replication failures detected. See attached report." \`
         -Attachments $ReportPath -SmtpServer $SMTPServer
     
-    Write-Host "✓ Alert sent to $AlertEmail" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alert sent to $AlertEmail" -ForegroundColor Green
 }
 ` : ''}
 Write-Host ""
@@ -2285,7 +2285,7 @@ foreach ($User in $Users) {
     }
     
     if ($Issues.Count -gt 0) {
-        Write-Host "⚠ $($User.SamAccountName): $($Issues -join ', ')" -ForegroundColor Yellow
+        Write-Host "[WARNING] $($User.SamAccountName): $($Issues -join ', ')" -ForegroundColor Yellow
         
         $Inconsistent += [PSCustomObject]@{
             Username = $User.SamAccountName
@@ -2300,7 +2300,7 @@ foreach ($User in $Users) {
 # Export report
 $Inconsistent | Export-Csv -Path $ReportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Total users checked: $($Users.Count)" -ForegroundColor Gray
@@ -2401,7 +2401,7 @@ foreach ($Folder in $Folders) {
             }
             
             if ($Issues.Count -gt 0) {
-                Write-Host "⚠ $($Folder.FullName)" -ForegroundColor Yellow
+                Write-Host "[WARNING] $($Folder.FullName)" -ForegroundColor Yellow
                 Write-Host "  Identity: $($Access.IdentityReference)" -ForegroundColor Gray
                 Write-Host "  Rights: $($Access.FileSystemRights)" -ForegroundColor Gray
                 Write-Host "  Issues: $($Issues -join ', ')" -ForegroundColor Red
@@ -2424,7 +2424,7 @@ foreach ($Folder in $Folders) {
 # Export report
 $Results | Export-Csv -Path $ReportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Folders scanned: $($Folders.Count)" -ForegroundColor Gray
@@ -2526,7 +2526,7 @@ foreach ($Item in $Items) {
                     Write-Host "Would move: $Identity to $TargetOU" -ForegroundColor Cyan
                 } else {
                     Move-ADObject -Identity $Object.DistinguishedName -TargetPath $TargetOU
-                    Write-Host "✓ Moved: $Identity to $TargetOU" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Moved: $Identity to $TargetOU" -ForegroundColor Green
                     $Moved++
                 }
             }
@@ -2538,12 +2538,12 @@ foreach ($Item in $Items) {
                 Write-Host "Would rename: $Identity to $NewName" -ForegroundColor Cyan
             } else {
                 Rename-ADObject -Identity $Object.DistinguishedName -NewName $NewName
-                Write-Host "✓ Renamed: $Identity to $NewName" -ForegroundColor Green
+                Write-Host "[SUCCESS] Renamed: $Identity to $NewName" -ForegroundColor Green
                 $Renamed++
             }
         }
     } catch {
-        Write-Host "✗ Failed to process $Identity: $_" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to process $Identity: $_" -ForegroundColor Red
         $Failed++
     }
 }
@@ -2657,9 +2657,9 @@ foreach ($Group in $Groups) {
     $Depth = Get-GroupNestingDepth -GroupDN $Group.DistinguishedName
     
     if ($Depth -gt $MaxDepth) {
-        Write-Host "⚠ $($Group.Name): Depth = $Depth" -ForegroundColor Red
+        Write-Host "[WARNING] $($Group.Name): Depth = $Depth" -ForegroundColor Red
     } else {
-        Write-Host "✓ $($Group.Name): Depth = $Depth" -ForegroundColor Green
+        Write-Host "[SUCCESS] $($Group.Name): Depth = $Depth" -ForegroundColor Green
     }
     
     $Results += [PSCustomObject]@{
@@ -2672,7 +2672,7 @@ foreach ($Group in $Groups) {
 # Export report
 $Results | Sort-Object NestingDepth -Descending | Export-Csv -Path $ReportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Report saved to: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report saved to: $ReportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
 Write-Host "  Groups scanned: $($Groups.Count)" -ForegroundColor Gray
@@ -2746,7 +2746,7 @@ if (-not (Test-Path $CsvPath)) {
 
 try {
     $Group = Get-ADGroup -Identity $GroupName -ErrorAction Stop
-    Write-Host "✓ Target Group: $($Group.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Group: $($Group.Name)" -ForegroundColor Green
 } catch {
     Write-Error "Group not found: $GroupName"
     exit 1
@@ -2764,7 +2764,7 @@ Write-Host ""
 
 foreach ($User in $Users) {
     if (-not $User.Username) {
-        Write-Host "⚠ Skipping row with missing Username" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing Username" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -2783,16 +2783,16 @@ foreach ($User in $Users) {
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($User.Username): Would be added (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($User.Username): Would be added (TEST MODE)" -ForegroundColor Cyan
             $SuccessCount++
         } else {
             Add-ADGroupMember -Identity $GroupName -Members $User.Username -ErrorAction Stop
-            Write-Host "✓ $($User.Username): Added successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($User.Username): Added successfully" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -2806,7 +2806,7 @@ Write-Host "  Already Members: $AlreadyMemberCount" -ForegroundColor Gray
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -2879,7 +2879,7 @@ Write-Host ""
 
 foreach ($User in $Users) {
     if (-not $User.Username) {
-        Write-Host "⚠ Skipping row with missing Username" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing Username" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -2900,24 +2900,24 @@ foreach ($User in $Users) {
         if ($User.Company) { $PropertiesToUpdate['Company'] = $User.Company }
         
         if ($PropertiesToUpdate.Count -eq 0) {
-            Write-Host "⚠ $($User.Username): No properties to update" -ForegroundColor Yellow
+            Write-Host "[WARNING] $($User.Username): No properties to update" -ForegroundColor Yellow
             continue
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($User.Username): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($User.Username): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
             foreach ($Key in $PropertiesToUpdate.Keys) {
                 Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
             }
             $SuccessCount++
         } else {
             Set-ADUser -Identity $User.Username @PropertiesToUpdate -ErrorAction Stop
-            Write-Host "✓ $($User.Username): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($User.Username): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -2930,7 +2930,7 @@ Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -3004,7 +3004,7 @@ Write-Host ""
 
 foreach ($User in $Users) {
     if (-not $User.Username -or -not $User.TargetOU) {
-        Write-Host "⚠ Skipping row with missing Username or TargetOU" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing Username or TargetOU" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -3017,7 +3017,7 @@ foreach ($User in $Users) {
         try {
             $TargetOU = Get-ADOrganizationalUnit -Identity $User.TargetOU -ErrorAction Stop
         } catch {
-            Write-Host "✗ $($User.Username): Target OU not found - $($User.TargetOU)" -ForegroundColor Red
+            Write-Host "[FAILED] $($User.Username): Target OU not found - $($User.TargetOU)" -ForegroundColor Red
             $FailCount++
             continue
         }
@@ -3030,16 +3030,16 @@ foreach ($User in $Users) {
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($User.Username): Would move to $($User.TargetOU) (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($User.Username): Would move to $($User.TargetOU) (TEST MODE)" -ForegroundColor Cyan
             $SuccessCount++
         } else {
             Move-ADObject -Identity $ADUser.DistinguishedName -TargetPath $User.TargetOU -ErrorAction Stop
-            Write-Host "✓ $($User.Username): Moved to $($User.TargetOU)" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($User.Username): Moved to $($User.TargetOU)" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($User.Username): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -3052,7 +3052,7 @@ Write-Host "  Moved: $SuccessCount" -ForegroundColor Green
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -3120,7 +3120,7 @@ if (-not (Test-Path $CsvPath)) {
 
 try {
     $Group = Get-ADGroup -Identity $GroupName -ErrorAction Stop
-    Write-Host "✓ Target Group: $($Group.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Group: $($Group.Name)" -ForegroundColor Green
 } catch {
     Write-Error "Group not found: $GroupName"
     exit 1
@@ -3138,7 +3138,7 @@ Write-Host ""
 
 foreach ($Computer in $Computers) {
     if (-not $Computer.ComputerName) {
-        Write-Host "⚠ Skipping row with missing ComputerName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing ComputerName" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -3157,16 +3157,16 @@ foreach ($Computer in $Computers) {
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($Computer.ComputerName): Would be added (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($Computer.ComputerName): Would be added (TEST MODE)" -ForegroundColor Cyan
             $SuccessCount++
         } else {
             Add-ADGroupMember -Identity $GroupName -Members $ADComputer -ErrorAction Stop
-            Write-Host "✓ $($Computer.ComputerName): Added successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Computer.ComputerName): Added successfully" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -3180,7 +3180,7 @@ Write-Host "  Already Members: $AlreadyMemberCount" -ForegroundColor Gray
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -3253,7 +3253,7 @@ Write-Host ""
 
 foreach ($Computer in $Computers) {
     if (-not $Computer.ComputerName) {
-        Write-Host "⚠ Skipping row with missing ComputerName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing ComputerName" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -3270,24 +3270,24 @@ foreach ($Computer in $Computers) {
         if ($Computer.ManagedBy) { $PropertiesToUpdate['ManagedBy'] = $Computer.ManagedBy }
         
         if ($PropertiesToUpdate.Count -eq 0) {
-            Write-Host "⚠ $($Computer.ComputerName): No properties to update" -ForegroundColor Yellow
+            Write-Host "[WARNING] $($Computer.ComputerName): No properties to update" -ForegroundColor Yellow
             continue
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($Computer.ComputerName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($Computer.ComputerName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
             foreach ($Key in $PropertiesToUpdate.Keys) {
                 Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
             }
             $SuccessCount++
         } else {
             Set-ADComputer -Identity $Computer.ComputerName @PropertiesToUpdate -ErrorAction Stop
-            Write-Host "✓ $($Computer.ComputerName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Computer.ComputerName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -3300,7 +3300,7 @@ Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -3374,7 +3374,7 @@ Write-Host ""
 
 foreach ($Computer in $Computers) {
     if (-not $Computer.ComputerName -or -not $Computer.TargetOU) {
-        Write-Host "⚠ Skipping row with missing ComputerName or TargetOU" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing ComputerName or TargetOU" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -3387,7 +3387,7 @@ foreach ($Computer in $Computers) {
         try {
             $TargetOU = Get-ADOrganizationalUnit -Identity $Computer.TargetOU -ErrorAction Stop
         } catch {
-            Write-Host "✗ $($Computer.ComputerName): Target OU not found - $($Computer.TargetOU)" -ForegroundColor Red
+            Write-Host "[FAILED] $($Computer.ComputerName): Target OU not found - $($Computer.TargetOU)" -ForegroundColor Red
             $FailCount++
             continue
         }
@@ -3400,16 +3400,16 @@ foreach ($Computer in $Computers) {
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($Computer.ComputerName): Would move to $($Computer.TargetOU) (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($Computer.ComputerName): Would move to $($Computer.TargetOU) (TEST MODE)" -ForegroundColor Cyan
             $SuccessCount++
         } else {
             Move-ADObject -Identity $ADComputer.DistinguishedName -TargetPath $Computer.TargetOU -ErrorAction Stop
-            Write-Host "✓ $($Computer.ComputerName): Moved to $($Computer.TargetOU)" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Computer.ComputerName): Moved to $($Computer.TargetOU)" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($Computer.ComputerName): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -3422,7 +3422,7 @@ Write-Host "  Moved: $SuccessCount" -ForegroundColor Green
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -3495,7 +3495,7 @@ Write-Host ""
 
 foreach ($Contact in $Contacts) {
     if (-not $Contact.ContactName) {
-        Write-Host "⚠ Skipping row with missing ContactName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing ContactName" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -3505,7 +3505,7 @@ foreach ($Contact in $Contacts) {
         $ADContact = Get-ADObject -Filter "Name -eq '$($Contact.ContactName)' -and objectClass -eq 'contact'" -ErrorAction Stop
         
         if (-not $ADContact) {
-            Write-Host "✗ $($Contact.ContactName): Contact not found" -ForegroundColor Red
+            Write-Host "[FAILED] $($Contact.ContactName): Contact not found" -ForegroundColor Red
             $FailCount++
             continue
         }
@@ -3521,24 +3521,24 @@ foreach ($Contact in $Contacts) {
         if ($Contact.Description) { $PropertiesToUpdate['description'] = $Contact.Description }
         
         if ($PropertiesToUpdate.Count -eq 0) {
-            Write-Host "⚠ $($Contact.ContactName): No properties to update" -ForegroundColor Yellow
+            Write-Host "[WARNING] $($Contact.ContactName): No properties to update" -ForegroundColor Yellow
             continue
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($Contact.ContactName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($Contact.ContactName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
             foreach ($Key in $PropertiesToUpdate.Keys) {
                 Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
             }
             $SuccessCount++
         } else {
             Set-ADObject -Identity $ADContact -Replace $PropertiesToUpdate -ErrorAction Stop
-            Write-Host "✓ $($Contact.ContactName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Contact.ContactName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($Contact.ContactName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($Contact.ContactName): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -3551,7 +3551,7 @@ Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -3624,7 +3624,7 @@ Write-Host ""
 
 foreach ($Group in $Groups) {
     if (-not $Group.GroupName) {
-        Write-Host "⚠ Skipping row with missing GroupName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Skipping row with missing GroupName" -ForegroundColor Yellow
         $FailCount++
         continue
     }
@@ -3641,24 +3641,24 @@ foreach ($Group in $Groups) {
         if ($Group.DisplayName) { $PropertiesToUpdate['DisplayName'] = $Group.DisplayName }
         
         if ($PropertiesToUpdate.Count -eq 0) {
-            Write-Host "⚠ $($Group.GroupName): No properties to update" -ForegroundColor Yellow
+            Write-Host "[WARNING] $($Group.GroupName): No properties to update" -ForegroundColor Yellow
             continue
         }
         
         if ($TestMode) {
-            Write-Host "✓ $($Group.GroupName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
+            Write-Host "[SUCCESS] $($Group.GroupName): Would update $($PropertiesToUpdate.Count) properties (TEST MODE)" -ForegroundColor Cyan
             foreach ($Key in $PropertiesToUpdate.Keys) {
                 Write-Host "    - $Key = $($PropertiesToUpdate[$Key])" -ForegroundColor Gray
             }
             $SuccessCount++
         } else {
             Set-ADGroup -Identity $Group.GroupName @PropertiesToUpdate -ErrorAction Stop
-            Write-Host "✓ $($Group.GroupName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Group.GroupName): Updated $($PropertiesToUpdate.Count) properties" -ForegroundColor Green
             $SuccessCount++
         }
         
     } catch {
-        Write-Host "✗ $($Group.GroupName): Failed - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[FAILED] $($Group.GroupName): Failed - $($_.Exception.Message)" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -3671,7 +3671,7 @@ Write-Host "  Updated: $SuccessCount" -ForegroundColor Green
 Write-Host "  Failed: $FailCount" -ForegroundColor Red
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No changes were made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes were made" -ForegroundColor Yellow
     Write-Host "  Set TestMode to \\$false to apply changes" -ForegroundColor Yellow
 }
 Write-Host "======================================" -ForegroundColor Cyan`;
@@ -3739,14 +3739,14 @@ try {
     ${zoneType === 'Secondary' ? `
     # Create secondary zone
     ${masterServers.length === 0 ? `
-    Write-Host "⚠️ ERROR: Secondary zones require master server IPs" -ForegroundColor Red
+    Write-Host "[WARNING]️ ERROR: Secondary zones require master server IPs" -ForegroundColor Red
     Write-Host "   Please provide master servers in the 'Master Servers' field" -ForegroundColor Yellow
     exit 1
     ` : `
     $MasterServers = @(${masterServers.map((ip: string) => `"${ip}"`).join(', ')})
     Add-DnsServerSecondaryZone -Name "${zoneName}" -MasterServers $MasterServers -ZoneFile "${zoneName}.dns"
     
-    Write-Host "✓ Secondary DNS zone created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Secondary DNS zone created successfully" -ForegroundColor Green
     Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
     Write-Host "  Type: Secondary" -ForegroundColor Gray
     Write-Host "  Master Servers: ${masterServers.join(', ')}" -ForegroundColor Gray
@@ -3757,7 +3757,7 @@ try {
     # Create AD-integrated primary zone
     Add-DnsServerPrimaryZone -Name "${zoneName}" -ReplicationScope "${replicationScope}"
     
-    Write-Host "✓ Primary DNS zone created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Primary DNS zone created successfully" -ForegroundColor Green
     Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
     Write-Host "  Type: Primary (AD-Integrated)" -ForegroundColor Gray
     Write-Host "  Replication: ${replicationScope}" -ForegroundColor Gray
@@ -3765,7 +3765,7 @@ try {
     # Create file-based primary zone
     Add-DnsServerPrimaryZone -Name "${zoneName}" -ZoneFile "${zoneName}.dns"
     
-    Write-Host "✓ Primary DNS zone created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Primary DNS zone created successfully" -ForegroundColor Green
     Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
     Write-Host "  Type: Primary (File-based)" -ForegroundColor Gray
     Write-Host "  Zone File: ${zoneName}.dns" -ForegroundColor Gray
@@ -3831,7 +3831,7 @@ try {
     
     Add-DnsServerResourceRecordA -Name "${recordName}" -ZoneName "${zoneName}" -IPv4Address "${ipAddress}" -TimeToLive (New-TimeSpan -Seconds ${ttl})
     
-    Write-Host "✓ DNS A record created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS A record created successfully" -ForegroundColor Green
     Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
     Write-Host "  Name: ${recordName}" -ForegroundColor Gray
     Write-Host "  IP: ${ipAddress}" -ForegroundColor Gray
@@ -3901,7 +3901,7 @@ try {
     # Enable scavenging on server
     Set-DnsServerScavenging -ScavengingState \\$true -ScavengingInterval (New-TimeSpan -Days 7)
     
-    Write-Host "✓ DNS scavenging configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS scavenging configured successfully" -ForegroundColor Green
     Write-Host "  Zone: ${zoneName}" -ForegroundColor Gray
     Write-Host "  No-Refresh Interval: ${noRefresh} days" -ForegroundColor Gray
     Write-Host "  Refresh Interval: ${refresh} days" -ForegroundColor Gray
@@ -3970,7 +3970,7 @@ try {
     
     Add-DnsServerConditionalForwarderZone -Name "${forwardDomain}" -MasterServers $MasterServers ${storeInAD ? `-ReplicationScope "Forest"` : ''}
     
-    Write-Host "✓ Conditional forwarder created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Conditional forwarder created successfully" -ForegroundColor Green
     Write-Host "  Domain: ${forwardDomain}" -ForegroundColor Gray
     Write-Host "  Target Servers: ${masterIPs.join(', ')}" -ForegroundColor Gray
     Write-Host "  AD-Integrated: ${storeInAD}" -ForegroundColor Gray
@@ -4037,7 +4037,7 @@ try {
     
     New-ADReplicationSite -Name "${siteName}" ${siteDesc ? `-Description "${siteDesc}"` : ''}
     
-    Write-Host "✓ AD site created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] AD site created successfully" -ForegroundColor Green
     Write-Host "  Site: ${siteName}" -ForegroundColor Gray
     ${siteDesc ? `Write-Host "  Description: ${siteDesc}" -ForegroundColor Gray` : ''}
     Write-Host ""
@@ -4106,7 +4106,7 @@ try {
     
     New-ADReplicationSubnet -Name "${subnetCIDR}" -Site $Site ${subnetDesc ? `-Description "${subnetDesc}"` : ''}
     
-    Write-Host "✓ AD subnet created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] AD subnet created successfully" -ForegroundColor Green
     Write-Host "  Subnet: ${subnetCIDR}" -ForegroundColor Gray
     Write-Host "  Site: ${siteName}" -ForegroundColor Gray
     ${subnetDesc ? `Write-Host "  Description: ${subnetDesc}" -ForegroundColor Gray` : ''}
@@ -4178,7 +4178,7 @@ try {
     
     New-ADReplicationSiteLink -Name "${linkName}" -SitesIncluded $Site1, $Site2 -Cost ${cost} -ReplicationFrequencyInMinutes ${interval}
     
-    Write-Host "✓ AD site link created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] AD site link created successfully" -ForegroundColor Green
     Write-Host "  Link: ${linkName}" -ForegroundColor Gray
     Write-Host "  Sites: ${site1} <-> ${site2}" -ForegroundColor Gray
     Write-Host "  Cost: ${cost}" -ForegroundColor Gray
@@ -4250,7 +4250,7 @@ try {
     # Transfer role
     Move-ADDirectoryServerOperationMasterRole -Identity "${targetDC}" -OperationMasterRole ${role} -Confirm:\\$false
     
-    Write-Host "✓ FSMO role transferred successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] FSMO role transferred successfully" -ForegroundColor Green
     Write-Host "  Role: ${role}" -ForegroundColor Gray
     Write-Host "  New Holder: ${targetDC}" -ForegroundColor Gray
     Write-Host ""
@@ -4261,7 +4261,7 @@ try {
 } catch {
     Write-Error "Failed to transfer FSMO role: $_"
     Write-Host ""
-    Write-Host "⚠️ If source DC is offline, use -Force to seize role" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ If source DC is offline, use -Force to seize role" -ForegroundColor Yellow
     exit 1
 }`;
     }
@@ -4292,7 +4292,7 @@ This script raises the domain functional level to enable new features.
 4. Confirms new level
 
 **Important Notes:**
-⚠️ **THIS IS IRREVERSIBLE** - Cannot downgrade after raising
+[WARNING]️ **THIS IS IRREVERSIBLE** - Cannot downgrade after raising
 - Ensure all DCs meet minimum OS requirements
 - Windows Server 2016 level = WinThreshold domain
 - New features enabled at higher levels
@@ -4317,7 +4317,7 @@ try {
     Write-Host "Current domain functional level: $CurrentLevel" -ForegroundColor Cyan
     Write-Host "Target level: ${levelDisplay}" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "⚠️ WARNING: This operation is IRREVERSIBLE!" -ForegroundColor Red
+    Write-Host "[WARNING]️ WARNING: This operation is IRREVERSIBLE!" -ForegroundColor Red
     Write-Host "   Ensure all DCs meet minimum OS requirements" -ForegroundColor Yellow
     Write-Host ""
     
@@ -4338,7 +4338,7 @@ try {
     
     Set-ADDomainMode -Identity $Domain -DomainMode ${targetLevel}
     
-    Write-Host "✓ Domain functional level raised successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Domain functional level raised successfully" -ForegroundColor Green
     Write-Host "  New Level: ${levelDisplay}" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Verify with: Get-ADDomain | Select DomainMode" -ForegroundColor Cyan
@@ -4398,7 +4398,7 @@ This script promotes a Windows Server to a domain controller in an existing doma
       return `# Promote Domain Controller
 # Generated: ${new Date().toISOString()}
 
-Write-Host "⚠️ Server will reboot after promotion" -ForegroundColor Yellow
+Write-Host "[WARNING]️ Server will reboot after promotion" -ForegroundColor Yellow
 Write-Host ""
 
 try {
@@ -4406,7 +4406,7 @@ try {
     Write-Host "Installing AD DS role..." -ForegroundColor Cyan
     Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
     
-    Write-Host "✓ AD DS role installed" -ForegroundColor Green
+    Write-Host "[SUCCESS] AD DS role installed" -ForegroundColor Green
     Write-Host ""
     
     # Prepare safe mode password
@@ -4420,7 +4420,7 @@ try {
     # Promote to DC
     Install-ADDSDomainController -DomainName "${domainName}" -SafeModeAdministratorPassword $SafeModePassword -InstallDns \\$true ${siteName ? `-SiteName "${siteName}"` : ''} -Force \\$true
     
-    Write-Host "✓ Server promoted successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Server promoted successfully" -ForegroundColor Green
     Write-Host "  Server will reboot shortly" -ForegroundColor Yellow
     
 } catch {
@@ -4493,11 +4493,11 @@ try {
             ${targetDC ? `
             # Replicate to specific target
             repadmin /replicate ${targetDC} ${sourceDC} DC=contoso,DC=com
-            Write-Host "✓ Replication triggered: ${sourceDC} → ${targetDC}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Replication triggered: ${sourceDC} → ${targetDC}" -ForegroundColor Green
             ` : `
             # Replicate to all partners
             repadmin /syncall ${sourceDC} /AdeP
-            Write-Host "✓ Replication triggered to all partners" -ForegroundColor Green
+            Write-Host "[SUCCESS] Replication triggered to all partners" -ForegroundColor Green
             `}
         }
         
@@ -4591,7 +4591,7 @@ try {
             Write-Host "Creating AD site: ${siteName}" -ForegroundColor Cyan
             
             New-ADReplicationSite -Name "${siteName}"
-            Write-Host "✓ Site created: ${siteName}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Site created: ${siteName}" -ForegroundColor Green
             
             # Display site details
             Get-ADReplicationSite -Identity "${siteName}" | Select-Object Name, Created | Format-List
@@ -4606,7 +4606,7 @@ try {
             Write-Host "  Associated with site: ${siteName}" -ForegroundColor Gray
             
             New-ADReplicationSubnet -Name "${subnetCIDR}" -Site "${siteName}"
-            Write-Host "✓ Subnet created and associated with ${siteName}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Subnet created and associated with ${siteName}" -ForegroundColor Green
             
             # Display subnet details
             Get-ADReplicationSubnet -Identity "${subnetCIDR}" | Select-Object Name, Site | Format-List
@@ -4621,7 +4621,7 @@ try {
             Write-Host "  Cost: ${siteLinkCost}" -ForegroundColor Gray
             
             # Note: This requires specifying sites to link
-            Write-Host "⚠ Manual configuration required:" -ForegroundColor Yellow
+            Write-Host "[WARNING] Manual configuration required:" -ForegroundColor Yellow
             Write-Host "  Use Active Directory Sites and Services console" -ForegroundColor Gray
             Write-Host "  or specify sites with:" -ForegroundColor Gray
             Write-Host "  New-ADReplicationSiteLink -Name ${siteLinkName} -SitesIncluded Site1,Site2 -Cost ${siteLinkCost}" -ForegroundColor Gray
@@ -4715,11 +4715,11 @@ try {
     if (-not $GPO) {
         Write-Host "Creating new GPO: ${gpoName}" -ForegroundColor Cyan
         $GPO = New-GPO -Name "${gpoName}"
-        Write-Host "✓ GPO created" -ForegroundColor Green
+        Write-Host "[SUCCESS] GPO created" -ForegroundColor Green
     }
     
     Write-Host ""
-    Write-Host "⚠ Group Policy Preferences must be configured using GPMC" -ForegroundColor Yellow
+    Write-Host "[WARNING] Group Policy Preferences must be configured using GPMC" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Steps to configure ${prefType}:" -ForegroundColor Cyan
     
@@ -4844,7 +4844,7 @@ try {
             Write-Host "Creating trust relationship..." -ForegroundColor Cyan
             Write-Host "  Direction: ${direction}" -ForegroundColor Gray
             
-            Write-Host "⚠ Trust creation requires manual steps:" -ForegroundColor Yellow
+            Write-Host "[WARNING] Trust creation requires manual steps:" -ForegroundColor Yellow
             Write-Host ""
             Write-Host "1. Ensure DNS resolution between domains" -ForegroundColor Gray
             Write-Host "   Test: nslookup ${targetDomain}" -ForegroundColor Gray
@@ -4872,9 +4872,9 @@ try {
             $TrustTest = netdom trust ${sourceDomain} /domain:${targetDomain} /verify 2>&1
             
             if ($LASTEXITCODE -eq 0) {
-                Write-Host "✓ Trust is healthy and operational" -ForegroundColor Green
+                Write-Host "[SUCCESS] Trust is healthy and operational" -ForegroundColor Green
             } else {
-                Write-Host "✗ Trust verification failed" -ForegroundColor Red
+                Write-Host "[FAILED] Trust verification failed" -ForegroundColor Red
             }
             
             Write-Host ""
@@ -4892,7 +4892,7 @@ try {
         
         "Remove Trust" {
             ${targetDomain ? `
-            Write-Host "⚠ WARNING: Removing trust relationship!" -ForegroundColor Red
+            Write-Host "[WARNING] WARNING: Removing trust relationship!" -ForegroundColor Red
             Write-Host "  This will break cross-domain access" -ForegroundColor Yellow
             
             $Confirm = Read-Host "Type 'REMOVE' to confirm trust removal"
@@ -4903,8 +4903,8 @@ try {
                 # Remove trust
                 Get-ADTrust -Filter "Target -eq '${targetDomain}'" | Remove-ADTrust -Confirm:$false
                 
-                Write-Host "✓ Trust removed from ${sourceDomain}" -ForegroundColor Green
-                Write-Host "⚠ Also remove trust from ${targetDomain} side" -ForegroundColor Yellow
+                Write-Host "[SUCCESS] Trust removed from ${sourceDomain}" -ForegroundColor Green
+                Write-Host "[WARNING] Also remove trust from ${targetDomain} side" -ForegroundColor Yellow
             } else {
                 Write-Host "Trust removal cancelled" -ForegroundColor Yellow
             }
@@ -5011,7 +5011,7 @@ try {
             }
         }
         
-        Write-Host "✓ Collected $($SecurityReport.Count) privileged account records" -ForegroundColor Green
+        Write-Host "[SUCCESS] Collected $($SecurityReport.Count) privileged account records" -ForegroundColor Green
     }
     
     if ("${reportType}" -eq "Password Policy" -or "${reportType}" -eq "All Security") {
@@ -5035,7 +5035,7 @@ try {
             }
         }
         
-        Write-Host "✓ Found $($PolicyViolations.Count) password policy violations" -ForegroundColor Yellow
+        Write-Host "[SUCCESS] Found $($PolicyViolations.Count) password policy violations" -ForegroundColor Yellow
     }
     
     if ("${reportType}" -eq "Inactive Accounts" -or "${reportType}" -eq "All Security") {
@@ -5071,14 +5071,14 @@ try {
             }
         }
         
-        Write-Host "✓ Found $($InactiveUsers.Count) inactive accounts (${inactiveDays}+ days)" -ForegroundColor Yellow
+        Write-Host "[SUCCESS] Found $($InactiveUsers.Count) inactive accounts (${inactiveDays}+ days)" -ForegroundColor Yellow
     }
     
     # Export report
     $SecurityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
     Write-Host ""
-    Write-Host "✓ Security report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security report exported to: ${exportPath}" -ForegroundColor Green
     
     # Display summary
     Write-Host ""
@@ -5090,7 +5090,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "⚠ RECOMMENDATIONS:" -ForegroundColor Yellow
+    Write-Host "[WARNING] RECOMMENDATIONS:" -ForegroundColor Yellow
     Write-Host "1. Review all privileged accounts monthly" -ForegroundColor Gray
     Write-Host "2. Disable/remove inactive privileged accounts immediately" -ForegroundColor Gray
     Write-Host "3. Enforce password expiration for all accounts" -ForegroundColor Gray
@@ -5189,7 +5189,7 @@ try {
     $ExistingGPO = Get-GPO -Name $GPOName -ErrorAction SilentlyContinue
     
     if ($ExistingGPO) {
-        Write-Host "⚠ GPO already exists: $GPOName" -ForegroundColor Yellow
+        Write-Host "[WARNING] GPO already exists: $GPOName" -ForegroundColor Yellow
         Write-Host "  GUID: $($ExistingGPO.Id)" -ForegroundColor Gray
         Write-Host "  Created: $($ExistingGPO.CreationTime)" -ForegroundColor Gray
         Write-Host ""
@@ -5198,7 +5198,7 @@ try {
     } else {
         # Create new GPO
         $GPO = New-GPO -Name $GPOName -Comment $GPODescription
-        Write-Host "✓ GPO created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] GPO created successfully" -ForegroundColor Green
         Write-Host "  GUID: $($GPO.Id)" -ForegroundColor Gray
         Write-Host "  Created: $($GPO.CreationTime)" -ForegroundColor Gray
     }
@@ -5217,9 +5217,9 @@ try {
             # Validate OU exists
             try {
                 $OUObject = Get-ADOrganizationalUnit -Identity $OU -ErrorAction Stop
-                Write-Host "    ✓ OU verified" -ForegroundColor Gray
+                Write-Host "    [OK] OU verified" -ForegroundColor Gray
             } catch {
-                Write-Host "    ✗ OU does not exist or is inaccessible" -ForegroundColor Red
+                Write-Host "    [FAILED] OU does not exist or is inaccessible" -ForegroundColor Red
                 $FailedCount++
                 continue
             }
@@ -5230,7 +5230,7 @@ try {
                 Where-Object { $_.DisplayName -eq $GPOName }
             
             if ($ExistingLink) {
-                Write-Host "    ⚠ Link already exists - skipping" -ForegroundColor Yellow
+                Write-Host "    [WARNING] Link already exists - skipping" -ForegroundColor Yellow
                 $SkippedCount++
             } else {
                 # Create GPO link with error handling for link order conflicts
@@ -5260,19 +5260,19 @@ try {
                         }
                     }
                     
-                    Write-Host "    ✓ Linked successfully" -ForegroundColor Green
+                    Write-Host "    [OK] Linked successfully" -ForegroundColor Green
                     Write-Host "      Order: $LinkOrder" -ForegroundColor Gray
                     Write-Host "      Enforced: $Enforced" -ForegroundColor Gray
                     Write-Host "      Enabled: $LinkEnabled" -ForegroundColor Gray
                     
                     $LinkedCount++
                 } catch {
-                    Write-Host "    ✗ Failed to create link: $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Host "    [FAILED] Failed to create link: $($_.Exception.Message)" -ForegroundColor Red
                     $FailedCount++
                 }
             }
         } catch {
-            Write-Host "    ✗ Failed to process OU: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "    [FAILED] Failed to process OU: $($_.Exception.Message)" -ForegroundColor Red
             $FailedCount++
         }
     }
@@ -5403,7 +5403,7 @@ try {
         if (-not (Test-Path -Path $BackupPath)) {
             try {
                 New-Item -Path $BackupPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
-                Write-Host "✓ Created backup folder: $BackupPath" -ForegroundColor Green
+                Write-Host "[SUCCESS] Created backup folder: $BackupPath" -ForegroundColor Green
             } catch {
                 Write-Error "Failed to create backup folder: $($_.Exception.Message)"
                 exit 1
@@ -5414,7 +5414,7 @@ try {
                 $TestFile = Join-Path $BackupPath "test_write_access.tmp"
                 $null | Out-File -FilePath $TestFile -ErrorAction Stop
                 Remove-Item -Path $TestFile -Force -ErrorAction SilentlyContinue
-                Write-Host "✓ Backup folder verified: $BackupPath" -ForegroundColor Green
+                Write-Host "[SUCCESS] Backup folder verified: $BackupPath" -ForegroundColor Green
             } catch {
                 Write-Error "Backup folder is not writable: $BackupPath"
                 exit 1
@@ -5427,7 +5427,7 @@ try {
             
             $Backup = Backup-GPO -Name $GPOName -Path $BackupPath
             
-            Write-Host "✓ GPO backed up successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] GPO backed up successfully" -ForegroundColor Green
             Write-Host "  GPO Name: $($Backup.DisplayName)" -ForegroundColor Gray
             Write-Host "  Backup ID: $($Backup.Id)" -ForegroundColor Gray
             Write-Host "  Timestamp: $($Backup.BackupTime)" -ForegroundColor Gray
@@ -5446,10 +5446,10 @@ try {
             foreach ($GPO in $AllGPOs) {
                 try {
                     $Backup = Backup-GPO -Name $GPO.DisplayName -Path $BackupPath
-                    Write-Host "  ✓ Backed up: $($GPO.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [OK] Backed up: $($GPO.DisplayName)" -ForegroundColor Green
                     $BackupCount++
                 } catch {
-                    Write-Host "  ✗ Failed: $($GPO.DisplayName) - $_" -ForegroundColor Red
+                    Write-Host "  [FAILED] Failed: $($GPO.DisplayName) - $_" -ForegroundColor Red
                     $FailCount++
                 }
             }
@@ -5539,7 +5539,7 @@ try {
                     Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath \`
                         -TargetName $NewGPOName -CreateIfNeeded -ErrorAction Stop
                     
-                    Write-Host "✓ GPO restored as new object: $NewGPOName" -ForegroundColor Green
+                    Write-Host "[SUCCESS] GPO restored as new object: $NewGPOName" -ForegroundColor Green
                 } else {
                     # Overwrite existing GPO
                     $ExistingGPO = Get-GPO -Name $GPOName -ErrorAction SilentlyContinue
@@ -5551,7 +5551,7 @@ try {
                     Import-GPO -BackupId $TargetBackup.BackupID -Path $BackupPath \`
                         -TargetName $GPOName -ErrorAction Stop
                     
-                    Write-Host "✓ GPO settings restored to existing GPO: $GPOName" -ForegroundColor Green
+                    Write-Host "[SUCCESS] GPO settings restored to existing GPO: $GPOName" -ForegroundColor Green
                 }
             } catch {
                 Write-Error "Failed to restore GPO: $($_.Exception.Message)"
@@ -5562,7 +5562,7 @@ try {
                 exit 1
             }
         } else {
-            Write-Host "⚠ Bulk restore not recommended - Please specify GPO name" -ForegroundColor Yellow
+            Write-Host "[WARNING] Bulk restore not recommended - Please specify GPO name" -ForegroundColor Yellow
             Write-Host ""
             Write-Host "Available GPO backups:" -ForegroundColor Cyan
             $Backups | ForEach-Object {
@@ -5678,7 +5678,7 @@ try {
             if (-not (Test-Path -Path $OutputDir)) {
                 try {
                     New-Item -Path $OutputDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
-                    Write-Host "✓ Created output directory: $OutputDir" -ForegroundColor Green
+                    Write-Host "[SUCCESS] Created output directory: $OutputDir" -ForegroundColor Green
                 } catch {
                     Write-Error "Failed to create output directory: $($_.Exception.Message)"
                     exit 1
@@ -5703,7 +5703,7 @@ try {
     # Verify Group Policy module cmdlets are available
     try {
         $null = Get-Command Get-GPOReport -ErrorAction Stop
-        Write-Host "✓ Group Policy cmdlets verified" -ForegroundColor Green
+        Write-Host "[SUCCESS] Group Policy cmdlets verified" -ForegroundColor Green
     } catch {
         Write-Error "Get-GPOReport cmdlet not available. Ensure Group Policy Management features are installed."
         exit 1
@@ -5716,7 +5716,7 @@ try {
         # Verify GPO exists
         try {
             $GPO = Get-GPO -Name $GPOName -ErrorAction Stop
-            Write-Host "  ✓ GPO found: $($GPO.DisplayName)" -ForegroundColor Gray
+            Write-Host "  [OK] GPO found: $($GPO.DisplayName)" -ForegroundColor Gray
         } catch {
             Write-Error "GPO not found: $GPOName"
             exit 1
@@ -5733,7 +5733,7 @@ try {
             
             $Report | Out-File -FilePath $OutputPath -Encoding UTF8 -ErrorAction Stop
             
-            Write-Host "✓ Report generated successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Report generated successfully" -ForegroundColor Green
             Write-Host "  File: $OutputPath" -ForegroundColor Gray
             Write-Host "  Size: $([math]::Round((Get-Item $OutputPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
         } catch {
@@ -5767,7 +5767,7 @@ try {
                                 if ($Inheritance.GpoLinks) {
                                     $LinkedGPO = $Inheritance.GpoLinks | Where-Object { $_.DisplayName -eq $GPOName }
                                     if ($LinkedGPO) {
-                                        Write-Host "  ✓ Linked to: $OU" -ForegroundColor Green
+                                        Write-Host "  [OK] Linked to: $OU" -ForegroundColor Green
                                         Write-Host "    Enabled: $($LinkedGPO.Enabled)" -ForegroundColor Gray
                                         Write-Host "    Enforced: $($LinkedGPO.Enforced)" -ForegroundColor Gray
                                         Write-Host "    Order: $($LinkedGPO.Order)" -ForegroundColor Gray
@@ -5778,11 +5778,11 @@ try {
                             }
                         }
                     } catch {
-                        Write-Host "  ⚠ Cannot query domain: $Domain" -ForegroundColor Yellow
+                        Write-Host "  [WARNING] Cannot query domain: $Domain" -ForegroundColor Yellow
                     }
                 }
             } catch {
-                Write-Host "⚠ Cannot retrieve forest information for link discovery" -ForegroundColor Yellow
+                Write-Host "[WARNING] Cannot retrieve forest information for link discovery" -ForegroundColor Yellow
                 Write-Host "  GPO report generated without link information" -ForegroundColor Gray
             }
         }
@@ -5801,7 +5801,7 @@ try {
         }
         
         if ($AllGPOs.Count -eq 0) {
-            Write-Host "⚠ No GPOs found in domain" -ForegroundColor Yellow
+            Write-Host "[WARNING] No GPOs found in domain" -ForegroundColor Yellow
             exit 0
         }
         
@@ -5849,7 +5849,7 @@ try {
                 
                 $ReportCount++
             } catch {
-                Write-Host "    ✗ Failed: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host "    [FAILED] Failed: $($_.Exception.Message)" -ForegroundColor Red
                 $FailCount++
             }
         }
@@ -5859,10 +5859,10 @@ try {
             $CombinedReport | Out-File -FilePath $OutputPath -Encoding UTF8
             
             Write-Host ""
-            Write-Host "✓ Combined report generated: $OutputPath" -ForegroundColor Green
+            Write-Host "[SUCCESS] Combined report generated: $OutputPath" -ForegroundColor Green
         } else {
             Write-Host ""
-            Write-Host "✓ Individual XML reports generated in: $OutputDir" -ForegroundColor Green
+            Write-Host "[SUCCESS] Individual XML reports generated in: $OutputDir" -ForegroundColor Green
         }
         
         Write-Host ""
@@ -5882,7 +5882,7 @@ try {
     
     if ($ReportType -eq "Html") {
         Write-Host ""
-        Write-Host "✓ Open HTML report in browser for readable view" -ForegroundColor Green
+        Write-Host "[SUCCESS] Open HTML report in browser for readable view" -ForegroundColor Green
     }
     
 } catch {
@@ -5988,7 +5988,7 @@ try {
     # Check if site already exists
     try {
         $ExistingSite = Get-ADReplicationSite -Identity $SiteName -ErrorAction Stop
-        Write-Host "⚠ Site already exists: $SiteName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Site already exists: $SiteName" -ForegroundColor Yellow
         Write-Host "  DN: $($ExistingSite.DistinguishedName)" -ForegroundColor Gray
         Write-Host "  Created: $($ExistingSite.Created)" -ForegroundColor Gray
         $Site = $ExistingSite
@@ -5998,7 +5998,7 @@ try {
         
         $Site = New-ADReplicationSite -Name $SiteName -Description $Description -PassThru
         
-        Write-Host "✓ Site created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Site created successfully" -ForegroundColor Green
         Write-Host "  DN: $($Site.DistinguishedName)" -ForegroundColor Gray
         
         # Set location if provided
@@ -6014,19 +6014,19 @@ try {
     # Check if subnet already exists
     try {
         $ExistingSubnet = Get-ADReplicationSubnet -Identity $SubnetAddress -ErrorAction Stop
-        Write-Host "⚠ Subnet already exists: $SubnetAddress" -ForegroundColor Yellow
+        Write-Host "[WARNING] Subnet already exists: $SubnetAddress" -ForegroundColor Yellow
         Write-Host "  Currently associated with site: $($ExistingSubnet.Site)" -ForegroundColor Yellow
         
         # Reassociate if needed
         if ($ExistingSubnet.Site -ne $Site.DistinguishedName) {
             Write-Host "  Reassociating subnet to $SiteName..." -ForegroundColor Cyan
             Set-ADReplicationSubnet -Identity $SubnetAddress -Site $Site
-            Write-Host "✓ Subnet reassociated" -ForegroundColor Green
+            Write-Host "[SUCCESS] Subnet reassociated" -ForegroundColor Green
         }
     } catch {
         # Create new subnet
         $Subnet = New-ADReplicationSubnet -Name $SubnetAddress -Site $Site -PassThru
-        Write-Host "✓ Subnet created and associated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Subnet created and associated" -ForegroundColor Green
         Write-Host "  Subnet: $SubnetAddress" -ForegroundColor Gray
         Write-Host "  Associated with: $SiteName" -ForegroundColor Gray
     }
@@ -6042,15 +6042,15 @@ try {
         if ($SiteLink.SitesIncluded -notcontains $Site.DistinguishedName) {
             $SitesIncluded = @($SiteLink.SitesIncluded) + @($Site.DistinguishedName)
             Set-ADReplicationSiteLink -Identity $SiteLinkName -SitesIncluded $SitesIncluded
-            Write-Host "✓ Site added to site link: $SiteLinkName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Site added to site link: $SiteLinkName" -ForegroundColor Green
         } else {
-            Write-Host "✓ Site already in site link: $SiteLinkName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Site already in site link: $SiteLinkName" -ForegroundColor Green
         }
         
         Write-Host "  Replication Cost: $($SiteLink.Cost)" -ForegroundColor Gray
         Write-Host "  Replication Interval: $($SiteLink.ReplicationFrequencyInMinutes) minutes" -ForegroundColor Gray
     } catch {
-        Write-Host "⚠ Site link not found or cannot be configured: $SiteLinkName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Site link not found or cannot be configured: $SiteLinkName" -ForegroundColor Yellow
         Write-Host "  Manually configure site links via AD Sites and Services" -ForegroundColor Yellow
     }
     
@@ -6169,9 +6169,9 @@ try {
     # Determine source DC
     if (-not $SourceDC) {
         $SourceDC = $Domain.PDCEmulator
-        Write-Host "✓ Using PDC Emulator as source: $SourceDC" -ForegroundColor Green
+        Write-Host "[SUCCESS] Using PDC Emulator as source: $SourceDC" -ForegroundColor Green
     } else {
-        Write-Host "✓ Using specified source: $SourceDC" -ForegroundColor Green
+        Write-Host "[SUCCESS] Using specified source: $SourceDC" -ForegroundColor Green
     }
     
     # Verify source DC is reachable
@@ -6183,10 +6183,10 @@ try {
     # Get target DCs
     if ($TargetDC) {
         $TargetDCs = @($TargetDC)
-        Write-Host "✓ Target DC: $TargetDC" -ForegroundColor Green
+        Write-Host "[SUCCESS] Target DC: $TargetDC" -ForegroundColor Green
     } else {
         $TargetDCs = (Get-ADDomainController -Filter *).HostName | Where-Object { $_ -ne $SourceDC }
-        Write-Host "✓ Target: All domain controllers ($($TargetDCs.Count) DCs)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Target: All domain controllers ($($TargetDCs.Count) DCs)" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -6215,7 +6215,7 @@ try {
         
         # Verify DC is reachable
         if (-not (Test-Connection -ComputerName $DC -Count 1 -Quiet)) {
-            Write-Host "  ✗ DC not reachable" -ForegroundColor Red
+            Write-Host "  [FAILED] DC not reachable" -ForegroundColor Red
             $FailCount++
             continue
         }
@@ -6238,14 +6238,14 @@ try {
                 $ReplStatus = repadmin /showrepl $DC $NC 2>&1
                 
                 if ($ReplStatus -match "successful") {
-                    Write-Host "  ✓ Replication successful" -ForegroundColor Green
+                    Write-Host "  [OK] Replication successful" -ForegroundColor Green
                     $SuccessCount++
                 } else {
-                    Write-Host "  ⚠ Replication status unclear - check manually" -ForegroundColor Yellow
+                    Write-Host "  [WARNING] Replication status unclear - check manually" -ForegroundColor Yellow
                 }
                 
             } catch {
-                Write-Host "  ✗ Replication failed: $_" -ForegroundColor Red
+                Write-Host "  [FAILED] Replication failed: $_" -ForegroundColor Red
                 $FailCount++
             }
         }

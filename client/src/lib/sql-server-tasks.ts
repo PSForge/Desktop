@@ -144,7 +144,7 @@ try {
     Backup-SqlDatabase @BackupParams
     $Duration = (Get-Date) - $StartTime
     
-    Write-Host "✓ Backup completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup completed successfully" -ForegroundColor Green
     Write-Host "  Duration: $([math]::Round($Duration.TotalMinutes, 2)) minutes" -ForegroundColor Gray
     
     # Get backup file size
@@ -163,7 +163,7 @@ FROM DISK = N'$BackupPath'
 "@
         
         Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $Query -ErrorAction Stop
-        Write-Host "✓ Backup verification passed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backup verification passed" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -243,7 +243,7 @@ try {
     
     $Duration = (Get-Date) - $StartTime
     
-    Write-Host "✓ Differential backup completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Differential backup completed" -ForegroundColor Green
     Write-Host "  Duration: $([math]::Round($Duration.TotalSeconds, 1)) seconds" -ForegroundColor Gray
     Write-Host "  File: ${backupPath}" -ForegroundColor Gray
     
@@ -338,7 +338,7 @@ ORDER BY ips.avg_fragmentation_in_percent DESC
     $Indexes = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $FragQuery
     
     if (-not $Indexes) {
-        Write-Host "✓ No fragmented indexes found" -ForegroundColor Green
+        Write-Host "[SUCCESS] No fragmented indexes found" -ForegroundColor Green
         exit 0
     }
     
@@ -452,7 +452,7 @@ try {
     
     # Build CHECKDB command
     if ($RepairOption -ne "NONE") {
-        Write-Host "⚠ REPAIR MODE - Database will be placed in single-user mode" -ForegroundColor Yellow
+        Write-Host "[WARNING] REPAIR MODE - Database will be placed in single-user mode" -ForegroundColor Yellow
         
         # Set single-user mode for repair
         $SingleUserQuery = "ALTER DATABASE [$DatabaseName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE"
@@ -474,7 +474,7 @@ try {
     
     $Duration = (Get-Date) - $StartTime
     
-    Write-Host "✓ CHECKDB completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] CHECKDB completed successfully" -ForegroundColor Green
     Write-Host "  Duration: $([math]::Round($Duration.TotalMinutes, 2)) minutes" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Result: No corruption detected" -ForegroundColor Green
@@ -560,7 +560,7 @@ try {
     $LoginCheck = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query "SELECT name FROM sys.server_principals WHERE name = '$LoginName'"
     
     if ($LoginCheck) {
-        Write-Host "⚠ Login already exists: $LoginName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Login already exists: $LoginName" -ForegroundColor Yellow
     } else {
         # Create SQL Server login
         $CreateLoginQuery = @"
@@ -572,25 +572,25 @@ WITH PASSWORD = N'$Password',
 "@
         
         Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $CreateLoginQuery
-        Write-Host "✓ SQL Server login created: $LoginName" -ForegroundColor Green
+        Write-Host "[SUCCESS] SQL Server login created: $LoginName" -ForegroundColor Green
     }
     
     # Check if user already exists in database
     $UserCheck = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query "SELECT name FROM sys.database_principals WHERE name = '$LoginName'"
     
     if ($UserCheck) {
-        Write-Host "⚠ Database user already exists: $LoginName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Database user already exists: $LoginName" -ForegroundColor Yellow
     } else {
         # Create database user
         $CreateUserQuery = "CREATE USER [$LoginName] FOR LOGIN [$LoginName]"
         Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $CreateUserQuery
-        Write-Host "✓ Database user created: $LoginName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Database user created: $LoginName" -ForegroundColor Green
     }
     
     # Add user to role
     $AddRoleQuery = "ALTER ROLE [$DatabaseRole] ADD MEMBER [$LoginName]"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $AddRoleQuery
-    Write-Host "✓ User added to role: $DatabaseRole" -ForegroundColor Green
+    Write-Host "[SUCCESS] User added to role: $DatabaseRole" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "=============== SUCCESS ===============" -ForegroundColor White
@@ -737,7 +737,7 @@ EXEC msdb.dbo.sp_add_jobserver
     
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Database "msdb" -Query $CreateJobQuery
     
-    Write-Host "✓ SQL Agent job created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] SQL Agent job created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Job Details:" -ForegroundColor White
     Write-Host "  Name: $JobName" -ForegroundColor Gray
@@ -892,13 +892,13 @@ WHERE r.blocking_session_id != 0
     # Export report
     $Report | Export-Csv -Path $OutputPath -NoTypeInformation
     
-    Write-Host "✓ Performance report exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Performance report exported" -ForegroundColor Green
     Write-Host "  File: $OutputPath" -ForegroundColor Gray
     Write-Host "  Top CPU Queries: $($CPUResults.Count)" -ForegroundColor Gray
     Write-Host "  Wait Stats: $($WaitResults.Count)" -ForegroundColor Gray
     
     if ($BlockingResults) {
-        Write-Host "  ⚠ Active Blocking Detected: $($BlockingResults.Count) sessions" -ForegroundColor Yellow
+        Write-Host "  [WARNING] Active Blocking Detected: $($BlockingResults.Count) sessions" -ForegroundColor Yellow
     } else {
         Write-Host "  Blocking: None detected" -ForegroundColor Gray
     }
@@ -986,7 +986,7 @@ try {
     
     $Duration = (Get-Date) - $StartTime
     
-    Write-Host "✓ Transaction log backup completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Transaction log backup completed" -ForegroundColor Green
     Write-Host "  Duration: $([math]::Round($Duration.TotalSeconds, 1)) seconds" -ForegroundColor Gray
     Write-Host "  File: $BackupPath" -ForegroundColor Gray
     
@@ -1104,7 +1104,7 @@ END
     Restore-SqlDatabase @RestoreParams
     $Duration = (Get-Date) - $StartTime
     
-    Write-Host "✓ Database restore completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database restore completed" -ForegroundColor Green
     Write-Host "  Duration: $([math]::Round($Duration.TotalMinutes, 2)) minutes" -ForegroundColor Gray
     
     if ($RecoveryState -eq 'RECOVERY') {
@@ -1192,7 +1192,7 @@ try {
         -NoRecovery \`
         -ReplaceDatabase
     
-    Write-Host "✓ Full backup restored" -ForegroundColor Green
+    Write-Host "[SUCCESS] Full backup restored" -ForegroundColor Green
     
     # Step 2: Get log backup files in order
     Write-Host ""
@@ -1247,7 +1247,7 @@ WITH RECOVERY,
     }
     
     Write-Host ""
-    Write-Host "✓ Point-in-time restore completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Point-in-time restore completed" -ForegroundColor Green
     Write-Host "  Log backups applied: $AppliedCount" -ForegroundColor Gray
     Write-Host "  Restored to: $RestoreTime" -ForegroundColor Gray
     
@@ -1339,7 +1339,7 @@ ORDER BY bs.database_name, bs.backup_start_date DESC
     $BackupHistory = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $BackupQuery
     
     if (-not $BackupHistory) {
-        Write-Host "⚠ No backup history found for the specified period" -ForegroundColor Yellow
+        Write-Host "[WARNING] No backup history found for the specified period" -ForegroundColor Yellow
         exit 0
     }
     
@@ -1354,7 +1354,7 @@ ORDER BY bs.database_name, bs.backup_start_date DESC
     $TotalSizeMB = ($BackupHistory | Measure-Object -Property SizeMB -Sum).Sum
     
     Write-Host ""
-    Write-Host "✓ Backup history report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup history report generated" -ForegroundColor Green
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host ""
     Write-Host "=============== SUMMARY ===============" -ForegroundColor White
@@ -1380,10 +1380,10 @@ ORDER BY bs.database_name, bs.backup_start_date DESC
     }
     
     if ($NoRecentBackup.Count -gt 0) {
-        Write-Host "⚠ Databases without recent full backup:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Databases without recent full backup:" -ForegroundColor Yellow
         $NoRecentBackup | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
     } else {
-        Write-Host "✓ All databases have recent backups" -ForegroundColor Green
+        Write-Host "[SUCCESS] All databases have recent backups" -ForegroundColor Green
     }
     
 } catch {
@@ -1488,7 +1488,7 @@ ORDER BY SchemaName, TableName
     $Duration = (Get-Date) - $StartTime
     
     Write-Host ""
-    Write-Host "✓ Statistics update completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Statistics update completed" -ForegroundColor Green
     Write-Host "  Tables updated: $UpdatedCount" -ForegroundColor Gray
     Write-Host "  Duration: $([math]::Round($Duration.TotalMinutes, 2)) minutes" -ForegroundColor Gray
     
@@ -1591,7 +1591,7 @@ ORDER BY TotalReads ASC, UserUpdates DESC
     $IndexUsage = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $IndexQuery
     
     if (-not $IndexUsage) {
-        Write-Host "⚠ No index usage data found" -ForegroundColor Yellow
+        Write-Host "[WARNING] No index usage data found" -ForegroundColor Yellow
         exit 0
     }
     
@@ -1604,7 +1604,7 @@ ORDER BY TotalReads ASC, UserUpdates DESC
     $TotalSizeMB = ($IndexUsage | Measure-Object -Property IndexSizeMB -Sum).Sum
     
     Write-Host ""
-    Write-Host "✓ Index usage report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Index usage report generated" -ForegroundColor Green
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host ""
     Write-Host "=============== SUMMARY ===============" -ForegroundColor White
@@ -1616,7 +1616,7 @@ ORDER BY TotalReads ASC, UserUpdates DESC
     
     if ($Unused -gt 0) {
         Write-Host ""
-        Write-Host "⚠ Consider reviewing unused indexes for removal" -ForegroundColor Yellow
+        Write-Host "[WARNING] Consider reviewing unused indexes for removal" -ForegroundColor Yellow
     }
     
 } catch {
@@ -1709,14 +1709,14 @@ ORDER BY ImprovementScore DESC
     $MissingIndexes = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $MissingQuery
     
     if (-not $MissingIndexes) {
-        Write-Host "✓ No missing index recommendations" -ForegroundColor Green
+        Write-Host "[SUCCESS] No missing index recommendations" -ForegroundColor Green
         exit 0
     }
     
     $MissingIndexes | Export-Csv -Path $OutputPath -NoTypeInformation
     
     Write-Host ""
-    Write-Host "✓ Missing indexes report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Missing indexes report generated" -ForegroundColor Green
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host "  Recommendations: $($MissingIndexes.Count)" -ForegroundColor Gray
     Write-Host ""
@@ -1848,7 +1848,7 @@ ORDER BY ic1.SchemaName, ic1.TableName, ic1.IndexName
     $Duplicates = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $DuplicateQuery
     
     if (-not $Duplicates) {
-        Write-Host "✓ No duplicate indexes found" -ForegroundColor Green
+        Write-Host "[SUCCESS] No duplicate indexes found" -ForegroundColor Green
         exit 0
     }
     
@@ -1857,7 +1857,7 @@ ORDER BY ic1.SchemaName, ic1.TableName, ic1.IndexName
     $TotalWastedMB = ($Duplicates | Measure-Object -Property Index2SizeMB -Sum).Sum
     
     Write-Host ""
-    Write-Host "⚠ Duplicate indexes found" -ForegroundColor Yellow
+    Write-Host "[WARNING] Duplicate indexes found" -ForegroundColor Yellow
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host "  Duplicate pairs: $($Duplicates.Count)" -ForegroundColor Yellow
     Write-Host "  Potential space savings: $([math]::Round($TotalWastedMB, 2)) MB" -ForegroundColor Yellow
@@ -1927,7 +1927,7 @@ try {
     
     $Duration = (Get-Date) - $StartTime
     
-    Write-Host "✓ CHECKALLOC completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] CHECKALLOC completed successfully" -ForegroundColor Green
     Write-Host "  Duration: $([math]::Round($Duration.TotalSeconds, 1)) seconds" -ForegroundColor Gray
     Write-Host "  Result: No allocation errors detected" -ForegroundColor Green
     
@@ -1998,7 +1998,7 @@ try {
     
     $Duration = (Get-Date) - $StartTime
     
-    Write-Host "✓ CHECKTABLE completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] CHECKTABLE completed successfully" -ForegroundColor Green
     Write-Host "  Duration: $([math]::Round($Duration.TotalSeconds, 1)) seconds" -ForegroundColor Gray
     Write-Host "  Result: No errors detected in table" -ForegroundColor Green
     
@@ -2074,7 +2074,7 @@ try {
     $Existing = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $CheckQuery
     
     if ($Existing) {
-        Write-Host "⚠ Login already exists: $WindowsAccount" -ForegroundColor Yellow
+        Write-Host "[WARNING] Login already exists: $WindowsAccount" -ForegroundColor Yellow
         exit 0
     }
     
@@ -2086,7 +2086,7 @@ WITH DEFAULT_DATABASE = [$DefaultDatabase]
     
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $CreateQuery
     
-    Write-Host "✓ Windows login created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Windows login created successfully" -ForegroundColor Green
     Write-Host "  Account: $WindowsAccount" -ForegroundColor Gray
     Write-Host "  Default Database: $DefaultDatabase" -ForegroundColor Gray
     
@@ -2159,7 +2159,7 @@ try {
     $User = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $UserQuery
     
     if (-not $User) {
-        Write-Host "⚠ User not found: $UserName" -ForegroundColor Yellow
+        Write-Host "[WARNING] User not found: $UserName" -ForegroundColor Yellow
         exit 0
     }
     
@@ -2186,7 +2186,7 @@ WHERE p.name = '$UserName'
     $DropUserQuery = "DROP USER [$UserName]"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $DropUserQuery
     
-    Write-Host "✓ Database user dropped" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database user dropped" -ForegroundColor Green
     
     # Optionally drop login
     if ($DropLogin) {
@@ -2195,7 +2195,7 @@ WHERE p.name = '$UserName'
         $DropLoginQuery = "DROP LOGIN [$UserName]"
         Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $DropLoginQuery -ErrorAction SilentlyContinue
         
-        Write-Host "✓ Login dropped" -ForegroundColor Green
+        Write-Host "[SUCCESS] Login dropped" -ForegroundColor Green
     }
     
 } catch {
@@ -2310,7 +2310,7 @@ ORDER BY Principal, PermissionType
     $Permissions = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $PermissionsQuery
     
     if (-not $Permissions) {
-        Write-Host "⚠ No permissions found" -ForegroundColor Yellow
+        Write-Host "[WARNING] No permissions found" -ForegroundColor Yellow
         exit 0
     }
     
@@ -2323,7 +2323,7 @@ ORDER BY Principal, PermissionType
     $ObjPerms = ($Permissions | Where-Object { $_.PermissionType -eq 'Object Permission' }).Count
     
     Write-Host ""
-    Write-Host "✓ Permissions audit completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions audit completed" -ForegroundColor Green
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host ""
     Write-Host "=============== SUMMARY ===============" -ForegroundColor White
@@ -2407,12 +2407,12 @@ WHERE dp.type IN ('S', 'U')
     $OrphanedUsers = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $OrphanQuery
     
     if (-not $OrphanedUsers) {
-        Write-Host "✓ No orphaned users found" -ForegroundColor Green
+        Write-Host "[SUCCESS] No orphaned users found" -ForegroundColor Green
         exit 0
     }
     
     Write-Host ""
-    Write-Host "⚠ Found $($OrphanedUsers.Count) orphaned users:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($OrphanedUsers.Count) orphaned users:" -ForegroundColor Yellow
     
     foreach ($User in $OrphanedUsers) {
         Write-Host ""
@@ -2430,9 +2430,9 @@ WHERE dp.type IN ('S', 'U')
                 # Remap to existing login
                 $RemapQuery = "ALTER USER [$($User.UserName)] WITH LOGIN = [$($User.UserName)]"
                 Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $RemapQuery
-                Write-Host "  ✓ Remapped to existing login" -ForegroundColor Green
+                Write-Host "  [OK] Remapped to existing login" -ForegroundColor Green
             } else {
-                Write-Host "  ⚠ No matching login found - create login manually" -ForegroundColor Yellow
+                Write-Host "  [WARNING] No matching login found - create login manually" -ForegroundColor Yellow
             }
         } else {
             Write-Host "  Fix: ALTER USER [$($User.UserName)] WITH LOGIN = [$($User.UserName)]" -ForegroundColor Gray
@@ -2524,7 +2524,7 @@ END
     }
     
     $StatusText = if ($Action -eq 'Enable') { 'enabled' } else { 'disabled' }
-    Write-Host "✓ Job $StatusText successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job $StatusText successfully" -ForegroundColor Green
     Write-Host "  Job: $JobName" -ForegroundColor Gray
     
 } catch {
@@ -2614,7 +2614,7 @@ ORDER BY RunDateTime DESC
     $History = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $HistoryQuery
     
     if (-not $History) {
-        Write-Host "⚠ No job history found" -ForegroundColor Yellow
+        Write-Host "[WARNING] No job history found" -ForegroundColor Yellow
         exit 0
     }
     
@@ -2627,7 +2627,7 @@ ORDER BY RunDateTime DESC
     $SuccessRate = [math]::Round(($Succeeded / $TotalRuns) * 100, 1)
     
     Write-Host ""
-    Write-Host "✓ Job history report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job history report generated" -ForegroundColor Green
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host ""
     Write-Host "=============== SUMMARY ===============" -ForegroundColor White
@@ -2717,12 +2717,12 @@ ORDER BY RunDateTime DESC
     $FailedJobs = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $FailedQuery
     
     if (-not $FailedJobs) {
-        Write-Host "✓ No failed jobs in the last $HoursBack hours" -ForegroundColor Green
+        Write-Host "[SUCCESS] No failed jobs in the last $HoursBack hours" -ForegroundColor Green
         exit 0
     }
     
     Write-Host ""
-    Write-Host "⚠ FAILED JOBS DETECTED: $($FailedJobs.Count)" -ForegroundColor Red
+    Write-Host "[WARNING] FAILED JOBS DETECTED: $($FailedJobs.Count)" -ForegroundColor Red
     Write-Host ""
     
     foreach ($Job in $FailedJobs) {
@@ -2829,7 +2829,7 @@ ORDER BY wait_time_s DESC
     $WaitStats = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $WaitQuery
     
     if (-not $WaitStats) {
-        Write-Host "⚠ No significant wait statistics" -ForegroundColor Yellow
+        Write-Host "[WARNING] No significant wait statistics" -ForegroundColor Yellow
         exit 0
     }
     
@@ -2937,12 +2937,12 @@ ORDER BY r.wait_time DESC
     $Blocking = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $BlockingQuery
     
     if (-not $Blocking) {
-        Write-Host "✓ No blocking detected" -ForegroundColor Green
+        Write-Host "[SUCCESS] No blocking detected" -ForegroundColor Green
         exit 0
     }
     
     Write-Host ""
-    Write-Host "⚠ BLOCKING DETECTED: $($Blocking.Count) blocked sessions" -ForegroundColor Red
+    Write-Host "[WARNING] BLOCKING DETECTED: $($Blocking.Count) blocked sessions" -ForegroundColor Red
     Write-Host ""
     
     foreach ($Block in $Blocking) {
@@ -3043,12 +3043,12 @@ ORDER BY r.start_time
     $LongQueries = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $LongRunningQuery
     
     if (-not $LongQueries) {
-        Write-Host "✓ No long-running queries detected" -ForegroundColor Green
+        Write-Host "[SUCCESS] No long-running queries detected" -ForegroundColor Green
         exit 0
     }
     
     Write-Host ""
-    Write-Host "⚠ Found $($LongQueries.Count) long-running queries:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($LongQueries.Count) long-running queries:" -ForegroundColor Yellow
     Write-Host ""
     
     foreach ($Query in $LongQueries) {
@@ -3178,11 +3178,11 @@ ORDER BY timestamp DESC
     # Warnings
     if ($Memory.MemoryUtilizationPct -gt 90) {
         Write-Host ""
-        Write-Host "⚠ High memory utilization detected" -ForegroundColor Yellow
+        Write-Host "[WARNING] High memory utilization detected" -ForegroundColor Yellow
     }
     if ($CPU.SQLCpuPct -gt 80) {
         Write-Host ""
-        Write-Host "⚠ High CPU utilization detected" -ForegroundColor Yellow
+        Write-Host "[WARNING] High CPU utilization detected" -ForegroundColor Yellow
     }
     
 } catch {
@@ -3317,7 +3317,7 @@ ORDER BY RegressionPct DESC
     
     if ($Regressed) {
         Write-Host ""
-        Write-Host "⚠ Regressed Queries Detected:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Regressed Queries Detected:" -ForegroundColor Yellow
         foreach ($Reg in $Regressed) {
             Write-Host "  Query $($Reg.query_id): $([math]::Round($Reg.RegressionPct))% slower" -ForegroundColor Yellow
         }
@@ -3428,7 +3428,7 @@ LOG ON (
     $RecoveryQuery = "ALTER DATABASE [$DatabaseName] SET RECOVERY $RecoveryModel"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $RecoveryQuery
     
-    Write-Host "✓ Database created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database created successfully" -ForegroundColor Green
     Write-Host "  Database: $DatabaseName" -ForegroundColor Gray
     Write-Host "  Data File: $DataPath\\\${DatabaseName}_Data.mdf ($DataSizeMB MB)" -ForegroundColor Gray
     Write-Host "  Log File: $LogPath\\\${DatabaseName}_Log.ldf ($LogSizeMB MB)" -ForegroundColor Gray
@@ -3467,7 +3467,7 @@ LOG ON (
 3. Reports space reclaimed
 
 **Important Notes:**
-- ⚠ Shrinking causes fragmentation
+- [WARNING] Shrinking causes fragmentation
 - Avoid routine shrinking
 - Use only after large deletes
 - Rebuild indexes after shrink`,
@@ -3494,7 +3494,7 @@ $TargetPercentFree = ${targetPercentFree}
 $ShrinkLog = $${shrinkLog}
 
 try {
-    Write-Host "⚠ WARNING: Shrinking causes index fragmentation" -ForegroundColor Yellow
+    Write-Host "[WARNING] WARNING: Shrinking causes index fragmentation" -ForegroundColor Yellow
     Write-Host "Consider if this is really necessary" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Shrinking database: $DatabaseName" -ForegroundColor Cyan
@@ -3550,10 +3550,10 @@ FROM sys.database_files
     $Reclaimed = $TotalBefore - $TotalAfter
     
     Write-Host ""
-    Write-Host "✓ Shrink completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Shrink completed" -ForegroundColor Green
     Write-Host "  Space reclaimed: $([math]::Round($Reclaimed, 2)) MB" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠ Recommend: Rebuild indexes to address fragmentation" -ForegroundColor Yellow
+    Write-Host "[WARNING] Recommend: Rebuild indexes to address fragmentation" -ForegroundColor Yellow
     
 } catch {
     Write-Error "Shrink failed: $_"
@@ -3621,7 +3621,7 @@ try {
     Write-Host "New model: $RecoveryModel" -ForegroundColor Yellow
     
     if ($Current.recovery_model_desc -eq $RecoveryModel) {
-        Write-Host "⚠ Database already in $RecoveryModel recovery model" -ForegroundColor Yellow
+        Write-Host "[WARNING] Database already in $RecoveryModel recovery model" -ForegroundColor Yellow
         exit 0
     }
     
@@ -3630,17 +3630,17 @@ try {
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ChangeQuery
     
     Write-Host ""
-    Write-Host "✓ Recovery model changed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Recovery model changed successfully" -ForegroundColor Green
     
     # Recommendations
     if ($RecoveryModel -eq 'FULL') {
         Write-Host ""
-        Write-Host "⚠ IMPORTANT: Take a full backup immediately" -ForegroundColor Yellow
+        Write-Host "[WARNING] IMPORTANT: Take a full backup immediately" -ForegroundColor Yellow
         Write-Host "Transaction log backups are now required" -ForegroundColor Yellow
     }
     elseif ($RecoveryModel -eq 'SIMPLE') {
         Write-Host ""
-        Write-Host "⚠ Point-in-time recovery is no longer possible" -ForegroundColor Yellow
+        Write-Host "[WARNING] Point-in-time recovery is no longer possible" -ForegroundColor Yellow
     }
     
 } catch {
@@ -3717,7 +3717,7 @@ try {
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $DetachQuery
     
     Write-Host ""
-    Write-Host "✓ Database detached successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database detached successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Database files (can now be moved):" -ForegroundColor White
     foreach ($File in $Files) {
@@ -3818,7 +3818,7 @@ FOR ATTACH
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $AttachQuery
     
     Write-Host ""
-    Write-Host "✓ Database attached successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database attached successfully" -ForegroundColor Green
     Write-Host "  Database: $DatabaseName" -ForegroundColor Gray
     
     # Verify
@@ -3909,7 +3909,7 @@ ORDER BY TotalSizeMB DESC
     $TotalMB = ($Sizes | Measure-Object -Property TotalSizeMB -Sum).Sum
     
     Write-Host ""
-    Write-Host "✓ Size report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Size report generated" -ForegroundColor Green
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host ""
     Write-Host "=============== SUMMARY ===============" -ForegroundColor White
@@ -3987,28 +3987,28 @@ try {
     Write-Host "Cleaning backup history..." -ForegroundColor Cyan
     $BackupQuery = "EXEC msdb.dbo.sp_delete_backuphistory @oldest_date = '$($CutoffDate.ToString('yyyy-MM-dd'))'"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $BackupQuery
-    Write-Host "✓ Backup history cleaned" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup history cleaned" -ForegroundColor Green
     
     # Cleanup job history
     Write-Host "Cleaning job history..." -ForegroundColor Cyan
     $JobQuery = "EXEC msdb.dbo.sp_purge_jobhistory @oldest_date = '$($CutoffDate.ToString('yyyy-MM-dd'))'"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $JobQuery
-    Write-Host "✓ Job history cleaned" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job history cleaned" -ForegroundColor Green
     
     # Cleanup maintenance plan history
     Write-Host "Cleaning maintenance plan logs..." -ForegroundColor Cyan
     $MaintQuery = "EXEC msdb.dbo.sp_maintplan_delete_log @oldest_time = '$($CutoffDate.ToString('yyyy-MM-dd'))'"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $MaintQuery -ErrorAction SilentlyContinue
-    Write-Host "✓ Maintenance plan logs cleaned" -ForegroundColor Green
+    Write-Host "[SUCCESS] Maintenance plan logs cleaned" -ForegroundColor Green
     
     # Cleanup mail history
     Write-Host "Cleaning Database Mail history..." -ForegroundColor Cyan
     $MailQuery = "EXEC msdb.dbo.sysmail_delete_mailitems_sp @sent_before = '$($CutoffDate.ToString('yyyy-MM-dd'))'"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $MailQuery -ErrorAction SilentlyContinue
-    Write-Host "✓ Mail history cleaned" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mail history cleaned" -ForegroundColor Green
     
     Write-Host ""
-    Write-Host "✓ History cleanup completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] History cleanup completed" -ForegroundColor Green
     
 } catch {
     Write-Error "History cleanup failed: $_"
@@ -4087,7 +4087,7 @@ ORDER BY ios.forwarded_fetch_count DESC, SizeMB DESC
     $Heaps = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $HeapQuery
     
     if (-not $Heaps) {
-        Write-Host "✓ No heap tables found" -ForegroundColor Green
+        Write-Host "[SUCCESS] No heap tables found" -ForegroundColor Green
         exit 0
     }
     
@@ -4107,7 +4107,7 @@ ORDER BY ios.forwarded_fetch_count DESC, SizeMB DESC
             $RebuildQuery = "ALTER TABLE $TableName REBUILD"
             Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $RebuildQuery -QueryTimeout 0
             
-            Write-Host "  ✓ Rebuilt" -ForegroundColor Green
+            Write-Host "  [OK] Rebuilt" -ForegroundColor Green
             $RebuiltCount++
         } else {
             Write-Host "  Skipped (under threshold)" -ForegroundColor Gray
@@ -4115,7 +4115,7 @@ ORDER BY ios.forwarded_fetch_count DESC, SizeMB DESC
     }
     
     Write-Host ""
-    Write-Host "✓ Heap maintenance completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Heap maintenance completed" -ForegroundColor Green
     Write-Host "  Heaps rebuilt: $RebuiltCount" -ForegroundColor Gray
     
 } catch {
@@ -4202,7 +4202,7 @@ ORDER BY ModificationPct DESC
     $OutdatedStats = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $DatabaseName -Query $StatsQuery
     
     if (-not $OutdatedStats) {
-        Write-Host "✓ No outdated statistics found" -ForegroundColor Green
+        Write-Host "[SUCCESS] No outdated statistics found" -ForegroundColor Green
         exit 0
     }
     
@@ -4222,7 +4222,7 @@ ORDER BY ModificationPct DESC
     }
     
     Write-Host ""
-    Write-Host "✓ Statistics update completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Statistics update completed" -ForegroundColor Green
     Write-Host "  Statistics updated: $UpdatedCount" -ForegroundColor Gray
     
 } catch {
@@ -4284,7 +4284,7 @@ try {
     $Enabled = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $EnabledQuery
     
     if ($Enabled.IsHadrEnabled -ne 1) {
-        Write-Host "⚠ AlwaysOn is not enabled on this server" -ForegroundColor Yellow
+        Write-Host "[WARNING] AlwaysOn is not enabled on this server" -ForegroundColor Yellow
         exit 0
     }
     
@@ -4310,7 +4310,7 @@ ORDER BY ag.name, ar.replica_server_name
     $AGStatus = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $AGQuery
     
     if (-not $AGStatus) {
-        Write-Host "⚠ No Availability Groups found" -ForegroundColor Yellow
+        Write-Host "[WARNING] No Availability Groups found" -ForegroundColor Yellow
         exit 0
     }
     
@@ -4428,7 +4428,7 @@ try {
         exit 1
     }
     
-    Write-Host "⚠ PLANNED FAILOVER: $AGName" -ForegroundColor Yellow
+    Write-Host "[WARNING] PLANNED FAILOVER: $AGName" -ForegroundColor Yellow
     Write-Host "Target Primary: $ServerInstance" -ForegroundColor Cyan
     
     # Verify this is currently secondary
@@ -4466,10 +4466,10 @@ WHERE ag.name = '$AGName' AND ars.is_local = 1
     
     if ($NewRole.role_desc -eq 'PRIMARY') {
         Write-Host ""
-        Write-Host "✓ FAILOVER SUCCESSFUL" -ForegroundColor Green
+        Write-Host "[SUCCESS] FAILOVER SUCCESSFUL" -ForegroundColor Green
         Write-Host "  $ServerInstance is now PRIMARY" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Failover may still be in progress. Check AG status." -ForegroundColor Yellow
+        Write-Host "[WARNING] Failover may still be in progress. Check AG status." -ForegroundColor Yellow
     }
     
 } catch {
@@ -4591,7 +4591,7 @@ ORDER BY d.name
     $ExpiringCerts = $TDEStatus | Where-Object { $_.CertificateExpiry -and $_.CertificateExpiry -lt (Get-Date).AddDays(90) }
     if ($ExpiringCerts) {
         Write-Host ""
-        Write-Host "⚠ Certificates expiring within 90 days:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Certificates expiring within 90 days:" -ForegroundColor Yellow
         $ExpiringCerts | ForEach-Object { Write-Host "  $($_.CertificateName): $($_.CertificateExpiry)" -ForegroundColor Yellow }
     }
     
@@ -4766,7 +4766,7 @@ WHERE HAS_DBACCESS(d.name) = 1
     $Findings | Export-Csv -Path $OutputPath -NoTypeInformation
     
     Write-Host ""
-    Write-Host "✓ Security assessment completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security assessment completed" -ForegroundColor Green
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     Write-Host ""
     Write-Host "=============== SUMMARY ===============" -ForegroundColor White
@@ -4884,7 +4884,7 @@ EXEC sp_readerrorlog 0, 1, 'Login'
         $HighVolume = $FailedByIP | Where-Object { $_.Count -gt 10 }
         if ($HighVolume) {
             Write-Host ""
-            Write-Host "⚠ POTENTIAL BRUTE FORCE DETECTED" -ForegroundColor Red
+            Write-Host "[WARNING] POTENTIAL BRUTE FORCE DETECTED" -ForegroundColor Red
             Write-Host "Sources with >10 failed attempts:" -ForegroundColor Red
             $HighVolume | ForEach-Object {
                 Write-Host "  $($_.Name): $($_.Count) attempts" -ForegroundColor Red
@@ -4969,7 +4969,7 @@ ORDER BY DeadlockTime DESC
     $Deadlocks = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $DeadlockQuery -MaxCharLength 100000
     
     if (-not $Deadlocks -or $Deadlocks.Count -eq 0) {
-        Write-Host "✓ No recent deadlocks found" -ForegroundColor Green
+        Write-Host "[SUCCESS] No recent deadlocks found" -ForegroundColor Green
         exit 0
     }
     
@@ -5006,7 +5006,7 @@ ORDER BY DeadlockTime DESC
         Write-Host ""
     }
     
-    Write-Host "⚠ Review deadlock patterns and consider:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Review deadlock patterns and consider:" -ForegroundColor Yellow
     Write-Host "  - Query optimization" -ForegroundColor Gray
     Write-Host "  - Index improvements" -ForegroundColor Gray
     Write-Host "  - Transaction scope reduction" -ForegroundColor Gray
@@ -5141,7 +5141,7 @@ ORDER BY (t.user_objects_alloc_page_count + t.internal_objects_alloc_page_count)
     
     if ($Files.Count -lt 4) {
         Write-Host ""
-        Write-Host "⚠ Consider adding more TempDB data files (recommend 4-8)" -ForegroundColor Yellow
+        Write-Host "[WARNING] Consider adding more TempDB data files (recommend 4-8)" -ForegroundColor Yellow
     }
     
 } catch {
@@ -5237,11 +5237,11 @@ ORDER BY requested_memory_kb DESC
         
         if ($PendingCount -gt 0) {
             Write-Host ""
-            Write-Host "⚠ Queries waiting for memory: $PendingCount" -ForegroundColor Red
+            Write-Host "[WARNING] Queries waiting for memory: $PendingCount" -ForegroundColor Red
         }
         
         if ($LargeGrants -gt 0) {
-            Write-Host "⚠ Large memory grants (>1GB): $LargeGrants" -ForegroundColor Yellow
+            Write-Host "[WARNING] Large memory grants (>1GB): $LargeGrants" -ForegroundColor Yellow
         }
     }
     
@@ -5362,7 +5362,7 @@ try {
     $Existing = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $ExistQuery
     
     if ($Existing) {
-        Write-Host "⚠ Job already exists: $JobName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Job already exists: $JobName" -ForegroundColor Yellow
         exit 0
     }
     
@@ -5377,7 +5377,7 @@ EXEC msdb.dbo.sp_add_job
 "@
     
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $CreateJobQuery
-    Write-Host "✓ Job created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job created" -ForegroundColor Green
     
     # Add job step
     $EscapedCommand = $TsqlCommand.Replace("'", "''")
@@ -5393,7 +5393,7 @@ EXEC msdb.dbo.sp_add_jobstep
 "@
     
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $AddStepQuery
-    Write-Host "✓ Job step added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job step added" -ForegroundColor Green
     
     # Add job to server
     $AddServerQuery = @"
@@ -5403,7 +5403,7 @@ EXEC msdb.dbo.sp_add_jobserver
 "@
     
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $AddServerQuery
-    Write-Host "✓ Job attached to server" -ForegroundColor Green
+    Write-Host "[SUCCESS] Job attached to server" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "Job Details:" -ForegroundColor White
@@ -5518,7 +5518,7 @@ WHERE ag.name = '$AGName' AND ars.is_local = 1
         -BackupFile $FullBackup \`
         -CompressionOption On
     
-    Write-Host "✓ Full backup: $FullBackup" -ForegroundColor Green
+    Write-Host "[SUCCESS] Full backup: $FullBackup" -ForegroundColor Green
     
     # Log backup
     Write-Host "Taking log backup..." -ForegroundColor Cyan
@@ -5530,7 +5530,7 @@ WHERE ag.name = '$AGName' AND ars.is_local = 1
         -BackupAction Log \`
         -CompressionOption On
     
-    Write-Host "✓ Log backup: $LogBackup" -ForegroundColor Green
+    Write-Host "[SUCCESS] Log backup: $LogBackup" -ForegroundColor Green
     
     # Add to AG
     Write-Host ""
@@ -5539,7 +5539,7 @@ WHERE ag.name = '$AGName' AND ars.is_local = 1
     $AddQuery = "ALTER AVAILABILITY GROUP [$AGName] ADD DATABASE [$DatabaseName]"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $AddQuery
     
-    Write-Host "✓ Database added to AG on primary" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database added to AG on primary" -ForegroundColor Green
     
     # Get secondary replicas
     $SecondaryQuery = @"
@@ -5553,7 +5553,7 @@ WHERE ag.name = '$AGName' AND ars.role_desc = 'SECONDARY'
     $Secondaries = Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $SecondaryQuery
     
     Write-Host ""
-    Write-Host "⚠ IMPORTANT: Complete these steps on EACH secondary:" -ForegroundColor Yellow
+    Write-Host "[WARNING] IMPORTANT: Complete these steps on EACH secondary:" -ForegroundColor Yellow
     foreach ($Secondary in $Secondaries) {
         Write-Host ""
         Write-Host "On $($Secondary.replica_server_name):" -ForegroundColor Cyan
@@ -5652,10 +5652,10 @@ WHERE ag.name = '$AGName' AND ars.is_local = 1
         $RemoveQuery = "ALTER AVAILABILITY GROUP [$AGName] REMOVE DATABASE [$DatabaseName]"
         Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $RemoveQuery
         
-        Write-Host "✓ Database removed from AG on primary" -ForegroundColor Green
+        Write-Host "[SUCCESS] Database removed from AG on primary" -ForegroundColor Green
         Write-Host ""
-        Write-Host "⚠ The database still exists on this server" -ForegroundColor Yellow
-        Write-Host "⚠ Secondary replicas will have the database in RESTORING state" -ForegroundColor Yellow
+        Write-Host "[WARNING] The database still exists on this server" -ForegroundColor Yellow
+        Write-Host "[WARNING] Secondary replicas will have the database in RESTORING state" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "To recover database on secondaries:" -ForegroundColor Cyan
         Write-Host "  RESTORE DATABASE [$DatabaseName] WITH RECOVERY" -ForegroundColor Gray
@@ -5664,7 +5664,7 @@ WHERE ag.name = '$AGName' AND ars.is_local = 1
         $RemoveQuery = "ALTER DATABASE [$DatabaseName] SET HADR OFF"
         Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $RemoveQuery
         
-        Write-Host "✓ Database removed from AG on this secondary" -ForegroundColor Green
+        Write-Host "[SUCCESS] Database removed from AG on this secondary" -ForegroundColor Green
         Write-Host ""
         Write-Host "Database is now a standalone database on this server" -ForegroundColor Yellow
     }
@@ -5758,7 +5758,7 @@ END
 "@
     
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $CreateAuditQuery
-    Write-Host "✓ Server audit created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Server audit created" -ForegroundColor Green
     
     # Build audit specification
     $SpecName = "$AuditName" + "_Spec"
@@ -5790,12 +5790,12 @@ END
 "@
     
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $CreateSpecQuery
-    Write-Host "✓ Audit specification created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit specification created" -ForegroundColor Green
     
     # Enable audit
     $EnableQuery = "ALTER SERVER AUDIT [$AuditName] WITH (STATE = ON)"
     Invoke-Sqlcmd -ServerInstance $ServerInstance -Query $EnableQuery
-    Write-Host "✓ Audit enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit enabled" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "=============== AUDIT CONFIGURATION ===============" -ForegroundColor White

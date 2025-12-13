@@ -75,7 +75,7 @@ $Shares = Get-SmbShare | Where-Object {
 
 $Shares | Format-Table -AutoSize
 ${exportPath ? `$Shares | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -143,21 +143,21 @@ $Path = "${path}"
 # Create directory if it doesn't exist
 if (-not (Test-Path $Path)) {
     New-Item -Path $Path -ItemType Directory -Force | Out-Null
-    Write-Host "✓ Created directory: $Path" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created directory: $Path" -ForegroundColor Green
 }
 
 # Create share
 New-SmbShare -Name $ShareName -Path $Path${description ? ` -Description "${description}"` : ''} -FullAccess "Everyone" -ErrorAction Stop
 
-Write-Host "✓ Share created: $ShareName" -ForegroundColor Green
+Write-Host "[SUCCESS] Share created: $ShareName" -ForegroundColor Green
 
 ${fullAccess.length > 0 ? `# Grant Full Access
 ${fullAccess.map((u: string) => `Grant-SmbShareAccess -Name $ShareName -AccountName "${escapePowerShellString(u)}" -AccessRight Full -Force | Out-Null`).join('\n')}
-Write-Host "✓ Full access granted" -ForegroundColor Green` : ''}
+Write-Host "[SUCCESS] Full access granted" -ForegroundColor Green` : ''}
 
 ${readAccess.length > 0 ? `# Grant Read Access
 ${readAccess.map((u: string) => `Grant-SmbShareAccess -Name $ShareName -AccountName "${escapePowerShellString(u)}" -AccessRight Read -Force | Out-Null`).join('\n')}
-Write-Host "✓ Read access granted" -ForegroundColor Green` : ''}
+Write-Host "[SUCCESS] Read access granted" -ForegroundColor Green` : ''}
 
 Get-SmbShare -Name $ShareName | Format-List`;
     }
@@ -219,12 +219,12 @@ $SharePath = $Share.Path
 
 # Remove share
 Remove-SmbShare -Name $ShareName -Force
-Write-Host "✓ Share removed: $ShareName" -ForegroundColor Green
+Write-Host "[SUCCESS] Share removed: $ShareName" -ForegroundColor Green
 
 ${deleteFiles ? `# WARNING: Deleting files
 if (Test-Path $SharePath) {
     Remove-Item $SharePath -Recurse -Force
-    Write-Host "⚠ Files deleted: $SharePath" -ForegroundColor Yellow
+    Write-Host "[WARNING] Files deleted: $SharePath" -ForegroundColor Yellow
 }` : `Write-Host "Files preserved at: $SharePath" -ForegroundColor Gray`}`;
     }
   },
@@ -295,7 +295,7 @@ foreach ($Share in $Shares) {
 }
 
 $Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Permissions report exported: ${exportPath}" -ForegroundColor Green
+Write-Host "[SUCCESS] Permissions report exported: ${exportPath}" -ForegroundColor Green
 Write-Host "  Total entries: $($Report.Count)" -ForegroundColor Gray`;
     }
   },
@@ -366,12 +366,12 @@ foreach ($Item in $Items) {
             $Fixed++
         }
     } catch {
-        Write-Host "  ⚠ Error: $($Item.FullName)" -ForegroundColor Red
+        Write-Host "  [WARNING] Error: $($Item.FullName)" -ForegroundColor Red
     }
 }
 
-Write-Host "✓ Processed $($Items.Count) items, fixed $Fixed broken inheritance" -ForegroundColor Green
-${testMode ? 'Write-Host "  ⚠ TEST MODE - No changes made" -ForegroundColor Yellow' : ''}`;
+Write-Host "[SUCCESS] Processed $($Items.Count) items, fixed $Fixed broken inheritance" -ForegroundColor Green
+${testMode ? 'Write-Host "  [WARNING] TEST MODE - No changes made" -ForegroundColor Yellow' : ''}`;
     }
   },
 
@@ -443,11 +443,11 @@ foreach ($Item in $Items) {
         Set-Acl -Path $Item.FullName -AclObject $Acl
         $Count++
     } catch {
-        Write-Host "  ⚠ Failed: $($Item.FullName)" -ForegroundColor Red
+        Write-Host "  [WARNING] Failed: $($Item.FullName)" -ForegroundColor Red
     }
 }
 
-Write-Host "✓ Ownership set for $Count items to ${owner}" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Ownership set for $Count items to ${owner}" -ForegroundColor Green`;
     }
   },
 
@@ -506,14 +506,14 @@ $Disks | Format-Table -AutoSize
 $Alerts = $Disks | Where-Object { (100 - $_.PercentFree) -ge $Threshold }
 if ($Alerts) {
     Write-Host ""
-    Write-Host "⚠ ALERT: Drives above ${threshold}% usage:" -ForegroundColor Red
+    Write-Host "[WARNING] ALERT: Drives above ${threshold}% usage:" -ForegroundColor Red
     $Alerts | ForEach-Object {
         Write-Host "  $($_.DeviceID) - $(100 - $_.PercentFree)% used ($($_.FreeGB)GB free)" -ForegroundColor Yellow
     }
 }
 
 ${exportPath ? `$Disks | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -583,11 +583,11 @@ $Files = Get-ChildItem -Path $SearchPath -Recurse -File -ErrorAction SilentlyCon
 $Files | Format-Table -AutoSize
 
 Write-Host ""
-Write-Host "✓ Found $($Files.Count) files larger than ${minSize}MB" -ForegroundColor Green
+Write-Host "[SUCCESS] Found $($Files.Count) files larger than ${minSize}MB" -ForegroundColor Green
 Write-Host "  Total size: $([math]::Round(($Files | Measure-Object -Property SizeMB -Sum).Sum, 2)) MB" -ForegroundColor Gray
 
 ${exportPath ? `$Files | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -661,11 +661,11 @@ Write-Host "Total size: $([math]::Round($TotalSize, 2)) MB" -ForegroundColor Gra
 
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - Preview only (no files deleted)" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - Preview only (no files deleted)" -ForegroundColor Yellow
     $Files | Select-Object -First 10 FullName, LastWriteTime | Format-Table -AutoSize
 } else {
     $Files | Remove-Item -Force
-    Write-Host "✓ Deleted $($Files.Count) files, freed $([math]::Round($TotalSize, 2)) MB" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deleted $($Files.Count) files, freed $([math]::Round($TotalSize, 2)) MB" -ForegroundColor Green
 }`;
     }
   },
@@ -728,7 +728,7 @@ $WinTemp = "$env:SystemRoot\\Temp"
 $Files = Get-ChildItem -Path $WinTemp -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $CutoffDate }
 $TotalSize += ($Files | Measure-Object -Property Length -Sum).Sum
 $Files | Remove-Item -Force -ErrorAction SilentlyContinue
-Write-Host "✓ Cleaned Windows Temp: $($Files.Count) files" -ForegroundColor Green
+Write-Host "[SUCCESS] Cleaned Windows Temp: $($Files.Count) files" -ForegroundColor Green
 
 ${includeUsers ? `# Clean User Temp Folders
 $UserProfiles = Get-ChildItem "C:\\Users" -Directory -ErrorAction SilentlyContinue
@@ -738,12 +738,12 @@ foreach ($User in $UserProfiles) {
         $Files = Get-ChildItem -Path $UserTemp -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $CutoffDate }
         $TotalSize += ($Files | Measure-Object -Property Length -Sum).Sum
         $Files | Remove-Item -Force -ErrorAction SilentlyContinue
-        Write-Host "✓ Cleaned $($User.Name): $($Files.Count) files" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cleaned $($User.Name): $($Files.Count) files" -ForegroundColor Green
     }
 }` : ''}
 
 Write-Host ""
-Write-Host "✓ Total space freed: $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Total space freed: $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green`;
     }
   },
 
@@ -815,9 +815,9 @@ fsutil quota modify $Drive $WarningLevel $QuotaLimit
 
 if ($DenyOver) {
     fsutil quota violations $Drive
-    Write-Host "✓ Quota enforcement enabled (deny over limit)" -ForegroundColor Yellow
+    Write-Host "[SUCCESS] Quota enforcement enabled (deny over limit)" -ForegroundColor Yellow
 } else {
-    Write-Host "✓ Quota tracking enabled (warn only)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quota tracking enabled (warn only)" -ForegroundColor Green
 }
 
 Write-Host "  Limit: $(${quotaLimit})MB, Warning: $(${warning})MB" -ForegroundColor Gray`;
@@ -957,12 +957,12 @@ $Report = $Files | Group-Object Extension | Select-Object @{N='Extension'; E={if
 $Report | Format-Table -AutoSize
 
 Write-Host ""
-Write-Host "✓ Analysis complete" -ForegroundColor Green
+Write-Host "[SUCCESS] Analysis complete" -ForegroundColor Green
 Write-Host "  Total files: $($Files.Count)" -ForegroundColor Gray
 Write-Host "  Total size: $([math]::Round(($Files | Measure-Object -Property Length -Sum).Sum/1GB, 2)) GB" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1040,7 +1040,7 @@ $Duplicates = $Hashes | Group-Object Hash | Where-Object { $_.Count -gt 1 }
 
 if ($Duplicates) {
     Write-Host ""
-    Write-Host "⚠ Found $($Duplicates.Count) sets of duplicate files" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($Duplicates.Count) sets of duplicate files" -ForegroundColor Yellow
     $WastedSpace = 0
     
     foreach ($Dup in $Duplicates) {
@@ -1051,12 +1051,12 @@ if ($Duplicates) {
     }
     
     Write-Host ""
-    Write-Host "✓ Potential space savings: $([math]::Round($WastedSpace, 2)) MB" -ForegroundColor Green
+    Write-Host "[SUCCESS] Potential space savings: $([math]::Round($WastedSpace, 2)) MB" -ForegroundColor Green
     
     ${exportPath ? `$Duplicates | ForEach-Object { $_.Group } | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}
 } else {
-    Write-Host "✓ No duplicates found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No duplicates found" -ForegroundColor Green
 }`;
     }
   },
@@ -1114,22 +1114,22 @@ $Source = "${sourcePath}"
 $Destination = "${destinationPath}"
 
 if (-not (Test-Path $Source)) {
-    Write-Host "✗ Source path not found: $Source" -ForegroundColor Red
+    Write-Host "[FAILED] Source path not found: $Source" -ForegroundColor Red
     exit 1
 }
 
 if (-not (Test-Path $Destination)) {
     New-Item -Path $Destination -ItemType Directory -Force | Out-Null
-    Write-Host "✓ Created destination folder" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created destination folder" -ForegroundColor Green
 }
 
 Write-Host "Copying from $Source to $Destination..." -ForegroundColor Gray
 
 try {
     Copy-Item -Path $Source -Destination $Destination ${recurse === '$true' ? '-Recurse' : ''} ${overwrite === '$true' ? '-Force' : ''} -ErrorAction Stop
-    Write-Host "✓ Copy completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Copy completed successfully" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Copy failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Copy failed: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1186,11 +1186,11 @@ try {
 $Target = "${targetPath}"
 
 if (-not (Test-Path $Target)) {
-    Write-Host "✗ Path not found: $Target" -ForegroundColor Red
+    Write-Host "[FAILED] Path not found: $Target" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "⚠ WARNING: The following will be PERMANENTLY deleted:" -ForegroundColor Yellow
+Write-Host "[WARNING] WARNING: The following will be PERMANENTLY deleted:" -ForegroundColor Yellow
 if (${recurse}) {
     Get-ChildItem -Path $Target -Recurse | Select-Object -First 10 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
     $ItemCount = (Get-ChildItem -Path $Target -Recurse | Measure-Object).Count
@@ -1201,15 +1201,15 @@ if (${recurse}) {
 
 $Confirm = Read-Host "Type 'DELETE' to confirm permanent deletion"
 if ($Confirm -ne 'DELETE') {
-    Write-Host "✓ Deletion cancelled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deletion cancelled" -ForegroundColor Green
     exit 0
 }
 
 try {
     Remove-Item -Path $Target ${recurse === '$true' ? '-Recurse' : ''} ${force === '$true' ? '-Force' : ''} -ErrorAction Stop
-    Write-Host "✓ Successfully deleted: $Target" -ForegroundColor Green
+    Write-Host "[SUCCESS] Successfully deleted: $Target" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Deletion failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Deletion failed: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1271,7 +1271,7 @@ $FilePattern = "${filePattern}"
 ${searchContent ? `$SearchContent = "${searchContent}"` : ''}
 
 if (-not (Test-Path $SearchPath)) {
-    Write-Host "✗ Search path not found: $SearchPath" -ForegroundColor Red
+    Write-Host "[FAILED] Search path not found: $SearchPath" -ForegroundColor Red
     exit 1
 }
 
@@ -1294,11 +1294,11 @@ $Results = Get-ChildItem -Path $SearchPath -Filter $FilePattern -Recurse -File -
 
 if ($Results) {
     Write-Host ""
-    Write-Host "✓ Found $($Results.Count) matching files:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Results.Count) matching files:" -ForegroundColor Green
     $Results | Format-Table -AutoSize
     
     ${exportPath ? `$Results | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}
 } else {
     Write-Host "No files found matching pattern" -ForegroundColor Yellow
 }`;
@@ -1356,7 +1356,7 @@ $FolderPath = "${folderPath}"
 $Depth = ${depth}
 
 if (-not (Test-Path $FolderPath)) {
-    Write-Host "✗ Folder not found: $FolderPath" -ForegroundColor Red
+    Write-Host "[FAILED] Folder not found: $FolderPath" -ForegroundColor Red
     exit 1
 }
 
@@ -1391,7 +1391,7 @@ $Results = Get-FolderSize -Path $FolderPath -CurrentDepth 1 -MaxDepth $Depth | S
 
 if ($Results) {
     Write-Host ""
-    Write-Host "✓ Folder size analysis complete:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Folder size analysis complete:" -ForegroundColor Green
     $Results | Format-Table FolderName, SizeGB, SizeMB, FileCount -AutoSize
     
     $TotalSize = ($Results | Measure-Object -Property SizeGB -Sum).Sum
@@ -1399,7 +1399,7 @@ if ($Results) {
     Write-Host "Total size: $([math]::Round($TotalSize, 2)) GB" -ForegroundColor Cyan
     
     ${exportPath ? `$Results | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}
 } else {
     Write-Host "No subfolders found" -ForegroundColor Yellow
 }`;
@@ -1459,14 +1459,14 @@ $Destination = "${zipPath}"
 $CompressionLevel = "${compressionLevel}"
 
 if (-not (Test-Path $Source)) {
-    Write-Host "✗ Source path not found: $Source" -ForegroundColor Red
+    Write-Host "[FAILED] Source path not found: $Source" -ForegroundColor Red
     exit 1
 }
 
 # Remove existing ZIP if present
 if (Test-Path $Destination) {
     Remove-Item $Destination -Force
-    Write-Host "⚠ Removed existing ZIP file" -ForegroundColor Yellow
+    Write-Host "[WARNING] Removed existing ZIP file" -ForegroundColor Yellow
 }
 
 Write-Host "Compressing to ZIP archive..." -ForegroundColor Gray
@@ -1480,13 +1480,13 @@ try {
     $Ratio = [math]::Round((1 - ($CompressedSize / $OriginalSize)) * 100, 1)
     
     Write-Host ""
-    Write-Host "✓ ZIP archive created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] ZIP archive created successfully" -ForegroundColor Green
     Write-Host "  Original size: $([math]::Round($OriginalSize/1MB, 2)) MB" -ForegroundColor Gray
     Write-Host "  Compressed size: $([math]::Round($CompressedSize/1MB, 2)) MB" -ForegroundColor Gray
     Write-Host "  Compression ratio: $Ratio%" -ForegroundColor Cyan
     Write-Host "  Location: $Destination" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Compression failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Compression failed: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1544,13 +1544,13 @@ $ZipFile = "${zipPath}"
 $Destination = "${destinationPath}"
 
 if (-not (Test-Path $ZipFile)) {
-    Write-Host "✗ ZIP file not found: $ZipFile" -ForegroundColor Red
+    Write-Host "[FAILED] ZIP file not found: $ZipFile" -ForegroundColor Red
     exit 1
 }
 
 if (-not (Test-Path $Destination)) {
     New-Item -Path $Destination -ItemType Directory -Force | Out-Null
-    Write-Host "✓ Created destination folder" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created destination folder" -ForegroundColor Green
 }
 
 Write-Host "Extracting ZIP archive..." -ForegroundColor Gray
@@ -1561,11 +1561,11 @@ try {
     $FileCount = (Get-ChildItem -Path $Destination -Recurse -File | Measure-Object).Count
     
     Write-Host ""
-    Write-Host "✓ Extraction complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Extraction complete" -ForegroundColor Green
     Write-Host "  Files extracted: $FileCount" -ForegroundColor Gray
     Write-Host "  Location: $Destination" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Extraction failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Extraction failed: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1624,7 +1624,7 @@ try {
 $Directory = "${directoryPath}"
 
 if (-not (Test-Path $Directory)) {
-    Write-Host "✗ Directory not found: $Directory" -ForegroundColor Red
+    Write-Host "[FAILED] Directory not found: $Directory" -ForegroundColor Red
     exit 1
 }
 
@@ -1643,7 +1643,7 @@ $Files = Get-ChildItem -Path $Directory ${includeSubfolders === '$true' ? '-Recu
 
 if ($Files) {
     Write-Host ""
-    Write-Host "✓ Found $($Files.Count) files:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Files.Count) files:" -ForegroundColor Green
     $Files | Format-Table -AutoSize
     
     $TotalSize = ($Files | Measure-Object -Property SizeMB -Sum).Sum
@@ -1651,7 +1651,7 @@ if ($Files) {
     Write-Host "Total size: $([math]::Round($TotalSize, 2)) MB" -ForegroundColor Cyan
     
     ${exportPath ? `$Files | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}
 } else {
     Write-Host "No files found" -ForegroundColor Yellow
 }`;
@@ -1715,23 +1715,23 @@ $Source = "${sourcePath}"
 $Destination = "${destinationPath}"
 
 if (-not (Test-Path $Source)) {
-    Write-Host "✗ Source path not found: $Source" -ForegroundColor Red
+    Write-Host "[FAILED] Source path not found: $Source" -ForegroundColor Red
     exit 1
 }
 
 $DestParent = Split-Path $Destination -Parent
 if (-not (Test-Path $DestParent)) {
     New-Item -Path $DestParent -ItemType Directory -Force | Out-Null
-    Write-Host "✓ Created destination folder" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created destination folder" -ForegroundColor Green
 }
 
 Write-Host "Moving from $Source to $Destination..." -ForegroundColor Gray
 
 try {
     Move-Item -Path $Source -Destination $Destination ${overwrite === '$true' ? '-Force' : ''} -ErrorAction Stop
-    Write-Host "✓ Move completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Move completed successfully" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Move failed: \$_" -ForegroundColor Red
+    Write-Host "[FAILED] Move failed: \$_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1798,7 +1798,7 @@ $ReplaceText = "${replaceText}"
 $TestMode = ${testMode}
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Directory not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Directory not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -1820,20 +1820,20 @@ foreach ($File in $Files) {
     } else {
         try {
             Rename-Item -Path $File.FullName -NewName $NewName -ErrorAction Stop
-            Write-Host "  ✓ $($File.Name) -> $NewName" -ForegroundColor Green
+            Write-Host "  [OK] $($File.Name) -> $NewName" -ForegroundColor Green
             $Renamed++
         } catch {
-            Write-Host "  ✗ Failed: $($File.Name) - \$_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $($File.Name) - \$_" -ForegroundColor Red
         }
     }
 }
 
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - No files renamed" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No files renamed" -ForegroundColor Yellow
 } else {
     Write-Host ""
-    Write-Host "✓ Renamed $Renamed files" -ForegroundColor Green
+    Write-Host "[SUCCESS] Renamed $Renamed files" -ForegroundColor Green
 }`;
     }
   },
@@ -1889,12 +1889,12 @@ $File1 = "${file1Path}"
 $File2 = "${file2Path}"
 
 if (-not (Test-Path $File1)) {
-    Write-Host "✗ First file not found: $File1" -ForegroundColor Red
+    Write-Host "[FAILED] First file not found: $File1" -ForegroundColor Red
     exit 1
 }
 
 if (-not (Test-Path $File2)) {
-    Write-Host "✗ Second file not found: $File2" -ForegroundColor Red
+    Write-Host "[FAILED] Second file not found: $File2" -ForegroundColor Red
     exit 1
 }
 
@@ -1915,9 +1915,9 @@ Write-Host "Hash 2: $Hash2" -ForegroundColor Cyan
 Write-Host ""
 
 if ($Hash1 -eq $Hash2) {
-    Write-Host "✓ Files are IDENTICAL" -ForegroundColor Green
+    Write-Host "[SUCCESS] Files are IDENTICAL" -ForegroundColor Green
 } else {
-    Write-Host "✗ Files are DIFFERENT" -ForegroundColor Red
+    Write-Host "[FAILED] Files are DIFFERENT" -ForegroundColor Red
 }` : `# Content Comparison
 $Content1 = Get-Content $File1
 $Content2 = Get-Content $File2
@@ -1925,7 +1925,7 @@ $Content2 = Get-Content $File2
 $Differences = Compare-Object -ReferenceObject $Content1 -DifferenceObject $Content2
 
 if ($Differences) {
-    Write-Host "✗ Files are DIFFERENT" -ForegroundColor Red
+    Write-Host "[FAILED] Files are DIFFERENT" -ForegroundColor Red
     Write-Host ""
     Write-Host "Differences found:" -ForegroundColor Yellow
     $Differences | ForEach-Object {
@@ -1933,7 +1933,7 @@ if ($Differences) {
         Write-Host "  [$Indicator] $($_.InputObject)" -ForegroundColor Gray
     }
 } else {
-    Write-Host "✓ Files are IDENTICAL" -ForegroundColor Green
+    Write-Host "[SUCCESS] Files are IDENTICAL" -ForegroundColor Green
 }`}`;
     }
   },
@@ -1992,12 +1992,12 @@ $SourceDir = "${sourceDir}"
 $DestDir = "${destDir}"
 
 if (-not (Test-Path $SourceDir)) {
-    Write-Host "✗ Source directory not found: $SourceDir" -ForegroundColor Red
+    Write-Host "[FAILED] Source directory not found: $SourceDir" -ForegroundColor Red
     exit 1
 }
 
 if (-not (Test-Path $DestDir)) {
-    Write-Host "✗ Destination directory not found: $DestDir" -ForegroundColor Red
+    Write-Host "[FAILED] Destination directory not found: $DestDir" -ForegroundColor Red
     exit 1
 }
 
@@ -2040,7 +2040,7 @@ foreach ($f in $InBoth) {
 }
 
 Write-Host ""
-Write-Host "✓ Comparison complete" -ForegroundColor Green
+Write-Host "[SUCCESS] Comparison complete" -ForegroundColor Green
 Write-Host "  Source files: $($SourceFiles.Count)" -ForegroundColor Gray
 Write-Host "  Destination files: $($DestFiles.Count)" -ForegroundColor Gray
 Write-Host "  Only in source: $($OnlyInSource.Count)" -ForegroundColor Yellow
@@ -2048,7 +2048,7 @@ Write-Host "  Only in destination: $($OnlyInDest.Count)" -ForegroundColor Yellow
 Write-Host "  In both: $($InBoth.Count)" -ForegroundColor Green
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2107,7 +2107,7 @@ $Folders = @(${folders.map((f: string) => `"${escapePowerShellString(f)}"`).join
 
 if (-not (Test-Path $BasePath)) {
     New-Item -Path $BasePath -ItemType Directory -Force | Out-Null
-    Write-Host "✓ Created base directory: $BasePath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created base directory: $BasePath" -ForegroundColor Green
 }
 
 $Created = 0
@@ -2115,7 +2115,7 @@ foreach ($Folder in $Folders) {
     $FolderPath = Join-Path $BasePath $Folder
     if (-not (Test-Path $FolderPath)) {
         New-Item -Path $FolderPath -ItemType Directory -Force | Out-Null
-        Write-Host "  ✓ Created: $Folder" -ForegroundColor Green
+        Write-Host "  [OK] Created: $Folder" -ForegroundColor Green
         $Created++
     } else {
         Write-Host "  - Exists: $Folder" -ForegroundColor Gray
@@ -2123,7 +2123,7 @@ foreach ($Folder in $Folders) {
 }
 
 Write-Host ""
-Write-Host "✓ Created $Created new folders" -ForegroundColor Green
+Write-Host "[SUCCESS] Created $Created new folders" -ForegroundColor Green
 Write-Host ""
 Write-Host "Directory structure:" -ForegroundColor Cyan
 Get-ChildItem $BasePath -Directory | ForEach-Object { Write-Host "  $($_.Name)" -ForegroundColor Gray }`;
@@ -2178,7 +2178,7 @@ $TargetPath = "${targetPath}"
 $TestMode = ${testMode}
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2198,10 +2198,10 @@ do {
         } else {
             try {
                 Remove-Item -Path $Dir.FullName -Force
-                Write-Host "  ✓ Removed: $($Dir.FullName)" -ForegroundColor Green
+                Write-Host "  [OK] Removed: $($Dir.FullName)" -ForegroundColor Green
                 $Removed++
             } catch {
-                Write-Host "  ✗ Failed: $($Dir.FullName)" -ForegroundColor Red
+                Write-Host "  [FAILED] Failed: $($Dir.FullName)" -ForegroundColor Red
             }
         }
     }
@@ -2209,9 +2209,9 @@ do {
 
 Write-Host ""
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - Found $($EmptyDirs.Count) empty directories" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - Found $($EmptyDirs.Count) empty directories" -ForegroundColor Yellow
 } else {
-    Write-Host "✓ Removed $Removed empty directories" -ForegroundColor Green
+    Write-Host "[SUCCESS] Removed $Removed empty directories" -ForegroundColor Green
 }`;
     }
   },
@@ -2268,7 +2268,7 @@ $MaxDepth = ${maxDepth}
 $ExportPath = "${exportPath}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2301,7 +2301,7 @@ $Tree += Get-DirectoryTree -Path $TargetPath -MaxDepth $MaxDepth
 $Tree | Out-File -FilePath $ExportPath -Encoding UTF8
 
 Write-Host ""
-Write-Host "✓ Directory tree exported to: $ExportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Directory tree exported to: $ExportPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Preview (first 20 lines):" -ForegroundColor Cyan
 $Tree | Select-Object -First 20 | ForEach-Object { Write-Host $_ -ForegroundColor Gray }`;
@@ -2368,7 +2368,7 @@ $Identity = "${identity}"
 $Permission = "${permission}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2390,10 +2390,10 @@ try {
     $Acl.AddAccessRule($AccessRule)
     Set-Acl -Path $TargetPath -AclObject $Acl
     
-    Write-Host "✓ Granted $Permission to $Identity on $TargetPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Granted $Permission to $Identity on $TargetPath" -ForegroundColor Green
     ${applyToSubfolders ? 'Write-Host "  Applied to subfolders: Yes" -ForegroundColor Gray' : ''}
 } catch {
-    Write-Host "✗ Failed to set permissions: \$_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to set permissions: \$_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2452,7 +2452,7 @@ $Identity = "${identity}"
 $ApplyToSubfolders = ${applyToSubfolders}
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2475,7 +2475,7 @@ function Remove-UserPermission {
 }
 
 $Removed = Remove-UserPermission -Path $TargetPath -User $Identity
-Write-Host "✓ Removed $Removed permission(s) from: $TargetPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Removed $Removed permission(s) from: $TargetPath" -ForegroundColor Green
 
 if ($ApplyToSubfolders) {
     Write-Host "Processing subfolders..." -ForegroundColor Gray
@@ -2483,13 +2483,13 @@ if ($ApplyToSubfolders) {
     foreach ($Item in $Items) {
         $Count = Remove-UserPermission -Path $Item.FullName -User $Identity
         if ($Count -gt 0) {
-            Write-Host "  ✓ Removed from: $($Item.FullName)" -ForegroundColor Green
+            Write-Host "  [OK] Removed from: $($Item.FullName)" -ForegroundColor Green
         }
     }
 }
 
 Write-Host ""
-Write-Host "✓ Permission removal complete" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Permission removal complete" -ForegroundColor Green`;
     }
   },
 
@@ -2546,7 +2546,7 @@ $Recurse = ${recurse}
 $ExportPath = "${exportPath}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2575,14 +2575,14 @@ foreach ($Folder in $Folders) {
             }
         }
     } catch {
-        Write-Host "  ⚠ Access denied: $($Folder.FullName)" -ForegroundColor Yellow
+        Write-Host "  [WARNING] Access denied: $($Folder.FullName)" -ForegroundColor Yellow
     }
 }
 
 $Report | Export-Csv -Path $ExportPath -NoTypeInformation
 
 Write-Host ""
-Write-Host "✓ Permissions report exported" -ForegroundColor Green
+Write-Host "[SUCCESS] Permissions report exported" -ForegroundColor Green
 Write-Host "  Folders scanned: $($Folders.Count)" -ForegroundColor Gray
 Write-Host "  Permission entries: $($Report.Count)" -ForegroundColor Gray
 Write-Host "  Export path: $ExportPath" -ForegroundColor Gray`;
@@ -2643,7 +2643,7 @@ $Recurse = ${recurse}
 $TestMode = ${testMode}
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2659,9 +2659,9 @@ function Reset-FolderPermissions {
         $Acl = Get-Acl -Path $Path
         $Acl.SetAccessRuleProtection($false, $false)
         Set-Acl -Path $Path -AclObject $Acl
-        Write-Host "  ✓ Reset: $Path" -ForegroundColor Green
+        Write-Host "  [OK] Reset: $Path" -ForegroundColor Green
     } catch {
-        Write-Host "  ✗ Failed: $Path - \$_" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed: $Path - \$_" -ForegroundColor Red
     }
 }
 
@@ -2677,9 +2677,9 @@ if ($Recurse) {
 
 Write-Host ""
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - No changes made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes made" -ForegroundColor Yellow
 } else {
-    Write-Host "✓ Permissions reset complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions reset complete" -ForegroundColor Green
 }`;
     }
   },
@@ -2749,7 +2749,7 @@ $7zPath = Get-Command "7z.exe" -ErrorAction SilentlyContinue
 if (-not $7zPath) {
     $7zPath = "C:\\Program Files\\7-Zip\\7z.exe"
     if (-not (Test-Path $7zPath)) {
-        Write-Host "✗ 7-Zip not found. Please install 7-Zip." -ForegroundColor Red
+        Write-Host "[FAILED] 7-Zip not found. Please install 7-Zip." -ForegroundColor Red
         exit 1
     }
 } else {
@@ -2757,7 +2757,7 @@ if (-not $7zPath) {
 }
 
 if (-not (Test-Path $Source)) {
-    Write-Host "✗ Source not found: $Source" -ForegroundColor Red
+    Write-Host "[FAILED] Source not found: $Source" -ForegroundColor Red
     exit 1
 }
 
@@ -2773,13 +2773,13 @@ try {
     if (Test-Path $Archive) {
         $ArchiveInfo = Get-Item $Archive
         Write-Host ""
-        Write-Host "✓ Archive created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Archive created successfully" -ForegroundColor Green
         Write-Host "  Location: $Archive" -ForegroundColor Gray
         Write-Host "  Size: $([math]::Round($ArchiveInfo.Length/1MB, 2)) MB" -ForegroundColor Gray
         ${password ? 'Write-Host "  Password protected: Yes" -ForegroundColor Yellow' : ''}
     }
 } catch {
-    Write-Host "✗ Archive creation failed: \$_" -ForegroundColor Red
+    Write-Host "[FAILED] Archive creation failed: \$_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2844,7 +2844,7 @@ $7zPath = Get-Command "7z.exe" -ErrorAction SilentlyContinue
 if (-not $7zPath) {
     $7zPath = "C:\\Program Files\\7-Zip\\7z.exe"
     if (-not (Test-Path $7zPath)) {
-        Write-Host "✗ 7-Zip not found. Please install 7-Zip." -ForegroundColor Red
+        Write-Host "[FAILED] 7-Zip not found. Please install 7-Zip." -ForegroundColor Red
         exit 1
     }
 } else {
@@ -2852,7 +2852,7 @@ if (-not $7zPath) {
 }
 
 if (-not (Test-Path $Archive)) {
-    Write-Host "✗ Archive not found: $Archive" -ForegroundColor Red
+    Write-Host "[FAILED] Archive not found: $Archive" -ForegroundColor Red
     exit 1
 }
 
@@ -2870,11 +2870,11 @@ try {
     
     $FileCount = (Get-ChildItem -Path $Destination -Recurse -File | Measure-Object).Count
     Write-Host ""
-    Write-Host "✓ Extraction complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Extraction complete" -ForegroundColor Green
     Write-Host "  Files extracted: $FileCount" -ForegroundColor Gray
     Write-Host "  Location: $Destination" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Extraction failed: \$_" -ForegroundColor Red
+    Write-Host "[FAILED] Extraction failed: \$_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2927,7 +2927,7 @@ try {
 $Archive = "${archivePath}"
 
 if (-not (Test-Path $Archive)) {
-    Write-Host "✗ Archive not found: $Archive" -ForegroundColor Red
+    Write-Host "[FAILED] Archive not found: $Archive" -ForegroundColor Red
     exit 1
 }
 
@@ -2955,7 +2955,7 @@ if ($Extension -eq ".zip") {
     # Use 7-Zip for other formats
     $7zPath = "C:\\Program Files\\7-Zip\\7z.exe"
     if (-not (Test-Path $7zPath)) {
-        Write-Host "✗ 7-Zip required for this format" -ForegroundColor Red
+        Write-Host "[FAILED] 7-Zip required for this format" -ForegroundColor Red
         exit 1
     }
     
@@ -2972,7 +2972,7 @@ Write-Host "Total files: $($Contents.Count)" -ForegroundColor Gray
 Write-Host "Total size: $([math]::Round(($Contents | Measure-Object -Property SizeKB -Sum).Sum, 2)) KB" -ForegroundColor Gray
 
 ${exportPath ? `$Contents | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3058,7 +3058,7 @@ foreach ($Disk in $Disks) {
     }
 }
 $Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3134,7 +3134,7 @@ if ($MountPoints) {
 
 ${exportPath ? `$Volumes | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3222,14 +3222,14 @@ try {
 $UnhealthyDisks = $Disks | Where-Object { $_.HealthStatus -ne "Healthy" }
 if ($UnhealthyDisks) {
     Write-Host ""
-    Write-Host "⚠ WARNING: $($UnhealthyDisks.Count) disk(s) require attention!" -ForegroundColor Red
+    Write-Host "[WARNING] WARNING: $($UnhealthyDisks.Count) disk(s) require attention!" -ForegroundColor Red
 } else {
     Write-Host ""
-    Write-Host "✓ All disks healthy" -ForegroundColor Green
+    Write-Host "[SUCCESS] All disks healthy" -ForegroundColor Green
 }
 
 ${exportPath ? `$Disks | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3293,7 +3293,7 @@ ${logPath ? `$LogPath = "${logPath}"` : ''}
 $Duration = ${duration}
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -3340,7 +3340,7 @@ try {
     $Handlers | ForEach-Object { Unregister-Event -SubscriptionId $_.Id }
     $Watcher.Dispose()
     Write-Host ""
-    Write-Host "✓ Monitoring stopped" -ForegroundColor Green
+    Write-Host "[SUCCESS] Monitoring stopped" -ForegroundColor Green
 }`;
     }
   },
@@ -3399,7 +3399,7 @@ try {
 $TargetPath = "${targetPath}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -3409,7 +3409,7 @@ ${auditSuccess ? '$AuditFlags += "Success"' : ''}
 ${auditFailure ? '$AuditFlags += "Failure"' : ''}
 
 if ($AuditFlags.Count -eq 0) {
-    Write-Host "✗ Must enable at least Success or Failure auditing" -ForegroundColor Red
+    Write-Host "[FAILED] Must enable at least Success or Failure auditing" -ForegroundColor Red
     exit 1
 }
 
@@ -3431,14 +3431,14 @@ try {
     $Acl.AddAuditRule($AuditRule)
     Set-Acl -Path $TargetPath -AclObject $Acl
     
-    Write-Host "✓ Auditing enabled on: $TargetPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auditing enabled on: $TargetPath" -ForegroundColor Green
     Write-Host "  Audit type: $AuditType" -ForegroundColor Gray
     ${applyToSubfolders ? 'Write-Host "  Applied to subfolders: Yes" -ForegroundColor Gray' : ''}
     Write-Host ""
     Write-Host "Note: Ensure 'Audit object access' is enabled in Group Policy" -ForegroundColor Yellow
     Write-Host "View events in: Event Viewer > Windows Logs > Security" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to set auditing: \$_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to set auditing: \$_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -3498,7 +3498,7 @@ $TargetPath = "${targetPath}"
 $TimeValue = ${timeValue}
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -3517,10 +3517,10 @@ if ($Files) {
     $Files | Format-Table FileName, SizeKB, Modified -AutoSize
     
     Write-Host ""
-    Write-Host "✓ Found $($Files.Count) files modified in last ${timeValue} ${timePeriod.ToLower()}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Files.Count) files modified in last ${timeValue} ${timePeriod.ToLower()}" -ForegroundColor Green
     
     ${exportPath ? `$Files | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}
 } else {
     Write-Host "No files modified in specified time period" -ForegroundColor Yellow
 }`;
@@ -3585,7 +3585,7 @@ $TestMode = ${testMode}
 $CutoffDate = (Get-Date).AddDays(-$DaysToKeep)
 
 if (-not (Test-Path $LogPath)) {
-    Write-Host "✗ Log path not found: $LogPath" -ForegroundColor Red
+    Write-Host "[FAILED] Log path not found: $LogPath" -ForegroundColor Red
     exit 1
 }
 
@@ -3601,7 +3601,7 @@ Write-Host "Total size: $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor
 
 if ($TestMode) {
     Write-Host ""
-    Write-Host "⚠ TEST MODE - Preview only (no files deleted)" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - Preview only (no files deleted)" -ForegroundColor Yellow
     $LogFiles | Select-Object -First 10 Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}}, LastWriteTime | Format-Table -AutoSize
 } else {
     $Deleted = 0
@@ -3610,11 +3610,11 @@ if ($TestMode) {
             Remove-Item $File.FullName -Force
             $Deleted++
         } catch {
-            Write-Host "  ⚠ Cannot delete: $($File.Name)" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Cannot delete: $($File.Name)" -ForegroundColor Yellow
         }
     }
     Write-Host ""
-    Write-Host "✓ Deleted $Deleted files, freed $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deleted $Deleted files, freed $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green
 }`;
     }
   },
@@ -3663,7 +3663,7 @@ $TestMode = ${testMode}
 $CachePath = "$env:SystemRoot\\SoftwareDistribution\\Download"
 
 if (-not (Test-Path $CachePath)) {
-    Write-Host "✗ Windows Update cache not found" -ForegroundColor Red
+    Write-Host "[FAILED] Windows Update cache not found" -ForegroundColor Red
     exit 1
 }
 
@@ -3678,23 +3678,23 @@ Write-Host "  Size: $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Gra
 Write-Host ""
 
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - No changes made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes made" -ForegroundColor Yellow
 } else {
     Write-Host "Stopping Windows Update service..." -ForegroundColor Gray
     Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
     
     try {
         Remove-Item -Path "$CachePath\\*" -Recurse -Force -ErrorAction Stop
-        Write-Host "✓ Cache cleared" -ForegroundColor Green
+        Write-Host "[SUCCESS] Cache cleared" -ForegroundColor Green
     } catch {
-        Write-Host "⚠ Some files could not be removed" -ForegroundColor Yellow
+        Write-Host "[WARNING] Some files could not be removed" -ForegroundColor Yellow
     }
     
     Write-Host "Starting Windows Update service..." -ForegroundColor Gray
     Start-Service -Name wuauserv -ErrorAction SilentlyContinue
     
     Write-Host ""
-    Write-Host "✓ Freed approximately $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green
+    Write-Host "[SUCCESS] Freed approximately $([math]::Round($TotalSize/1MB, 2)) MB" -ForegroundColor Green
 }`;
     }
   },
@@ -3801,19 +3801,19 @@ if ($OldProfiles.Count -gt 0) {
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - No profiles deleted" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No profiles deleted" -ForegroundColor Yellow
     } else {
         foreach ($Profile in $OldProfiles) {
             try {
                 $WmiProfile = Get-WmiObject Win32_UserProfile | Where-Object { $_.SID -eq $Profile.SID }
                 $WmiProfile.Delete()
-                Write-Host "  ✓ Removed: $($Profile.Username)" -ForegroundColor Green
+                Write-Host "  [OK] Removed: $($Profile.Username)" -ForegroundColor Green
             } catch {
-                Write-Host "  ✗ Failed: $($Profile.Username)" -ForegroundColor Red
+                Write-Host "  [FAILED] Failed: $($Profile.Username)" -ForegroundColor Red
             }
         }
         Write-Host ""
-        Write-Host "✓ Profile cleanup complete" -ForegroundColor Green
+        Write-Host "[SUCCESS] Profile cleanup complete" -ForegroundColor Green
     }
 } else {
     Write-Host "No old profiles found" -ForegroundColor Green
@@ -3882,7 +3882,7 @@ $IncludeHash = ${toPowerShellBoolean(includeHash)}
 $ExportPath = "${exportPath}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -3932,7 +3932,7 @@ Write-Progress -Activity "Processing files" -Completed
 $Inventory | Export-Csv -Path $ExportPath -NoTypeInformation
 
 Write-Host ""
-Write-Host "✓ File inventory complete" -ForegroundColor Green
+Write-Host "[SUCCESS] File inventory complete" -ForegroundColor Green
 Write-Host "  Total files: $($Inventory.Count)" -ForegroundColor Gray
 Write-Host "  Total size: $([math]::Round(($Inventory | Measure-Object -Property SizeMB -Sum).Sum, 2)) MB" -ForegroundColor Gray
 Write-Host "  Export path: $ExportPath" -ForegroundColor Gray`;
@@ -3991,7 +3991,7 @@ $TopCount = ${topCount}
 $ExportPath = "${exportPath}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -4040,7 +4040,7 @@ Write-Host "  Total files: $(($Report | Measure-Object -Property FileCount -Sum)
 
 $Report | Export-Csv -Path $ExportPath -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Exported to $ExportPath" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Exported to $ExportPath" -ForegroundColor Green`;
     }
   },
 
@@ -4100,7 +4100,7 @@ $Periods = ${periods}
 $ExportPath = "${exportPath}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -4140,7 +4140,7 @@ Write-Host ""
 Write-Host "Average growth per $($GroupBy.ToLower()): $AvgGrowth GB" -ForegroundColor Cyan
 
 $Report | Export-Csv -Path $ExportPath -NoTypeInformation
-Write-Host "✓ Exported to $ExportPath" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Exported to $ExportPath" -ForegroundColor Green`;
     }
   },
 
@@ -4196,7 +4196,7 @@ $Recurse = ${recurse}
 $ExportPath = "${exportPath}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
@@ -4259,15 +4259,15 @@ Write-Progress -Activity "Scanning" -Completed
 
 if ($Orphaned.Count -gt 0) {
     Write-Host ""
-    Write-Host "⚠ Found $($Orphaned.Count) items with permission issues" -ForegroundColor Yellow
+    Write-Host "[WARNING] Found $($Orphaned.Count) items with permission issues" -ForegroundColor Yellow
     $Orphaned | Select-Object -First 20 | Format-Table Type, Issue, Path -AutoSize
     
     $Orphaned | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Full report exported to $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Full report exported to $ExportPath" -ForegroundColor Green
 } else {
     Write-Host ""
-    Write-Host "✓ No orphaned files or permission issues found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No orphaned files or permission issues found" -ForegroundColor Green
 }`;
     }
   },
@@ -4339,7 +4339,7 @@ $Source = "${sourcePath}"
 $Destination = "${destPath}"
 
 if (-not (Test-Path $Source)) {
-    Write-Host "✗ Source not found: $Source" -ForegroundColor Red
+    Write-Host "[FAILED] Source not found: $Source" -ForegroundColor Red
     exit 1
 }
 
@@ -4421,12 +4421,12 @@ $TargetPath = "${targetPath}"
 $LinkType = "${linkType}"
 
 if (-not (Test-Path $TargetPath)) {
-    Write-Host "✗ Target path not found: $TargetPath" -ForegroundColor Red
+    Write-Host "[FAILED] Target path not found: $TargetPath" -ForegroundColor Red
     exit 1
 }
 
 if (Test-Path $LinkPath) {
-    Write-Host "✗ Link path already exists: $LinkPath" -ForegroundColor Red
+    Write-Host "[FAILED] Link path already exists: $LinkPath" -ForegroundColor Red
     exit 1
 }
 
@@ -4435,12 +4435,12 @@ $IsDirectory = $TargetItem.PSIsContainer
 
 # Validate link type compatibility
 if ($LinkType -eq "HardLink" -and $IsDirectory) {
-    Write-Host "✗ HardLink cannot be used for directories" -ForegroundColor Red
+    Write-Host "[FAILED] HardLink cannot be used for directories" -ForegroundColor Red
     exit 1
 }
 
 if ($LinkType -eq "Junction" -and -not $IsDirectory) {
-    Write-Host "✗ Junction can only be used for directories" -ForegroundColor Red
+    Write-Host "[FAILED] Junction can only be used for directories" -ForegroundColor Red
     exit 1
 }
 
@@ -4454,15 +4454,15 @@ try {
     if (Test-Path $LinkPath) {
         $LinkItem = Get-Item $LinkPath
         Write-Host ""
-        Write-Host "✓ $LinkType created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] $LinkType created successfully" -ForegroundColor Green
         Write-Host "  Link type: $($LinkItem.LinkType)" -ForegroundColor Gray
         Write-Host "  Points to: $($LinkItem.Target)" -ForegroundColor Gray
     } else {
-        Write-Host "✗ Failed to create link" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to create link" -ForegroundColor Red
         exit 1
     }
 } catch {
-    Write-Host "✗ Error creating link: \$_" -ForegroundColor Red
+    Write-Host "[FAILED] Error creating link: \$_" -ForegroundColor Red
     Write-Host ""
     Write-Host "Note: Creating symbolic links requires:" -ForegroundColor Yellow
     Write-Host "  - Administrator privileges, OR" -ForegroundColor Yellow

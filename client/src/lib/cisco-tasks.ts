@@ -65,7 +65,7 @@ try {
         $Uri = "https://api.meraki.com/api/v1/networks/$NetworkId/wireless/ssids/$SSIDNumber"
         Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
         
-        Write-Host "✓ SSID created: $SSIDName (Number: $SSIDNumber)" -ForegroundColor Green
+        Write-Host "[SUCCESS] SSID created: $SSIDName (Number: $SSIDNumber)" -ForegroundColor Green
         $SSIDNumber++
     }
     
@@ -120,7 +120,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Client list exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Client list exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Clients: $($Clients.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -163,7 +163,7 @@ try {
     
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Configuration backed up to: $BackupPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration backed up to: $BackupPath" -ForegroundColor Green
     
 } catch {
     Write-Error "Backup failed: $_"
@@ -210,7 +210,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Router interface ${iface} configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Router interface ${iface} configured!" -ForegroundColor Green
     Write-Host $Result.Output
     
 } catch {
@@ -260,7 +260,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Switch port ${iface} configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Switch port ${iface} configured!" -ForegroundColor Green
     
 } catch {
     Write-Error "Switch configuration failed: $_"
@@ -305,7 +305,7 @@ ${tags.length > 0 ? `        tags = @(${tags.map(t => `"${escapePowerShellString
     $Uri = "https://api.meraki.com/api/v1/devices/$Serial"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
     
-    Write-Host "✓ Access Point '${name}' configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Access Point '${name}' configured!" -ForegroundColor Green
     
 } catch {
     Write-Error "AP configuration failed: $_"
@@ -354,7 +354,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Network inventory exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Network inventory exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Devices: $($Devices.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -396,7 +396,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $ConfigCommands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Configuration updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration updated successfully!" -ForegroundColor Green
     Write-Host $Result.Output
     
 } catch {
@@ -450,7 +450,7 @@ ${exportPath ? `
         TotalReceivedMB = [math]::Round($TotalReceived / 1MB, 2)
     }
     $Metrics | ConvertTo-Json | Out-File -FilePath "${exportPath}"
-    Write-Host "✓ Metrics exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Metrics exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Performance monitoring failed: $_"
@@ -496,7 +496,7 @@ $ScriptBlock = {
         $Config.Output | Out-File -FilePath $BackupFile
         Remove-SSHSession -SessionId $Session.SessionId
         
-        Write-Host "✓ Backup created: $BackupFile"
+        Write-Host "[SUCCESS] Backup created: $BackupFile"
     } catch {
         Write-Error "Backup failed: $_"
     }
@@ -516,7 +516,7 @@ $ScriptBlock.ToString() | Out-File -FilePath $ScriptPath -Force
 
 Register-ScheduledTask -TaskName "Cisco-AutoBackup" -Trigger $Trigger -Action $Action -Description "Automated Cisco configuration backup" -RunLevel Highest
 
-Write-Host "✓ Scheduled backup task created: $Schedule" -ForegroundColor Green
+Write-Host "[SUCCESS] Scheduled backup task created: $Schedule" -ForegroundColor Green
 Write-Host "  Script saved to: $ScriptPath" -ForegroundColor Cyan
 Write-Host "  Note: Save credentials to $env:USERPROFILE\\cisco-creds.xml" -ForegroundColor Yellow
 Write-Host "  Run: Get-Credential | Export-Clixml -Path $env:USERPROFILE\\cisco-creds.xml" -ForegroundColor Yellow`;
@@ -560,7 +560,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ VLAN ${vlanId} '${vlanName}' configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] VLAN ${vlanId} '${vlanName}' configured!" -ForegroundColor Green
     
 } catch {
     Write-Error "VLAN configuration failed: $_"
@@ -612,7 +612,7 @@ ${authMode === 'psk' ? `        encryptionMode = "wpa"
     $Uri = "https://api.meraki.com/api/v1/networks/$NetworkId/wireless/ssids/${ssidNumber}"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
     
-    Write-Host "✓ SSID '${ssidName}' configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SSID '${ssidName}' configured successfully!" -ForegroundColor Green
     Write-Host "  Number: ${ssidNumber}" -ForegroundColor Cyan
     Write-Host "  Auth Mode: ${authMode}" -ForegroundColor Cyan
     
@@ -669,7 +669,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ QoS Policy '${policyName}' configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] QoS Policy '${policyName}' configured!" -ForegroundColor Green
     Write-Host "  Bandwidth Limit: ${bandwidth} Mbps" -ForegroundColor Cyan
     Write-Host "  Priority Class: ${priorityClass}" -ForegroundColor Cyan
     Write-Host $Result.Output
@@ -735,7 +735,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Port Security configured on ${iface}!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Port Security configured on ${iface}!" -ForegroundColor Green
     Write-Host "  Maximum MACs: ${maxMacs}" -ForegroundColor Cyan
 ${radiusServer ? `    Write-Host "  802.1X Authentication: Enabled" -ForegroundColor Cyan
     Write-Host "  RADIUS Server: ${radiusServer}" -ForegroundColor Cyan` : ''}
@@ -791,7 +791,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Spanning Tree Protocol configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Spanning Tree Protocol configured!" -ForegroundColor Green
     Write-Host "  STP Mode: ${stpMode}" -ForegroundColor Cyan
     Write-Host "  Bridge Priority: ${priority}" -ForegroundColor Cyan
     Write-Host "  VLAN: ${vlanId}" -ForegroundColor Cyan
@@ -856,7 +856,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Network Access Control configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Network Access Control configured!" -ForegroundColor Green
     Write-Host "  Guest VLAN: ${guestVlan}" -ForegroundColor Cyan
     Write-Host "  Employee VLAN: ${employeeVlan}" -ForegroundColor Cyan
     Write-Host "  Guest Network: ${guestNetwork}" -ForegroundColor Cyan
@@ -916,7 +916,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ SNMP Monitoring configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SNMP Monitoring configured!" -ForegroundColor Green
     Write-Host "  SNMP Version: ${snmpVersion}" -ForegroundColor Cyan
     Write-Host "  Trap Server: ${trapServer}" -ForegroundColor Cyan
 ${snmpVersion === 'v3' ? `    Write-Host "  User: ${snmpUser}" -ForegroundColor Cyan
@@ -978,7 +978,7 @@ try {
     
     $Interfaces | Export-Csv -Path $ExportPath -NoTypeInformation
     
-    Write-Host "✓ Interface statistics exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Interface statistics exported!" -ForegroundColor Green
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
     Write-Host "  Total Interfaces: $($Interfaces.Count)" -ForegroundColor Cyan
     Write-Host "  Include Errors: ${includeErrors ? 'Yes' : 'No'}" -ForegroundColor Cyan
@@ -1055,7 +1055,7 @@ write memory
     Invoke-SSHCommand -SessionId $Session.SessionId -Command $BootCommands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ IOS firmware update prepared!" -ForegroundColor Green
+    Write-Host "[SUCCESS] IOS firmware update prepared!" -ForegroundColor Green
     Write-Host "  New Image: ${imageName}" -ForegroundColor Cyan
     Write-Host "  Transfer Method: ${transferMethod}" -ForegroundColor Cyan
     Write-Host "  WARNING: Device must be rebooted to complete update!" -ForegroundColor Yellow
@@ -1121,7 +1121,7 @@ $($Routes.Output)
     
     $Report | Out-File -FilePath $ExportPath
     
-    Write-Host "✓ Routing table exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Routing table exported!" -ForegroundColor Green
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
     Write-Host "  Route Filter: ${routeType}" -ForegroundColor Cyan
     
@@ -1172,7 +1172,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ OSPF routing configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] OSPF routing configured!" -ForegroundColor Green
     Write-Host "  Process ID: ${processId}" -ForegroundColor Cyan
     Write-Host "  Router ID: ${routerId}" -ForegroundColor Cyan
     Write-Host "  Networks configured: ${networks.length}" -ForegroundColor Cyan
@@ -1231,7 +1231,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ EIGRP routing configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] EIGRP routing configured!" -ForegroundColor Green
     Write-Host "  AS Number: ${asNumber}" -ForegroundColor Cyan
     Write-Host "  Networks: ${networks.length}" -ForegroundColor Cyan
     Write-Host "  Authentication: ${enableAuth ? 'MD5 Enabled' : 'Disabled'}" -ForegroundColor Cyan
@@ -1285,7 +1285,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Trunk port configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Trunk port configured!" -ForegroundColor Green
     Write-Host "  Interface: ${iface}" -ForegroundColor Cyan
     Write-Host "  Native VLAN: ${nativeVlan}" -ForegroundColor Cyan
     Write-Host "  Allowed VLANs: ${allowedVlans}" -ForegroundColor Cyan
@@ -1342,7 +1342,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ EtherChannel configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] EtherChannel configured!" -ForegroundColor Green
     Write-Host "  Channel Group: ${channelGroup}" -ForegroundColor Cyan
     Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
     Write-Host "  Mode: ${mode}" -ForegroundColor Cyan
@@ -1419,7 +1419,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ NAT rule configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] NAT rule configured!" -ForegroundColor Green
     Write-Host "  NAT Type: ${natType}" -ForegroundColor Cyan
     Write-Host "  Inside Network: ${insideNetwork}" -ForegroundColor Cyan
     Write-Host "  Outside Interface: ${outsideInterface}" -ForegroundColor Cyan
@@ -1476,7 +1476,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ ACL configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] ACL configured!" -ForegroundColor Green
     Write-Host "  ACL Name: ${aclName}" -ForegroundColor Cyan
     Write-Host "  Rule: ${action} ${protocol} ${sourceNetwork} -> ${destNetwork}${destPort ? `:${destPort}` : ''}" -ForegroundColor Cyan
     Write-Host "  Applied to: ${applyInterface}" -ForegroundColor Cyan
@@ -1549,7 +1549,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Site-to-Site VPN configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site-to-Site VPN configured!" -ForegroundColor Green
     Write-Host "  Peer IP: ${peerIP}" -ForegroundColor Cyan
     Write-Host "  Local Network: ${localNetwork}" -ForegroundColor Cyan
     Write-Host "  Remote Network: ${remoteNetwork}" -ForegroundColor Cyan
@@ -1610,7 +1610,7 @@ save config
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ WLAN configured on WLC!" -ForegroundColor Green
+    Write-Host "[SUCCESS] WLAN configured on WLC!" -ForegroundColor Green
     Write-Host "  WLAN ID: ${wlanId}" -ForegroundColor Cyan
     Write-Host "  SSID: ${ssid}" -ForegroundColor Cyan
     Write-Host "  Security: ${securityType}" -ForegroundColor Cyan
@@ -1669,7 +1669,7 @@ try {
     
     $APList | Export-Csv -Path $ExportPath -NoTypeInformation
     
-    Write-Host "✓ AP inventory exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] AP inventory exported!" -ForegroundColor Green
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
     Write-Host "  Total APs: $($APList.Count)" -ForegroundColor Cyan
     
@@ -1720,7 +1720,7 @@ try {
     
     Disconnect-Ucs
     
-    Write-Host "✓ UCS blade inventory exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] UCS blade inventory exported!" -ForegroundColor Green
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
     Write-Host "  Total Blades: $($Blades.Count)" -ForegroundColor Cyan
     
@@ -1773,7 +1773,7 @@ try {
         -SrcTemplName "${templateName}" \`
         -Type "instance"
     
-    Write-Host "✓ Service Profile created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service Profile created!" -ForegroundColor Green
     Write-Host "  Profile Name: ${profileName}" -ForegroundColor Cyan
     Write-Host "  Template: ${templateName}" -ForegroundColor Cyan
     Write-Host "  Organization: ${targetOrg}" -ForegroundColor Cyan
@@ -1830,7 +1830,7 @@ try {
     
     $Profile | Set-UcsServiceProfile -PnDn $Blade.Dn -Force
     
-    Write-Host "✓ Service Profile associated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service Profile associated!" -ForegroundColor Green
     Write-Host "  Profile: ${profileName}" -ForegroundColor Cyan
     Write-Host "  Blade: Chassis ${chassisId} / Slot ${slotId}" -ForegroundColor Cyan
     Write-Host "  Serial: $($Blade.Serial)" -ForegroundColor Cyan
@@ -1890,7 +1890,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ NetFlow configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] NetFlow configured!" -ForegroundColor Green
     Write-Host "  Collector: ${collectorIP}:${collectorPort}" -ForegroundColor Cyan
     Write-Host "  Version: ${netflowVersion}" -ForegroundColor Cyan
     Write-Host "  Source Interface: ${sourceInterface}" -ForegroundColor Cyan
@@ -1944,7 +1944,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Syslog configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Syslog configured!" -ForegroundColor Green
     Write-Host "  Server: ${syslogServer}" -ForegroundColor Cyan
     Write-Host "  Facility: ${facility}" -ForegroundColor Cyan
     Write-Host "  Log Level: ${logLevel}" -ForegroundColor Cyan
@@ -2005,7 +2005,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ TACACS+ configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] TACACS+ configured!" -ForegroundColor Green
     Write-Host "  Server: ${tacacsServer}" -ForegroundColor Cyan
     Write-Host "  Local Fallback: ${localFallback ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
     Write-Host "  WARNING: Test login before closing current session!" -ForegroundColor Yellow
@@ -2062,7 +2062,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Extended ACL configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Extended ACL configured!" -ForegroundColor Green
     Write-Host "  ACL: ${aclName || aclNumber}" -ForegroundColor Cyan
     Write-Host "  Rules: ${rules.length}" -ForegroundColor Cyan
 ${applyInterface ? `    Write-Host "  Applied to: ${applyInterface} (${direction})" -ForegroundColor Cyan` : ''}
@@ -2114,7 +2114,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ DHCP Snooping configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DHCP Snooping configured!" -ForegroundColor Green
     Write-Host "  Protected VLANs: ${vlans}" -ForegroundColor Cyan
     Write-Host "  Trusted Interface: ${trustedInterface}" -ForegroundColor Cyan
     
@@ -2163,7 +2163,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Dynamic ARP Inspection configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dynamic ARP Inspection configured!" -ForegroundColor Green
     Write-Host "  Protected VLANs: ${vlans}" -ForegroundColor Cyan
     Write-Host "  Trusted Interface: ${trustedInterface}" -ForegroundColor Cyan
     Write-Host "  Validation: src-mac, dst-mac, ip" -ForegroundColor Cyan
@@ -2220,7 +2220,7 @@ try {
     $OfflineCount = ($Devices | Where-Object {$_.status -eq 'offline'}).Count
     $AlertingCount = ($Devices | Where-Object {$_.status -eq 'alerting'}).Count
     
-    Write-Host "✓ Device status report exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device status report exported!" -ForegroundColor Green
     Write-Host "  Export Path: ${exportPath}" -ForegroundColor Cyan
     Write-Host "  Total Devices: $($Devices.Count)" -ForegroundColor Cyan
     Write-Host ""
@@ -2294,7 +2294,7 @@ try {
     
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
     
-    Write-Host "✓ Firewall rule added!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule added!" -ForegroundColor Green
     Write-Host "  Policy: ${policy}" -ForegroundColor Cyan
     Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
     Write-Host "  Source: ${srcCidr}" -ForegroundColor Cyan
@@ -2354,11 +2354,11 @@ try {
     
     try {
         Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
-        Write-Host "✓ VLAN created!" -ForegroundColor Green
+        Write-Host "[SUCCESS] VLAN created!" -ForegroundColor Green
     } catch {
         $Uri = "https://api.meraki.com/api/v1/networks/$NetworkId/appliance/vlans/${vlanId}"
         Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
-        Write-Host "✓ VLAN updated!" -ForegroundColor Green
+        Write-Host "[SUCCESS] VLAN updated!" -ForegroundColor Green
     }
     
     Write-Host "  VLAN ID: ${vlanId}" -ForegroundColor Cyan
@@ -2419,7 +2419,7 @@ ${vlan ? `        vlan = ${vlan}` : ''}
     $Uri = "https://api.meraki.com/api/v1/devices/$Serial/switch/ports/$PortId"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
     
-    Write-Host "✓ Switch port configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Switch port configured!" -ForegroundColor Green
     Write-Host "  Serial: ${serial}" -ForegroundColor Cyan
     Write-Host "  Port: ${portId}" -ForegroundColor Cyan
     Write-Host "  Type: ${portType}" -ForegroundColor Cyan
@@ -2494,7 +2494,7 @@ try {
     
     $Neighbors | Export-Csv -Path $ExportPath -NoTypeInformation
     
-    Write-Host "✓ CDP neighbors exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] CDP neighbors exported!" -ForegroundColor Green
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
     Write-Host "  Total Neighbors: $($Neighbors.Count)" -ForegroundColor Cyan
     
@@ -2544,7 +2544,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ NTP configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] NTP configured!" -ForegroundColor Green
     Write-Host "  Primary NTP: ${ntpServer1}" -ForegroundColor Cyan
 ${ntpServer2 ? `    Write-Host "  Secondary NTP: ${ntpServer2}" -ForegroundColor Cyan` : ''}
     Write-Host "  Timezone: ${timezone}" -ForegroundColor Cyan
@@ -2602,7 +2602,7 @@ $($Connections.Output)
     
     $Report | Out-File -FilePath $ExportPath
     
-    Write-Host "✓ Connection report exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connection report exported!" -ForegroundColor Green
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
     
 } catch {
@@ -2648,7 +2648,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ Banner configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Banner configured!" -ForegroundColor Green
     Write-Host "  Banner Type: ${bannerType}" -ForegroundColor Cyan
     Write-Host "  Banner Text Length: ${bannerText.length} characters" -ForegroundColor Cyan
     
@@ -2702,7 +2702,7 @@ ${eventTypes ? `    $Uri += "?productType=wireless&includedEventTypes[]=${eventT
     
     $EventReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Network events exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Network events exported!" -ForegroundColor Green
     Write-Host "  Export Path: ${exportPath}" -ForegroundColor Cyan
     Write-Host "  Total Events: $($Events.events.Count)" -ForegroundColor Cyan
     
@@ -2759,7 +2759,7 @@ write memory
     $Result = Invoke-SSHCommand -SessionId $Session.SessionId -Command $Commands
     Remove-SSHSession -SessionId $Session.SessionId
     
-    Write-Host "✓ IP Source Guard configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] IP Source Guard configured!" -ForegroundColor Green
     Write-Host "  Interface: ${iface}" -ForegroundColor Cyan
     Write-Host "  Port Security: ${enablePortSecurity ? 'Enabled' : 'Disabled'}" -ForegroundColor Cyan
     
@@ -2807,12 +2807,12 @@ try {
             $Uri = "https://api.meraki.com/api/v1/devices/$($Device.serial)"
             Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
             
-            Write-Host "✓ Updated: $($Device.serial) -> $($Device.name)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Updated: $($Device.serial) -> $($Device.name)" -ForegroundColor Green
             $UpdateCount++
             
             Start-Sleep -Milliseconds 250
         } catch {
-            Write-Host "✗ Failed: $($Device.serial) - $_" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $($Device.serial) - $_" -ForegroundColor Red
             $ErrorCount++
         }
     }
@@ -2876,7 +2876,7 @@ try {
     
     Disconnect-Ucs
     
-    Write-Host "✓ UCS Firmware report exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] UCS Firmware report exported!" -ForegroundColor Green
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Cyan
     Write-Host "  Components: $($Report.Count)" -ForegroundColor Cyan
     

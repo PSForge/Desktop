@@ -68,7 +68,7 @@ try {
     
     Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/deviceManagement/windowsAutopilotSettings/sync"
     
-    Write-Host "✓ Autopilot sync initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Autopilot sync initiated successfully" -ForegroundColor Green
     Write-Host "Note: Sync may take several minutes to complete" -ForegroundColor Yellow
     
 } catch {
@@ -153,7 +153,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Device inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device inventory exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export device inventory: $_"
@@ -230,7 +230,7 @@ try {
     
     $ComplianceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Compliance report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance report exported to: ${exportPath}" -ForegroundColor Green
     
     Write-Host \"\`nCompliance Summary:" -ForegroundColor Yellow
     $ComplianceReport | Group-Object ComplianceState | Format-Table Name, Count
@@ -315,7 +315,7 @@ try {
     
     $UpdateRing = New-MgDeviceManagementDeviceConfiguration -BodyParameter $UpdateRingParams
     
-    Write-Host "✓ Update ring created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Update ring created successfully" -ForegroundColor Green
     Write-Host "  ID: $($UpdateRing.Id)" -ForegroundColor Cyan
     
 } catch {
@@ -392,7 +392,7 @@ try {
     
     $InventoryReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ App inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] App inventory exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "Note: For deployment/assignment status, use additional Graph API queries" -ForegroundColor Yellow
     
 } catch {
@@ -464,7 +464,7 @@ try {
     
     Invoke-MgRetireDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
     
-    Write-Host "✓ Device retired successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device retired successfully" -ForegroundColor Green
     Write-Host "  Device: ${deviceName}" -ForegroundColor Yellow
     Write-Host "  ID: $($Device.Id)" -ForegroundColor Cyan
     
@@ -551,7 +551,7 @@ try {
     
     Invoke-MgWipeDeviceManagementManagedDevice -ManagedDeviceId $Device.Id -BodyParameter $WipeParams
     
-    Write-Host "✓ Wipe initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Wipe initiated successfully" -ForegroundColor Green
     Write-Host "  Device: ${deviceName}" -ForegroundColor Yellow
     Write-Host "  Keep Enrollment: ${keepEnrollment}" -ForegroundColor Yellow
     
@@ -623,7 +623,7 @@ try {
     
     Invoke-MgSyncDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
     
-    Write-Host "✓ Sync initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sync initiated successfully" -ForegroundColor Green
     Write-Host "  Device: ${deviceName}" -ForegroundColor Yellow
     Write-Host "  Last Sync: $($Device.LastSyncDateTime)" -ForegroundColor Cyan
     
@@ -709,7 +709,7 @@ try {
     
     Invoke-MgSetDeviceManagementManagedDeviceName -ManagedDeviceId $Device.Id -BodyParameter $RenameParams
     
-    Write-Host "✓ Rename initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Rename initiated successfully" -ForegroundColor Green
     Write-Host "  Old Name: ${currentName}" -ForegroundColor Yellow
     Write-Host "  New Name: ${newName}" -ForegroundColor Yellow
     Write-Host "Note: Device will sync to apply the new name" -ForegroundColor Cyan
@@ -792,7 +792,7 @@ try {
     
     $Profile = New-MgDeviceManagementDeviceConfiguration -BodyParameter $ProfileParams
     
-    Write-Host "✓ Configuration profile created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration profile created" -ForegroundColor Green
     Write-Host "  Profile: ${profileName}" -ForegroundColor Yellow
     Write-Host "  ID: $($Profile.Id)" -ForegroundColor Cyan
     
@@ -891,7 +891,7 @@ try {
     
     Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/deviceManagement/deviceConfigurations/$($Profile.Id)/assign" -Body ($AssignmentParams | ConvertTo-Json -Depth 10)
     
-    Write-Host "✓ Profile assigned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Profile assigned successfully" -ForegroundColor Green
     Write-Host "  Profile: ${profileName}" -ForegroundColor Yellow
     Write-Host "  Group: ${groupName}" -ForegroundColor Yellow
     
@@ -987,7 +987,7 @@ try {
     
     $Policy = New-MgDeviceManagementDeviceCompliancePolicy -BodyParameter $PolicyParams
     
-    Write-Host "✓ Compliance policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance policy created" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Min OS: ${minOS}" -ForegroundColor Yellow
     Write-Host "  BitLocker: ${requireBitLocker}" -ForegroundColor Yellow
@@ -1070,7 +1070,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to generate compliance report: $_"
@@ -1163,7 +1163,7 @@ try {
       '$Policy = New-MgDeviceAppManagementIosManagedAppProtection -BodyParameter $PolicyParams' : 
       '$Policy = New-MgDeviceAppManagementAndroidManagedAppProtection -BodyParameter $PolicyParams'}
     
-    Write-Host "✓ App protection policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] App protection policy created" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
     
@@ -1268,7 +1268,7 @@ try {
     Write-Host "Creating app entry..." -ForegroundColor Cyan
     $App = New-MgDeviceAppManagementMobileApp -BodyParameter $AppParams
     
-    Write-Host "✓ App created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] App created successfully" -ForegroundColor Green
     Write-Host "  App Name: ${appName}" -ForegroundColor Yellow
     Write-Host "  App ID: $($App.Id)" -ForegroundColor Cyan
     Write-Host "Note: Upload .intunewin file content via Intune portal" -ForegroundColor Yellow
@@ -1363,7 +1363,7 @@ try {
     
     $Profile = New-MgDeviceManagementWindowsAutopilotDeploymentProfile -BodyParameter $ProfileParams
     
-    Write-Host "✓ Autopilot profile created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Autopilot profile created" -ForegroundColor Green
     Write-Host "  Profile: ${profileName}" -ForegroundColor Yellow
     Write-Host "  ID: $($Profile.Id)" -ForegroundColor Cyan
     
@@ -1458,10 +1458,10 @@ try {
             }
             
             New-MgDeviceManagementWindowsAutopilotDeviceIdentity -BodyParameter $DeviceParams
-            Write-Host "✓ Imported: $($Device.SerialNumber)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Imported: $($Device.SerialNumber)" -ForegroundColor Green
             $SuccessCount++
         } catch {
-            Write-Warning "✗ Failed: $($Device.SerialNumber) - $_"
+            Write-Warning "[FAILED] Failed: $($Device.SerialNumber) - $_"
             $FailCount++
         }
     }
@@ -1535,7 +1535,7 @@ try {
     
     Remove-MgDeviceManagementWindowsAutopilotDeviceIdentity -WindowsAutopilotDeviceIdentityId $Device.Id
     
-    Write-Host "✓ Device deleted successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device deleted successfully" -ForegroundColor Green
     Write-Host "  Serial Number: ${serialNumber}" -ForegroundColor Yellow
     
 } catch {
@@ -1612,7 +1612,7 @@ try {
     
     $UpdateReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Update compliance report exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Update compliance report exported" -ForegroundColor Green
     Write-Host "  Total devices: $($UpdateReport.Count)" -ForegroundColor Yellow
     Write-Host "  Export path: ${exportPath}" -ForegroundColor Cyan
     
@@ -1716,7 +1716,7 @@ try {
     
     $Script = New-MgDeviceManagementDeviceManagementScript -BodyParameter $ScriptParams
     
-    Write-Host "✓ Script uploaded successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Script uploaded successfully" -ForegroundColor Green
     Write-Host "  Script: ${scriptName}" -ForegroundColor Yellow
     Write-Host "  ID: $($Script.Id)" -ForegroundColor Cyan
     
@@ -1818,7 +1818,7 @@ try {
         TargetedMobileApps = @()
     }
     
-    Write-Host "✓ Notification sent successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Notification sent successfully" -ForegroundColor Green
     Write-Host "  Title: ${title}" -ForegroundColor Yellow
     Write-Host "  Target: ${groupName}" -ForegroundColor Yellow
     
@@ -1901,7 +1901,7 @@ try {
     
     $EnrollmentReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Enrollment report exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Enrollment report exported" -ForegroundColor Green
     Write-Host "  Total devices: $($EnrollmentReport.Count)" -ForegroundColor Yellow
     Write-Host "  Export path: ${exportPath}" -ForegroundColor Cyan
     
@@ -1973,7 +1973,7 @@ try {
     
     Invoke-MgResetDeviceManagementManagedDevicePasscode -ManagedDeviceId $Device.Id
     
-    Write-Host "✓ Passcode reset initiated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Passcode reset initiated" -ForegroundColor Green
     Write-Host "  Device: ${deviceName}" -ForegroundColor Yellow
     Write-Host "Note: User will be prompted to set a new passcode" -ForegroundColor Cyan
     
@@ -2045,7 +2045,7 @@ try {
     
     Invoke-MgLocateDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
     
-    Write-Host "✓ Location request sent" -ForegroundColor Green
+    Write-Host "[SUCCESS] Location request sent" -ForegroundColor Green
     Write-Host "  Device: ${deviceName}" -ForegroundColor Yellow
     Write-Host "Note: Check device details in Intune portal for location" -ForegroundColor Cyan
     
@@ -2142,7 +2142,7 @@ try {
     
     Invoke-MgEnableDeviceManagementManagedDeviceLostMode -ManagedDeviceId $Device.Id -BodyParameter $LostModeParams
     
-    Write-Host "✓ Lost mode enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lost mode enabled" -ForegroundColor Green
     Write-Host "  Device: ${deviceName}" -ForegroundColor Yellow
     Write-Host "  Message: ${message}" -ForegroundColor Cyan
     
@@ -2223,7 +2223,7 @@ try {
     
     $AssignmentReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Policy assignments exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy assignments exported" -ForegroundColor Green
     Write-Host "  Total assignments: $($AssignmentReport.Count)" -ForegroundColor Yellow
     Write-Host "  Export path: ${exportPath}" -ForegroundColor Cyan
     
@@ -2353,10 +2353,10 @@ ${groupNamesInput.split('\\n').filter((line: string) => line.trim()).map((name: 
                 
                 Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps/$($App.Id)/assign" -Body ($AssignmentParams | ConvertTo-Json -Depth 10)
                 
-                Write-Host "✓ $AppName assigned to $GroupName" -ForegroundColor Green
+                Write-Host "[SUCCESS] $AppName assigned to $GroupName" -ForegroundColor Green
                 $SuccessCount++
             } catch {
-                Write-Warning "✗ Failed: $AppName to $GroupName"
+                Write-Warning "[FAILED] Failed: $AppName to $GroupName"
                 $FailCount++
             }
         }
@@ -2455,7 +2455,7 @@ try {
     
     $Policy = New-MgIdentityConditionalAccessPolicy -BodyParameter $PolicyParams
     
-    Write-Host "✓ Conditional access policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Conditional access policy created" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  State: Disabled (enable manually after review)" -ForegroundColor Cyan
     Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
@@ -2538,7 +2538,7 @@ try {
     
     $HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Device health report exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device health report exported" -ForegroundColor Green
     Write-Host "  Total devices: $($HealthReport.Count)" -ForegroundColor Yellow
     Write-Host "  Export path: ${exportPath}" -ForegroundColor Cyan
     
@@ -2601,7 +2601,7 @@ try {
     
     $Devices | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Inventory exported: $($Devices.Count) devices" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inventory exported: $($Devices.Count) devices" -ForegroundColor Green
 } catch {
     Write-Error $_
 }`;
@@ -2664,7 +2664,7 @@ try {
     
     $Devices | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Non-compliant devices exported: $($Devices.Count)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Non-compliant devices exported: $($Devices.Count)" -ForegroundColor Green
 } catch {
     Write-Error $_
 }`;
@@ -2778,7 +2778,7 @@ try {
     
     $App = New-MgDeviceAppManagementMobileApp -BodyParameter $AppParams
     
-    Write-Host "✓ Win32 app created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Win32 app created successfully" -ForegroundColor Green
     Write-Host "  App Name: ${appName}" -ForegroundColor Yellow
     Write-Host "  App ID: $($App.Id)" -ForegroundColor Cyan
     Write-Host "Next: Upload .intunewin content via Intune portal" -ForegroundColor Yellow
@@ -2886,7 +2886,7 @@ try {
     
     $Profile = New-MgDeviceManagementWindowsAutopilotDeploymentProfile -BodyParameter $ProfileParams
     
-    Write-Host "✓ Autopilot profile created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Autopilot profile created successfully" -ForegroundColor Green
     Write-Host "  Profile: ${profileName}" -ForegroundColor Yellow
     Write-Host "  User Type: ${userType}" -ForegroundColor Yellow
     Write-Host "  ID: $($Profile.Id)" -ForegroundColor Cyan
@@ -2999,7 +2999,7 @@ try {
       '$Policy = New-MgDeviceAppManagementIosManagedAppProtection -BodyParameter $PolicyParams' : 
       '$Policy = New-MgDeviceAppManagementAndroidManagedAppProtection -BodyParameter $PolicyParams'}
     
-    Write-Host "✓ MAM policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] MAM policy created successfully" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
     Write-Host "  Require PIN: ${requirePIN}" -ForegroundColor Yellow
@@ -3102,7 +3102,7 @@ try {
     
     $UpdateRing = New-MgDeviceManagementDeviceConfiguration -BodyParameter $UpdateRingParams
     
-    Write-Host "✓ Update ring created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Update ring created successfully" -ForegroundColor Green
     Write-Host "  Ring Name: ${ringName}" -ForegroundColor Yellow
     Write-Host "  Feature Deferral: ${featureDeferral} days" -ForegroundColor Yellow
     Write-Host "  Quality Deferral: ${qualityDeferral} days" -ForegroundColor Yellow
@@ -3222,7 +3222,7 @@ try {
     $Uri = "https://graph.microsoft.com/v1.0/deviceManagement/deviceEnrollmentConfigurations"
     $Restriction = Invoke-MgGraphRequest -Method POST -Uri $Uri -Body ($RestrictionParams | ConvertTo-Json -Depth 10)
     
-    Write-Host "✓ Enrollment restriction created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Enrollment restriction created successfully" -ForegroundColor Green
     Write-Host "  Restriction: ${restrictionName}" -ForegroundColor Yellow
     Write-Host "  Block Personal: ${blockPersonal}" -ForegroundColor Yellow
     Write-Host "  Block iOS: ${blockIOS}" -ForegroundColor Yellow
@@ -3345,7 +3345,7 @@ try {
     
     $Profile = New-MgDeviceManagementDeviceConfiguration -BodyParameter $ProfileParams
     
-    Write-Host "✓ Configuration profile created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Configuration profile created successfully" -ForegroundColor Green
     Write-Host "  Profile: ${profileName}" -ForegroundColor Yellow
     Write-Host "  Type: ${profileType}" -ForegroundColor Yellow
     Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
@@ -3459,7 +3459,7 @@ try {
         $PlatformName = "Android"
     }
     
-    Write-Host "✓ Conditional launch settings updated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Conditional launch settings updated" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Platform: $PlatformName" -ForegroundColor Yellow
     Write-Host "  Max Offline Days: ${maxOfflineDays}" -ForegroundColor Yellow
@@ -3586,7 +3586,7 @@ try {
     
     $Policy = New-MgDeviceManagementDeviceConfiguration -BodyParameter $PolicyParams
     
-    Write-Host "✓ BitLocker policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] BitLocker policy created successfully" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Encryption: ${encryptionMethod}" -ForegroundColor Yellow
     Write-Host "  Require Auth: ${requireAuth}" -ForegroundColor Yellow
@@ -3704,7 +3704,7 @@ try {
     
     $Script = New-MgDeviceManagementDeviceManagementScript -BodyParameter $ScriptParams
     
-    Write-Host "✓ PowerShell script uploaded successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] PowerShell script uploaded successfully" -ForegroundColor Green
     Write-Host "  Script: ${scriptName}" -ForegroundColor Yellow
     Write-Host "  Run as 64-bit: ${runAs64Bit}" -ForegroundColor Yellow
     Write-Host "  Run as System: ${runAsSystem}" -ForegroundColor Yellow
@@ -3812,7 +3812,7 @@ try {
     
     $Policy = New-MgDeviceManagementDeviceConfiguration -BodyParameter $PolicyParams
     
-    Write-Host "✓ Windows Hello for Business policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Windows Hello for Business policy created" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Min PIN Length: ${minPinLength}" -ForegroundColor Yellow
     Write-Host "  Require Uppercase: ${requireUppercase}" -ForegroundColor Yellow
@@ -3918,7 +3918,7 @@ try {
       '$Policy = New-MgDeviceAppManagementTargetedManagedAppConfiguration -BodyParameter $PolicyParams' :
       '$Policy = New-MgDeviceAppManagementTargetedManagedAppConfiguration -BodyParameter $PolicyParams'}
     
-    Write-Host "✓ App configuration policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] App configuration policy created" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  App: ${targetApp}" -ForegroundColor Yellow
     Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
@@ -4057,7 +4057,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Device inventory exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Device inventory exported successfully" -ForegroundColor Green
     Write-Host "  Total Devices: $($Inventory.Count)" -ForegroundColor Yellow
     Write-Host "  OS Filter: ${osFilter}" -ForegroundColor Yellow
     Write-Host "  Compliance Filter: ${complianceFilter}" -ForegroundColor Yellow
@@ -4193,7 +4193,7 @@ try {
     
     $Policy = New-MgDeviceManagementDeviceConfiguration -BodyParameter $PolicyParams
     
-    Write-Host "✓ Endpoint security policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Endpoint security policy created" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Feature: ${securityFeature}" -ForegroundColor Yellow
     Write-Host "  ID: $($Policy.Id)" -ForegroundColor Cyan
@@ -4299,10 +4299,10 @@ try {
     
     if ($CurrentCert) {
         Update-MgDeviceManagementApplePushNotificationCertificate -ApplePushNotificationCertificateId $CurrentCert.Id -BodyParameter $CertParams
-        Write-Host "✓ APNs certificate renewed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] APNs certificate renewed successfully" -ForegroundColor Green
     } else {
         New-MgDeviceManagementApplePushNotificationCertificate -BodyParameter $CertParams
-        Write-Host "✓ APNs certificate uploaded successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] APNs certificate uploaded successfully" -ForegroundColor Green
     }
     
     # Get updated certificate info
@@ -4411,7 +4411,7 @@ try {
         "remoteLock" {
             Write-Host ${'\`n'}"Initiating remote lock..." -ForegroundColor Cyan
             Invoke-MgRemoteLockDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
-            Write-Host "✓ Remote lock initiated" -ForegroundColor Green
+            Write-Host "[SUCCESS] Remote lock initiated" -ForegroundColor Green
             Write-Host "User can unlock with their PIN/password" -ForegroundColor Yellow
         }
         "wipe" {
@@ -4421,25 +4421,25 @@ try {
                 KeepUserData = \$false
             }
             Invoke-MgWipeDeviceManagementManagedDevice -ManagedDeviceId $Device.Id -BodyParameter $WipeParams
-            Write-Host "✓ Wipe (factory reset) initiated" -ForegroundColor Green
+            Write-Host "[SUCCESS] Wipe (factory reset) initiated" -ForegroundColor Green
             Write-Host "Device will be reset to factory state" -ForegroundColor Yellow
         }
         "retire" {
             Write-Host ${'\`n'}"Retiring device (removes company data only)..." -ForegroundColor Cyan
             Invoke-MgRetireDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
-            Write-Host "✓ Retire initiated" -ForegroundColor Green
+            Write-Host "[SUCCESS] Retire initiated" -ForegroundColor Green
             Write-Host "Company data will be removed, personal data preserved" -ForegroundColor Yellow
         }
         "reboot" {
             Write-Host ${'\`n'}"Initiating device restart..." -ForegroundColor Cyan
             Invoke-MgRebootDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
-            Write-Host "✓ Restart initiated" -ForegroundColor Green
+            Write-Host "[SUCCESS] Restart initiated" -ForegroundColor Green
             Write-Host "Device will restart when user next checks in" -ForegroundColor Yellow
         }
         "sync" {
             Write-Host ${'\`n'}"Initiating device sync..." -ForegroundColor Cyan
             Invoke-MgSyncDeviceManagementManagedDevice -ManagedDeviceId $Device.Id
-            Write-Host "✓ Sync initiated" -ForegroundColor Green
+            Write-Host "[SUCCESS] Sync initiated" -ForegroundColor Green
             Write-Host "Device will check in for policies/apps within 5-10 minutes" -ForegroundColor Yellow
         }
     }
@@ -4588,7 +4588,7 @@ try {
         $Policy = Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/deviceAppManagement/androidManagedAppProtections" -Body ($PolicyParams | ConvertTo-Json -Depth 10)
     }
     
-    Write-Host "✓ App Protection Policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] App Protection Policy created successfully" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  Platform: ${platform}" -ForegroundColor Yellow
     Write-Host "  PIN Required: ${pinRequired}" -ForegroundColor Yellow
@@ -4683,7 +4683,7 @@ try {
     
     $ProfileReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Autopilot profiles exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Autopilot profiles exported to: ${exportPath}" -ForegroundColor Green
     
     Write-Host \"\`nProfile Summary:" -ForegroundColor Yellow
     Write-Host "  Total Profiles: $($Profiles.Count)" -ForegroundColor White
@@ -4810,7 +4810,7 @@ try {
     
     $Policy = New-MgDeviceManagementDeviceCompliancePolicy -BodyParameter $PolicyParams
     
-    Write-Host "✓ Compliance Policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance Policy created successfully" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "  BitLocker Required: ${requireBitLocker}" -ForegroundColor Yellow
     Write-Host "  Antivirus Required: ${requireAntivirus}" -ForegroundColor Yellow
@@ -4934,7 +4934,7 @@ try {
     } else {
         $AllInstallStatus | Export-Csv -Path "${exportPath}" -NoTypeInformation
         
-        Write-Host "✓ App installation status exported to: ${exportPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] App installation status exported to: ${exportPath}" -ForegroundColor Green
         Write-Host "  Total Records: $($AllInstallStatus.Count)" -ForegroundColor Yellow
         
         Write-Host \"\`nInstallation Summary:" -ForegroundColor Yellow

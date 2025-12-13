@@ -95,7 +95,7 @@ try {
     # Check if mailbox already exists
     $Existing = Get-EXOMailbox -Identity $UPN -ErrorAction SilentlyContinue
     if ($Existing) {
-        Write-Host "⚠ Mailbox already exists for: $UPN" -ForegroundColor Yellow
+        Write-Host "[WARNING] Mailbox already exists for: $UPN" -ForegroundColor Yellow
         exit 0
     }
     
@@ -104,7 +104,7 @@ try {
     
     # Set usage location first
     Update-MgUser -UserId $UPN -UsageLocation $UsageLocation
-    Write-Host "✓ Usage location set: $UsageLocation" -ForegroundColor Green
+    Write-Host "[SUCCESS] Usage location set: $UsageLocation" -ForegroundColor Green
     
     # Assign license - first resolve SKU name to GUID
     $Sku = Get-MgSubscribedSku -All | Where-Object { $_.SkuPartNumber -eq $LicenseSku }
@@ -114,7 +114,7 @@ try {
     }
     
     Set-MgUserLicense -UserId $UPN -AddLicenses @{SkuId = $Sku.SkuId} -RemoveLicenses @()
-    Write-Host "✓ License assigned: $LicenseSku (SKU ID: $($Sku.SkuId))" -ForegroundColor Green
+    Write-Host "[SUCCESS] License assigned: $LicenseSku (SKU ID: $($Sku.SkuId))" -ForegroundColor Green
     
     # Wait for mailbox provisioning
     Write-Host "Waiting for mailbox to provision..." -ForegroundColor Cyan
@@ -123,12 +123,12 @@ try {
     # Verify mailbox creation
     $Mailbox = Get-EXOMailbox -Identity $UPN -ErrorAction SilentlyContinue
     if ($Mailbox) {
-        Write-Host "✓ Mailbox created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Mailbox created successfully!" -ForegroundColor Green
         Write-Host "  UPN: $UPN" -ForegroundColor Gray
         Write-Host "  Display Name: $DisplayName" -ForegroundColor Gray
         Write-Host "  Primary SMTP: $($Mailbox.PrimarySmtpAddress)" -ForegroundColor Gray
     } else {
-        Write-Host "⚠ Mailbox not yet provisioned. Check again in a few minutes." -ForegroundColor Yellow
+        Write-Host "[WARNING] Mailbox not yet provisioned. Check again in a few minutes." -ForegroundColor Yellow
     }
     
 } catch {
@@ -201,11 +201,11 @@ $AutoMapping = ${autoMapping}
 try {
     # Verify mailbox exists
     $Mailbox = Get-EXOMailbox -Identity $MailboxIdentity -ErrorAction Stop
-    Write-Host "✓ Target Mailbox: $($Mailbox.DisplayName) ($($Mailbox.PrimarySmtpAddress))" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Mailbox: $($Mailbox.DisplayName) ($($Mailbox.PrimarySmtpAddress))" -ForegroundColor Green
     
     # Verify user exists
     $User = Get-EXOMailbox -Identity $UserIdentity -ErrorAction Stop
-    Write-Host "✓ User: $($User.DisplayName) ($($User.PrimarySmtpAddress))" -ForegroundColor Green
+    Write-Host "[SUCCESS] User: $($User.DisplayName) ($($User.PrimarySmtpAddress))" -ForegroundColor Green
     
     if ($Action -eq "Add") {
         switch ($PermissionType) {
@@ -215,7 +215,7 @@ try {
                     -AccessRights FullAccess \`
                     -InheritanceType All \`
                     -AutoMapping $AutoMapping
-                Write-Host "✓ Full Access permission added" -ForegroundColor Green
+                Write-Host "[SUCCESS] Full Access permission added" -ForegroundColor Green
                 if ($AutoMapping) {
                     Write-Host "  Auto-mapping enabled - mailbox will appear in Outlook" -ForegroundColor Gray
                 }
@@ -225,12 +225,12 @@ try {
                     -Trustee $UserIdentity \`
                     -AccessRights SendAs \`
                     -Confirm:\$false
-                Write-Host "✓ Send As permission added" -ForegroundColor Green
+                Write-Host "[SUCCESS] Send As permission added" -ForegroundColor Green
             }
             "SendOnBehalf" {
                 Set-Mailbox -Identity $MailboxIdentity \`
                     -GrantSendOnBehalfTo @{Add=$UserIdentity}
-                Write-Host "✓ Send on Behalf permission added" -ForegroundColor Green
+                Write-Host "[SUCCESS] Send on Behalf permission added" -ForegroundColor Green
             }
         }
     } else {
@@ -242,19 +242,19 @@ try {
                     -AccessRights FullAccess \`
                     -InheritanceType All \`
                     -Confirm:\$false
-                Write-Host "✓ Full Access permission removed" -ForegroundColor Green
+                Write-Host "[SUCCESS] Full Access permission removed" -ForegroundColor Green
             }
             "SendAs" {
                 Remove-RecipientPermission -Identity $MailboxIdentity \`
                     -Trustee $UserIdentity \`
                     -AccessRights SendAs \`
                     -Confirm:\$false
-                Write-Host "✓ Send As permission removed" -ForegroundColor Green
+                Write-Host "[SUCCESS] Send As permission removed" -ForegroundColor Green
             }
             "SendOnBehalf" {
                 Set-Mailbox -Identity $MailboxIdentity \`
                     -GrantSendOnBehalfTo @{Remove=$UserIdentity}
-                Write-Host "✓ Send on Behalf permission removed" -ForegroundColor Green
+                Write-Host "[SUCCESS] Send on Behalf permission removed" -ForegroundColor Green
             }
         }
     }
@@ -332,10 +332,10 @@ if (-not (Test-Path $CsvPath)) {
 
 # Import CSV
 $Users = Import-Csv -Path $CsvPath
-Write-Host "✓ Loaded $($Users.Count) records from CSV" -ForegroundColor Green
+Write-Host "[SUCCESS] Loaded $($Users.Count) records from CSV" -ForegroundColor Green
 
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - No changes will be made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes will be made" -ForegroundColor Yellow
     Write-Host ""
 }
 
@@ -358,21 +358,21 @@ foreach ($User in $Users) {
                 $Sku = Get-MgSubscribedSku -All | Where-Object { $_.SkuPartNumber -eq $User.LicenseSku }
                 if ($Sku) {
                     Set-MgUserLicense -UserId $User.UPN -AddLicenses @{SkuId = $Sku.SkuId} -RemoveLicenses @()
-                    Write-Host "  ✓ License assigned: $($User.LicenseSku)" -ForegroundColor Green
+                    Write-Host "  [OK] License assigned: $($User.LicenseSku)" -ForegroundColor Green
                     $SuccessCount++
                 } else {
-                    Write-Host "  ✗ SKU not found: $($User.LicenseSku)" -ForegroundColor Red
+                    Write-Host "  [FAILED] SKU not found: $($User.LicenseSku)" -ForegroundColor Red
                     $FailCount++
                 }
             } elseif ($Operation -eq "AssignPermissions") {
                 # Assign permissions based on CSV columns
                 Add-MailboxPermission -Identity $User.TargetMailbox -User $User.UPN -AccessRights $User.Permission
-                Write-Host "  ✓ Permission assigned" -ForegroundColor Green
+                Write-Host "  [OK] Permission assigned" -ForegroundColor Green
                 $SuccessCount++
             }
         }
     } catch {
-        Write-Host "  ✗ Failed: $_" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed: $_" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -445,7 +445,7 @@ try {
     if ($TargetType -eq "Shared") {
         # Convert to Shared
         Set-Mailbox -Identity $MailboxIdentity -Type Shared
-        Write-Host "✓ Converted to Shared mailbox" -ForegroundColor Green
+        Write-Host "[SUCCESS] Converted to Shared mailbox" -ForegroundColor Green
         
         if ($RemoveLicense) {
             Write-Host "Note: Remove license manually in Microsoft 365 Admin Center" -ForegroundColor Yellow
@@ -454,8 +454,8 @@ try {
     } else {
         # Convert to Regular (User)
         Set-Mailbox -Identity $MailboxIdentity -Type Regular
-        Write-Host "✓ Converted to User mailbox" -ForegroundColor Green
-        Write-Host "⚠ Remember to assign a license to this mailbox" -ForegroundColor Yellow
+        Write-Host "[SUCCESS] Converted to User mailbox" -ForegroundColor Green
+        Write-Host "[WARNING] Remember to assign a license to this mailbox" -ForegroundColor Yellow
     }
     
     # Verify conversion
@@ -531,25 +531,25 @@ ${comment ? `$Comment = "${comment}"` : ''}
 
 try {
     $Mailbox = Get-EXOMailbox -Identity $MailboxIdentity -ErrorAction Stop
-    Write-Host "✓ Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
     
     if ($Feature -eq "LitigationHold") {
         if ($Action -eq "Enable") {
             Set-Mailbox -Identity $MailboxIdentity -LitigationHoldEnabled \$true${comment ? ' -LitigationHoldComment $Comment' : ''}
-            Write-Host "✓ Litigation Hold enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Litigation Hold enabled" -ForegroundColor Green
             ${comment ? 'Write-Host "  Comment: $Comment" -ForegroundColor Gray' : ''}
         } else {
             Set-Mailbox -Identity $MailboxIdentity -LitigationHoldEnabled \$false
-            Write-Host "✓ Litigation Hold disabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Litigation Hold disabled" -ForegroundColor Green
         }
     } elseif ($Feature -eq "Archive") {
         if ($Action -eq "Enable") {
             Enable-Mailbox -Identity $MailboxIdentity -Archive
-            Write-Host "✓ Archive mailbox enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Archive mailbox enabled" -ForegroundColor Green
             Write-Host "  Archive will be provisioned shortly" -ForegroundColor Gray
         } else {
             Disable-Mailbox -Identity $MailboxIdentity -Archive -Confirm:\$false
-            Write-Host "✓ Archive mailbox disabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Archive mailbox disabled" -ForegroundColor Green
         }
     }
     
@@ -621,7 +621,7 @@ $MailboxIdentity = "${mailboxIdentity}"
 
 try {
     $Mailbox = Get-EXOMailbox -Identity $MailboxIdentity -ErrorAction Stop
-    Write-Host "✓ Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
     
     $params = @{
         Identity = $MailboxIdentity
@@ -633,7 +633,7 @@ try {
     ${maxReceiveSize ? `$params.MaxReceiveSize = "${maxReceiveSize}MB"` : ''}
     
     Set-Mailbox @params
-    Write-Host "✓ Quotas and limits updated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quotas and limits updated" -ForegroundColor Green
     
     # Display current settings
     $Updated = Get-EXOMailbox -Identity $MailboxIdentity | Select-Object ProhibitSendQuota, ProhibitSendReceiveQuota
@@ -704,7 +704,7 @@ ${filterDomain ? `$FilterDomain = "${filterDomain}"` : ''}
 $TestMode = ${testMode}
 
 if ($TestMode) {
-    Write-Host "⚠ TEST MODE - No changes will be made" -ForegroundColor Yellow
+    Write-Host "[WARNING] TEST MODE - No changes will be made" -ForegroundColor Yellow
     Write-Host ""
 }
 
@@ -723,7 +723,7 @@ try {
     $Mailboxes = Get-EXOMailbox -ResultSize Unlimited
     `}
     
-    Write-Host "✓ Found $($Mailboxes.Count) mailboxes to process" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Mailboxes.Count) mailboxes to process" -ForegroundColor Green
     
     $EnabledCount = 0
     $AlreadyEnabledCount = 0
@@ -741,12 +741,12 @@ try {
                     Write-Host "  [TEST] Would enable archive for: $($Mailbox.PrimarySmtpAddress)" -ForegroundColor Cyan
                 } else {
                     Enable-Mailbox -Identity $Mailbox.PrimarySmtpAddress -Archive
-                    Write-Host "  ✓ $($Mailbox.PrimarySmtpAddress): Archive enabled" -ForegroundColor Green
+                    Write-Host "  [OK] $($Mailbox.PrimarySmtpAddress): Archive enabled" -ForegroundColor Green
                 }
                 $EnabledCount++
             }
         } catch {
-            Write-Host "  ✗ $($Mailbox.PrimarySmtpAddress): Failed - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] $($Mailbox.PrimarySmtpAddress): Failed - $_" -ForegroundColor Red
             $FailedCount++
         }
     }
@@ -830,7 +830,7 @@ try {
     $Mailboxes = Get-EXOMailbox -ResultSize Unlimited
     `}
     
-    Write-Host "✓ Found $($Mailboxes.Count) mailboxes" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Mailboxes.Count) mailboxes" -ForegroundColor Green
     
     foreach ($Mailbox in $Mailboxes) {
         Write-Host "Processing: $($Mailbox.PrimarySmtpAddress)" -ForegroundColor Gray
@@ -887,7 +887,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Report generated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report generated successfully!" -ForegroundColor Green
     Write-Host "  Total Delegations: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -967,16 +967,16 @@ try {
     $Existing = Get-DistributionGroup -Identity $EmailAddress -ErrorAction SilentlyContinue
     
     if ($Existing) {
-        Write-Host "⚠ Group already exists. Updating..." -ForegroundColor Yellow
+        Write-Host "[WARNING] Group already exists. Updating..." -ForegroundColor Yellow
         Set-DistributionGroup -Identity $EmailAddress -RequireSenderAuthenticationEnabled $RequireSenderAuth
-        Write-Host "✓ Group updated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Group updated" -ForegroundColor Green
     } else {
         # Create new group
         New-DistributionGroup -Name $GroupName \`
             -PrimarySmtpAddress $EmailAddress \`
             -ManagedBy $Owner \`
             -RequireSenderAuthenticationEnabled $RequireSenderAuth
-        Write-Host "✓ Distribution group created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Distribution group created" -ForegroundColor Green
     }
     
     ${members.length > 0 ? `
@@ -984,9 +984,9 @@ try {
     foreach ($Member in $Members) {
         try {
             Add-DistributionGroupMember -Identity $EmailAddress -Member $Member
-            Write-Host "  ✓ Added member: $Member" -ForegroundColor Green
+            Write-Host "  [OK] Added member: $Member" -ForegroundColor Green
         } catch {
-            Write-Host "  ⚠ Failed to add $Member: $_" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Failed to add $Member: $_" -ForegroundColor Yellow
         }
     }
     ` : ''}
@@ -1072,14 +1072,14 @@ if (-not (Test-Path $CsvPath)) {
 try {
     # Verify group exists
     $Group = Get-DistributionGroup -Identity $GroupIdentity -ErrorAction Stop
-    Write-Host "✓ Group: $($Group.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group: $($Group.DisplayName)" -ForegroundColor Green
     
     # Import members
     $Members = Import-Csv -Path $CsvPath
-    Write-Host "✓ Loaded $($Members.Count) members from CSV" -ForegroundColor Green
+    Write-Host "[SUCCESS] Loaded $($Members.Count) members from CSV" -ForegroundColor Green
     
     if ($TestMode) {
-        Write-Host "⚠ TEST MODE - No changes will be made" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No changes will be made" -ForegroundColor Yellow
         Write-Host ""
     }
     
@@ -1094,15 +1094,15 @@ try {
             } else {
                 if ($Action -eq "Add") {
                     Add-DistributionGroupMember -Identity $GroupIdentity -Member $Member.Email -ErrorAction Stop
-                    Write-Host "  ✓ Added: $($Member.Email)" -ForegroundColor Green
+                    Write-Host "  [OK] Added: $($Member.Email)" -ForegroundColor Green
                 } else {
                     Remove-DistributionGroupMember -Identity $GroupIdentity -Member $Member.Email -Confirm:\$false -ErrorAction Stop
-                    Write-Host "  ✓ Removed: $($Member.Email)" -ForegroundColor Green
+                    Write-Host "  [OK] Removed: $($Member.Email)" -ForegroundColor Green
                 }
                 $SuccessCount++
             }
         } catch {
-            Write-Host "  ✗ Failed for $($Member.Email): $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed for $($Member.Email): $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -1179,7 +1179,7 @@ try {
     $Groups = Get-DistributionGroup -ResultSize Unlimited
     `}
     
-    Write-Host "✓ Found $($Groups.Count) groups" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Groups.Count) groups" -ForegroundColor Green
     
     foreach ($Group in $Groups) {
         Write-Host "Processing: $($Group.DisplayName)" -ForegroundColor Gray
@@ -1200,7 +1200,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Report generated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report generated successfully!" -ForegroundColor Green
     Write-Host "  Total Memberships: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -1280,9 +1280,9 @@ try {
     $Existing = Get-TransportRule -Identity $RuleName -ErrorAction SilentlyContinue
     
     if ($Existing) {
-        Write-Host "⚠ Rule already exists. Updating..." -ForegroundColor Yellow
+        Write-Host "[WARNING] Rule already exists. Updating..." -ForegroundColor Yellow
         Set-TransportRule -Identity $RuleName -Enabled $Enabled
-        Write-Host "✓ Transport rule updated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Transport rule updated" -ForegroundColor Green
     } else {
         # Create rule based on action type
         $params = @{
@@ -1306,7 +1306,7 @@ try {
         }
         
         New-TransportRule @params
-        Write-Host "✓ Transport rule created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Transport rule created" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -1402,7 +1402,7 @@ try {
     }
     
     New-TransportRule @params
-    Write-Host "✓ Transport rule created: $RuleName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Transport rule created: $RuleName" -ForegroundColor Green
     Write-Host "  Domains: $($Domains.Count)" -ForegroundColor Gray
     Write-Host "  Action: $Action" -ForegroundColor Gray
     
@@ -1492,11 +1492,11 @@ try {
     
     if ($Messages) {
         $Messages | Export-Csv -Path $OutputPath -NoTypeInformation
-        Write-Host "✓ Message trace completed!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Message trace completed!" -ForegroundColor Green
         Write-Host "  Messages Found: $($Messages.Count)" -ForegroundColor Gray
         Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     } else {
-        Write-Host "⚠ No messages found matching criteria" -ForegroundColor Yellow
+        Write-Host "[WARNING] No messages found matching criteria" -ForegroundColor Yellow
     }
     
 } catch {
@@ -1571,7 +1571,7 @@ try {
     # Check if mailbox exists
     $Existing = Get-EXOMailbox -Identity $EmailAddress -ErrorAction SilentlyContinue
     if ($Existing) {
-        Write-Host "⚠ Mailbox already exists: $EmailAddress" -ForegroundColor Yellow
+        Write-Host "[WARNING] Mailbox already exists: $EmailAddress" -ForegroundColor Yellow
         exit 0
     }
     
@@ -1584,7 +1584,7 @@ try {
         New-Mailbox -Equipment -Name $Name -PrimarySmtpAddress $EmailAddress
     }
     
-    Write-Host "✓ $MailboxType mailbox created" -ForegroundColor Green
+    Write-Host "[SUCCESS] $MailboxType mailbox created" -ForegroundColor Green
     
     # Wait for provisioning
     Start-Sleep -Seconds 10
@@ -1594,9 +1594,9 @@ try {
     foreach ($Member in $Members) {
         try {
             Add-MailboxPermission -Identity $EmailAddress -User $Member -AccessRights FullAccess -AutoMapping \$true
-            Write-Host "  ✓ Added $Member with Full Access" -ForegroundColor Green
+            Write-Host "  [OK] Added $Member with Full Access" -ForegroundColor Green
         } catch {
-            Write-Host "  ⚠ Failed to add $Member: $_" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Failed to add $Member: $_" -ForegroundColor Yellow
         }
     }
     ` : ''}
@@ -1674,11 +1674,11 @@ try {
         ${mailboxIdentity ? `
         # Enable for specific mailbox
         Set-Mailbox -Identity $MailboxIdentity -AuditEnabled \$true
-        Write-Host "✓ Auditing enabled for: $MailboxIdentity" -ForegroundColor Green
+        Write-Host "[SUCCESS] Auditing enabled for: $MailboxIdentity" -ForegroundColor Green
         ` : `
         # Enable for all mailboxes
         Get-EXOMailbox -ResultSize Unlimited | Set-Mailbox -AuditEnabled \$true
-        Write-Host "✓ Auditing enabled for all mailboxes" -ForegroundColor Green
+        Write-Host "[SUCCESS] Auditing enabled for all mailboxes" -ForegroundColor Green
         `}
     } else {
         # Export audit logs
@@ -1689,11 +1689,11 @@ try {
         
         if ($Logs) {
             $Logs | Export-Csv -Path $OutputPath -NoTypeInformation
-            Write-Host "✓ Audit logs exported" -ForegroundColor Green
+            Write-Host "[SUCCESS] Audit logs exported" -ForegroundColor Green
             Write-Host "  Records: $($Logs.Count)" -ForegroundColor Gray
             Write-Host "  Output: $OutputPath" -ForegroundColor Gray
         } else {
-            Write-Host "⚠ No audit logs found" -ForegroundColor Yellow
+            Write-Host "[WARNING] No audit logs found" -ForegroundColor Yellow
         }
     }
     
@@ -1783,7 +1783,7 @@ try {
                 
                 if ($Action -eq "ConvertToShared" -and $Mailbox.RecipientTypeDetails -eq "UserMailbox") {
                     Set-Mailbox -Identity $Mailbox.PrimarySmtpAddress -Type Shared
-                    Write-Host "  ✓ Converted to Shared: $($Mailbox.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [OK] Converted to Shared: $($Mailbox.DisplayName)" -ForegroundColor Green
                 }
             }
         }
@@ -1792,7 +1792,7 @@ try {
     # Export report
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Inactive mailbox report generated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inactive mailbox report generated!" -ForegroundColor Green
     Write-Host "  Inactive Mailboxes: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -1873,7 +1873,7 @@ try {
                 
                 if ($Action -eq "DisableForwarding") {
                     Set-Mailbox -Identity $Mailbox.PrimarySmtpAddress -ForwardingSmtpAddress \$null
-                    Write-Host "  ✓ Disabled forwarding for: $($Mailbox.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [OK] Disabled forwarding for: $($Mailbox.DisplayName)" -ForegroundColor Green
                 } else {
                     Write-Host "  Found: $($Mailbox.DisplayName) -> $ForwardAddress" -ForegroundColor Yellow
                 }
@@ -1884,7 +1884,7 @@ try {
     # Export report
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ External forwarding scan completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] External forwarding scan completed!" -ForegroundColor Green
     Write-Host "  Forwarding Rules Found: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -1958,7 +1958,7 @@ try {
     $Mailboxes = Get-EXOMailbox -ResultSize Unlimited
     `}
     
-    Write-Host "✓ Found $($Mailboxes.Count) mailboxes" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Mailboxes.Count) mailboxes" -ForegroundColor Green
     
     foreach ($Mailbox in $Mailboxes) {
         Write-Host "Processing: $($Mailbox.PrimarySmtpAddress)" -ForegroundColor Gray
@@ -1985,7 +1985,7 @@ try {
     # Export to CSV
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Report generated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report generated successfully!" -ForegroundColor Green
     Write-Host "  Mailboxes Processed: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -2074,7 +2074,7 @@ try {
     
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Distribution list members exported!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Distribution list members exported!" -ForegroundColor Green
     Write-Host "  Groups Processed: $($Groups.Count)" -ForegroundColor Gray
     Write-Host "  Total Members: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
@@ -2152,7 +2152,7 @@ try {
     
     New-InboundConnector @ConnectorParams
     
-    Write-Host "✓ Inbound connector created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inbound connector created successfully" -ForegroundColor Green
     Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
     Write-Host "  TLS Required: ${requireTLS}" -ForegroundColor Gray
     ${senderDomains.length > 0 ? `Write-Host "  Sender Domains: ${senderDomains.join(', ')}" -ForegroundColor Gray` : ''}
@@ -2211,11 +2211,11 @@ try {
     
     New-AcceptedDomain -Name "${domainName}" -DomainName "${domainName}" -DomainType ${domainType}
     
-    Write-Host "✓ Accepted domain added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Accepted domain added successfully" -ForegroundColor Green
     Write-Host "  Domain: ${domainName}" -ForegroundColor Gray
     Write-Host "  Type: ${domainType}" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠️ Next steps:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Next steps:" -ForegroundColor Yellow
     Write-Host "  1. Update DNS MX records to point to Exchange Online" -ForegroundColor Gray
     Write-Host "  2. Verify mail flow with Test-MxRecordCache" -ForegroundColor Gray
     
@@ -2292,7 +2292,7 @@ try {
     
     $Batch = New-MigrationBatch @BatchParams
     
-    Write-Host "✓ Migration batch created and started" -ForegroundColor Green
+    Write-Host "[SUCCESS] Migration batch created and started" -ForegroundColor Green
     Write-Host "  Batch Name: ${batchName}" -ForegroundColor Gray
     Write-Host "  Endpoint: ${endpoint}" -ForegroundColor Gray
     Write-Host "  Target Domain: ${targetDomain}" -ForegroundColor Gray
@@ -2362,7 +2362,7 @@ try {
     
     $Mailbox = Get-Mailbox -Identity "${userEmail}"
     
-    Write-Host "✓ Archive enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Archive enabled successfully" -ForegroundColor Green
     Write-Host "  User: ${userEmail}" -ForegroundColor Gray
     Write-Host "  Archive Status: $($Mailbox.ArchiveStatus)" -ForegroundColor Gray
     Write-Host ""
@@ -2434,7 +2434,7 @@ try {
     }
     ` : ''}
     
-    Write-Host "✓ eDiscovery case created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] eDiscovery case created successfully" -ForegroundColor Green
     Write-Host "  Case Name: ${caseName}" -ForegroundColor Gray
     Write-Host "  Case ID: $($Case.Identity)" -ForegroundColor Gray
     Write-Host ""
@@ -2507,9 +2507,9 @@ try {
     $CnameRecords = $DkimConfig | Select-Object -ExpandProperty Selector1CNAME, Selector2CNAME
     
     Write-Host ""
-    Write-Host "✓ DKIM configuration created" -ForegroundColor Green
+    Write-Host "[SUCCESS] DKIM configuration created" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠️ IMPORTANT: Add these CNAME records to your DNS:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ IMPORTANT: Add these CNAME records to your DNS:" -ForegroundColor Yellow
     Write-Host "  Selector 1 CNAME:" -ForegroundColor Cyan
     Write-Host "    $($DkimConfig.Selector1CNAME)" -ForegroundColor Gray
     Write-Host ""
@@ -2604,7 +2604,7 @@ try {
     
     New-DlpComplianceRule @RuleParams
     
-    Write-Host "✓ DLP policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DLP policy created successfully" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Gray
     Write-Host "  Protects: ${sensitiveType}" -ForegroundColor Gray
     Write-Host "  Action: ${action}" -ForegroundColor Gray
@@ -2671,10 +2671,10 @@ try {
     
     if ($ExistingRule) {
         Set-ActiveSyncDeviceAccessRule -Identity $ExistingRule.Identity -AccessLevel ${accessLevel}
-        Write-Host "✓ Updated existing rule" -ForegroundColor Green
+        Write-Host "[SUCCESS] Updated existing rule" -ForegroundColor Green
     } else {
         New-ActiveSyncDeviceAccessRule -Characteristic DeviceType -QueryString "${deviceFamily}" -AccessLevel ${accessLevel}
-        Write-Host "✓ Created new access rule" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created new access rule" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -2762,13 +2762,13 @@ try {
             $RuleParams.RejectMessageEnhancedStatusCode = "5.7.1"
         }
         "RedirectMessage" {
-            Write-Host "⚠️ Redirect requires -RedirectMessageTo parameter - add manually" -ForegroundColor Yellow
+            Write-Host "[WARNING]️ Redirect requires -RedirectMessageTo parameter - add manually" -ForegroundColor Yellow
         }
     }
     
     New-TransportRule @RuleParams
     
-    Write-Host "✓ Transport rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Transport rule created successfully" -ForegroundColor Green
     Write-Host "  Rule: ${ruleName}" -ForegroundColor Gray
     Write-Host "  Type: ${ruleType}" -ForegroundColor Gray
     ${senderDomain ? `Write-Host "  Scope: ${senderDomain}" -ForegroundColor Gray` : ''}
@@ -2834,10 +2834,10 @@ try {
     
     if ($RemoteDomain) {
         Set-RemoteDomain -Identity $RemoteDomain.Identity -AllowedOOFType ${allowOOF ? 'External' : 'None'} -DeliveryReportEnabled ${psDR} -AutoReplyEnabled ${psAuto}
-        Write-Host "✓ Updated existing remote domain" -ForegroundColor Green
+        Write-Host "[SUCCESS] Updated existing remote domain" -ForegroundColor Green
     } else {
         New-RemoteDomain -Name "${domainName}" -DomainName "${domainName}" -AllowedOOFType ${allowOOF ? 'External' : 'None'} -DeliveryReportEnabled ${psDR} -AutoReplyEnabled ${psAuto}
-        Write-Host "✓ Created new remote domain" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created new remote domain" -ForegroundColor Green
     }
     
     Write-Host "  Domain: ${domainName}" -ForegroundColor Gray
@@ -2911,7 +2911,7 @@ try {
     
     Set-Mailbox @SetParams
     
-    Write-Host "✓ Litigation hold enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Litigation hold enabled successfully" -ForegroundColor Green
     Write-Host "  User: ${userEmail}" -ForegroundColor Gray
     ${holdDuration ? `Write-Host "  Duration: ${holdDuration} days" -ForegroundColor Gray` : `Write-Host "  Duration: Indefinite" -ForegroundColor Gray`}
     Write-Host "  Comment: ${holdComment}" -ForegroundColor Gray
@@ -2972,7 +2972,7 @@ try {
     
     Set-MailboxAuditBypassAssociation -Identity "${accountEmail}" -AuditBypassEnabled $${enable ? 'true' : 'false'}
     
-    Write-Host "✓ Audit bypass ${enable ? 'enabled' : 'disabled'} successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit bypass ${enable ? 'enabled' : 'disabled'} successfully" -ForegroundColor Green
     Write-Host "  Account: ${accountEmail}" -ForegroundColor Gray
     
     $BypassConfig = Get-MailboxAuditBypassAssociation -Identity "${accountEmail}"
@@ -3047,7 +3047,7 @@ try {
     
     New-JournalRule @RuleParams
     
-    Write-Host "✓ Journaling rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Journaling rule created successfully" -ForegroundColor Green
     Write-Host "  Rule: ${ruleName}" -ForegroundColor Gray
     Write-Host "  Journal Mailbox: ${journalEmail}" -ForegroundColor Gray
     Write-Host "  Scope: ${scope}" -ForegroundColor Gray
@@ -3121,7 +3121,7 @@ try {
         -RequireTls $${requireTLS ? 'true' : 'false'} \`
         -Enabled \\$true`}
     
-    Write-Host "✓ ${connectorType} connector created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] ${connectorType} connector created successfully" -ForegroundColor Green
     Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
     ${connectorType === 'Outbound' ? `Write-Host "  Smart Host: ${smartHost}" -ForegroundColor Gray` : ''}
     Write-Host "  TLS Required: ${requireTLS}" -ForegroundColor Gray
@@ -3236,7 +3236,7 @@ try {
     
     $Results | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Audit report generated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit report generated successfully" -ForegroundColor Green
     Write-Host "  Mailboxes Audited: $($Mailboxes.Count)" -ForegroundColor Gray
     Write-Host "  Permissions Found: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Report Location: ${exportPath}" -ForegroundColor Gray
@@ -3294,7 +3294,7 @@ try {
     ${targetUser ? 
     `Set-FocusedInbox -Identity "${targetUser}" -FocusedInboxOn $${enable ? 'true' : 'false'}
     
-    Write-Host "✓ Focused Inbox ${enable ? 'enabled' : 'disabled'} for user" -ForegroundColor Green
+    Write-Host "[SUCCESS] Focused Inbox ${enable ? 'enabled' : 'disabled'} for user" -ForegroundColor Green
     Write-Host "  User: ${targetUser}" -ForegroundColor Gray` :
     `$AllMailboxes = Get-EXOMailbox -ResultSize Unlimited
     
@@ -3304,7 +3304,7 @@ try {
         Set-FocusedInbox -Identity $Mailbox.UserPrincipalName -FocusedInboxOn $${enable ? 'true' : 'false'}
     }
     
-    Write-Host "✓ Focused Inbox ${enable ? 'enabled' : 'disabled'} organization-wide" -ForegroundColor Green
+    Write-Host "[SUCCESS] Focused Inbox ${enable ? 'enabled' : 'disabled'} organization-wide" -ForegroundColor Green
     Write-Host "  Mailboxes Updated: $($AllMailboxes.Count)" -ForegroundColor Gray`}
     
 } catch {
@@ -3370,7 +3370,7 @@ try {
         -DateFormat "${dateFormat}" \`
         -TimeFormat "h:mm tt"
     
-    Write-Host "✓ Regional settings configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Regional settings configured successfully" -ForegroundColor Green
     Write-Host "  User: ${userEmail}" -ForegroundColor Gray
     Write-Host "  Language: ${language}" -ForegroundColor Gray
     Write-Host "  Timezone: ${timezone}" -ForegroundColor Gray
@@ -3450,7 +3450,7 @@ try {
         -EnforceSchedulingHorizon \\$true \`
         -ScheduleOnlyDuringWorkHours \\$false
     
-    Write-Host "✓ Calendar processing configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Calendar processing configured successfully" -ForegroundColor Green
     Write-Host "  Room/Resource: ${roomEmail}" -ForegroundColor Gray
     Write-Host "  Auto-Accept: ${autoAccept}" -ForegroundColor Gray
     Write-Host "  Max Duration: ${maxDuration} minutes" -ForegroundColor Gray
@@ -3537,20 +3537,20 @@ try {
     
     if ($Policy) {
         Set-AuthenticationPolicy -Identity "${policyName}" @PolicyParams
-        Write-Host "✓ Updated existing authentication policy" -ForegroundColor Green
+        Write-Host "[SUCCESS] Updated existing authentication policy" -ForegroundColor Green
     } else {
         New-AuthenticationPolicy -Name "${policyName}" @PolicyParams
-        Write-Host "✓ Created new authentication policy" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created new authentication policy" -ForegroundColor Green
     }
     
     ${targetUser ? `
     # Apply policy to user
     Set-User -Identity "${targetUser}" -AuthenticationPolicy "${policyName}"
-    Write-Host "✓ Policy applied to user: ${targetUser}" -ForegroundColor Green` : 
+    Write-Host "[SUCCESS] Policy applied to user: ${targetUser}" -ForegroundColor Green` : 
     `
     # Set as organization default
     Set-OrganizationConfig -DefaultAuthenticationPolicy "${policyName}"
-    Write-Host "✓ Policy set as organization default" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Policy set as organization default" -ForegroundColor Green`}
     
     Write-Host "  Policy: ${policyName}" -ForegroundColor Gray
     Write-Host "  Basic Auth Allowed: ${allowBasic}" -ForegroundColor Gray
@@ -3634,15 +3634,15 @@ try {
             
             if ($Existing) {
                 Set-MailboxFolderPermission -Identity $FolderPath -User $Delegate -AccessRights $Rights
-                Write-Host "✓ Updated: $User" -ForegroundColor Green
+                Write-Host "[SUCCESS] Updated: $User" -ForegroundColor Green
             } else {
                 Add-MailboxFolderPermission -Identity $FolderPath -User $Delegate -AccessRights $Rights
-                Write-Host "✓ Added: $User" -ForegroundColor Green
+                Write-Host "[SUCCESS] Added: $User" -ForegroundColor Green
             }
             
             $SuccessCount++
         } catch {
-            Write-Host "✗ Failed: $User - $_" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $User - $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -3724,22 +3724,22 @@ try {
     $Existing = Get-RetentionPolicy -Identity $PolicyName -ErrorAction SilentlyContinue
     
     if ($Existing) {
-        Write-Host "⚠ Policy already exists: $PolicyName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Policy already exists: $PolicyName" -ForegroundColor Yellow
         Write-Host "Updating existing policy..." -ForegroundColor Cyan
         
         # Update retention policy links
         Set-RetentionPolicy -Identity $PolicyName -RetentionPolicyTagLinks $RetentionTags
-        Write-Host "✓ Updated retention policy tags" -ForegroundColor Green
+        Write-Host "[SUCCESS] Updated retention policy tags" -ForegroundColor Green
     } else {
         # Create new retention policy
         New-RetentionPolicy -Name $PolicyName -RetentionPolicyTagLinks $RetentionTags
-        Write-Host "✓ Created retention policy: $PolicyName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created retention policy: $PolicyName" -ForegroundColor Green
     }
     
     # Set as default if requested
     if ($SetAsDefault) {
         Set-RetentionPolicy -Identity $PolicyName -IsDefault $true
-        Write-Host "✓ Set as default retention policy" -ForegroundColor Green
+        Write-Host "[SUCCESS] Set as default retention policy" -ForegroundColor Green
         Write-Host "  All new mailboxes will receive this policy automatically" -ForegroundColor Gray
     }
     
@@ -3826,7 +3826,7 @@ try {
         exit 1
     }
     
-    Write-Host "✓ Verified retention policy exists" -ForegroundColor Green
+    Write-Host "[SUCCESS] Verified retention policy exists" -ForegroundColor Green
     Write-Host ""
     
     $SuccessCount = 0
@@ -3835,7 +3835,7 @@ try {
     foreach ($User in $Users) {
         try {
             Set-Mailbox -Identity $User -RetentionPolicy $PolicyName -ErrorAction Stop
-            Write-Host "✓ Applied to: $User" -ForegroundColor Green
+            Write-Host "[SUCCESS] Applied to: $User" -ForegroundColor Green
             
             # Force managed folder assistant if requested
             if ($ForceAssistant) {
@@ -3845,7 +3845,7 @@ try {
             
             $SuccessCount++
         } catch {
-            Write-Host "✗ Failed: $User - $_" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $User - $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -3946,7 +3946,7 @@ try {
     $Existing = Get-RetentionPolicyTag -Identity $TagName -ErrorAction SilentlyContinue
     
     if ($Existing) {
-        Write-Host "⚠ Retention tag already exists: $TagName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Retention tag already exists: $TagName" -ForegroundColor Yellow
         Write-Host "Updating existing tag..." -ForegroundColor Cyan
         
         Set-RetentionPolicyTag -Identity $TagName \`
@@ -3954,7 +3954,7 @@ try {
             -AgeLimitForRetention $AgeLimitDays \`
             -RetentionEnabled $Enabled
         
-        Write-Host "✓ Updated retention tag" -ForegroundColor Green
+        Write-Host "[SUCCESS] Updated retention tag" -ForegroundColor Green
     } else {
         # Create new retention tag
         New-RetentionPolicyTag -Name $TagName \`
@@ -3963,7 +3963,7 @@ try {
             -AgeLimitForRetention $AgeLimitDays \`
             -RetentionEnabled $Enabled
         
-        Write-Host "✓ Created retention tag: $TagName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created retention tag: $TagName" -ForegroundColor Green
     }
     
     # Display tag details
@@ -4062,7 +4062,7 @@ try {
             $Mailbox = Get-EXOMailbox -Identity $User -Properties LitigationHoldEnabled, LitigationHoldDuration, LitigationHoldDate -ErrorAction Stop
             
             if ($Mailbox.LitigationHoldEnabled) {
-                Write-Host "⚠ $User - Already on litigation hold" -ForegroundColor Yellow
+                Write-Host "[WARNING] $User - Already on litigation hold" -ForegroundColor Yellow
                 Write-Host "  Existing hold date: $($Mailbox.LitigationHoldDate)" -ForegroundColor Gray
                 ${holdDuration ? `Write-Host "  Updating hold duration to $HoldDuration days..." -ForegroundColor Cyan` : ''}
             } else {
@@ -4088,7 +4088,7 @@ try {
             # Enable litigation hold
             Set-Mailbox @HoldParams
             
-            Write-Host "✓ Litigation hold enabled: $User" -ForegroundColor Green
+            Write-Host "[SUCCESS] Litigation hold enabled: $User" -ForegroundColor Green
             ${holdDuration ? `Write-Host "  Duration: $HoldDuration days" -ForegroundColor Gray` : `Write-Host "  Duration: Unlimited" -ForegroundColor Gray`}
             
             # Send notification if requested
@@ -4098,7 +4098,7 @@ try {
             
             $SuccessCount++
         } catch {
-            Write-Host "✗ Failed: $User - $_" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $User - $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -4269,10 +4269,10 @@ try {
                 }
                 
                 Release-QuarantineMessage @ReleaseParams
-                Write-Host "✓ Released: $MsgId" -ForegroundColor Green
+                Write-Host "[SUCCESS] Released: $MsgId" -ForegroundColor Green
                 $SuccessCount++
             } catch {
-                Write-Host "✗ Failed to release $MsgId : $_" -ForegroundColor Red
+                Write-Host "[FAILED] Failed to release $MsgId : $_" -ForegroundColor Red
             }
         }
         
@@ -4291,10 +4291,10 @@ try {
         foreach ($MsgId in $MessageIds) {
             try {
                 Delete-QuarantineMessage -Identity $MsgId -Confirm:\$false
-                Write-Host "✓ Deleted: $MsgId" -ForegroundColor Green
+                Write-Host "[SUCCESS] Deleted: $MsgId" -ForegroundColor Green
                 $SuccessCount++
             } catch {
-                Write-Host "✗ Failed to delete $MsgId : $_" -ForegroundColor Red
+                Write-Host "[FAILED] Failed to delete $MsgId : $_" -ForegroundColor Red
             }
         }
         
@@ -4379,7 +4379,7 @@ try {
             $DkimConfig = Get-DkimSigningConfig -Identity $Domain -ErrorAction SilentlyContinue
             
             if (-not $DkimConfig) {
-                Write-Host "⚠ DKIM not configured for $Domain" -ForegroundColor Yellow
+                Write-Host "[WARNING] DKIM not configured for $Domain" -ForegroundColor Yellow
                 Write-Host ""
                 Write-Host "To enable DKIM:" -ForegroundColor Cyan
                 Write-Host "1. Run this script with 'EnableDKIM' action to create config" -ForegroundColor Gray
@@ -4400,9 +4400,9 @@ try {
                 Write-Host ""
                 
                 if ($DkimConfig.Enabled) {
-                    Write-Host "✓ DKIM signing is ACTIVE" -ForegroundColor Green
+                    Write-Host "[SUCCESS] DKIM signing is ACTIVE" -ForegroundColor Green
                 } else {
-                    Write-Host "⚠ DKIM is configured but NOT enabled" -ForegroundColor Yellow
+                    Write-Host "[WARNING] DKIM is configured but NOT enabled" -ForegroundColor Yellow
                     Write-Host "  Add CNAME records above to DNS, wait for propagation, then enable" -ForegroundColor Gray
                 }
             }
@@ -4417,7 +4417,7 @@ try {
             if (-not $DkimConfig) {
                 Write-Host "Creating new DKIM configuration..." -ForegroundColor Cyan
                 $DkimConfig = New-DkimSigningConfig -DomainName $Domain -Enabled \$false
-                Write-Host "✓ DKIM configuration created" -ForegroundColor Green
+                Write-Host "[SUCCESS] DKIM configuration created" -ForegroundColor Green
                 Write-Host ""
                 Write-Host "CNAME Records to add to DNS:" -ForegroundColor Yellow
                 Write-Host "  Selector1: selector1._domainkey.$Domain" -ForegroundColor Gray
@@ -4425,13 +4425,13 @@ try {
                 Write-Host "  Selector2: selector2._domainkey.$Domain" -ForegroundColor Gray
                 Write-Host "    → $($DkimConfig.Selector2CNAME)" -ForegroundColor White
                 Write-Host ""
-                Write-Host "⚠ Add these CNAME records to DNS, wait 24-48 hours, then run EnableDKIM again" -ForegroundColor Yellow
+                Write-Host "[WARNING] Add these CNAME records to DNS, wait 24-48 hours, then run EnableDKIM again" -ForegroundColor Yellow
             } else {
                 try {
                     Set-DkimSigningConfig -Identity $Domain -Enabled \$true
-                    Write-Host "✓ DKIM signing enabled for $Domain" -ForegroundColor Green
+                    Write-Host "[SUCCESS] DKIM signing enabled for $Domain" -ForegroundColor Green
                 } catch {
-                    Write-Host "✗ Failed to enable DKIM" -ForegroundColor Red
+                    Write-Host "[FAILED] Failed to enable DKIM" -ForegroundColor Red
                     Write-Host "  Ensure CNAME records are in DNS and propagated" -ForegroundColor Yellow
                     Write-Host "  Error: $_" -ForegroundColor Red
                 }
@@ -4441,8 +4441,8 @@ try {
         "DisableDKIM" {
             Write-Host "Disabling DKIM signing..." -ForegroundColor Cyan
             Set-DkimSigningConfig -Identity $Domain -Enabled \$false
-            Write-Host "✓ DKIM signing disabled for $Domain" -ForegroundColor Green
-            Write-Host "⚠ Outgoing emails will no longer be DKIM signed" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] DKIM signing disabled for $Domain" -ForegroundColor Green
+            Write-Host "[WARNING] Outgoing emails will no longer be DKIM signed" -ForegroundColor Yellow
         }
         
         "GetDMARCInfo" {
@@ -4562,7 +4562,7 @@ try {
     # Check if within real-time range (10 days)
     $DaysDiff = ($EndDate - $StartDate).Days
     if ($DaysDiff -gt 10) {
-        Write-Host "⚠ Date range > 10 days. Using historical message trace (may take time)..." -ForegroundColor Yellow
+        Write-Host "[WARNING] Date range > 10 days. Using historical message trace (may take time)..." -ForegroundColor Yellow
     }
     
     # Build trace parameters
@@ -4587,7 +4587,7 @@ try {
     if ($Messages.Count -eq 0) {
         Write-Host "No messages found matching criteria." -ForegroundColor Yellow
     } else {
-        Write-Host "✓ Found $($Messages.Count) messages" -ForegroundColor Green
+        Write-Host "[SUCCESS] Found $($Messages.Count) messages" -ForegroundColor Green
         Write-Host ""
         
         # Group by status for summary
@@ -4629,7 +4629,7 @@ try {
         if ($ExportPath) {
             $Messages | Export-Csv -Path $ExportPath -NoTypeInformation
             Write-Host ""
-            Write-Host "✓ Exported $($Messages.Count) messages to: $ExportPath" -ForegroundColor Green
+            Write-Host "[SUCCESS] Exported $($Messages.Count) messages to: $ExportPath" -ForegroundColor Green
         }
     }
     
@@ -4751,12 +4751,12 @@ try {
     }
     
     if ($AllResults.Count -eq 0) {
-        Write-Host "⚠ No audit records found for the specified criteria." -ForegroundColor Yellow
+        Write-Host "[WARNING] No audit records found for the specified criteria." -ForegroundColor Yellow
         Write-Host "  Ensure mailbox auditing is enabled for target users." -ForegroundColor Gray
         exit 0
     }
     
-    Write-Host "✓ Found $($AllResults.Count) audit records" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($AllResults.Count) audit records" -ForegroundColor Green
     Write-Host ""
     
     # Parse and format results
@@ -4796,7 +4796,7 @@ try {
     # Export to CSV
     $ParsedResults | Export-Csv -Path $ExportPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Exported $($ParsedResults.Count) records to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported $($ParsedResults.Count) records to: $ExportPath" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "Important Notes:" -ForegroundColor Yellow
@@ -4897,7 +4897,7 @@ try {
             }
             
             if (-not $Policy) {
-                Write-Host "⚠ Policy not found: $PolicyName" -ForegroundColor Yellow
+                Write-Host "[WARNING] Policy not found: $PolicyName" -ForegroundColor Yellow
                 Write-Host ""
                 Write-Host "Available policies:" -ForegroundColor Cyan
                 Get-HostedContentFilterPolicy | ForEach-Object {
@@ -4942,9 +4942,9 @@ try {
             
             New-HostedContentFilterPolicy @PolicyParams
             
-            Write-Host "✓ Policy created: $PolicyName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Policy created: $PolicyName" -ForegroundColor Green
             Write-Host ""
-            Write-Host "⚠ Next Steps:" -ForegroundColor Yellow
+            Write-Host "[WARNING] Next Steps:" -ForegroundColor Yellow
             Write-Host "  1. Create a filter rule to apply this policy to users:" -ForegroundColor Gray
             Write-Host "     New-HostedContentFilterRule -Name '$PolicyName Rule' \`" -ForegroundColor Gray
             Write-Host "         -HostedContentFilterPolicy '$PolicyName' \`" -ForegroundColor Gray
@@ -4973,7 +4973,7 @@ try {
             
             Set-HostedContentFilterPolicy @SetParams
             
-            Write-Host "✓ Policy updated: $PolicyName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Policy updated: $PolicyName" -ForegroundColor Green
             Write-Host ""
             Write-Host "Settings Applied:" -ForegroundColor Cyan
             Write-Host "  Spam Action: $SpamAction" -ForegroundColor Gray
@@ -5111,10 +5111,10 @@ if (-not \$OrgRel) {
         -DomainNames "$SourceTenant" \`
         -MailboxMoveEnabled \$true \`
         -MailboxMoveCapability Inbound
-    Write-Host "✓ Organization relationship created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Organization relationship created" -ForegroundColor Green
 } else {
     Set-OrganizationRelationship -Identity \$OrgRel.Identity -MailboxMoveEnabled \$true -MailboxMoveCapability Inbound
-    Write-Host "✓ Organization relationship updated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Organization relationship updated" -ForegroundColor Green
 }
 "@ -ForegroundColor White
 Write-Host ""
@@ -5131,7 +5131,7 @@ New-MigrationEndpoint -Name "CrossTenant-$SourceTenant" \`
     -Credentials \$Credential \`
     -ExchangeRemoteMove \`
     -ApplicationId "$ApplicationId"
-Write-Host "✓ Migration endpoint created" -ForegroundColor Green
+Write-Host "[SUCCESS] Migration endpoint created" -ForegroundColor Green
 "@ -ForegroundColor White
 Write-Host ""
 #endregion
@@ -5150,7 +5150,7 @@ New-MigrationBatch -Name "$batchName" \`
     -SourceEndpoint "CrossTenant-$SourceTenant" \`
     -CSVData ([System.IO.File]::ReadAllBytes("$usersCsv")) \`
     -TargetDeliveryDomain "$TargetTenant"
-Write-Host "✓ Migration batch created" -ForegroundColor Green
+Write-Host "[SUCCESS] Migration batch created" -ForegroundColor Green
 "@ -ForegroundColor White` : `
 Write-Host @"
 # Create CSV file with columns: EmailAddress (source), TargetAddress (target UPN)

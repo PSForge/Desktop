@@ -78,7 +78,7 @@ $Logs = Get-WinEvent -ListLog * -ErrorAction SilentlyContinue | Where-Object {
 
 $Logs | Format-Table -AutoSize
 ${exportPath ? `$Logs | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -128,7 +128,7 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
 
 $Baseline = Get-WinEvent -ListLog * | Select-Object LogName, IsEnabled, MaximumSizeInBytes, LogMode, SecurityDescriptor | ConvertTo-Json -Depth 3
 $Baseline | Out-File "${baselinePath}" -Encoding UTF8
-Write-Host "✓ Baseline exported to ${baselinePath}" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Baseline exported to ${baselinePath}" -ForegroundColor Green`;
     }
   },
 
@@ -189,7 +189,7 @@ $Log.IsEnabled = ${action === 'Enable' ? '$true' : '$false'}
 ${maxSize ? `$Log.MaximumSizeInBytes = ${maxSize} * 1MB` : ''}
 $Log.SaveChanges()
 
-Write-Host "✓ Log ${action.toLowerCase()}d: $LogName" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Log ${action.toLowerCase()}d: $LogName" -ForegroundColor Green`;
     }
   },
 
@@ -257,7 +257,7 @@ foreach ($LogName in $Logs) {
             $Log.LogMode = 'AutoBackup'
         }
         $Log.SaveChanges()
-        Write-Host "✓ $LogName\`: $($MaxSize/1MB)MB, $Mode" -ForegroundColor Green
+        Write-Host "[SUCCESS] $LogName\`: $($MaxSize/1MB)MB, $Mode" -ForegroundColor Green
     }
 }`;
     }
@@ -326,7 +326,7 @@ foreach ($LogName in $Logs) {
     ${compress ? 'Compress-Archive -Path $BackupFile -DestinationPath "$BackupFile.zip" -Force\n    Remove-Item $BackupFile' : ''}
     wevtutil cl $LogName
     
-    Write-Host "✓ Cleared $LogName (backed up)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cleared $LogName (backed up)" -ForegroundColor Green
 }`;
     }
   },
@@ -397,7 +397,7 @@ $Events = Get-WinEvent -FilterHashtable $Filter -ErrorAction SilentlyContinue
 $Events | Select-Object TimeCreated, Id, LevelDisplayName, Message | Format-Table -Wrap
 
 ${exportPath ? `$Events | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -459,7 +459,7 @@ $Events = Get-WinEvent -FilterHashtable @{LogName = $LogName; StartTime = $Start
 $TopEvents = $Events | Group-Object Id | Sort-Object Count -Descending | Select-Object -First ${topCount} @{N='EventID'; E={$_.Name}}, Count, @{N='Sample'; E={$_.Group[0].Message}}
 
 $TopEvents | Format-Table -AutoSize
-Write-Host "✓ Top ${topCount} events from $LogName (last ${days} days)" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Top ${topCount} events from $LogName (last ${days} days)" -ForegroundColor Green`;
     }
   },
 
@@ -530,7 +530,7 @@ $Events = Get-WinEvent -FilterHashtable @{LogName='Security'; ID=$EventIDs; Star
 $Events | Select-Object TimeCreated, Id, Message | Format-Table -Wrap
 
 ${exportPath ? `$Events | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -596,7 +596,7 @@ auditpol /set /subcategory:"Special Logon" /success:${priv === 'Success' || priv
 ${obj && obj !== 'None' ? `# Configure Object Access Auditing
 auditpol /set /subcategory:"File System" /success:${obj === 'Success' || obj === 'Both' ? 'enable' : 'disable'} /failure:${obj === 'Failure' || obj === 'Both' ? 'enable' : 'disable'}` : ''}
 
-Write-Host "✓ Audit policy configured" -ForegroundColor Green
+Write-Host "[SUCCESS] Audit policy configured" -ForegroundColor Green
 auditpol /get /category:"Logon/Logoff"`;
     }
   },
@@ -661,12 +661,12 @@ $PolicyChange = Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4719; Sta
 $All = $Cleared + $PolicyChange | Sort-Object TimeCreated
 
 if ($All) {
-    Write-Host "⚠ WARNING: Detected $($All.Count) tampering events!" -ForegroundColor Red
+    Write-Host "[WARNING] WARNING: Detected $($All.Count) tampering events!" -ForegroundColor Red
     $All | Select-Object TimeCreated, Id, Message | Format-Table -Wrap
     ${doExport ? `$All | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Alert exported to ${exportPath}" -ForegroundColor Yellow` : ''}
+    Write-Host "[SUCCESS] Alert exported to ${exportPath}" -ForegroundColor Yellow` : ''}
 } else {
-    Write-Host "✓ No tampering detected" -ForegroundColor Green
+    Write-Host "[SUCCESS] No tampering detected" -ForegroundColor Green
 }`;
     }
   },
@@ -733,10 +733,10 @@ foreach ($LogName in $CriticalLogs) {
 }
 
 if ($Alerts) {
-    Write-Host "⚠ Logs nearing capacity:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Logs nearing capacity:" -ForegroundColor Yellow
     $Alerts | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
 } else {
-    Write-Host "✓ All monitored logs below ${threshold}% capacity" -ForegroundColor Green
+    Write-Host "[SUCCESS] All monitored logs below ${threshold}% capacity" -ForegroundColor Green
 }`;
     }
   },
@@ -796,10 +796,10 @@ foreach ($LogName in $ExpectedLogs) {
 }
 
 if ($Disabled) {
-    Write-Host "⚠ WARNING: Critical logs are DISABLED:" -ForegroundColor Red
+    Write-Host "[WARNING] WARNING: Critical logs are DISABLED:" -ForegroundColor Red
     $Disabled | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
 } else {
-    Write-Host "✓ All expected logs are enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] All expected logs are enabled" -ForegroundColor Green
 }`;
     }
   },
@@ -862,7 +862,7 @@ Write-Host "Total Errors: $($Errors.Count)" -ForegroundColor Yellow
 $Analysis | Format-Table -AutoSize -Wrap
 
 ${exportPath ? `$Analysis | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -922,7 +922,7 @@ if ($Peak) {
 }
 
 ${exportPath ? `$HourlyTrend | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1069,9 +1069,9 @@ Write-Host "  Average Interval: $([Math]::Round($AvgInterval, 2)) minutes"
 Write-Host "  Standard Deviation: $([Math]::Round($StdDev, 2)) minutes"
 
 if ($StdDev -lt ($AvgInterval * 0.2)) {
-    Write-Host "\`n⚠ PATTERN DETECTED: Events occur regularly every ~$([Math]::Round($AvgInterval, 0)) minutes" -ForegroundColor Red
+    Write-Host "\`n[WARNING] PATTERN DETECTED: Events occur regularly every ~$([Math]::Round($AvgInterval, 0)) minutes" -ForegroundColor Red
 } else {
-    Write-Host "\`n✓ No strong recurring pattern detected" -ForegroundColor Green
+    Write-Host "\`n[OK] No strong recurring pattern detected" -ForegroundColor Green
 }
 
 $HourlyDistribution = $Events | Group-Object { $_.TimeCreated.Hour } | Sort-Object Name
@@ -1139,7 +1139,7 @@ Write-Host "Total Failed Attempts: $($Analysis.Count)" -ForegroundColor Yellow
 
 $BySource = $Analysis | Group-Object SourceIP | Where-Object { $_.Count -ge $Threshold } | Sort-Object Count -Descending
 if ($BySource) {
-    Write-Host "\`n⚠ SUSPICIOUS SOURCES (>= $Threshold failures):" -ForegroundColor Red
+    Write-Host "\`n[WARNING] SUSPICIOUS SOURCES (>= $Threshold failures):" -ForegroundColor Red
     $BySource | Select-Object @{N='SourceIP';E={$_.Name}}, Count, @{N='TargetUsers';E={($_.Group.TargetUserName | Select-Object -Unique) -join ', '}} | Format-Table -AutoSize
 }
 
@@ -1148,7 +1148,7 @@ Write-Host "\`nTop Targeted Users:" -ForegroundColor Cyan
 $ByUser | Select-Object @{N='Username';E={$_.Name}}, Count | Format-Table -AutoSize
 
 ${exportPath ? `$Analysis | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1219,7 +1219,7 @@ $Suspicious = $Analysis | Where-Object {
 }
 
 if ($Suspicious) {
-    Write-Host "\`n⚠ SENSITIVE PRIVILEGE USE DETECTED:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] SENSITIVE PRIVILEGE USE DETECTED:" -ForegroundColor Red
     $Suspicious | Select-Object TimeCreated, SubjectUserName, EventId, PrivilegeList | Format-Table -Wrap
 }
 
@@ -1228,7 +1228,7 @@ Write-Host "\`nTop Users by Privilege Events:" -ForegroundColor Cyan
 $ByUser | Select-Object @{N='User';E={$_.Name}}, Count | Format-Table -AutoSize
 
 ${exportPath ? `$Analysis | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1300,7 +1300,7 @@ if ($LockoutDetails) {
 }
 
 ${exportPath ? `$LockoutDetails | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1393,7 +1393,7 @@ Write-Host "\`nTop Users:" -ForegroundColor Cyan
 $ByUser | Select-Object @{N='User';E={$_.Name}}, Count | Format-Table -AutoSize
 
 ${exportPath ? `$Analysis | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1450,12 +1450,12 @@ $ByProvider | Select-Object @{N='Source';E={$_.Name}}, Count | Format-Table -Aut
 
 $Critical = $DiskEvents | Where-Object { $_.Level -eq 1 -or $_.Level -eq 2 }
 if ($Critical) {
-    Write-Host "\`n⚠ CRITICAL DISK EVENTS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] CRITICAL DISK EVENTS:" -ForegroundColor Red
     $Critical | Select-Object TimeCreated, ProviderName, Id, Message | Format-Table -Wrap
 }
 
 ${exportPath ? `$DiskEvents | Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1526,7 +1526,7 @@ Write-Host "\`nRecent Failures:" -ForegroundColor Red
 $ServiceEvents | Select-Object -First 10 TimeCreated, Id, Message | Format-Table -Wrap
 
 ${exportPath ? `$ServiceEvents | Select-Object TimeCreated, Id, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1585,12 +1585,12 @@ $ById | Select-Object @{N='EventID';E={$_.Name}}, Count, @{N='Sample';E={$_.Grou
 
 $Critical = $DriverEvents | Where-Object { $_.Level -eq 1 }
 if ($Critical) {
-    Write-Host "\`n⚠ CRITICAL DRIVER EVENTS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] CRITICAL DRIVER EVENTS:" -ForegroundColor Red
     $Critical | Select-Object TimeCreated, ProviderName, Id, Message | Format-Table -Wrap
 }
 
 ${exportPath ? `$DriverEvents | Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1656,7 +1656,7 @@ $ByProvider | Select-Object @{N='Provider';E={$_.Name}}, Count | Format-Table -A
 
 $ResourceExhaustion = $PerfEvents | Where-Object { $_.ProviderName -eq 'Microsoft-Windows-Resource-Exhaustion-Detector' }
 if ($ResourceExhaustion) {
-    Write-Host "\`n⚠ RESOURCE EXHAUSTION EVENTS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] RESOURCE EXHAUSTION EVENTS:" -ForegroundColor Red
     $ResourceExhaustion | Select-Object TimeCreated, Message | Format-Table -Wrap
 }
 
@@ -1665,7 +1665,7 @@ Write-Host "\`nHourly Trend:" -ForegroundColor Cyan
 $HourlyTrend | Select-Object -Last 24 @{N='Hour';E={$_.Name}}, Count | Format-Table -AutoSize
 
 ${exportPath ? `$PerfEvents | Select-Object TimeCreated, ProviderName, Id, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1727,7 +1727,7 @@ Write-Host "\`nShutdown Events by Type:" -ForegroundColor Cyan
 $ByType | Select-Object @{N='EventID';E={$_.Name}}, @{N='Description';E={$EventDescriptions[[int]$_.Name]}}, Count | Format-Table -AutoSize
 
 if ($Unexpected) {
-    Write-Host "\`n⚠ UNEXPECTED SHUTDOWN DETAILS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] UNEXPECTED SHUTDOWN DETAILS:" -ForegroundColor Red
     $Unexpected | Select-Object TimeCreated, Id, @{N='Type';E={$EventDescriptions[$_.Id]}}, Message | Format-Table -Wrap
 }
 
@@ -1736,7 +1736,7 @@ Write-Host "\`nDaily Distribution:" -ForegroundColor Cyan
 $Daily | Select-Object @{N='Date';E={$_.Name}}, Count | Format-Table -AutoSize
 
 ${exportPath ? `$ShutdownEvents | Select-Object TimeCreated, Id, @{N='Type';E={$EventDescriptions[$_.Id]}}, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1813,7 +1813,7 @@ Write-Host "\`nRecent Crashes:" -ForegroundColor Red
 $CrashDetails | Select-Object -First 10 TimeCreated, FaultingApp, FaultingModule, ExceptionCode | Format-Table -AutoSize
 
 ${exportPath ? `$CrashDetails | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1883,7 +1883,7 @@ Write-Host "\`nRecent .NET Errors:" -ForegroundColor Red
 $DotNetEvents | Select-Object -First 5 TimeCreated, ProviderName, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(200, $_.Message.Length))}} | Format-Table -Wrap
 
 ${exportPath ? `$DotNetEvents | Select-Object TimeCreated, ProviderName, Id, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1942,12 +1942,12 @@ $ByProvider | Select-Object @{N='Source';E={$_.Name}}, Count | Format-Table -Aut
 
 $Errors = $IISEvents | Where-Object { $_.Level -le 2 }
 if ($Errors) {
-    Write-Host "\`n⚠ IIS ERRORS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] IIS ERRORS:" -ForegroundColor Red
     $Errors | Select-Object -First 10 TimeCreated, ProviderName, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(150, $_.Message.Length))}} | Format-Table -Wrap
 }
 
 ${exportPath ? `$IISEvents | Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2014,12 +2014,12 @@ $ById | Select-Object @{N='EventID';E={$_.Name}}, Count | Format-Table -AutoSize
 
 $Errors = $SQLEvents | Where-Object { $_.Level -le 2 }
 if ($Errors) {
-    Write-Host "\`n⚠ SQL SERVER ERRORS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] SQL SERVER ERRORS:" -ForegroundColor Red
     $Errors | Select-Object -First 10 TimeCreated, ProviderName, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(200, $_.Message.Length))}} | Format-Table -Wrap
 }
 
 ${exportPath ? `$SQLEvents | Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2077,15 +2077,15 @@ foreach ($LogName in $Logs) {
     } catch {}
 }
 
-Write-Host "✓ Backed up $Count logs to $BackupDir" -ForegroundColor Green
+Write-Host "[SUCCESS] Backed up $Count logs to $BackupDir" -ForegroundColor Green
 
 ${compress ? `
 $ArchivePath = Join-Path $BaseDir "EventLogs-$Timestamp.zip"
 Compress-Archive -Path "$BackupDir\\*" -DestinationPath $ArchivePath -Force
-Write-Host "✓ Compressed to $ArchivePath" -ForegroundColor Green
+Write-Host "[SUCCESS] Compressed to $ArchivePath" -ForegroundColor Green
 
 ${cleanup ? `Remove-Item -Path $BackupDir -Recurse -Force
-Write-Host "✓ Cleaned up temporary files" -ForegroundColor Green` : ''}` : ''}`;
+Write-Host "[SUCCESS] Cleaned up temporary files" -ForegroundColor Green` : ''}` : ''}`;
     }
   },
 
@@ -2132,7 +2132,7 @@ if ($Role -eq "Collector") {
     
     Enable-PSRemoting -Force -SkipNetworkProfileCheck
     
-    Write-Host "✓ Windows Event Collector configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Windows Event Collector configured" -ForegroundColor Green
     Write-Host "Next: Create subscriptions using wecutil or Event Viewer" -ForegroundColor Yellow
     
 } else {
@@ -2145,7 +2145,7 @@ if ($Role -eq "Collector") {
     $Account = "NETWORK SERVICE"
     Add-LocalGroupMember -Group $Group -Member $Account -ErrorAction SilentlyContinue
     
-    Write-Host "✓ Windows Event Forwarding source configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Windows Event Forwarding source configured" -ForegroundColor Green
     Write-Host "Next: Create subscription on collector pointing to this computer" -ForegroundColor Yellow
 }
 
@@ -2215,10 +2215,10 @@ foreach ($File in $OldFiles) {
     }
     
     $Archived++
-    Write-Host "  ✓ $($File.Name)" -ForegroundColor Green
+    Write-Host "  [OK] $($File.Name)" -ForegroundColor Green
 }
 
-Write-Host "\`n✓ Archived $Archived files to $ArchiveDir" -ForegroundColor Green`;
+Write-Host "\`n[OK] Archived $Archived files to $ArchiveDir" -ForegroundColor Green`;
     }
   },
 
@@ -2326,7 +2326,7 @@ $($Report | ForEach-Object { "<tr><td>$($_.Category)</td><td>$($_.EventIDs)</td>
 
 $HTML | Out-File "$ReportPath" -Encoding UTF8` : `$Report | Export-Csv "$ReportPath" -NoTypeInformation`}
 
-Write-Host "\`n✓ Report generated: $ReportPath" -ForegroundColor Green
+Write-Host "\`n[OK] Report generated: $ReportPath" -ForegroundColor Green
 
 $Report | Format-Table -AutoSize`;
     }
@@ -2431,12 +2431,12 @@ $Compliance | Format-Table -AutoSize
 
 $Failed = $Compliance | Where-Object { $_.Status -eq 'FAIL' }
 if ($Failed) {
-    Write-Host "⚠ FAILED CHECKS:" -ForegroundColor Red
+    Write-Host "[WARNING] FAILED CHECKS:" -ForegroundColor Red
     $Failed | ForEach-Object { Write-Host "  - $($_.Check): Required $($_.Required), Found $($_.Current)" -ForegroundColor Yellow }
 }
 
 ${exportPath ? `$Compliance | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Report exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2495,7 +2495,7 @@ foreach ($LogName in $Logs) {
             Set-ItemProperty -Path $RegPath -Name "Retention" -Value 0 -Type DWord -ErrorAction SilentlyContinue
         }
         
-        Write-Host "✓ $LogName configured for auto-backup" -ForegroundColor Green
+        Write-Host "[SUCCESS] $LogName configured for auto-backup" -ForegroundColor Green
     }
 }
 
@@ -2513,8 +2513,8 @@ Get-ChildItem -Path \$ArchivePath -Filter "*.evtx" |
 $CleanupScriptPath = Join-Path $ArchivePath "Cleanup-OldLogs.ps1"
 $CleanupScript | Out-File $CleanupScriptPath -Encoding UTF8
 
-Write-Host "\`n✓ Archival policy configured" -ForegroundColor Green
-Write-Host "✓ Cleanup script created: $CleanupScriptPath" -ForegroundColor Green
+Write-Host "\`n[OK] Archival policy configured" -ForegroundColor Green
+Write-Host "[SUCCESS] Cleanup script created: $CleanupScriptPath" -ForegroundColor Green
 Write-Host "\`nSchedule the cleanup script to run daily for retention enforcement" -ForegroundColor Yellow`;
     }
   },
@@ -2596,7 +2596,7 @@ Write-Host "Matches Found: $($Matches.Count)" -ForegroundColor Green
 $Matches | Select-Object TimeCreated, Id, LevelDisplayName, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(200, $_.Message.Length))}} | Format-Table -Wrap
 
 ${exportPath ? `$Matches | Select-Object TimeCreated, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2657,7 +2657,7 @@ $ByLevel | Select-Object @{N='Level';E={$_.Name}}, Count | Format-Table -AutoSiz
 
 $Failed = $UpdateEvents | Where-Object { $_.Level -eq 2 -or $_.Message -match 'failed|error' }
 if ($Failed) {
-    Write-Host "\`n⚠ UPDATE FAILURES:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] UPDATE FAILURES:" -ForegroundColor Red
     $Failed | Select-Object -First 10 TimeCreated, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(150, $_.Message.Length))}} | Format-Table -Wrap
 }
 
@@ -2665,7 +2665,7 @@ $Installed = $UpdateEvents | Where-Object { $_.Message -match 'successfully inst
 Write-Host "\`nSuccessfully Installed: $($Installed.Count)" -ForegroundColor Green
 
 ${exportPath ? `$UpdateEvents | Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2729,7 +2729,7 @@ $ById | Select-Object @{N='EventID';E={$_.Name}}, Count | Format-Table -AutoSize
 
 $Blocked = $FWEvents | Where-Object { $_.Id -in @(5152, 5157) }
 if ($Blocked) {
-    Write-Host "\`n⚠ BLOCKED CONNECTIONS: $($Blocked.Count)" -ForegroundColor Red
+    Write-Host "\`n[WARNING] BLOCKED CONNECTIONS: $($Blocked.Count)" -ForegroundColor Red
     
     $BlockedDetails = $Blocked | ForEach-Object {
         $xml = [xml]$_.ToXml()
@@ -2745,7 +2745,7 @@ if ($Blocked) {
 }
 
 ${exportPath ? `$FWEvents | Select-Object TimeCreated, Id, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2796,7 +2796,7 @@ $ByLevel | Select-Object @{N='Level';E={$_.Name}}, Count | Format-Table -AutoSiz
 
 $Errors = $GPEvents | Where-Object { $_.Level -le 2 }
 if ($Errors) {
-    Write-Host "\`n⚠ GROUP POLICY ERRORS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] GROUP POLICY ERRORS:" -ForegroundColor Red
     $Errors | Select-Object -First 10 TimeCreated, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(150, $_.Message.Length))}} | Format-Table -Wrap
 }
 
@@ -2808,11 +2808,11 @@ if ($Processing) {
 
 $SlowPolicies = $GPEvents | Where-Object { $_.Message -match 'slow|timeout|delayed' }
 if ($SlowPolicies) {
-    Write-Host "\`n⚠ Slow Policy Processing Detected: $($SlowPolicies.Count) events" -ForegroundColor Yellow
+    Write-Host "\`n[WARNING] Slow Policy Processing Detected: $($SlowPolicies.Count) events" -ForegroundColor Yellow
 }
 
 ${exportPath ? `$GPEvents | Select-Object TimeCreated, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2904,7 +2904,7 @@ Write-Host "\`nRecent RDP Activity:" -ForegroundColor Cyan
 $SessionDetails | Select-Object -First 20 TimeCreated, EventId, User, SourceIP | Format-Table -AutoSize
 
 ${exportPath ? `$SessionDetails | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2987,7 +2987,7 @@ $Suspicious = $Analysis | Where-Object { $_.IsSuspicious }
 Write-Host "Suspicious Scripts: $($Suspicious.Count)" -ForegroundColor $(if ($Suspicious.Count -gt 0) { 'Red' } else { 'Green' })
 
 if ($Suspicious) {
-    Write-Host "\`n⚠ SUSPICIOUS SCRIPTS DETECTED:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] SUSPICIOUS SCRIPTS DETECTED:" -ForegroundColor Red
     $Suspicious | Select-Object TimeCreated, Path, ScriptPreview | Format-Table -Wrap
 }
 
@@ -2995,7 +2995,7 @@ Write-Host "\`nRecent Script Blocks:" -ForegroundColor Cyan
 $Analysis | Select-Object -First 10 TimeCreated, Path, IsSuspicious, ScriptPreview | Format-Table -Wrap
 
 ${exportPath ? `$Analysis | Select-Object TimeCreated, Path, IsSuspicious, FullScript | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3062,7 +3062,7 @@ $ById | Select-Object @{N='EventID';E={$_.Name}}, @{N='Type';E={$EventTypes[[int
 
 $Failed = $TaskEvents | Where-Object { $_.Id -in @(101, 103, 202) }
 if ($Failed) {
-    Write-Host "\`n⚠ TASK FAILURES:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] TASK FAILURES:" -ForegroundColor Red
     $Failed | Select-Object -First 10 TimeCreated, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(150, $_.Message.Length))}} | Format-Table -Wrap
 }
 
@@ -3074,7 +3074,7 @@ Write-Host "\`nMost Active Tasks:" -ForegroundColor Cyan
 $TaskNames | Select-Object @{N='TaskName';E={$_.Name}}, Count | Format-Table -AutoSize
 
 ${exportPath ? `$TaskEvents | Select-Object TimeCreated, Id, @{N='Type';E={$EventTypes[$_.Id]}}, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3139,7 +3139,7 @@ $ByLevel | Select-Object @{N='Level';E={$_.Name}}, Count | Format-Table -AutoSiz
 
 $Errors = $CertEvents | Where-Object { $_.Level -le 2 }
 if ($Errors) {
-    Write-Host "\`n⚠ CERTIFICATE ERRORS:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] CERTIFICATE ERRORS:" -ForegroundColor Red
     $Errors | Select-Object -First 10 TimeCreated, ProviderName, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(200, $_.Message.Length))}} | Format-Table -Wrap
 }
 
@@ -3148,7 +3148,7 @@ Write-Host "\`nEvents by Source:" -ForegroundColor Cyan
 $ByProvider | Select-Object @{N='Provider';E={$_.Name}}, Count | Format-Table -AutoSize
 
 ${exportPath ? `$CertEvents | Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3210,7 +3210,7 @@ $Suspicious = $WMIEvents | Where-Object {
 }
 
 if ($Suspicious) {
-    Write-Host "\`n⚠ SUSPICIOUS WMI ACTIVITY:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] SUSPICIOUS WMI ACTIVITY:" -ForegroundColor Red
     $Suspicious | Select-Object TimeCreated, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(200, $_.Message.Length))}} | Format-Table -Wrap
 }
 
@@ -3221,7 +3221,7 @@ if ($Errors) {
 }
 
 ${exportPath ? `$WMIEvents | Select-Object TimeCreated, Id, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3291,7 +3291,7 @@ Write-Host "\`nRecent USB Activity:" -ForegroundColor Cyan
 $USBEvents | Select-Object -First 20 TimeCreated, Id, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(150, $_.Message.Length))}} | Format-Table -Wrap
 
 ${exportPath ? `$USBEvents | Select-Object TimeCreated, ProviderName, Id, Message | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3371,7 +3371,7 @@ $XMLContent += @"
 "@
 
 $XMLContent | Out-File $ExportPath -Encoding UTF8
-Write-Host "✓ Exported to $ExportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Exported to $ExportPath" -ForegroundColor Green
 Write-Host "File size: $([Math]::Round((Get-Item $ExportPath).Length/1KB, 2)) KB" -ForegroundColor Gray`;
     }
   },
@@ -3410,7 +3410,7 @@ Write-Host "File size: $([Math]::Round((Get-Item $ExportPath).Length/1KB, 2)) KB
 $BaselinePath = "${baselinePath}"
 
 if (-not (Test-Path $BaselinePath)) {
-    Write-Host "⚠ Baseline file not found: $BaselinePath" -ForegroundColor Red
+    Write-Host "[WARNING] Baseline file not found: $BaselinePath" -ForegroundColor Red
     exit
 }
 
@@ -3458,13 +3458,13 @@ foreach ($BaselineLog in $Baseline) {
 }
 
 if ($Drift) {
-    Write-Host "\`n⚠ CONFIGURATION DRIFT DETECTED:" -ForegroundColor Red
+    Write-Host "\`n[WARNING] CONFIGURATION DRIFT DETECTED:" -ForegroundColor Red
     $Drift | Format-Table -AutoSize
     
     ${exportPath ? `$Drift | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Drift report exported to ${exportPath}" -ForegroundColor Yellow` : ''}
+    Write-Host "[SUCCESS] Drift report exported to ${exportPath}" -ForegroundColor Yellow` : ''}
 } else {
-    Write-Host "\`n✓ No configuration drift detected" -ForegroundColor Green
+    Write-Host "\`n[OK] No configuration drift detected" -ForegroundColor Green
 }
 
 Write-Host "\`nSummary: $($Drift.Count) drift issues found" -ForegroundColor $(if ($Drift.Count -gt 0) { 'Yellow' } else { 'Green' })`;
@@ -3547,7 +3547,7 @@ $OverallHealth = ($Stats | Measure-Object -Property HealthScore -Average).Averag
 Write-Host "\`n  Overall Health Score: $([Math]::Round($OverallHealth, 1))%" -ForegroundColor $(if ($OverallHealth -ge 90) { 'Green' } elseif ($OverallHealth -ge 70) { 'Yellow' } else { 'Red' })
 
 ${exportPath ? `$Stats | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "\`n✓ Statistics exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "\`n[OK] Statistics exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3603,9 +3603,9 @@ try {
     $Events | Select-Object TimeCreated, Id, LevelDisplayName, ProviderName, @{N='Message';E={$_.Message.Substring(0, [Math]::Min(150, $_.Message.Length))}} | Format-Table -Wrap
     
     ${exportPath ? `$Events | Select-Object TimeCreated, Id, LevelDisplayName, ProviderName, Message | Export-Csv "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}
 } catch {
-    Write-Host "⚠ Query Error: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "[WARNING] Query Error: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "\`nXPath Syntax Tips:" -ForegroundColor Yellow
     Write-Host "  - Basic: *[System[(EventID=1234)]]" -ForegroundColor Gray
     Write-Host "  - Time filter: *[System[TimeCreated[timediff(@SystemTime) <= 86400000]]]" -ForegroundColor Gray
@@ -3744,7 +3744,7 @@ $(if ($RiskLevel -eq 'Low') {'<li>No significant security concerns detected. Con
 "@
 
 $HTML | Out-File $ReportPath -Encoding UTF8
-Write-Host "✓ Report generated: $ReportPath" -ForegroundColor Green
+Write-Host "[SUCCESS] Report generated: $ReportPath" -ForegroundColor Green
 
 Write-Host "\`nSummary:" -ForegroundColor Cyan
 Write-Host "  Risk Level: $RiskLevel" -ForegroundColor $(if ($RiskLevel -eq 'Low') {'Green'} elseif ($RiskLevel -eq 'Medium') {'Yellow'} elseif ($RiskLevel -eq 'High') {'Red'} else {'Magenta'})

@@ -75,15 +75,15 @@ $ValueName = "${valueName}"
 if (Test-Path $KeyPath) {
     try {
         $Value = Get-ItemPropertyValue -Path $KeyPath -Name $ValueName -ErrorAction Stop
-        Write-Host "✓ Registry value found:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Registry value found:" -ForegroundColor Green
         Write-Host "  Path: $KeyPath" -ForegroundColor Gray
         Write-Host "  Name: $ValueName" -ForegroundColor Gray
         Write-Host "  Value: $Value" -ForegroundColor Cyan
     } catch {
-        Write-Host "✗ Value not found: $ValueName" -ForegroundColor Red
+        Write-Host "[FAILED] Value not found: $ValueName" -ForegroundColor Red
     }
 } else {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
 }`;
     }
   },
@@ -152,16 +152,16 @@ $CreateKey = ${createKey}
 if (-not (Test-Path $KeyPath)) {
     if ($CreateKey) {
         New-Item -Path $KeyPath -Force | Out-Null
-        Write-Host "✓ Created registry key: $KeyPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created registry key: $KeyPath" -ForegroundColor Green
     } else {
-        Write-Host "✗ Registry key does not exist: $KeyPath" -ForegroundColor Red
+        Write-Host "[FAILED] Registry key does not exist: $KeyPath" -ForegroundColor Red
         exit 1
     }
 }
 
 # Set value
 Set-ItemProperty -Path $KeyPath -Name $ValueName -Value $ValueData -Type $ValueType -Force
-Write-Host "✓ Registry value set:" -ForegroundColor Green
+Write-Host "[SUCCESS] Registry value set:" -ForegroundColor Green
 Write-Host "  Path: $KeyPath" -ForegroundColor Gray
 Write-Host "  Name: $ValueName" -ForegroundColor Gray
 Write-Host "  Value: $ValueData" -ForegroundColor Gray
@@ -229,7 +229,7 @@ if (Test-Path $KeyPath) {
         $Value = Get-ItemPropertyValue -Path $KeyPath -Name $ValueName -ErrorAction Stop
         
         if ($RequireConfirm) {
-            Write-Host "⚠ WARNING: About to delete registry value" -ForegroundColor Yellow
+            Write-Host "[WARNING] WARNING: About to delete registry value" -ForegroundColor Yellow
             Write-Host "  Path: $KeyPath" -ForegroundColor Gray
             Write-Host "  Name: $ValueName" -ForegroundColor Gray
             Write-Host "  Current Value: $Value" -ForegroundColor Gray
@@ -237,20 +237,20 @@ if (Test-Path $KeyPath) {
             $Response = Read-Host "Type 'YES' to confirm deletion"
             
             if ($Response -ne 'YES') {
-                Write-Host "✗ Deletion cancelled by user" -ForegroundColor Yellow
+                Write-Host "[FAILED] Deletion cancelled by user" -ForegroundColor Yellow
                 exit 0
             }
         }
         
         Remove-ItemProperty -Path $KeyPath -Name $ValueName -Force -ErrorAction Stop
-        Write-Host "✓ Registry value deleted:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Registry value deleted:" -ForegroundColor Green
         Write-Host "  Path: $KeyPath" -ForegroundColor Gray
         Write-Host "  Name: $ValueName" -ForegroundColor Gray
     } catch {
-        Write-Host "✗ Failed to delete value: $_" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to delete value: $_" -ForegroundColor Red
     }
 } else {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
 }`;
     }
   },
@@ -312,17 +312,17 @@ if (Test-Path $KeyPath) {
     reg export $RegPath $ExportPath /y
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Registry key exported:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Registry key exported:" -ForegroundColor Green
         Write-Host "  Key: $KeyPath" -ForegroundColor Gray
         Write-Host "  File: $ExportPath" -ForegroundColor Gray
         
         $FileSize = (Get-Item $ExportPath).Length
         Write-Host "  Size: $([math]::Round($FileSize/1KB, 2)) KB" -ForegroundColor Gray
     } else {
-        Write-Host "✗ Export failed" -ForegroundColor Red
+        Write-Host "[FAILED] Export failed" -ForegroundColor Red
     }
 } else {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
 }`;
     }
   },
@@ -375,19 +375,19 @@ if (Test-Path $KeyPath) {
 $RegFile = "${regFilePath}"
 
 if (Test-Path $RegFile) {
-    Write-Host "⚠ WARNING: Importing registry settings" -ForegroundColor Yellow
+    Write-Host "[WARNING] WARNING: Importing registry settings" -ForegroundColor Yellow
     Write-Host "  File: $RegFile" -ForegroundColor Gray
     Write-Host ""
     
     reg import $RegFile
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Registry file imported successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Registry file imported successfully" -ForegroundColor Green
     } else {
-        Write-Host "✗ Import failed" -ForegroundColor Red
+        Write-Host "[FAILED] Import failed" -ForegroundColor Red
     }
 } else {
-    Write-Host "✗ File not found: $RegFile" -ForegroundColor Red
+    Write-Host "[FAILED] File not found: $RegFile" -ForegroundColor Red
 }`;
     }
   },
@@ -470,7 +470,7 @@ try {
 } catch {}
 
 if ($Results) {
-    Write-Host "✓ Found $($Results.Count) result(s):" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Results.Count) result(s):" -ForegroundColor Green
     $Results | Select-Object -First 50 | ForEach-Object {
         if ($SearchType -eq "KeyName") {
             Write-Host "  $($_.PSPath)" -ForegroundColor Cyan
@@ -554,11 +554,11 @@ if ($Hive -eq "HKLM") {
 
 if ($LASTEXITCODE -eq 0) {
     $FileSize = (Get-Item $BackupFile).Length / 1MB
-    Write-Host "✓ Backup complete:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup complete:" -ForegroundColor Green
     Write-Host "  File: $BackupFile" -ForegroundColor Gray
     Write-Host "  Size: $([math]::Round($FileSize, 2)) MB" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Backup failed" -ForegroundColor Red
+    Write-Host "[FAILED] Backup failed" -ForegroundColor Red
 }`;
     }
   },
@@ -613,12 +613,12 @@ $Key1 = "${key1}"
 $Key2 = "${key2}"
 
 if (-not (Test-Path $Key1)) {
-    Write-Host "✗ First key not found: $Key1" -ForegroundColor Red
+    Write-Host "[FAILED] First key not found: $Key1" -ForegroundColor Red
     exit 1
 }
 
 if (-not (Test-Path $Key2)) {
-    Write-Host "✗ Second key not found: $Key2" -ForegroundColor Red
+    Write-Host "[FAILED] Second key not found: $Key2" -ForegroundColor Red
     exit 1
 }
 
@@ -659,7 +659,7 @@ if ($Differences) {
     Write-Host "Differences found:" -ForegroundColor Yellow
     $Differences | ForEach-Object { Write-Host $_ }
 } else {
-    Write-Host "✓ Keys are identical" -ForegroundColor Green
+    Write-Host "[SUCCESS] Keys are identical" -ForegroundColor Green
 }`;
     }
   },
@@ -730,7 +730,7 @@ if (Test-Path $KeyPath) {
     Write-Host ""
     Write-Host "Total subkeys: $($Subkeys.Count)" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
 }`;
     }
   },
@@ -795,12 +795,12 @@ if (Test-Path $KeyPath) {
     $Acl.SetAccessRule($Rule)
     Set-Acl -Path $KeyPath -AclObject $Acl
     
-    Write-Host "✓ Permissions set:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions set:" -ForegroundColor Green
     Write-Host "  Key: $KeyPath" -ForegroundColor Gray
     Write-Host "  User: $User" -ForegroundColor Gray
     Write-Host "  Rights: ${rights}" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
 }`;
     }
   },
@@ -856,7 +856,7 @@ $KeyPath = "${keyPath}"
 $OutputPath = "${outputPath}"
 
 if (-not (Test-Path $KeyPath)) {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
     exit 1
 }
 
@@ -892,13 +892,13 @@ try {
     if ($OutputPath) {
         $Results | Export-Csv -Path $OutputPath -NoTypeInformation -Force
         Write-Host ""
-        Write-Host "✓ Report exported to: $OutputPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Report exported to: $OutputPath" -ForegroundColor Green
     }
     
     Write-Host ""
-    Write-Host "✓ Audit complete. Found $($Results.Count) access rules." -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit complete. Found $($Results.Count) access rules." -ForegroundColor Green
 } catch {
-    Write-Host "✗ Failed to audit permissions: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to audit permissions: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -957,7 +957,7 @@ $EnableInheritance = ${enableInheritance}
 $PreservePermissions = ${preservePermissions}
 
 if (-not (Test-Path $KeyPath)) {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
     exit 1
 }
 
@@ -966,20 +966,20 @@ try {
     
     if ($EnableInheritance) {
         $Acl.SetAccessRuleProtection($false, $false)
-        Write-Host "✓ Inheritance enabled on: $KeyPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Inheritance enabled on: $KeyPath" -ForegroundColor Green
     } else {
         $Acl.SetAccessRuleProtection($true, $PreservePermissions)
         if ($PreservePermissions) {
-            Write-Host "✓ Inheritance disabled (permissions preserved as explicit)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Inheritance disabled (permissions preserved as explicit)" -ForegroundColor Green
         } else {
-            Write-Host "✓ Inheritance disabled (inherited permissions removed)" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] Inheritance disabled (inherited permissions removed)" -ForegroundColor Yellow
         }
     }
     
     Set-Acl -Path $KeyPath -AclObject $Acl
     Write-Host "  Key: $KeyPath" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to configure inheritance: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure inheritance: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1090,7 +1090,7 @@ Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction Silent
 
 Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Principal $Principal -Settings $Settings | Out-Null
 
-Write-Host "✓ Scheduled backup task created:" -ForegroundColor Green
+Write-Host "[SUCCESS] Scheduled backup task created:" -ForegroundColor Green
 Write-Host "  Task Name: $TaskName" -ForegroundColor Gray
 Write-Host "  Frequency: $Frequency at $BackupTime" -ForegroundColor Gray
 Write-Host "  Backup Dir: $BackupDirectory" -ForegroundColor Gray
@@ -1164,7 +1164,7 @@ $TotalSize = 0
 
 foreach ($KeyPath in $KeyPaths) {
     if (-not (Test-Path $KeyPath)) {
-        Write-Host "  ✗ Not found: $KeyPath" -ForegroundColor Red
+        Write-Host "  [FAILED] Not found: $KeyPath" -ForegroundColor Red
         $FailCount++
         continue
     }
@@ -1178,10 +1178,10 @@ foreach ($KeyPath in $KeyPaths) {
     if ($LASTEXITCODE -eq 0) {
         $FileSize = (Get-Item $BackupFile).Length
         $TotalSize += $FileSize
-        Write-Host "  ✓ $KeyPath -> $([math]::Round($FileSize/1KB, 2)) KB" -ForegroundColor Green
+        Write-Host "  [OK] $KeyPath -> $([math]::Round($FileSize/1KB, 2)) KB" -ForegroundColor Green
         $SuccessCount++
     } else {
-        Write-Host "  ✗ Failed: $KeyPath" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed: $KeyPath" -ForegroundColor Red
         $FailCount++
     }
 }
@@ -1323,12 +1323,12 @@ switch ($Feature) {
     }
 }
 
-Write-Host "✓ Feature disabled: $Feature" -ForegroundColor Green
+Write-Host "[SUCCESS] Feature disabled: $Feature" -ForegroundColor Green
 Write-Host ""
 Write-Host "Changes made:" -ForegroundColor Yellow
 $Changes | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
 Write-Host ""
-Write-Host "⚠ Note: Log off or restart may be required for changes to take effect" -ForegroundColor Yellow`;
+Write-Host "[WARNING] Note: Log off or restart may be required for changes to take effect" -ForegroundColor Yellow`;
     }
   },
 
@@ -1419,22 +1419,22 @@ $AutoUpdateText = switch ($AUOption) {
     4 { "Auto download and install" }
 }
 
-Write-Host "✓ Auto-update: $AutoUpdateText" -ForegroundColor Green
+Write-Host "[SUCCESS] Auto-update: $AutoUpdateText" -ForegroundColor Green
 
 # Configure feature update deferral
 if ($DeferFeatureUpdates) {
     Set-ItemProperty -Path $WUKey -Name "DeferFeatureUpdates" -Value 1 -Type DWord -Force
     Set-ItemProperty -Path $WUKey -Name "DeferFeatureUpdatesPeriodInDays" -Value $DeferralDays -Type DWord -Force
-    Write-Host "✓ Feature updates deferred: $DeferralDays days" -ForegroundColor Green
+    Write-Host "[SUCCESS] Feature updates deferred: $DeferralDays days" -ForegroundColor Green
 } else {
     Remove-ItemProperty -Path $WUKey -Name "DeferFeatureUpdates" -ErrorAction SilentlyContinue
     Remove-ItemProperty -Path $WUKey -Name "DeferFeatureUpdatesPeriodInDays" -ErrorAction SilentlyContinue
-    Write-Host "✓ Feature update deferral: Disabled" -ForegroundColor Gray
+    Write-Host "[SUCCESS] Feature update deferral: Disabled" -ForegroundColor Gray
 }
 
 Write-Host ""
-Write-Host "⚠ Note: Group Policy may override these settings in domain environments" -ForegroundColor Yellow
-Write-Host "⚠ Restart the Windows Update service for changes to take effect" -ForegroundColor Yellow`;
+Write-Host "[WARNING] Note: Group Policy may override these settings in domain environments" -ForegroundColor Yellow
+Write-Host "[WARNING] Restart the Windows Update service for changes to take effect" -ForegroundColor Yellow`;
     }
   },
 
@@ -1512,11 +1512,11 @@ New-Item -Path $SpynetKey -Force -ErrorAction SilentlyContinue | Out-Null
 
 # Real-time protection
 Set-ItemProperty -Path $RealtimeKey -Name "DisableRealtimeMonitoring" -Value $DisableRealtimeMonitoring -Type DWord -Force
-Write-Host "✓ Real-time Protection: $(if ($DisableRealtimeMonitoring -eq 0) { 'Enabled' } else { 'Disabled' })" -ForegroundColor $(if ($DisableRealtimeMonitoring -eq 0) { 'Green' } else { 'Yellow' })
+Write-Host "[SUCCESS] Real-time Protection: $(if ($DisableRealtimeMonitoring -eq 0) { 'Enabled' } else { 'Disabled' })" -ForegroundColor $(if ($DisableRealtimeMonitoring -eq 0) { 'Green' } else { 'Yellow' })
 
 # Cloud protection
 Set-ItemProperty -Path $SpynetKey -Name "DisableBlockAtFirstSeen" -Value $DisableCloudProtection -Type DWord -Force
-Write-Host "✓ Cloud Protection: $(if ($DisableCloudProtection -eq 0) { 'Enabled' } else { 'Disabled' })" -ForegroundColor $(if ($DisableCloudProtection -eq 0) { 'Green' } else { 'Yellow' })
+Write-Host "[SUCCESS] Cloud Protection: $(if ($DisableCloudProtection -eq 0) { 'Enabled' } else { 'Disabled' })" -ForegroundColor $(if ($DisableCloudProtection -eq 0) { 'Green' } else { 'Yellow' })
 
 # Sample submission
 Set-ItemProperty -Path $SpynetKey -Name "SubmitSamplesConsent" -Value $SampleSubmission -Type DWord -Force
@@ -1526,11 +1526,11 @@ $SampleText = switch ($SampleSubmission) {
     2 { "Never send" }
     3 { "Send all samples automatically" }
 }
-Write-Host "✓ Sample Submission: $SampleText" -ForegroundColor Gray
+Write-Host "[SUCCESS] Sample Submission: $SampleText" -ForegroundColor Gray
 
 Write-Host ""
-Write-Host "⚠ Note: Disabling protection reduces system security" -ForegroundColor Yellow
-Write-Host "⚠ Changes may require service restart or reboot" -ForegroundColor Yellow`;
+Write-Host "[WARNING] Note: Disabling protection reduces system security" -ForegroundColor Yellow
+Write-Host "[WARNING] Changes may require service restart or reboot" -ForegroundColor Yellow`;
     }
   },
 
@@ -1665,13 +1665,13 @@ switch ($CacheType) {
 }
 
 if ($ItemsCleared -gt 0) {
-    Write-Host "✓ Cleared $ItemsCleared cached item(s)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cleared $ItemsCleared cached item(s)" -ForegroundColor Green
 } else {
     Write-Host "No cached items found to clear" -ForegroundColor Gray
 }
 
 Write-Host ""
-Write-Host "⚠ Restart affected applications for changes to take effect" -ForegroundColor Yellow`;
+Write-Host "[WARNING] Restart affected applications for changes to take effect" -ForegroundColor Yellow`;
     }
   },
 
@@ -1729,7 +1729,7 @@ $CreateBackup = ${createBackup}
 $BackupPath = "${backupPath}"
 
 if (-not (Test-Path $AppKeyPath)) {
-    Write-Host "✗ Registry key not found: $AppKeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $AppKeyPath" -ForegroundColor Red
     Write-Host "  Application may not have any settings stored yet" -ForegroundColor Gray
     exit 1
 }
@@ -1749,9 +1749,9 @@ if ($CreateBackup) {
     reg export $RegPath $BackupPath /y 2>&1 | Out-Null
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Backup created: $BackupPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backup created: $BackupPath" -ForegroundColor Green
     } else {
-        Write-Host "⚠ Backup failed, continuing anyway..." -ForegroundColor Yellow
+        Write-Host "[WARNING] Backup failed, continuing anyway..." -ForegroundColor Yellow
     }
 }
 
@@ -1763,14 +1763,14 @@ $ValueCount = (Get-ItemProperty -Path $AppKeyPath -ErrorAction SilentlyContinue)
 try {
     Remove-Item -Path $AppKeyPath -Recurse -Force -ErrorAction Stop
     
-    Write-Host "✓ Application settings reset" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application settings reset" -ForegroundColor Green
     Write-Host "  Removed key: $AppKeyPath" -ForegroundColor Gray
     Write-Host "  Subkeys removed: $SubkeyCount" -ForegroundColor Gray
     Write-Host "  Values removed: ~$ValueCount" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ Launch the application to recreate default settings" -ForegroundColor Yellow
+    Write-Host "[WARNING] Launch the application to recreate default settings" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to reset settings: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to reset settings: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1836,7 +1836,7 @@ $ProgIdKey = "HKLM:\\SOFTWARE\\Classes\\$ProgId"
 $ProgIdKeyUser = "HKCU:\\SOFTWARE\\Classes\\$ProgId"
 
 if (-not (Test-Path $ProgIdKey) -and -not (Test-Path $ProgIdKeyUser)) {
-    Write-Host "⚠ Warning: ProgId '$ProgId' not found in registry" -ForegroundColor Yellow
+    Write-Host "[WARNING] Warning: ProgId '$ProgId' not found in registry" -ForegroundColor Yellow
     Write-Host "  The application may not be installed correctly" -ForegroundColor Gray
     Write-Host ""
 }
@@ -1866,14 +1866,14 @@ public static extern void SHChangeNotify(int eventId, int flags, IntPtr item1, I
     $shell = Add-Type -MemberDefinition $code -Name "Shell32" -Namespace "Win32" -PassThru
     $shell::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
     
-    Write-Host "✓ File association set:" -ForegroundColor Green
+    Write-Host "[SUCCESS] File association set:" -ForegroundColor Green
     Write-Host "  Extension: $Extension" -ForegroundColor Gray
     Write-Host "  ProgId: $ProgId" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ Note: Windows 10+ may require using Default Apps settings" -ForegroundColor Yellow
+    Write-Host "[WARNING] Note: Windows 10+ may require using Default Apps settings" -ForegroundColor Yellow
     Write-Host "  for protected extensions like .htm, .pdf, .mp3, etc." -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to set association: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to set association: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2012,10 +2012,10 @@ if ($InvalidEntries.Count -gt 0) {
     
     if ($ExportPath) {
         $InvalidEntries | Export-Csv -Path $ExportPath -NoTypeInformation -Force
-        Write-Host "✓ Results exported to: $ExportPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Results exported to: $ExportPath" -ForegroundColor Green
     }
 } else {
-    Write-Host "✓ No invalid registry entries found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No invalid registry entries found" -ForegroundColor Green
 }`;
     }
   },
@@ -2133,10 +2133,10 @@ if ($OrphanedAssocs.Count -gt 0) {
     if ($ExportPath) {
         $OrphanedAssocs | Export-Csv -Path $ExportPath -NoTypeInformation -Force
         Write-Host ""
-        Write-Host "✓ Results exported to: $ExportPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Results exported to: $ExportPath" -ForegroundColor Green
     }
 } else {
-    Write-Host "✓ No orphaned file associations found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No orphaned file associations found" -ForegroundColor Green
 }`;
     }
   },
@@ -2227,7 +2227,7 @@ foreach ($UninstallPath in $UninstallPaths) {
 }
 
 if ($OrphanedEntries.Count -eq 0) {
-    Write-Host "✓ No orphaned uninstall entries found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No orphaned uninstall entries found" -ForegroundColor Green
     exit 0
 }
 
@@ -2260,7 +2260,7 @@ foreach ($Entry in $OrphanedEntries) {
             }
             
             Remove-Item -Path $Entry.Path -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "    ✓ Removed" -ForegroundColor Green
+            Write-Host "    [OK] Removed" -ForegroundColor Green
             $RemovedCount++
         } else {
             Write-Host "    Skipped" -ForegroundColor Gray
@@ -2336,7 +2336,7 @@ $BackupPath = "${backupPath}"
 $RequireConfirm = ${confirm}
 
 if (-not (Test-Path $KeyPath)) {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2344,7 +2344,7 @@ if (-not (Test-Path $KeyPath)) {
 $SubkeyCount = (Get-ChildItem -Path $KeyPath -Recurse -ErrorAction SilentlyContinue).Count
 $ValueCount = (Get-ItemProperty -Path $KeyPath -ErrorAction SilentlyContinue).PSObject.Properties.Count - 5
 
-Write-Host "⚠ WARNING: About to delete registry key" -ForegroundColor Yellow
+Write-Host "[WARNING] WARNING: About to delete registry key" -ForegroundColor Yellow
 Write-Host "  Path: $KeyPath" -ForegroundColor Gray
 Write-Host "  Subkeys: $SubkeyCount" -ForegroundColor Gray
 Write-Host "  Values: ~$ValueCount" -ForegroundColor Gray
@@ -2362,9 +2362,9 @@ if ($CreateBackup) {
     reg export $RegPath $BackupPath /y 2>&1 | Out-Null
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Backup created: $BackupPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backup created: $BackupPath" -ForegroundColor Green
     } else {
-        Write-Host "⚠ Backup failed - proceeding with caution" -ForegroundColor Yellow
+        Write-Host "[WARNING] Backup failed - proceeding with caution" -ForegroundColor Yellow
     }
 }
 
@@ -2373,7 +2373,7 @@ if ($RequireConfirm) {
     $Response = Read-Host "Type 'DELETE' to confirm deletion"
     
     if ($Response -ne 'DELETE') {
-        Write-Host "✗ Deletion cancelled by user" -ForegroundColor Yellow
+        Write-Host "[FAILED] Deletion cancelled by user" -ForegroundColor Yellow
         exit 0
     }
 }
@@ -2383,12 +2383,12 @@ try {
     Remove-Item -Path $KeyPath -Recurse -Force -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ Registry key deleted: $KeyPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Registry key deleted: $KeyPath" -ForegroundColor Green
     Write-Host "  Subkeys removed: $SubkeyCount" -ForegroundColor Gray
     Write-Host "  Values removed: ~$ValueCount" -ForegroundColor Gray
 } catch {
     Write-Host ""
-    Write-Host "✗ Failed to delete key: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to delete key: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2439,7 +2439,7 @@ try {
 $KeyPath = "${keyPath}"
 
 if (-not (Test-Path $KeyPath)) {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
     exit 1
 }
 
@@ -2584,7 +2584,7 @@ $StartupType = "${startupType}"
 $ServiceKey = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\$ServiceName"
 
 if (-not (Test-Path $ServiceKey)) {
-    Write-Host "✗ Service not found: $ServiceName" -ForegroundColor Red
+    Write-Host "[FAILED] Service not found: $ServiceName" -ForegroundColor Red
     Write-Host "  Use the internal service name (e.g., 'Spooler' not 'Print Spooler')" -ForegroundColor Gray
     exit 1
 }
@@ -2608,13 +2608,13 @@ try {
         Remove-ItemProperty -Path $ServiceKey -Name "DelayedAutostart" -ErrorAction SilentlyContinue
     }
     
-    Write-Host "✓ Service startup type configured:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service startup type configured:" -ForegroundColor Green
     Write-Host "  Service: $ServiceName" -ForegroundColor Gray
     Write-Host "  Startup: $StartupType" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ Restart the service or reboot for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] Restart the service or reboot for changes to take effect" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to configure service: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure service: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2689,31 +2689,31 @@ Write-Host ""
 
 if ($Action -eq "Add") {
     if (-not $ProgramPath) {
-        Write-Host "✗ Program path is required for Add action" -ForegroundColor Red
+        Write-Host "[FAILED] Program path is required for Add action" -ForegroundColor Red
         exit 1
     }
     
     if (-not (Test-Path $ProgramPath -ErrorAction SilentlyContinue)) {
-        Write-Host "⚠ Warning: Program path does not exist: $ProgramPath" -ForegroundColor Yellow
+        Write-Host "[WARNING] Warning: Program path does not exist: $ProgramPath" -ForegroundColor Yellow
     }
     
     try {
         Set-ItemProperty -Path $RunKey -Name $EntryName -Value $ProgramPath -Type String -Force
-        Write-Host "✓ Startup entry added:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Startup entry added:" -ForegroundColor Green
         Write-Host "  Name: $EntryName" -ForegroundColor Gray
         Write-Host "  Path: $ProgramPath" -ForegroundColor Gray
     } catch {
-        Write-Host "✗ Failed to add startup entry: $_" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to add startup entry: $_" -ForegroundColor Red
     }
 } elseif ($Action -eq "Remove") {
     try {
         $CurrentValue = Get-ItemPropertyValue -Path $RunKey -Name $EntryName -ErrorAction Stop
         Remove-ItemProperty -Path $RunKey -Name $EntryName -Force -ErrorAction Stop
-        Write-Host "✓ Startup entry removed:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Startup entry removed:" -ForegroundColor Green
         Write-Host "  Name: $EntryName" -ForegroundColor Gray
         Write-Host "  Was: $CurrentValue" -ForegroundColor Gray
     } catch {
-        Write-Host "✗ Startup entry not found: $EntryName" -ForegroundColor Red
+        Write-Host "[FAILED] Startup entry not found: $EntryName" -ForegroundColor Red
     }
 }
 
@@ -2795,23 +2795,23 @@ $WinStationKey = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\Wi
 try {
     # Set Remote Desktop enabled/disabled
     Set-ItemProperty -Path $TSKey -Name "fDenyTSConnections" -Value $fDenyConnections -Type DWord -Force
-    Write-Host "✓ Remote Desktop: $Action" -ForegroundColor Green
+    Write-Host "[SUCCESS] Remote Desktop: $Action" -ForegroundColor Green
     
     # Configure NLA
     if ($Action -eq "Enable") {
         $NLAValue = if ($RequireNLA) { 1 } else { 0 }
         Set-ItemProperty -Path $WinStationKey -Name "UserAuthentication" -Value $NLAValue -Type DWord -Force
-        Write-Host "✓ Network Level Authentication: $(if ($RequireNLA) { 'Required' } else { 'Not Required' })" -ForegroundColor Green
+        Write-Host "[SUCCESS] Network Level Authentication: $(if ($RequireNLA) { 'Required' } else { 'Not Required' })" -ForegroundColor Green
     }
     
     # Configure Firewall
     if ($ConfigureFirewall) {
         if ($Action -eq "Enable") {
             Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
-            Write-Host "✓ Firewall rules enabled for Remote Desktop" -ForegroundColor Green
+            Write-Host "[SUCCESS] Firewall rules enabled for Remote Desktop" -ForegroundColor Green
         } else {
             Disable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
-            Write-Host "✓ Firewall rules disabled for Remote Desktop" -ForegroundColor Green
+            Write-Host "[SUCCESS] Firewall rules disabled for Remote Desktop" -ForegroundColor Green
         }
     }
     
@@ -2824,7 +2824,7 @@ try {
         Write-Host "  Port: 3389 (default)" -ForegroundColor Gray
     }
 } catch {
-    Write-Host "✗ Failed to configure Remote Desktop: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure Remote Desktop: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2928,7 +2928,7 @@ try {
     Set-ItemProperty -Path $PolicyKey -Name "EnableLUA" -Value $EnableLUA -Type DWord -Force
     Set-ItemProperty -Path $PolicyKey -Name "PromptOnSecureDesktop" -Value $PromptSecure -Type DWord -Force
     
-    Write-Host "✓ UAC Settings configured:" -ForegroundColor Green
+    Write-Host "[SUCCESS] UAC Settings configured:" -ForegroundColor Green
     Write-Host "  ConsentPromptBehaviorAdmin: $ConsentAdmin" -ForegroundColor Gray
     Write-Host "  ConsentPromptBehaviorUser: $ConsentUser" -ForegroundColor Gray
     Write-Host "  EnableLUA (Admin Approval Mode): $EnableLUA" -ForegroundColor Gray
@@ -2936,12 +2936,12 @@ try {
     Write-Host ""
     
     if ($EnableLUA -eq 0) {
-        Write-Host "⚠ WARNING: UAC is disabled. This is NOT recommended for security." -ForegroundColor Red
+        Write-Host "[WARNING] WARNING: UAC is disabled. This is NOT recommended for security." -ForegroundColor Red
     }
     
-    Write-Host "⚠ REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to configure UAC: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure UAC: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3016,21 +3016,21 @@ try {
     
     if ($ProxyEnable -eq 1) {
         if (-not $ProxyServer) {
-            Write-Host "✗ Proxy server address is required when enabling proxy" -ForegroundColor Red
+            Write-Host "[FAILED] Proxy server address is required when enabling proxy" -ForegroundColor Red
             exit 1
         }
         
         Set-ItemProperty -Path $InternetSettingsKey -Name "ProxyServer" -Value $ProxyServer -Type String -Force
         Set-ItemProperty -Path $InternetSettingsKey -Name "ProxyOverride" -Value $BypassList -Type String -Force
         
-        Write-Host "✓ Proxy Enabled:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Proxy Enabled:" -ForegroundColor Green
         Write-Host "  Server: $ProxyServer" -ForegroundColor Gray
         Write-Host "  Bypass: $BypassList" -ForegroundColor Gray
     } else {
         Remove-ItemProperty -Path $InternetSettingsKey -Name "ProxyServer" -ErrorAction SilentlyContinue
         Remove-ItemProperty -Path $InternetSettingsKey -Name "ProxyOverride" -ErrorAction SilentlyContinue
         
-        Write-Host "✓ Proxy Disabled" -ForegroundColor Green
+        Write-Host "[SUCCESS] Proxy Disabled" -ForegroundColor Green
     }
     
     # Notify WinINet of the change
@@ -3044,9 +3044,9 @@ public static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntP
     $type::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0) | Out-Null  # INTERNET_OPTION_REFRESH
     
     Write-Host ""
-    Write-Host "✓ Settings applied to system" -ForegroundColor Green
+    Write-Host "[SUCCESS] Settings applied to system" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Failed to configure proxy: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure proxy: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3123,7 +3123,7 @@ try {
     Set-ItemProperty -Path $DNSKey -Name "MaxCacheTtl" -Value $MaxCacheTtl -Type DWord -Force
     Set-ItemProperty -Path $DNSKey -Name "MaxNegativeCacheTtl" -Value $NegativeCacheTtl -Type DWord -Force
     
-    Write-Host "✓ Cache Settings:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cache Settings:" -ForegroundColor Green
     Write-Host "  Max Cache TTL: $MaxCacheTtl seconds" -ForegroundColor Gray
     Write-Host "  Negative Cache TTL: $NegativeCacheTtl seconds" -ForegroundColor Gray
     
@@ -3139,7 +3139,7 @@ try {
         Write-Host ""
         Write-Host "Restarting DNS Client service..." -ForegroundColor Yellow
         Restart-Service -Name "Dnscache" -Force -ErrorAction SilentlyContinue
-        Write-Host "✓ DNS Client service restarted" -ForegroundColor Green
+        Write-Host "[SUCCESS] DNS Client service restarted" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -3148,7 +3148,7 @@ try {
         Write-Host "  Cached entries: $($_.Count)" -ForegroundColor Gray
     }
 } catch {
-    Write-Host "✗ Failed to configure DNS settings: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure DNS settings: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3226,7 +3226,7 @@ try {
     if ($Action -eq "Enable") {
         # Enable Network Discovery
         Enable-NetFirewallRule -DisplayGroup "Network Discovery" -Profile $NetworkProfile -ErrorAction SilentlyContinue
-        Write-Host "✓ Network Discovery: Enabled for $NetworkProfile" -ForegroundColor Green
+        Write-Host "[SUCCESS] Network Discovery: Enabled for $NetworkProfile" -ForegroundColor Green
         
         # Start required services
         $Services = @("FDResPub", "SSDPSRV", "upnphost", "fdPHost")
@@ -3234,29 +3234,29 @@ try {
             Set-Service -Name $Svc -StartupType Automatic -ErrorAction SilentlyContinue
             Start-Service -Name $Svc -ErrorAction SilentlyContinue
         }
-        Write-Host "✓ Discovery services started" -ForegroundColor Green
+        Write-Host "[SUCCESS] Discovery services started" -ForegroundColor Green
         
         if ($FileSharing) {
             Enable-NetFirewallRule -DisplayGroup "File and Printer Sharing" -Profile $NetworkProfile -ErrorAction SilentlyContinue
             Set-Service -Name "LanmanServer" -StartupType Automatic -ErrorAction SilentlyContinue
             Start-Service -Name "LanmanServer" -ErrorAction SilentlyContinue
-            Write-Host "✓ File and Printer Sharing: Enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] File and Printer Sharing: Enabled" -ForegroundColor Green
         }
     } else {
         # Disable Network Discovery
         Disable-NetFirewallRule -DisplayGroup "Network Discovery" -Profile $NetworkProfile -ErrorAction SilentlyContinue
-        Write-Host "✓ Network Discovery: Disabled for $NetworkProfile" -ForegroundColor Green
+        Write-Host "[SUCCESS] Network Discovery: Disabled for $NetworkProfile" -ForegroundColor Green
         
         if (-not $FileSharing) {
             Disable-NetFirewallRule -DisplayGroup "File and Printer Sharing" -Profile $NetworkProfile -ErrorAction SilentlyContinue
-            Write-Host "✓ File and Printer Sharing: Disabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] File and Printer Sharing: Disabled" -ForegroundColor Green
         }
     }
     
     Write-Host ""
     Write-Host "Network Discovery Configuration Complete" -ForegroundColor Cyan
 } catch {
-    Write-Host "✗ Failed to configure network discovery: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure network discovery: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3328,37 +3328,37 @@ try {
     Set-ItemProperty -Path $SMB1Key -Name "SMB1" -Value $(if ($SMB1Enabled) { 1 } else { 0 }) -Type DWord -Force
     
     if ($SMB1Enabled) {
-        Write-Host "⚠ SMB1: Enabled (SECURITY RISK)" -ForegroundColor Yellow
+        Write-Host "[WARNING] SMB1: Enabled (SECURITY RISK)" -ForegroundColor Yellow
     } else {
-        Write-Host "✓ SMB1: Disabled (Recommended)" -ForegroundColor Green
+        Write-Host "[SUCCESS] SMB1: Disabled (Recommended)" -ForegroundColor Green
     }
     
     # Configure SMB2/3
     Set-ItemProperty -Path $SMB1Key -Name "SMB2" -Value $(if ($SMB2Enabled) { 1 } else { 0 }) -Type DWord -Force
-    Write-Host "✓ SMB2/SMB3: $(if ($SMB2Enabled) { 'Enabled' } else { 'Disabled' })" -ForegroundColor Green
+    Write-Host "[SUCCESS] SMB2/SMB3: $(if ($SMB2Enabled) { 'Enabled' } else { 'Disabled' })" -ForegroundColor Green
     
     # Configure SMB Signing (Server)
     Set-ItemProperty -Path $SMB1Key -Name "RequireSecuritySignature" -Value $(if ($RequireSigning) { 1 } else { 0 }) -Type DWord -Force
-    Write-Host "✓ SMB Signing (Server): $(if ($RequireSigning) { 'Required' } else { 'Optional' })" -ForegroundColor Green
+    Write-Host "[SUCCESS] SMB Signing (Server): $(if ($RequireSigning) { 'Required' } else { 'Optional' })" -ForegroundColor Green
     
     # Configure SMB Signing (Client)
     $ClientKey = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanmanWorkstation\\Parameters"
     Set-ItemProperty -Path $ClientKey -Name "RequireSecuritySignature" -Value $(if ($RequireSigning) { 1 } else { 0 }) -Type DWord -Force
-    Write-Host "✓ SMB Signing (Client): $(if ($RequireSigning) { 'Required' } else { 'Optional' })" -ForegroundColor Green
+    Write-Host "[SUCCESS] SMB Signing (Client): $(if ($RequireSigning) { 'Required' } else { 'Optional' })" -ForegroundColor Green
     
     # Configure SMB Encryption
     Set-ItemProperty -Path $SMB1Key -Name "EncryptData" -Value $(if ($RequireEncryption) { 1 } else { 0 }) -Type DWord -Force
-    Write-Host "✓ SMB Encryption: $(if ($RequireEncryption) { 'Required' } else { 'Optional' })" -ForegroundColor Green
+    Write-Host "[SUCCESS] SMB Encryption: $(if ($RequireEncryption) { 'Required' } else { 'Optional' })" -ForegroundColor Green
     
     Write-Host ""
-    Write-Host "⚠ Restart may be required for all changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] Restart may be required for all changes to take effect" -ForegroundColor Yellow
     
     # Show current SMB configuration
     Write-Host ""
     Write-Host "Current SMB Server Configuration:" -ForegroundColor Cyan
     Get-SmbServerConfiguration | Select-Object EnableSMB1Protocol, EnableSMB2Protocol, RequireSecuritySignature, EncryptData | Format-List
 } catch {
-    Write-Host "✗ Failed to configure SMB settings: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure SMB settings: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3468,7 +3468,7 @@ if ($OutputFormat -eq "CSV") {
     }
     
     $Software | Export-Csv -Path $ExportPath -NoTypeInformation -Force
-    Write-Host "✓ Report exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: $ExportPath" -ForegroundColor Green
 } else {
     Write-Host "Installed Software:" -ForegroundColor Yellow
     Write-Host ("-" * 80) -ForegroundColor Gray
@@ -3557,33 +3557,33 @@ Write-Host ""
 try {
     # Verify program exists
     if (-not (Test-Path $ProgramPath)) {
-        Write-Host "⚠ Warning: Program not found at specified path" -ForegroundColor Yellow
+        Write-Host "[WARNING] Warning: Program not found at specified path" -ForegroundColor Yellow
     }
     
     # Create extension key
     $ExtKey = "Registry::HKEY_CLASSES_ROOT\\$Extension"
     New-Item -Path $ExtKey -Force -ErrorAction SilentlyContinue | Out-Null
     Set-ItemProperty -Path $ExtKey -Name "(Default)" -Value $ProgId -Force
-    Write-Host "✓ Extension registered: $Extension -> $ProgId" -ForegroundColor Green
+    Write-Host "[SUCCESS] Extension registered: $Extension -> $ProgId" -ForegroundColor Green
     
     # Create ProgId key
     $ProgIdKey = "Registry::HKEY_CLASSES_ROOT\\$ProgId"
     New-Item -Path $ProgIdKey -Force -ErrorAction SilentlyContinue | Out-Null
     Set-ItemProperty -Path $ProgIdKey -Name "(Default)" -Value $TypeName -Force
-    Write-Host "✓ ProgId created: $ProgId" -ForegroundColor Green
+    Write-Host "[SUCCESS] ProgId created: $ProgId" -ForegroundColor Green
     
     # Create shell\\open\\command
     $CommandKey = "$ProgIdKey\\shell\\open\\command"
     New-Item -Path $CommandKey -Force -ErrorAction SilentlyContinue | Out-Null
     Set-ItemProperty -Path $CommandKey -Name "(Default)" -Value "\`"$ProgramPath\`" \`"%1\`"" -Force
-    Write-Host "✓ Open command configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Open command configured" -ForegroundColor Green
     
     # Set icon if provided
     if ($IconPath) {
         $IconKey = "$ProgIdKey\\DefaultIcon"
         New-Item -Path $IconKey -Force -ErrorAction SilentlyContinue | Out-Null
         Set-ItemProperty -Path $IconKey -Name "(Default)" -Value $IconPath -Force
-        Write-Host "✓ Icon configured: $IconPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Icon configured: $IconPath" -ForegroundColor Green
     }
     
     # Notify shell of change
@@ -3595,10 +3595,10 @@ try {
     $shell::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
     
     Write-Host ""
-    Write-Host "✓ File association configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] File association configured successfully" -ForegroundColor Green
     Write-Host "  Files with $Extension will open with: $ProgramPath" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to configure file association: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure file association: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3678,7 +3678,7 @@ Write-Host ""
 try {
     if ($Action -eq "Add") {
         if (-not $Command) {
-            Write-Host "✗ Command is required for Add action" -ForegroundColor Red
+            Write-Host "[FAILED] Command is required for Add action" -ForegroundColor Red
             exit 1
         }
         
@@ -3691,7 +3691,7 @@ try {
         New-Item -Path $CommandKey -Force -ErrorAction SilentlyContinue | Out-Null
         Set-ItemProperty -Path $CommandKey -Name "(Default)" -Value $Command -Force
         
-        Write-Host "✓ Context menu entry added:" -ForegroundColor Green
+        Write-Host "[SUCCESS] Context menu entry added:" -ForegroundColor Green
         Write-Host "  Menu: $MenuText" -ForegroundColor Gray
         Write-Host "  Command: $Command" -ForegroundColor Gray
         Write-Host "  Location: $RegistryPath" -ForegroundColor Gray
@@ -3699,16 +3699,16 @@ try {
     } elseif ($Action -eq "Remove") {
         if (Test-Path $RegistryPath) {
             Remove-Item -Path $RegistryPath -Recurse -Force
-            Write-Host "✓ Context menu entry removed: $MenuText" -ForegroundColor Green
+            Write-Host "[SUCCESS] Context menu entry removed: $MenuText" -ForegroundColor Green
         } else {
-            Write-Host "✗ Context menu entry not found: $MenuText" -ForegroundColor Yellow
+            Write-Host "[FAILED] Context menu entry not found: $MenuText" -ForegroundColor Yellow
         }
     }
     
     Write-Host ""
-    Write-Host "⚠ Restart Explorer or log off for changes to appear" -ForegroundColor Yellow
+    Write-Host "[WARNING] Restart Explorer or log off for changes to appear" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to manage context menu: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to manage context menu: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3811,15 +3811,15 @@ try {
     Remove-Item $TempCfg -Force -ErrorAction SilentlyContinue
     Remove-Item $TempDb -Force -ErrorAction SilentlyContinue
     
-    Write-Host "✓ Password Policy Configured:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Password Policy Configured:" -ForegroundColor Green
     Write-Host "  Minimum Length: $MinLength characters" -ForegroundColor Gray
     Write-Host "  Password History: $HistoryCount passwords" -ForegroundColor Gray
     Write-Host "  Maximum Age: $MaxAge days" -ForegroundColor Gray
     Write-Host "  Complexity Required: $(if ($RequireComplexity -eq 1) { 'Yes' } else { 'No' })" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ Domain Group Policy will override these settings" -ForegroundColor Yellow
+    Write-Host "[WARNING] Domain Group Policy will override these settings" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to configure password policy: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure password policy: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3919,12 +3919,12 @@ try {
         foreach ($Cat in $Categories.Keys) {
             $CatName = $Categories[$Cat]
             auditpol /set /category:"$CatName" $Setting.Split(' ') 2>&1 | Out-Null
-            Write-Host "  ✓ $Cat configured" -ForegroundColor Green
+            Write-Host "  [OK] $Cat configured" -ForegroundColor Green
         }
     } else {
         $CatName = $Categories[$AuditCategory]
         auditpol /set /category:"$CatName" $Setting.Split(' ') 2>&1 | Out-Null
-        Write-Host "  ✓ $AuditCategory configured" -ForegroundColor Green
+        Write-Host "  [OK] $AuditCategory configured" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -3933,7 +3933,7 @@ try {
         Write-Host "  $_" -ForegroundColor Gray
     }
 } catch {
-    Write-Host "✗ Failed to configure audit policy: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure audit policy: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -4002,10 +4002,10 @@ try {
     
     if ($EnableLSAProtection) {
         Set-ItemProperty -Path $LSAKey -Name "RunAsPPL" -Value 1 -Type DWord -Force
-        Write-Host "✓ LSA Protection (RunAsPPL): Enabled" -ForegroundColor Green
+        Write-Host "[SUCCESS] LSA Protection (RunAsPPL): Enabled" -ForegroundColor Green
     } else {
         Set-ItemProperty -Path $LSAKey -Name "RunAsPPL" -Value 0 -Type DWord -Force
-        Write-Host "✓ LSA Protection (RunAsPPL): Disabled" -ForegroundColor Yellow
+        Write-Host "[SUCCESS] LSA Protection (RunAsPPL): Disabled" -ForegroundColor Yellow
     }
     
     # Configure Credential Guard
@@ -4019,11 +4019,11 @@ try {
         # Configure Credential Guard
         if ($LockConfiguration) {
             Set-ItemProperty -Path $DeviceGuardKey -Name "LsaCfgFlags" -Value 1 -Type DWord -Force  # Enabled with UEFI lock
-            Write-Host "✓ Credential Guard: Enabled with UEFI Lock" -ForegroundColor Green
-            Write-Host "  ⚠ Warning: Cannot be disabled without UEFI setting change" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] Credential Guard: Enabled with UEFI Lock" -ForegroundColor Green
+            Write-Host "  [WARNING] Warning: Cannot be disabled without UEFI setting change" -ForegroundColor Yellow
         } else {
             Set-ItemProperty -Path $DeviceGuardKey -Name "LsaCfgFlags" -Value 2 -Type DWord -Force  # Enabled without lock
-            Write-Host "✓ Credential Guard: Enabled (no UEFI lock)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Credential Guard: Enabled (no UEFI lock)" -ForegroundColor Green
         }
         
         # Enable required features
@@ -4043,9 +4043,9 @@ try {
     }
     
     Write-Host ""
-    Write-Host "⚠ REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to configure LSA protection: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure LSA protection: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -4154,20 +4154,20 @@ try {
     $ActionValue = $ActionValues[$Action]
     
     if (-not $RuleGuid) {
-        Write-Host "✗ Unknown ASR rule" -ForegroundColor Red
+        Write-Host "[FAILED] Unknown ASR rule" -ForegroundColor Red
         exit 1
     }
     
     # Try using Set-MpPreference cmdlet first
     try {
         Set-MpPreference -AttackSurfaceReductionRules_Ids $RuleGuid -AttackSurfaceReductionRules_Actions $ActionValue -ErrorAction Stop
-        Write-Host "✓ ASR rule configured via Windows Defender cmdlet" -ForegroundColor Green
+        Write-Host "[SUCCESS] ASR rule configured via Windows Defender cmdlet" -ForegroundColor Green
     } catch {
         # Fallback to registry
         $ASRKey = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules"
         New-Item -Path $ASRKey -Force -ErrorAction SilentlyContinue | Out-Null
         Set-ItemProperty -Path $ASRKey -Name $RuleGuid -Value $ActionValue.ToString() -Type String -Force
-        Write-Host "✓ ASR rule configured via registry" -ForegroundColor Green
+        Write-Host "[SUCCESS] ASR rule configured via registry" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -4176,11 +4176,11 @@ try {
     
     if ($Action -eq "Audit") {
         Write-Host ""
-        Write-Host "⚠ Audit mode: Actions will be logged but not blocked" -ForegroundColor Yellow
+        Write-Host "[WARNING] Audit mode: Actions will be logged but not blocked" -ForegroundColor Yellow
         Write-Host "  Check: Event Viewer > Applications and Services > Microsoft > Windows > Windows Defender > Operational" -ForegroundColor Gray
     }
 } catch {
-    Write-Host "✗ Failed to configure ASR rule: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure ASR rule: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -4274,22 +4274,22 @@ try {
         $AnimationKey = "HKCU:\\Control Panel\\Desktop\\WindowMetrics"
         Set-ItemProperty -Path $AnimationKey -Name "MinAnimate" -Value "0" -Type String -Force -ErrorAction SilentlyContinue
         
-        Write-Host "✓ Disabled: Taskbar animations" -ForegroundColor Green
-        Write-Host "✓ Disabled: List view effects" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disabled: Taskbar animations" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disabled: List view effects" -ForegroundColor Green
     }
     
     if ($Preset -eq "Best Appearance") {
         Set-ItemProperty -Path $AdvancedKey -Name "TaskbarAnimations" -Value 1 -Type DWord -Force
         Set-ItemProperty -Path $AdvancedKey -Name "ListviewAlphaSelect" -Value 1 -Type DWord -Force
         Set-ItemProperty -Path $AdvancedKey -Name "ListviewShadow" -Value 1 -Type DWord -Force
-        Write-Host "✓ Enabled: All visual effects" -ForegroundColor Green
+        Write-Host "[SUCCESS] Enabled: All visual effects" -ForegroundColor Green
     }
     
     # Configure transparency
     if ($DisableTransparency) {
         New-Item -Path $ThemesKey -Force -ErrorAction SilentlyContinue | Out-Null
         Set-ItemProperty -Path $ThemesKey -Name "EnableTransparency" -Value 0 -Type DWord -Force
-        Write-Host "✓ Disabled: Transparency effects" -ForegroundColor Green
+        Write-Host "[SUCCESS] Disabled: Transparency effects" -ForegroundColor Green
     }
     
     # Notify system of preference change
@@ -4302,10 +4302,10 @@ try {
     $User32::SystemParametersInfo(0x0013, 0, [ref]$dummy, 2) | Out-Null  # SPI_SETICONTITLELOGFONT
     
     Write-Host ""
-    Write-Host "✓ Visual effects configured" -ForegroundColor Green
-    Write-Host "⚠ Log off and back on for all changes to take effect" -ForegroundColor Yellow
+    Write-Host "[SUCCESS] Visual effects configured" -ForegroundColor Green
+    Write-Host "[WARNING] Log off and back on for all changes to take effect" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to configure visual effects: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure visual effects: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -4379,21 +4379,21 @@ try {
     Set-ItemProperty -Path $MemMgmtKey -Name "DisablePagingExecutive" -Value $(if ($DisablePagingExecutive) { 1 } else { 0 }) -Type DWord -Force
     if ($DisablePagingExecutive) {
         if ($RAM -lt 8) {
-            Write-Host "⚠ DisablePagingExecutive: Enabled (Warning: Low RAM)" -ForegroundColor Yellow
+            Write-Host "[WARNING] DisablePagingExecutive: Enabled (Warning: Low RAM)" -ForegroundColor Yellow
         } else {
-            Write-Host "✓ DisablePagingExecutive: Enabled (Kernel stays in RAM)" -ForegroundColor Green
+            Write-Host "[SUCCESS] DisablePagingExecutive: Enabled (Kernel stays in RAM)" -ForegroundColor Green
         }
     } else {
-        Write-Host "✓ DisablePagingExecutive: Disabled (Default)" -ForegroundColor Green
+        Write-Host "[SUCCESS] DisablePagingExecutive: Disabled (Default)" -ForegroundColor Green
     }
     
     # Large System Cache
     Set-ItemProperty -Path $MemMgmtKey -Name "LargeSystemCache" -Value $(if ($LargeSystemCache) { 1 } else { 0 }) -Type DWord -Force
-    Write-Host "✓ LargeSystemCache: $(if ($LargeSystemCache) { 'Enabled (File Server Mode)' } else { 'Disabled (Application Mode)' })" -ForegroundColor Green
+    Write-Host "[SUCCESS] LargeSystemCache: $(if ($LargeSystemCache) { 'Enabled (File Server Mode)' } else { 'Disabled (Application Mode)' })" -ForegroundColor Green
     
     # Clear Page File at Shutdown
     Set-ItemProperty -Path $MemMgmtKey -Name "ClearPageFileAtShutdown" -Value $(if ($ClearPageFile) { 1 } else { 0 }) -Type DWord -Force
-    Write-Host "✓ ClearPageFileAtShutdown: $(if ($ClearPageFile) { 'Enabled (Security)' } else { 'Disabled' })" -ForegroundColor Green
+    Write-Host "[SUCCESS] ClearPageFileAtShutdown: $(if ($ClearPageFile) { 'Enabled (Security)' } else { 'Disabled' })" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "Current Page File Configuration:" -ForegroundColor Cyan
@@ -4404,9 +4404,9 @@ try {
     }
     
     Write-Host ""
-    Write-Host "⚠ REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow
+    Write-Host "[WARNING] REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to configure memory management: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure memory management: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -4489,7 +4489,7 @@ try {
     
     # Set active power plan
     powercfg /setactive $PlanGuid
-    Write-Host "✓ Power Plan: $PowerPlan" -ForegroundColor Green
+    Write-Host "[SUCCESS] Power Plan: $PowerPlan" -ForegroundColor Green
     
     # Configure processor states
     # GUID_PROCESSOR_SUBGROUP: 54533251-82be-4824-96c1-47b60b740d00
@@ -4501,7 +4501,7 @@ try {
     powercfg /setdcvalueindex $PlanGuid 54533251-82be-4824-96c1-47b60b740d00 893dee8e-2bef-41e0-89c6-b55d0929964c $MinProcessor
     powercfg /setdcvalueindex $PlanGuid 54533251-82be-4824-96c1-47b60b740d00 bc5038f7-23e0-4960-96da-33abaf5935ec $MaxProcessor
     
-    Write-Host "✓ Processor State: $MinProcessor% - $MaxProcessor%" -ForegroundColor Green
+    Write-Host "[SUCCESS] Processor State: $MinProcessor% - $MaxProcessor%" -ForegroundColor Green
     
     # Configure USB Selective Suspend
     # USB_SUBGROUP: 2a737441-1930-4402-8d77-b2bebba308a3
@@ -4511,7 +4511,7 @@ try {
     powercfg /setacvalueindex $PlanGuid 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 $USBValue
     powercfg /setdcvalueindex $PlanGuid 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 $USBValue
     
-    Write-Host "✓ USB Selective Suspend: $(if ($DisableUSBSuspend) { 'Disabled' } else { 'Enabled' })" -ForegroundColor Green
+    Write-Host "[SUCCESS] USB Selective Suspend: $(if ($DisableUSBSuspend) { 'Disabled' } else { 'Enabled' })" -ForegroundColor Green
     
     # Apply changes
     powercfg /setactive $PlanGuid
@@ -4520,7 +4520,7 @@ try {
     Write-Host "Current Power Plan:" -ForegroundColor Cyan
     powercfg /getactivescheme
 } catch {
-    Write-Host "✗ Failed to configure power settings: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure power settings: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -4641,7 +4641,7 @@ if ($Results.Count -eq 0) {
     
     if ($ExportPath) {
         $Results | Export-Csv -Path $ExportPath -NoTypeInformation -Force
-        Write-Host "✓ Exported to: $ExportPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Exported to: $ExportPath" -ForegroundColor Green
     }
 }
 
@@ -4727,7 +4727,7 @@ try {
     # Create path if it doesn't exist
     if (-not (Test-Path $FullPath)) {
         New-Item -Path $FullPath -Force | Out-Null
-        Write-Host "✓ Created policy path: $FullPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created policy path: $FullPath" -ForegroundColor Green
     }
     
     # Convert value data based on type
@@ -4742,17 +4742,17 @@ try {
     # Set the policy value
     Set-ItemProperty -Path $FullPath -Name $ValueName -Value $Data -Type $ValueType -Force
     
-    Write-Host "✓ Policy setting applied:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy setting applied:" -ForegroundColor Green
     Write-Host "  Path: $FullPath" -ForegroundColor Gray
     Write-Host "  Name: $ValueName" -ForegroundColor Gray
     Write-Host "  Value: $ValueData" -ForegroundColor Gray
     Write-Host "  Type: $ValueType" -ForegroundColor Gray
     
     Write-Host ""
-    Write-Host "⚠ Domain Group Policy will override this setting if conflicting" -ForegroundColor Yellow
-    Write-Host "⚠ Run 'gpupdate /force' to refresh policy" -ForegroundColor Yellow
+    Write-Host "[WARNING] Domain Group Policy will override this setting if conflicting" -ForegroundColor Yellow
+    Write-Host "[WARNING] Run 'gpupdate /force' to refresh policy" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to apply policy setting: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to apply policy setting: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -4853,7 +4853,7 @@ Write-Host ""
 if ($RequireConfirm) {
     $Response = Read-Host "Type 'CLEAR' to confirm clearing policy settings"
     if ($Response -ne 'CLEAR') {
-        Write-Host "✗ Operation cancelled by user" -ForegroundColor Yellow
+        Write-Host "[FAILED] Operation cancelled by user" -ForegroundColor Yellow
         exit 0
     }
 }
@@ -4870,28 +4870,28 @@ try {
             $BackupFile = "$env:TEMP\\PolicyBackup_$(Get-Date -Format 'yyyyMMdd-HHmmss').reg"
             $RegPath = $Path -replace 'HKLM:', 'HKEY_LOCAL_MACHINE' -replace 'HKCU:', 'HKEY_CURRENT_USER'
             reg export $RegPath $BackupFile /y 2>&1 | Out-Null
-            Write-Host "✓ Backup created: $BackupFile" -ForegroundColor Green
+            Write-Host "[SUCCESS] Backup created: $BackupFile" -ForegroundColor Green
         }
         
         # Clear the path
         if ($SpecificPath) {
             Remove-Item -Path $Path -Recurse -Force -ErrorAction Stop
-            Write-Host "✓ Cleared: $Path" -ForegroundColor Green
+            Write-Host "[SUCCESS] Cleared: $Path" -ForegroundColor Green
         } else {
             Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object {
                 Remove-Item -Path $_.PSPath -Recurse -Force -ErrorAction SilentlyContinue
             }
-            Write-Host "✓ Cleared contents of: $Path" -ForegroundColor Green
+            Write-Host "[SUCCESS] Cleared contents of: $Path" -ForegroundColor Green
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Policy settings cleared" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy settings cleared" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠ Run 'gpupdate /force' to refresh Group Policy" -ForegroundColor Yellow
-    Write-Host "⚠ Domain GPO settings will reapply on next refresh" -ForegroundColor Yellow
+    Write-Host "[WARNING] Run 'gpupdate /force' to refresh Group Policy" -ForegroundColor Yellow
+    Write-Host "[WARNING] Domain GPO settings will reapply on next refresh" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to clear settings: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to clear settings: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -5037,11 +5037,11 @@ try {
         $Baseline.Settings | Export-Csv -Path $ExportPath -NoTypeInformation -Force
     }
     
-    Write-Host "✓ Baseline exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Baseline exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Settings captured: $($Baseline.Settings.Count)" -ForegroundColor Gray
     Write-Host "  Date: $($Baseline.ExportDate)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to export baseline: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to export baseline: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -5105,7 +5105,7 @@ Write-Host ""
 try {
     # Load baseline
     if (-not (Test-Path $BaselinePath)) {
-        Write-Host "✗ Baseline file not found: $BaselinePath" -ForegroundColor Red
+        Write-Host "[FAILED] Baseline file not found: $BaselinePath" -ForegroundColor Red
         exit 1
     }
     
@@ -5164,9 +5164,9 @@ try {
     Write-Host ("=" * 60) -ForegroundColor Gray
     
     if ($Differences.Count -eq 0) {
-        Write-Host "✓ No differences found - system matches baseline" -ForegroundColor Green
+        Write-Host "[SUCCESS] No differences found - system matches baseline" -ForegroundColor Green
     } else {
-        Write-Host "⚠ Found $($Differences.Count) differences:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Found $($Differences.Count) differences:" -ForegroundColor Yellow
         Write-Host ""
         
         $Differences | Group-Object Status | ForEach-Object {
@@ -5194,10 +5194,10 @@ try {
         }
         $Differences | Export-Csv -Path $DiffExportPath -NoTypeInformation -Force
         Write-Host ""
-        Write-Host "✓ Differences exported to: $DiffExportPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Differences exported to: $DiffExportPath" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to compare baseline: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to compare baseline: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -5275,7 +5275,7 @@ try {
         Get-WmiObject -Namespace root\\subscription -Class __FilterToConsumerBinding -ErrorAction SilentlyContinue | 
             Where-Object { $_.Filter -match $FilterName } | Remove-WmiObject
         
-        Write-Host "✓ Registry monitoring removed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Registry monitoring removed" -ForegroundColor Green
         exit 0
     }
     
@@ -5283,7 +5283,7 @@ try {
         $Filter = Get-WmiObject -Namespace root\\subscription -Class __EventFilter -Filter "Name='$FilterName'" -ErrorAction SilentlyContinue
         
         if ($Filter) {
-            Write-Host "✓ Registry monitoring is ACTIVE" -ForegroundColor Green
+            Write-Host "[SUCCESS] Registry monitoring is ACTIVE" -ForegroundColor Green
             Write-Host "  Filter: $FilterName" -ForegroundColor Gray
         } else {
             Write-Host "Registry monitoring is NOT configured" -ForegroundColor Yellow
@@ -5317,7 +5317,7 @@ try {
     $FilterInstance.Query = $FilterQuery
     $FilterInstance.Put() | Out-Null
     
-    Write-Host "✓ Created event filter" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created event filter" -ForegroundColor Green
     
     # Create Event Consumer
     $LogCommand = if ($LogDestination -eq "File") {
@@ -5331,7 +5331,7 @@ try {
     $ConsumerInstance.CommandLineTemplate = $LogCommand
     $ConsumerInstance.Put() | Out-Null
     
-    Write-Host "✓ Created event consumer" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created event consumer" -ForegroundColor Green
     
     # Bind filter to consumer
     $BindingInstance = ([wmiclass]"\\\\localhost\\root\\subscription:__FilterToConsumerBinding").CreateInstance()
@@ -5339,7 +5339,7 @@ try {
     $BindingInstance.Consumer = "\\\\localhost\\root\\subscription:CommandLineEventConsumer.Name='$ConsumerName'"
     $BindingInstance.Put() | Out-Null
     
-    Write-Host "✓ Created binding" -ForegroundColor Green
+    Write-Host "[SUCCESS] Created binding" -ForegroundColor Green
     Write-Host ""
     Write-Host "Registry monitoring is now ACTIVE" -ForegroundColor Green
     Write-Host "  Monitoring: $RegistryPath" -ForegroundColor Gray
@@ -5350,7 +5350,7 @@ try {
     Write-Host ""
     Write-Host "To remove monitoring, run this task again with 'Remove Monitor' action" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to configure monitoring: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure monitoring: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -5414,7 +5414,7 @@ Write-Host "  Recursive: $Recursive" -ForegroundColor Gray
 Write-Host ""
 
 if (-not (Test-Path $KeyPath)) {
-    Write-Host "✗ Registry key not found: $KeyPath" -ForegroundColor Red
+    Write-Host "[FAILED] Registry key not found: $KeyPath" -ForegroundColor Red
     exit 1
 }
 
@@ -5443,10 +5443,10 @@ function Repair-KeyPermissions {
         # Apply the ACL
         Set-Acl -Path $Path -AclObject $Acl -ErrorAction Stop
         
-        Write-Host "  ✓ Repaired: $Path" -ForegroundColor Green
+        Write-Host "  [OK] Repaired: $Path" -ForegroundColor Green
         return $true
     } catch {
-        Write-Host "  ✗ Failed: $Path - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  [FAILED] Failed: $Path - $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
 }
@@ -5479,7 +5479,7 @@ Write-Host "  Failed: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { 'Re
 
 if ($FailCount -gt 0) {
     Write-Host ""
-    Write-Host "⚠ Some keys could not be repaired. They may be protected by TrustedInstaller." -ForegroundColor Yellow
+    Write-Host "[WARNING] Some keys could not be repaired. They may be protected by TrustedInstaller." -ForegroundColor Yellow
 }`;
     }
   },

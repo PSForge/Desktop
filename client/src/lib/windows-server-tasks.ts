@@ -111,7 +111,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Server inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Server inventory exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export server inventory: $_"
@@ -197,7 +197,7 @@ try {
     
     $FeatureReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Roles and features exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Roles and features exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export roles and features: $_"
@@ -314,7 +314,7 @@ try {
     
     $EventReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Event logs exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Event logs exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export event logs: $_"
@@ -400,7 +400,7 @@ try {
     
     $ServiceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Services exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Services exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export services: $_"
@@ -489,7 +489,7 @@ try {
     
     $DiskReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Disk usage exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disk usage exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export disk usage: $_"
@@ -586,10 +586,10 @@ try {
     $Result = Install-WindowsFeature @InstallParams
     
     if ($Result.Success) {
-        Write-Host "✓ ${roleName} installed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${roleName} installed successfully" -ForegroundColor Green
         
         if ($Result.RestartNeeded -eq 'Yes') {
-            Write-Host "⚠ Server restart required to complete installation" -ForegroundColor Yellow
+            Write-Host "[WARNING] Server restart required to complete installation" -ForegroundColor Yellow
         }
         
         Write-Host "Exit Code: $($Result.ExitCode)" -ForegroundColor Gray
@@ -684,10 +684,10 @@ try {
     $Result = Uninstall-WindowsFeature @RemoveParams
     
     if ($Result.Success) {
-        Write-Host "✓ ${roleName} removed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${roleName} removed successfully" -ForegroundColor Green
         
         if ($Result.RestartNeeded -eq 'Yes') {
-            Write-Host "⚠ Server restart required to complete removal" -ForegroundColor Yellow
+            Write-Host "[WARNING] Server restart required to complete removal" -ForegroundColor Yellow
         }
         
         Write-Host "Exit Code: $($Result.ExitCode)" -ForegroundColor Gray
@@ -792,7 +792,7 @@ try {
     
     $FeatureReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Features list exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Features list exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export features list: $_"
@@ -872,7 +872,7 @@ try {
 
 try {
     Write-Host "Initiating restart of server: ${serverName}" -ForegroundColor Cyan
-    ${force ? `Write-Host "⚠ Force restart enabled - applications will be closed immediately" -ForegroundColor Yellow` : ''}
+    ${force ? `Write-Host "[WARNING] Force restart enabled - applications will be closed immediately" -ForegroundColor Yellow` : ''}
     
     $RestartParams = @{
         ComputerName = "${serverName}"
@@ -882,7 +882,7 @@ try {
     
     Restart-Computer @RestartParams
     
-    Write-Host "✓ Restart initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Restart initiated successfully" -ForegroundColor Green
     Write-Host "Server ${serverName} will restart in ${timeout} seconds" -ForegroundColor Gray
     
 } catch {
@@ -953,7 +953,7 @@ try {
 
 try {
     Write-Host "Initiating shutdown of server: ${serverName}" -ForegroundColor Cyan
-    ${force ? `Write-Host "⚠ Force shutdown enabled - applications will be closed immediately" -ForegroundColor Yellow` : ''}
+    ${force ? `Write-Host "[WARNING] Force shutdown enabled - applications will be closed immediately" -ForegroundColor Yellow` : ''}
     
     $ShutdownParams = @{
         ComputerName = "${serverName}"
@@ -962,7 +962,7 @@ try {
     
     Stop-Computer @ShutdownParams
     
-    Write-Host "✓ Shutdown initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Shutdown initiated successfully" -ForegroundColor Green
     Write-Host "Server ${serverName} is shutting down" -ForegroundColor Gray
     
 } catch {
@@ -1052,8 +1052,8 @@ try {
     
     Rename-Computer @RenameParams
     
-    Write-Host "✓ Server renamed successfully" -ForegroundColor Green
-    ${restart ? `Write-Host "⚠ Server is restarting to apply changes" -ForegroundColor Yellow` : `Write-Host "⚠ Server restart required to apply changes" -ForegroundColor Yellow`}
+    Write-Host "[SUCCESS] Server renamed successfully" -ForegroundColor Green
+    ${restart ? `Write-Host "[WARNING] Server is restarting to apply changes" -ForegroundColor Yellow` : `Write-Host "[WARNING] Server restart required to apply changes" -ForegroundColor Yellow`}
     Write-Host "New name: ${newName}" -ForegroundColor Gray
     
 } catch {
@@ -1164,7 +1164,7 @@ try {
     
     $ServiceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Services list exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Services list exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export services list: $_"
@@ -1260,7 +1260,7 @@ try {
     }
     
     if ($Service.Status -eq 'Running') {
-        Write-Host "✓ Service ${serviceName} started successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service ${serviceName} started successfully" -ForegroundColor Green
     } else {
         Write-Warning "Service did not reach running state within $Timeout seconds. Current status: $($Service.Status)"
     }
@@ -1378,7 +1378,7 @@ try {
     }
     
     if ($Service.Status -eq 'Stopped') {
-        Write-Host "✓ Service ${serviceName} stopped successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service ${serviceName} stopped successfully" -ForegroundColor Green
     } else {
         Write-Warning "Service did not stop within $Timeout seconds. Current status: $($Service.Status)"
     }
@@ -1461,7 +1461,7 @@ try {
     # Check for dependent services that are running
     $DependentServices = $Service.DependentServices | Where-Object { $_.Status -eq 'Running' }
     if ($DependentServices) {
-        Write-Host "⚠ Service has $($DependentServices.Count) running dependent service(s)" -ForegroundColor Yellow
+        Write-Host "[WARNING] Service has $($DependentServices.Count) running dependent service(s)" -ForegroundColor Yellow
         foreach ($DepService in $DependentServices) {
             Write-Host "  - $($DepService.Name)" -ForegroundColor Gray
         }
@@ -1482,7 +1482,7 @@ try {
     }
     
     if ($Service.Status -eq 'Running') {
-        Write-Host "✓ Service ${serviceName} restarted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Service ${serviceName} restarted successfully" -ForegroundColor Green
         Write-Host "Service is now running" -ForegroundColor Gray
     } else {
         Write-Warning "Service did not reach running state within $Timeout seconds. Current status: $($Service.Status)"
@@ -1592,10 +1592,10 @@ try {
     # Verify the change
     $Service = Get-Service -Name "${serviceName}" -ComputerName "${serverName}"
     
-    Write-Host "✓ Service startup type changed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service startup type changed successfully" -ForegroundColor Green
     Write-Host "Current status: $($Service.Status)" -ForegroundColor Gray
     Write-Host "Startup type: $($Service.StartType)" -ForegroundColor Gray
-    ${startupType === 'Disabled' ? `Write-Host "⚠ Service is now disabled and cannot be started" -ForegroundColor Yellow` : ''}
+    ${startupType === 'Disabled' ? `Write-Host "[WARNING] Service is now disabled and cannot be started" -ForegroundColor Yellow` : ''}
     
 } catch {
     Write-Error "Failed to set service startup type: $_"
@@ -1688,7 +1688,7 @@ try {
 
 try {
     Write-Host "Clearing ${logName} event log on server: ${serverName}" -ForegroundColor Cyan
-    ${logName === 'Security' ? `Write-Host "⚠ Clearing Security log requires special permissions" -ForegroundColor Yellow` : ''}
+    ${logName === 'Security' ? `Write-Host "[WARNING] Clearing Security log requires special permissions" -ForegroundColor Yellow` : ''}
     
     ${backupFirst ? `
     # Backup event log first
@@ -1713,13 +1713,13 @@ try {
         wevtutil epl $Log $Backup
     } -ArgumentList "${logName}", $BackupFile
     
-    Write-Host "✓ Backup completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup completed" -ForegroundColor Green
     ` : ''}
     
     # Clear the event log
     Clear-EventLog -LogName "${logName}" -ComputerName "${serverName}" -ErrorAction Stop
     
-    Write-Host "✓ Event log ${logName} cleared successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Event log ${logName} cleared successfully" -ForegroundColor Green
     ${backupFirst && backupPath ? `Write-Host "Backup saved to: $BackupFile" -ForegroundColor Gray` : ''}
     
     # Verify log was cleared
@@ -1862,7 +1862,7 @@ try {
     
     $EventReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Search results exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search results exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to search event log: $_"
@@ -1971,7 +1971,7 @@ try {
         New-SmbShare @Params
     } -ArgumentList $ShareParams
     
-    Write-Host "✓ Share '${shareName}' created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Share '${shareName}' created successfully" -ForegroundColor Green
     Write-Host "Network Path: \\\\${serverName}\\${shareName}" -ForegroundColor Gray
     Write-Host "Local Path: ${folderPath}" -ForegroundColor Gray
     Write-Host "Access Level: ${accessLevel}" -ForegroundColor Gray
@@ -1983,7 +1983,7 @@ try {
     } -ArgumentList "${shareName}"
     
     if ($Share) {
-        Write-Host "✓ Share verification successful" -ForegroundColor Green
+        Write-Host "[SUCCESS] Share verification successful" -ForegroundColor Green
     }
     
 } catch {
@@ -2054,7 +2054,7 @@ try {
 
 try {
     Write-Host "Removing SMB share '${shareName}' from server: ${serverName}" -ForegroundColor Cyan
-    Write-Host "⚠ WARNING: Network access to this share will be removed immediately" -ForegroundColor Yellow
+    Write-Host "[WARNING] WARNING: Network access to this share will be removed immediately" -ForegroundColor Yellow
     Write-Host "Note: Files and folders will NOT be deleted" -ForegroundColor Yellow
     
     # Verify share exists before removal
@@ -2076,7 +2076,7 @@ try {
         Remove-SmbShare -Name $Name -Force
     } -ArgumentList "${shareName}"
     
-    Write-Host "✓ Share '${shareName}' removed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Share '${shareName}' removed successfully" -ForegroundColor Green
     Write-Host "Files remain at: $($ShareExists.Path)" -ForegroundColor Gray
     
 } catch {
@@ -2169,7 +2169,7 @@ try {
     
     $ShareReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ File shares exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] File shares exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export file shares: $_"
@@ -2268,7 +2268,7 @@ try {
         Get-TimeZone
     }
     
-    Write-Host "✓ Time zone updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Time zone updated successfully" -ForegroundColor Green
     Write-Host "New Time Zone: $($NewTZ.DisplayName)" -ForegroundColor Gray
     Write-Host "Current Time: $($NewTZ.StandardName)" -ForegroundColor Gray
     Write-Host "No restart required" -ForegroundColor Green
@@ -2392,7 +2392,7 @@ try {
 
 try {
     Write-Host "Creating firewall rule '${ruleName}' on server: ${serverName}" -ForegroundColor Cyan
-    Write-Host "⚠ WARNING: Firewall changes can affect network connectivity" -ForegroundColor Yellow
+    Write-Host "[WARNING] WARNING: Firewall changes can affect network connectivity" -ForegroundColor Yellow
     
     $RuleParams = @{
         DisplayName       = "${ruleName}"
@@ -2413,7 +2413,7 @@ try {
         New-NetFirewallRule @Params
     } -ArgumentList $RuleParams
     
-    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule created successfully" -ForegroundColor Green
     
     # Verify rule creation
     $Rule = Invoke-Command -ComputerName "${serverName}" -ScriptBlock {
@@ -2422,7 +2422,7 @@ try {
     } -ArgumentList "${ruleName}"
     
     if ($Rule) {
-        Write-Host "✓ Rule verification successful" -ForegroundColor Green
+        Write-Host "[SUCCESS] Rule verification successful" -ForegroundColor Green
         Write-Host "Rule is enabled and active" -ForegroundColor Gray
     }
     
@@ -2528,7 +2528,7 @@ try {
     
     $RuleReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Firewall rules exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rules exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export firewall rules: $_"
@@ -2598,8 +2598,8 @@ try {
 
 try {
     Write-Host "Starting disk defragmentation on ${driveLetter}: (Server: ${serverName})" -ForegroundColor Cyan
-    Write-Host "⚠ Note: This operation may take a long time for large or fragmented drives" -ForegroundColor Yellow
-    Write-Host "⚠ Not recommended for SSD drives" -ForegroundColor Yellow
+    Write-Host "[WARNING] Note: This operation may take a long time for large or fragmented drives" -ForegroundColor Yellow
+    Write-Host "[WARNING] Not recommended for SSD drives" -ForegroundColor Yellow
     
     # Get volume info before defrag
     $VolumeBefore = Invoke-Command -ComputerName "${serverName}" -ScriptBlock {
@@ -2617,7 +2617,7 @@ try {
         Optimize-Volume -DriveLetter $Drive -Defrag -Verbose
     } -ArgumentList "${driveLetter}"
     
-    Write-Host "✓ Disk defragmentation completed for ${driveLetter}:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disk defragmentation completed for ${driveLetter}:" -ForegroundColor Green
     Write-Host "Drive optimization finished" -ForegroundColor Gray
     
 } catch {
@@ -2688,7 +2688,7 @@ try {
 
 try {
     Write-Host "Running disk check on ${driveLetter}: (Server: ${serverName})" -ForegroundColor Cyan
-    Write-Host "⚠ Scanning for errors - this may take several minutes" -ForegroundColor Yellow
+    Write-Host "[WARNING] Scanning for errors - this may take several minutes" -ForegroundColor Yellow
     
     # Get volume info
     $Volume = Invoke-Command -ComputerName "${serverName}" -ScriptBlock {
@@ -2714,11 +2714,11 @@ try {
         Get-Volume -DriveLetter $Drive
     } -ArgumentList "${driveLetter}"
     
-    Write-Host "✓ Disk check completed for ${driveLetter}:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disk check completed for ${driveLetter}:" -ForegroundColor Green
     Write-Host "Health Status: $($VolumeAfter.HealthStatus)" -ForegroundColor $(if ($VolumeAfter.HealthStatus -eq 'Healthy') { 'Green' } else { 'Yellow' })
     
     if ($VolumeAfter.HealthStatus -ne 'Healthy') {
-        Write-Host "⚠ Disk errors detected - consider running offline repair" -ForegroundColor Yellow
+        Write-Host "[WARNING] Disk errors detected - consider running offline repair" -ForegroundColor Yellow
     }
     
 } catch {
@@ -2792,7 +2792,7 @@ try {
 
 try {
     Write-Host "Extending volume ${driveLetter}: on server: ${serverName}" -ForegroundColor Cyan
-    Write-Host "⚠ WARNING: Backup data before extending volumes" -ForegroundColor Yellow
+    Write-Host "[WARNING] WARNING: Backup data before extending volumes" -ForegroundColor Yellow
     
     # Get current volume size
     $VolumeBefore = Invoke-Command -ComputerName "${serverName}" -ScriptBlock {
@@ -2816,7 +2816,7 @@ try {
     Write-Host "Available to Extend: $AvailableGB GB" -ForegroundColor Yellow
     
     if ($AvailableGB -le 0) {
-        Write-Host "⚠ No additional space available to extend this volume" -ForegroundColor Yellow
+        Write-Host "[WARNING] No additional space available to extend this volume" -ForegroundColor Yellow
         return
     }
     
@@ -2834,7 +2834,7 @@ try {
     
     $SizeAfter = [math]::Round($VolumeAfter.Size / 1GB, 2)
     
-    Write-Host "✓ Volume extended successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume extended successfully" -ForegroundColor Green
     Write-Host "Previous Size: $SizeBefore GB" -ForegroundColor Gray
     Write-Host "New Size: $SizeAfter GB" -ForegroundColor Green
     Write-Host "Added: $([math]::Round($SizeAfter - $SizeBefore, 2)) GB" -ForegroundColor Green
@@ -2877,7 +2877,7 @@ try {
 5. Server will reboot to complete domain join
 
 **Important Notes:**
-- ⚠ CRITICAL: Server will restart automatically
+- [WARNING] CRITICAL: Server will restart automatically
 - Requires domain administrator credentials
 - DNS must be configured correctly first
 - Server will be unavailable during restart
@@ -2921,8 +2921,8 @@ try {
 
 try {
     Write-Host "Preparing to join ${serverName} to domain: ${domainName}" -ForegroundColor Cyan
-    Write-Host "⚠ CRITICAL WARNING: Server will restart automatically after domain join" -ForegroundColor Yellow
-    Write-Host "⚠ Ensure all users are logged off and applications are closed" -ForegroundColor Yellow
+    Write-Host "[WARNING] CRITICAL WARNING: Server will restart automatically after domain join" -ForegroundColor Yellow
+    Write-Host "[WARNING] Ensure all users are logged off and applications are closed" -ForegroundColor Yellow
     
     # Prompt for domain admin credentials
     Write-Host "" 
@@ -2949,7 +2949,7 @@ try {
     
     Add-Computer @JoinParams
     
-    Write-Host "✓ Domain join initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Domain join initiated successfully" -ForegroundColor Green
     Write-Host "Server is restarting to complete domain join..." -ForegroundColor Yellow
     Write-Host "" 
     Write-Host "After restart, log in with domain credentials: ${domainName}\\Administrator" -ForegroundColor Cyan
@@ -2996,7 +2996,7 @@ try {
 5. Initiates automatic restart
 
 **Important Notes:**
-- ⚠ CRITICAL: Server will restart automatically
+- [WARNING] CRITICAL: Server will restart automatically
 - Server loses access to domain resources
 - Local admin account required after restart
 - Computer account remains in AD (manual cleanup needed)
@@ -3032,9 +3032,9 @@ try {
 
 try {
     Write-Host "Preparing to remove ${serverName} from domain" -ForegroundColor Cyan
-    Write-Host "⚠ CRITICAL WARNING: Server will restart automatically" -ForegroundColor Yellow
-    Write-Host "⚠ Server will lose access to all domain resources" -ForegroundColor Yellow
-    Write-Host "⚠ Ensure you have local administrator credentials" -ForegroundColor Yellow
+    Write-Host "[WARNING] CRITICAL WARNING: Server will restart automatically" -ForegroundColor Yellow
+    Write-Host "[WARNING] Server will lose access to all domain resources" -ForegroundColor Yellow
+    Write-Host "[WARNING] Ensure you have local administrator credentials" -ForegroundColor Yellow
     
     # Get current domain
     $CurrentDomain = Invoke-Command -ComputerName "${serverName}" -ScriptBlock {
@@ -3066,7 +3066,7 @@ try {
     
     Remove-Computer @UnjoinParams
     
-    Write-Host "✓ Domain removal initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Domain removal initiated successfully" -ForegroundColor Green
     Write-Host "Server is restarting to complete workgroup join..." -ForegroundColor Yellow
     Write-Host "" 
     Write-Host "After restart, log in with: .\\Administrator (local account)" -ForegroundColor Cyan
@@ -3183,13 +3183,13 @@ try {
     if (-not $Feature.Installed) {
         Write-Host "Installing Windows Server Backup feature..." -ForegroundColor Cyan
         Install-WindowsFeature -Name Windows-Server-Backup -IncludeManagementTools
-        Write-Host "✓ Windows Server Backup installed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Windows Server Backup installed" -ForegroundColor Green
     }
     
     # Validate backup destination
     if (-not (Test-Path "${backupPath}")) {
         New-Item -Path "${backupPath}" -ItemType Directory -Force | Out-Null
-        Write-Host "✓ Backup destination created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backup destination created" -ForegroundColor Green
     }
     
     # Create backup policy
@@ -3209,7 +3209,7 @@ try {
         }
         "Custom" {
             Write-Host "Configuring custom backup..." -ForegroundColor Cyan
-            Write-Host "⚠ Modify script to specify custom volumes" -ForegroundColor Yellow
+            Write-Host "[WARNING] Modify script to specify custom volumes" -ForegroundColor Yellow
         }
     }
     
@@ -3222,10 +3222,10 @@ try {
         "Daily" {
             $Time = [DateTime]"${backupTime}"
             Set-WBSchedule -Policy $Policy -Schedule $Time
-            Write-Host "✓ Daily backup scheduled for ${backupTime}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Daily backup scheduled for ${backupTime}" -ForegroundColor Green
         }
         "Weekly" {
-            Write-Host "⚠ Configure weekly schedule manually" -ForegroundColor Yellow
+            Write-Host "[WARNING] Configure weekly schedule manually" -ForegroundColor Yellow
         }
         "Once" {
             Write-Host "Backup set for manual execution only" -ForegroundColor Yellow
@@ -3235,7 +3235,7 @@ try {
     # Apply the policy
     Set-WBPolicy -Policy $Policy
     
-    Write-Host "✓ Windows Server Backup configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Windows Server Backup configured successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Backup Configuration:" -ForegroundColor Cyan
     Write-Host "  Type: ${backupType}" -ForegroundColor Gray
@@ -3374,7 +3374,7 @@ try {
     # Create firewall rule
     New-NetFirewallRule @RuleParams
     
-    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule created successfully" -ForegroundColor Green
     
     # Display the new rule
     Write-Host ""
@@ -3497,12 +3497,12 @@ try {
         }
     }
     
-    Write-Host "✓ All network adapters validated" -ForegroundColor Green
+    Write-Host "[SUCCESS] All network adapters validated" -ForegroundColor Green
     
     # Create NIC team
     New-NetLbfoTeam -Name "${teamName}" -TeamMembers $Adapters -TeamingMode ${teamingMode} -LoadBalancingAlgorithm ${loadBalancing}
     
-    Write-Host "✓ NIC team created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] NIC team created successfully" -ForegroundColor Green
     
     # Display team status
     Write-Host ""
@@ -3629,12 +3629,12 @@ try {
     # Create storage pool
     Write-Host "Creating storage pool..." -ForegroundColor Cyan
     $Pool = New-StoragePool -FriendlyName "${poolName}" -PhysicalDisks $PhysicalDisks -StorageSubSystemFriendlyName "Windows Storage*"
-    Write-Host "✓ Storage pool created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage pool created" -ForegroundColor Green
     
     # Create virtual disk
     Write-Host "Creating virtual disk..." -ForegroundColor Cyan
     $VDisk = New-VirtualDisk -FriendlyName "${vdiskName}" -StoragePoolFriendlyName "${poolName}" -ResiliencySettingName ${resiliency} -Size ${sizeGB}GB
-    Write-Host "✓ Virtual disk created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual disk created" -ForegroundColor Green
     
     # Initialize and format disk
     Write-Host "Initializing and formatting disk..." -ForegroundColor Cyan
@@ -3643,7 +3643,7 @@ try {
     $Partition = New-Partition -DiskNumber $Disk.Number -UseMaximumSize -AssignDriveLetter
     Format-Volume -DriveLetter $Partition.DriveLetter -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:$false
     
-    Write-Host "✓ Disk initialized and formatted" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disk initialized and formatted" -ForegroundColor Green
     Write-Host ""
     Write-Host "Storage Configuration Complete:" -ForegroundColor Cyan
     Write-Host "  Drive Letter: $($Partition.DriveLetter):" -ForegroundColor Gray
@@ -3744,7 +3744,7 @@ try {
     if (-not $Feature.Installed) {
         Write-Host "Installing BranchCache feature..." -ForegroundColor Cyan
         Install-WindowsFeature -Name BranchCache
-        Write-Host "✓ BranchCache installed" -ForegroundColor Green
+        Write-Host "[SUCCESS] BranchCache installed" -ForegroundColor Green
     }
     
     # Configure BranchCache mode
@@ -3752,13 +3752,13 @@ try {
         "DistributedCache" {
             Write-Host "Enabling Distributed Cache mode..." -ForegroundColor Cyan
             Enable-BCDistributed
-            Write-Host "✓ Distributed Cache enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Distributed Cache enabled" -ForegroundColor Green
         }
         "HostedCache" {
             ${cacheServer ? `
             Write-Host "Enabling Hosted Cache mode..." -ForegroundColor Cyan
             Enable-BCHostedClient -ServerNames "${cacheServer}"
-            Write-Host "✓ Hosted Cache enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Hosted Cache enabled" -ForegroundColor Green
             Write-Host "  Cache Server: ${cacheServer}" -ForegroundColor Gray
             ` : `
             Write-Error "Cache server name required for Hosted Cache mode"
@@ -3774,7 +3774,7 @@ try {
     # Configure firewall rules
     Write-Host "Configuring firewall rules..." -ForegroundColor Cyan
     Enable-NetFirewallRule -DisplayGroup "BranchCache*"
-    Write-Host "✓ Firewall rules enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rules enabled" -ForegroundColor Green
     
     # Display configuration
     Write-Host ""
@@ -3782,7 +3782,7 @@ try {
     Get-BCStatus | Select-Object BranchCacheIsEnabled, BranchCacheServiceStatus | Format-List
     
     Write-Host ""
-    Write-Host "✓ BranchCache configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] BranchCache configured successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to configure BranchCache: $_"
@@ -3894,7 +3894,7 @@ try {
     
     # Connect to WSUS server
     $Wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer("${wsusServer}", $false, 8530)
-    Write-Host "✓ Connected to WSUS server" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connected to WSUS server" -ForegroundColor Green
     
     # Get update scope for classification
     $UpdateScope = New-Object Microsoft.UpdateServices.Administration.UpdateScope
@@ -3928,11 +3928,11 @@ try {
                 $ApprovedCount++
             }
             
-            Write-Host "✓ Approved $ApprovedCount updates for ${computerGroup}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Approved $ApprovedCount updates for ${computerGroup}" -ForegroundColor Green
         }
         
         "Decline" {
-            Write-Host "⚠ Declining updates..." -ForegroundColor Yellow
+            Write-Host "[WARNING] Declining updates..." -ForegroundColor Yellow
             $Updates = $Wsus.GetUpdates($UpdateScope) | Where-Object { $_.UpdateClassificationTitle -eq "${classification}" }
             
             $DeclinedCount = 0
@@ -3941,7 +3941,7 @@ try {
                 $DeclinedCount++
             }
             
-            Write-Host "✓ Declined $DeclinedCount updates" -ForegroundColor Green
+            Write-Host "[SUCCESS] Declined $DeclinedCount updates" -ForegroundColor Green
         }
     }
     
@@ -4021,7 +4021,7 @@ try {
     
     # Get cluster object
     $Cluster = Get-Cluster -Name "${clusterName}" -ErrorAction Stop
-    Write-Host "✓ Connected to cluster: $($Cluster.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connected to cluster: $($Cluster.Name)" -ForegroundColor Green
     
     # Get cluster nodes
     Write-Host ""
@@ -4055,7 +4055,7 @@ try {
     Write-Host "Generating HTML health report..." -ForegroundColor Cyan
     Test-Cluster -Cluster "${clusterName}" -ReportName "${exportPath}" -ErrorAction SilentlyContinue
     
-    Write-Host "✓ Cluster health report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cluster health report exported to: ${exportPath}" -ForegroundColor Green
     
     # Summary
     Write-Host ""
@@ -4163,7 +4163,7 @@ try {
             Suspend-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}" -Drain -Wait
             
             $Node = Get-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}"
-            Write-Host "✓ Node paused successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Node paused successfully" -ForegroundColor Green
             Write-Host "New state: $($Node.State)" -ForegroundColor Gray
             Write-Host ""
             Write-Host "Node is now safe for maintenance" -ForegroundColor Yellow
@@ -4175,7 +4175,7 @@ try {
             Resume-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}"
             
             $Node = Get-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}"
-            Write-Host "✓ Node resumed successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Node resumed successfully" -ForegroundColor Green
             Write-Host "New state: $($Node.State)" -ForegroundColor Gray
             Write-Host ""
             Write-Host "Node is available to host cluster roles" -ForegroundColor Yellow
@@ -4183,11 +4183,11 @@ try {
         
         "Evict" {
             Write-Host ""
-            Write-Host "⚠ WARNING: This will permanently remove the node from the cluster" -ForegroundColor Yellow
+            Write-Host "[WARNING] WARNING: This will permanently remove the node from the cluster" -ForegroundColor Yellow
             Write-Host "Evicting node..." -ForegroundColor Cyan
             Remove-ClusterNode -Cluster "${clusterName}" -Name "${nodeName}" -Force
             
-            Write-Host "✓ Node evicted from cluster" -ForegroundColor Green
+            Write-Host "[SUCCESS] Node evicted from cluster" -ForegroundColor Green
             Write-Host ""
             Write-Host "To rejoin, use Add-ClusterNode cmdlet" -ForegroundColor Gray
         }
@@ -4302,7 +4302,7 @@ try {
     switch ("${quorumType}") {
         "NodeMajority" {
             Set-ClusterQuorum -Cluster "${clusterName}" -NoWitness
-            Write-Host "✓ Node Majority quorum configured" -ForegroundColor Green
+            Write-Host "[SUCCESS] Node Majority quorum configured" -ForegroundColor Green
         }
         
         "DiskWitness" {
@@ -4311,7 +4311,7 @@ try {
                 exit 1
             }
             Set-ClusterQuorum -Cluster "${clusterName}" -DiskWitness "${witnessPath}"
-            Write-Host "✓ Disk Witness quorum configured" -ForegroundColor Green
+            Write-Host "[SUCCESS] Disk Witness quorum configured" -ForegroundColor Green
         }
         
         "FileShareWitness" {
@@ -4320,7 +4320,7 @@ try {
                 exit 1
             }
             Set-ClusterQuorum -Cluster "${clusterName}" -FileShareWitness "${witnessPath}"
-            Write-Host "✓ File Share Witness quorum configured" -ForegroundColor Green
+            Write-Host "[SUCCESS] File Share Witness quorum configured" -ForegroundColor Green
         }
         
         "CloudWitness" {
@@ -4328,10 +4328,10 @@ try {
                 Write-Error "Azure storage account name required"
                 exit 1
             }
-            Write-Host "⚠ Cloud witness requires Azure storage access key" -ForegroundColor Yellow
+            Write-Host "[WARNING] Cloud witness requires Azure storage access key" -ForegroundColor Yellow
             $AccessKey = Read-Host "Enter Azure storage access key" -AsSecureString
             Set-ClusterQuorum -Cluster "${clusterName}" -CloudWitness -AccountName "${witnessPath}" -AccessKey $AccessKey
-            Write-Host "✓ Cloud Witness quorum configured" -ForegroundColor Green
+            Write-Host "[SUCCESS] Cloud Witness quorum configured" -ForegroundColor Green
         }
     }
     
@@ -4455,7 +4455,7 @@ try {
     $AllData = $ResourceReport + $GroupReport | Sort-Object GroupName, ResourceName
     $AllData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Cluster resources exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cluster resources exported to: ${exportPath}" -ForegroundColor Green
     
     # Summary
     Write-Host ""
@@ -4539,7 +4539,7 @@ try {
     
     # Get storage subsystem
     $Subsystem = Get-StorageSubSystem -FriendlyName "${subsystem}" -ErrorAction Stop
-    Write-Host "✓ Found storage subsystem: $($Subsystem.FriendlyName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found storage subsystem: $($Subsystem.FriendlyName)" -ForegroundColor Green
     
     # Get available physical disks
     $AvailableDisks = Get-PhysicalDisk -CanPool $true
@@ -4563,7 +4563,7 @@ try {
     
     $Pool = New-StoragePool -FriendlyName "${poolName}" -StorageSubSystemFriendlyName $Subsystem.FriendlyName -PhysicalDisks $AvailableDisks
     
-    Write-Host "✓ Storage pool created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage pool created successfully" -ForegroundColor Green
     
     # Display pool information
     Write-Host ""
@@ -4682,7 +4682,7 @@ try {
     
     # Verify storage pool exists
     $Pool = Get-StoragePool -FriendlyName "${poolName}" -ErrorAction Stop
-    Write-Host "✓ Storage pool found: $($Pool.FriendlyName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage pool found: $($Pool.FriendlyName)" -ForegroundColor Green
     
     # Check available capacity
     $AvailableGB = [math]::Round(($Pool.Size - $Pool.AllocatedSize) / 1GB, 2)
@@ -4694,7 +4694,7 @@ try {
     
     $VDisk = New-VirtualDisk -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}" -ResiliencySettingName "${resiliencyType}" -Size ${sizeGB}GB -ProvisioningType Thin
     
-    Write-Host "✓ Virtual disk created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual disk created" -ForegroundColor Green
     
     # Initialize disk
     Write-Host "Initializing disk..." -ForegroundColor Cyan
@@ -4706,11 +4706,11 @@ try {
     ${driveLetter ? `
     $Partition = $Disk | New-Partition -UseMaximumSize -DriveLetter "${driveLetter}"
     $Partition | Format-Volume -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:\$false
-    Write-Host "✓ Volume formatted and mounted as ${driveLetter}:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume formatted and mounted as ${driveLetter}:" -ForegroundColor Green
     ` : `
     $Partition = $Disk | New-Partition -UseMaximumSize -AssignDriveLetter
     $Partition | Format-Volume -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:\$false
-    Write-Host "✓ Volume formatted and mounted" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume formatted and mounted" -ForegroundColor Green
     `}
     
     # Display summary
@@ -4826,7 +4826,7 @@ try {
     
     # Export report
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Storage Spaces report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage Spaces report exported to: ${exportPath}" -ForegroundColor Green
     
     # Physical disk health summary
     Write-Host ""
@@ -5102,19 +5102,19 @@ try {
             "Disconnect" {
                 Write-Host "Disconnecting session..." -ForegroundColor Yellow
                 Disconnect-RDUser -HostServer $Session.HostServer -UnifiedSessionID $Session.UnifiedSessionId -Force
-                Write-Host "✓ Session disconnected" -ForegroundColor Green
+                Write-Host "[SUCCESS] Session disconnected" -ForegroundColor Green
             }
             
             "Logoff" {
-                Write-Host "⚠ Logging off session..." -ForegroundColor Yellow
+                Write-Host "[WARNING] Logging off session..." -ForegroundColor Yellow
                 Invoke-RDUserLogoff -HostServer $Session.HostServer -UnifiedSessionID $Session.UnifiedSessionId -Force
-                Write-Host "✓ Session logged off" -ForegroundColor Green
+                Write-Host "[SUCCESS] Session logged off" -ForegroundColor Green
             }
             
             "Message" {
                 Write-Host "Sending message..." -ForegroundColor Yellow
                 Send-RDUserMessage -HostServer $Session.HostServer -UnifiedSessionID $Session.UnifiedSessionId -MessageTitle "Administrator Message" -MessageBody "${message}"
-                Write-Host "✓ Message sent" -ForegroundColor Green
+                Write-Host "[SUCCESS] Message sent" -ForegroundColor Green
             }
         }
     }
@@ -5327,7 +5327,7 @@ try {
     if (-not $WsbFeature.Installed) {
         Write-Host "Installing Windows Server Backup feature..." -ForegroundColor Yellow
         Install-WindowsFeature -Name Windows-Server-Backup -IncludeManagementTools
-        Write-Host "✓ Windows Server Backup installed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Windows Server Backup installed" -ForegroundColor Green
     }
     
     # Add Windows Server Backup snap-in
@@ -5336,7 +5336,7 @@ try {
     # Validate backup target
     if (-not (Test-Path "${backupTarget}")) {
         New-Item -Path "${backupTarget}" -ItemType Directory -Force | Out-Null
-        Write-Host "✓ Created backup directory" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created backup directory" -ForegroundColor Green
     }
     
     # Create backup policy
@@ -5378,7 +5378,7 @@ try {
     # Report result
     if ($Status.JobState -eq 'Completed') {
         Write-Host ""
-        Write-Host "✓ System State Backup completed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] System State Backup completed successfully" -ForegroundColor Green
         Write-Host "  Start Time: $($Status.StartTime)" -ForegroundColor Gray
         Write-Host "  End Time: $($Status.EndTime)" -ForegroundColor Gray
         Write-Host "  Destination: ${backupTarget}" -ForegroundColor Gray
@@ -5459,8 +5459,8 @@ try {
     Write-Host "Starting Bare Metal Recovery Backup..." -ForegroundColor Cyan
     Write-Host "Destination: ${backupTarget}" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ This backup type includes ALL data required for full server recovery" -ForegroundColor Yellow
-    Write-Host "⚠ Ensure sufficient storage space is available" -ForegroundColor Yellow
+    Write-Host "[WARNING] This backup type includes ALL data required for full server recovery" -ForegroundColor Yellow
+    Write-Host "[WARNING] Ensure sufficient storage space is available" -ForegroundColor Yellow
     
     # Check if Windows Server Backup is installed
     $WsbFeature = Get-WindowsFeature -Name Windows-Server-Backup
@@ -5468,7 +5468,7 @@ try {
         Write-Host ""
         Write-Host "Installing Windows Server Backup feature..." -ForegroundColor Yellow
         Install-WindowsFeature -Name Windows-Server-Backup -IncludeManagementTools
-        Write-Host "✓ Windows Server Backup installed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Windows Server Backup installed" -ForegroundColor Green
     }
     
     # Add Windows Server Backup snap-in
@@ -5477,7 +5477,7 @@ try {
     # Validate backup target
     if (-not (Test-Path "${backupTarget}")) {
         New-Item -Path "${backupTarget}" -ItemType Directory -Force | Out-Null
-        Write-Host "✓ Created backup directory" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created backup directory" -ForegroundColor Green
     }
     
     # Create backup policy
@@ -5534,7 +5534,7 @@ try {
     # Report result
     if ($Status.JobState -eq 'Completed') {
         Write-Host ""
-        Write-Host "✓ Bare Metal Recovery Backup completed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Bare Metal Recovery Backup completed successfully" -ForegroundColor Green
         Write-Host "  Start Time: $($Status.StartTime)" -ForegroundColor Gray
         Write-Host "  End Time: $($Status.EndTime)" -ForegroundColor Gray
         Write-Host "  Duration: $(($Status.EndTime - $Status.StartTime).ToString())" -ForegroundColor Gray
@@ -5675,7 +5675,7 @@ try {
     ${exportPath ? `
     $Jobs | Export-Csv -Path "${exportPath}" -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Backup history exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup history exported to: ${exportPath}" -ForegroundColor Green
     ` : ''}
     
     # Summary statistics
@@ -5806,7 +5806,7 @@ try {
     
     # Export report
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Role services exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Role services exported to: ${exportPath}" -ForegroundColor Green
     
     # Display summary by feature type
     Write-Host ""
@@ -5936,7 +5936,7 @@ try {
     
     # Get storage pool
     $Pool = Get-StoragePool -FriendlyName "${poolName}" -ErrorAction Stop
-    Write-Host "✓ Storage pool found" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage pool found" -ForegroundColor Green
     
     # Get physical disks by media type
     $SSDDisks = Get-PhysicalDisk -StoragePool $Pool | Where-Object { $_.MediaType -eq 'SSD' }
@@ -5957,10 +5957,10 @@ try {
     Write-Host "Creating storage tiers..." -ForegroundColor Cyan
     
     $SSDTier = New-StorageTier -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}_SSDTier" -MediaType SSD -ResiliencySettingName ${resiliency}
-    Write-Host "✓ SSD tier created" -ForegroundColor Green
+    Write-Host "[SUCCESS] SSD tier created" -ForegroundColor Green
     
     $HDDTier = New-StorageTier -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}_HDDTier" -MediaType HDD -ResiliencySettingName ${resiliency}
-    Write-Host "✓ HDD tier created" -ForegroundColor Green
+    Write-Host "[SUCCESS] HDD tier created" -ForegroundColor Green
     
     # Create tiered virtual disk
     Write-Host ""
@@ -5968,7 +5968,7 @@ try {
     
     $VDisk = New-VirtualDisk -StoragePoolFriendlyName "${poolName}" -FriendlyName "${vdiskName}" -StorageTiers $SSDTier, $HDDTier -StorageTierSizes ${ssdSizeGB}GB, ${hddSizeGB}GB -WriteCacheSize 1GB
     
-    Write-Host "✓ Tiered virtual disk created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tiered virtual disk created" -ForegroundColor Green
     
     # Initialize and format
     Write-Host ""
@@ -5979,7 +5979,7 @@ try {
     $Partition = $Disk | New-Partition -UseMaximumSize -AssignDriveLetter
     $Partition | Format-Volume -FileSystem NTFS -NewFileSystemLabel "${vdiskName}" -Confirm:\$false
     
-    Write-Host "✓ Volume formatted and mounted at $($Partition.DriveLetter):" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume formatted and mounted at $($Partition.DriveLetter):" -ForegroundColor Green
     
     # Display configuration
     Write-Host ""

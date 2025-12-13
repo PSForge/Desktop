@@ -91,7 +91,7 @@ $Report = foreach ($Adapter in $Adapters) {
 
 $Report | Format-Table -AutoSize
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -166,11 +166,11 @@ Remove-NetRoute -InterfaceIndex $Adapter.ifIndex -Confirm:$false -ErrorAction Si
 
 # Set static IP
 New-NetIPAddress -InterfaceIndex $Adapter.ifIndex -IPAddress $IPAddress -PrefixLength $PrefixLength -DefaultGateway $Gateway
-Write-Host "✓ IP address set: $IPAddress/$PrefixLength" -ForegroundColor Green
+Write-Host "[SUCCESS] IP address set: $IPAddress/$PrefixLength" -ForegroundColor Green
 
 # Set DNS servers
 Set-DnsClientServerAddress -InterfaceIndex $Adapter.ifIndex -ServerAddresses $DNSServers
-Write-Host "✓ DNS servers set: $($DNSServers -join ', ')" -ForegroundColor Green`;
+Write-Host "[SUCCESS] DNS servers set: $($DNSServers -join ', ')" -ForegroundColor Green`;
     }
   },
 
@@ -224,11 +224,11 @@ $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction Stop
 
 # Enable DHCP for IP
 Set-NetIPInterface -InterfaceIndex $Adapter.ifIndex -Dhcp Enabled
-Write-Host "✓ DHCP enabled for IP address" -ForegroundColor Green
+Write-Host "[SUCCESS] DHCP enabled for IP address" -ForegroundColor Green
 
 # Enable DHCP for DNS
 Set-DnsClientServerAddress -InterfaceIndex $Adapter.ifIndex -ResetServerAddresses
-Write-Host "✓ DHCP enabled for DNS" -ForegroundColor Green
+Write-Host "[SUCCESS] DHCP enabled for DNS" -ForegroundColor Green
 
 # Release and renew
 ipconfig /release $AdapterName
@@ -298,11 +298,11 @@ foreach ($Target in $Targets) {
     
     if ($Ping) {
         $AvgLatency = ($Ping | Measure-Object -Property ResponseTime -Average).Average
-        Write-Host "✓ $Target is reachable" -ForegroundColor Green
+        Write-Host "[SUCCESS] $Target is reachable" -ForegroundColor Green
         Write-Host "  Sent: $Count, Received: $($Ping.Count), Lost: $($Count - $Ping.Count)" -ForegroundColor Gray
         Write-Host "  Average latency: $([math]::Round($AvgLatency, 2)) ms" -ForegroundColor Gray
     } else {
-        Write-Host "✗ $Target is unreachable" -ForegroundColor Red
+        Write-Host "[FAILED] $Target is unreachable" -ForegroundColor Red
     }
     
     ${traceroute ? `if ($Ping) {
@@ -365,11 +365,11 @@ Write-Host "  Count: $($Before.Count)" -ForegroundColor Gray
 # Flush DNS cache
 Clear-DnsClientCache
 Write-Host ""
-Write-Host "✓ DNS cache flushed" -ForegroundColor Green
+Write-Host "[SUCCESS] DNS cache flushed" -ForegroundColor Green
 
 ${registerDns ? `# Register DNS
 ipconfig /registerdns
-Write-Host "✓ DNS registration initiated" -ForegroundColor Green` : ''}
+Write-Host "[SUCCESS] DNS registration initiated" -ForegroundColor Green` : ''}
 
 # Display cache after
 $After = Get-DnsClientCache | Measure-Object
@@ -429,7 +429,7 @@ ${adapterName ? `$Adapters = Get-NetAdapter -Name "${adapterName}"` : `$Adapters
 
 foreach ($Adapter in $Adapters) {
     Set-DnsClientServerAddress -InterfaceIndex $Adapter.ifIndex -ServerAddresses $DNSServers
-    Write-Host "✓ DNS set on $($Adapter.Name): $($DNSServers -join ', ')" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS set on $($Adapter.Name): $($DNSServers -join ', ')" -ForegroundColor Green
 }`;
     }
   },
@@ -494,7 +494,7 @@ foreach ($Hostname in $Hostnames) {
             Write-Host "  $($_.Name) -> $($_.IPAddress)" -ForegroundColor Green
         }
     } else {
-        Write-Host "  ✗ Resolution failed" -ForegroundColor Red
+        Write-Host "  [FAILED] Resolution failed" -ForegroundColor Red
     }
 }`;
     }
@@ -578,7 +578,7 @@ ${port ? `$Params.LocalPort = $Port` : ''}
 ${remoteAddress ? `$Params.RemoteAddress = $RemoteAddress` : ''}
 
 New-NetFirewallRule @Params
-Write-Host "✓ Firewall rule created: $RuleName" -ForegroundColor Green
+Write-Host "[SUCCESS] Firewall rule created: $RuleName" -ForegroundColor Green
 Get-NetFirewallRule -DisplayName $RuleName | Format-List`;
     }
   },
@@ -643,7 +643,7 @@ Write-Host ""
 Write-Host "Total rules: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -701,7 +701,7 @@ if ($Profile -eq "All") {
     Set-NetFirewallProfile -Profile $Profile -Enabled ${action === 'Enable' ? '$true' : '$false'}
 }
 
-Write-Host "✓ Firewall ${action.toLowerCase()}d for $Profile profile(s)" -ForegroundColor Green
+Write-Host "[SUCCESS] Firewall ${action.toLowerCase()}d for $Profile profile(s)" -ForegroundColor Green
 
 # Display status
 Get-NetFirewallProfile | Select-Object Name, Enabled | Format-Table -AutoSize`;
@@ -752,24 +752,24 @@ Get-NetFirewallProfile | Select-Object Name, Enabled | Format-Table -AutoSize`;
       return `# Reset Network Stack
 # Generated: ${new Date().toISOString()}
 
-Write-Host "⚠ WARNING: This will reset network configuration" -ForegroundColor Yellow
+Write-Host "[WARNING] WARNING: This will reset network configuration" -ForegroundColor Yellow
 Write-Host "  A system reboot will be required" -ForegroundColor Yellow
 Write-Host ""
 
 # Reset Winsock catalog
 netsh winsock reset
-Write-Host "✓ Winsock catalog reset" -ForegroundColor Green
+Write-Host "[SUCCESS] Winsock catalog reset" -ForegroundColor Green
 
 # Reset TCP/IP stack
 netsh int ip reset
-Write-Host "✓ TCP/IP stack reset" -ForegroundColor Green
+Write-Host "[SUCCESS] TCP/IP stack reset" -ForegroundColor Green
 
 ${includeFirewall ? `# Reset Firewall
 netsh advfirewall reset
-Write-Host "✓ Firewall reset to defaults" -ForegroundColor Green` : ''}
+Write-Host "[SUCCESS] Firewall reset to defaults" -ForegroundColor Green` : ''}
 
 Write-Host ""
-Write-Host "⚠ REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow`;
+Write-Host "[WARNING] REBOOT REQUIRED for changes to take effect" -ForegroundColor Yellow`;
     }
   },
 
@@ -900,7 +900,7 @@ ${adapterName ? `$Adapters = Get-NetAdapter -Name "${adapterName}"` : `$Adapters
 
 foreach ($Adapter in $Adapters) {
     Disable-NetAdapterBinding -Name $Adapter.Name -ComponentID ms_tcpip6
-    Write-Host "✓ IPv6 disabled on $($Adapter.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] IPv6 disabled on $($Adapter.Name)" -ForegroundColor Green
 }
 
 Write-Host ""
@@ -959,14 +959,14 @@ Write-Host "Resetting adapter: $AdapterName" -ForegroundColor Cyan
 
 # Disable adapter
 Disable-NetAdapter -Name $AdapterName -Confirm:$false
-Write-Host "✓ Adapter disabled" -ForegroundColor Yellow
+Write-Host "[SUCCESS] Adapter disabled" -ForegroundColor Yellow
 
 # Wait 3 seconds
 Start-Sleep -Seconds 3
 
 # Enable adapter
 Enable-NetAdapter -Name $AdapterName -Confirm:$false
-Write-Host "✓ Adapter enabled" -ForegroundColor Green
+Write-Host "[SUCCESS] Adapter enabled" -ForegroundColor Green
 
 # Wait for adapter to initialize
 Start-Sleep -Seconds 5
@@ -1036,7 +1036,7 @@ $AdapterName = "${adapterName}"
 $Speed = "${speed}"
 $Duplex = "${duplex}"
 
-Write-Host "⚠ Note: This requires specific driver support" -ForegroundColor Yellow
+Write-Host "[WARNING] Note: This requires specific driver support" -ForegroundColor Yellow
 Write-Host "Manual method (use Device Manager for guaranteed compatibility):" -ForegroundColor Gray
 Write-Host '  1. Open Device Manager' -ForegroundColor Gray
 Write-Host '  2. Network Adapters -> $AdapterName -> Properties' -ForegroundColor Gray
@@ -1049,7 +1049,7 @@ Write-Host "Attempting PowerShell configuration..." -ForegroundColor Cyan
 if ($Speed -eq "Auto" -and $Duplex -eq "Auto") {
     # Enable auto-negotiation
     Set-NetAdapterAdvancedProperty -Name $AdapterName -DisplayName "Speed & Duplex" -DisplayValue "Auto Negotiation" -ErrorAction SilentlyContinue
-    Write-Host "✓ Auto-negotiation enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auto-negotiation enabled" -ForegroundColor Green
 } else {
     Write-Host "Manual speed/duplex settings may require adapter-specific commands" -ForegroundColor Yellow
 }`;
@@ -1117,19 +1117,19 @@ try {
     
     if ($completedTask -eq $connectTask) {
         if ($tcpClient.Connected) {
-            Write-Host "✓ Port $Port is OPEN on $Target" -ForegroundColor Green
+            Write-Host "[SUCCESS] Port $Port is OPEN on $Target" -ForegroundColor Green
             Write-Host "  Connection successful" -ForegroundColor Gray
         } else {
-            Write-Host "✗ Port $Port is CLOSED on $Target" -ForegroundColor Red
+            Write-Host "[FAILED] Port $Port is CLOSED on $Target" -ForegroundColor Red
         }
     } else {
-        Write-Host "✗ Connection timed out after $Timeout seconds" -ForegroundColor Red
+        Write-Host "[FAILED] Connection timed out after $Timeout seconds" -ForegroundColor Red
         Write-Host "  Port may be filtered or host unreachable" -ForegroundColor Yellow
     }
     
     $tcpClient.Close()
 } catch {
-    Write-Host "✗ Connection failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Connection failed: $_" -ForegroundColor Red
     Write-Host "  Check firewall rules and network connectivity" -ForegroundColor Yellow
 }`;
     }
@@ -1205,11 +1205,11 @@ $Report = $Rules | ForEach-Object {
 } | Sort-Object Name
 
 Write-Host ""
-Write-Host "✓ Found $($Report.Count) firewall rules ($Status):" -ForegroundColor Green
+Write-Host "[SUCCESS] Found $($Report.Count) firewall rules ($Status):" -ForegroundColor Green
 $Report | Format-Table -AutoSize
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1273,7 +1273,7 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
 # Check for admin privileges
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")
 if (-not $IsAdmin) {
-    Write-Host "✗ Administrator privileges required" -ForegroundColor Red
+    Write-Host "[FAILED] Administrator privileges required" -ForegroundColor Red
     exit 1
 }
 
@@ -1287,7 +1287,7 @@ ${description ? `$Description = "${description}"` : ''}
 # Check if rule already exists
 $Existing = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
 if ($Existing) {
-    Write-Host "✗ Firewall rule already exists: $RuleName" -ForegroundColor Red
+    Write-Host "[FAILED] Firewall rule already exists: $RuleName" -ForegroundColor Red
     exit 1
 }
 
@@ -1305,14 +1305,14 @@ try {
         -ErrorAction Stop | Out-Null
     
     Write-Host ""
-    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule created successfully" -ForegroundColor Green
     Write-Host "  Name: $RuleName" -ForegroundColor Gray
     Write-Host "  Direction: $Direction" -ForegroundColor Gray
     Write-Host "  Action: $Action" -ForegroundColor Gray
     Write-Host "  Protocol: $Protocol" -ForegroundColor Gray
     Write-Host "  Port(s): $Ports" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to create firewall rule: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create firewall rule: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1373,7 +1373,7 @@ Write-Host ""
 tracert -h $MaxHops $Target
 
 Write-Host ""
-Write-Host "✓ Trace complete" -ForegroundColor Green
+Write-Host "[SUCCESS] Trace complete" -ForegroundColor Green
 Write-Host ""
 Write-Host "Interpreting results:" -ForegroundColor Cyan
 Write-Host "  * = Hop did not respond (may be firewalled)" -ForegroundColor Gray
@@ -1463,7 +1463,7 @@ $Results = foreach ($Host in $HostList) {
 }
 
 Write-Host ""
-Write-Host "✓ Ping test complete:" -ForegroundColor Green
+Write-Host "[SUCCESS] Ping test complete:" -ForegroundColor Green
 $Results | Format-Table -AutoSize
 
 $Reachable = ($Results | Where-Object { $_.Status -eq "Reachable" }).Count
@@ -1472,7 +1472,7 @@ Write-Host ""
 Write-Host "Summary: $Reachable of $Total hosts reachable" -ForegroundColor Cyan
 
 ${exportPath ? `$Results | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1548,7 +1548,7 @@ Write-Host ""
 Write-Host "Total connections: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1713,7 +1713,7 @@ ${description ? `$Description = "${description}"` : ''}
 
 # Validate folder exists
 if (-not (Test-Path $FolderPath)) {
-    Write-Host "✗ Folder does not exist: $FolderPath" -ForegroundColor Red
+    Write-Host "[FAILED] Folder does not exist: $FolderPath" -ForegroundColor Red
     Write-Host "  Create the folder first, then run this script again." -ForegroundColor Yellow
     exit 1
 }
@@ -1721,7 +1721,7 @@ if (-not (Test-Path $FolderPath)) {
 # Check if share already exists
 $ExistingShare = Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue
 if ($ExistingShare) {
-    Write-Host "✗ Share already exists: $ShareName" -ForegroundColor Red
+    Write-Host "[FAILED] Share already exists: $ShareName" -ForegroundColor Red
     exit 1
 }
 
@@ -1734,7 +1734,7 @@ try {
     Grant-SmbShareAccess -Name $ShareName -AccountName $AccessAccount -AccessRight $AccessLevel -Force | Out-Null
     
     Write-Host ""
-    Write-Host "✓ SMB share created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] SMB share created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Share Details:" -ForegroundColor Cyan
     Write-Host "  Name: $ShareName" -ForegroundColor Gray
@@ -1744,7 +1744,7 @@ try {
     
     Get-SmbShareAccess -Name $ShareName | Format-Table
 } catch {
-    Write-Host "✗ Failed to create share: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create share: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1822,7 +1822,7 @@ Write-Host ""
 Write-Host "Total shares: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -1878,7 +1878,7 @@ $ShareName = "${shareName}"
 # Verify share exists
 $Share = Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue
 if (-not $Share) {
-    Write-Host "✗ Share not found: $ShareName" -ForegroundColor Red
+    Write-Host "[FAILED] Share not found: $ShareName" -ForegroundColor Red
     exit 1
 }
 
@@ -1889,7 +1889,7 @@ Write-Host "  Path: $($Share.Path)" -ForegroundColor Gray
 $Sessions = Get-SmbSession -ErrorAction SilentlyContinue | Where-Object { $_.NumOpens -gt 0 }
 if ($Sessions -and -not ${forceDisconnect}) {
     Write-Host ""
-    Write-Host "⚠ Active sessions detected. Use Force Disconnect to proceed." -ForegroundColor Yellow
+    Write-Host "[WARNING] Active sessions detected. Use Force Disconnect to proceed." -ForegroundColor Yellow
     $Sessions | Format-Table ClientUserName, ClientComputerName, NumOpens
     exit 1
 }
@@ -1900,10 +1900,10 @@ Write-Host "Removing share..." -ForegroundColor Gray
 try {
     Remove-SmbShare -Name $ShareName -Force -ErrorAction Stop
     Write-Host ""
-    Write-Host "✓ Share removed successfully: $ShareName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Share removed successfully: $ShareName" -ForegroundColor Green
     Write-Host "  Note: Folder and files NOT deleted" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to remove share: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to remove share: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -1986,7 +1986,7 @@ if (-not $OpenFiles) {
 ${exportPath ? `
 $Report = $Sessions | Select-Object SessionId, ClientUserName, ClientComputerName, NumOpens, SecondsExists
 $Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2040,7 +2040,7 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
 # Check for DNS Server role
 $DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
 if (-not $DnsServer) {
-    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DNS Server role not installed" -ForegroundColor Red
     exit 1
 }
 
@@ -2063,12 +2063,12 @@ try {
     Set-DnsServerForwarder -UseRootHint $UseRootHints -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ DNS forwarders configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS forwarders configured successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Current Configuration:" -ForegroundColor Cyan
     Get-DnsServerForwarder | Format-List
 } catch {
-    Write-Host "✗ Failed to configure forwarders: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure forwarders: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2124,7 +2124,7 @@ try {
 # Check for DNS Server role
 $DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
 if (-not $DnsServer) {
-    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DNS Server role not installed" -ForegroundColor Red
     exit 1
 }
 
@@ -2148,7 +2148,7 @@ Write-Host ""
 Write-Host "Total zones: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2216,21 +2216,21 @@ $TTL = [System.TimeSpan]::FromSeconds(${ttl})
 # Check for DNS Server role
 $DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
 if (-not $DnsServer) {
-    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DNS Server role not installed" -ForegroundColor Red
     exit 1
 }
 
 # Validate zone exists
 $Zone = Get-DnsServerZone -Name $ZoneName -ErrorAction SilentlyContinue
 if (-not $Zone) {
-    Write-Host "✗ Zone not found: $ZoneName" -ForegroundColor Red
+    Write-Host "[FAILED] Zone not found: $ZoneName" -ForegroundColor Red
     exit 1
 }
 
 # Check if record already exists
 $Existing = Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $HostName -RRType A -ErrorAction SilentlyContinue
 if ($Existing) {
-    Write-Host "⚠ Record already exists: $HostName.$ZoneName" -ForegroundColor Yellow
+    Write-Host "[WARNING] Record already exists: $HostName.$ZoneName" -ForegroundColor Yellow
     Write-Host "  IP: $($Existing.RecordData.IPv4Address)" -ForegroundColor Gray
     exit 1
 }
@@ -2241,7 +2241,7 @@ try {
     Add-DnsServerResourceRecordA -ZoneName $ZoneName -Name $HostName -IPv4Address $IPAddress -TimeToLive $TTL -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ DNS A record created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS A record created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Record Details:" -ForegroundColor Cyan
     Write-Host "  FQDN: $HostName.$ZoneName" -ForegroundColor Gray
@@ -2250,7 +2250,7 @@ try {
     
     Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $HostName -RRType A | Format-List
 } catch {
-    Write-Host "✗ Failed to create record: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create record: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2320,21 +2320,21 @@ $TTL = [System.TimeSpan]::FromSeconds(${ttl})
 # Check for DNS Server role
 $DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
 if (-not $DnsServer) {
-    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DNS Server role not installed" -ForegroundColor Red
     exit 1
 }
 
 # Validate zone exists
 $Zone = Get-DnsServerZone -Name $ZoneName -ErrorAction SilentlyContinue
 if (-not $Zone) {
-    Write-Host "✗ Zone not found: $ZoneName" -ForegroundColor Red
+    Write-Host "[FAILED] Zone not found: $ZoneName" -ForegroundColor Red
     exit 1
 }
 
 # Check if record already exists
 $Existing = Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $AliasName -ErrorAction SilentlyContinue
 if ($Existing) {
-    Write-Host "⚠ Record already exists at: $AliasName.$ZoneName" -ForegroundColor Yellow
+    Write-Host "[WARNING] Record already exists at: $AliasName.$ZoneName" -ForegroundColor Yellow
     exit 1
 }
 
@@ -2344,7 +2344,7 @@ try {
     Add-DnsServerResourceRecordCName -ZoneName $ZoneName -Name $AliasName -HostNameAlias $TargetHost -TimeToLive $TTL -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ DNS CNAME record created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS CNAME record created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Record Details:" -ForegroundColor Cyan
     Write-Host "  Alias: $AliasName.$ZoneName" -ForegroundColor Gray
@@ -2353,7 +2353,7 @@ try {
     
     Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $AliasName | Format-List
 } catch {
-    Write-Host "✗ Failed to create record: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create record: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2414,14 +2414,14 @@ $ZoneName = "${zoneName}"
 # Check for DNS Server role
 $DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
 if (-not $DnsServer) {
-    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DNS Server role not installed" -ForegroundColor Red
     exit 1
 }
 
 # Validate zone exists
 $Zone = Get-DnsServerZone -Name $ZoneName -ErrorAction SilentlyContinue
 if (-not $Zone) {
-    Write-Host "✗ Zone not found: $ZoneName" -ForegroundColor Red
+    Write-Host "[FAILED] Zone not found: $ZoneName" -ForegroundColor Red
     exit 1
 }
 
@@ -2455,7 +2455,7 @@ Write-Host ""
 Write-Host "Total records: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2516,14 +2516,14 @@ $RecordType = "${recordType}"
 # Check for DNS Server role
 $DnsServer = Get-Service -Name DNS -ErrorAction SilentlyContinue
 if (-not $DnsServer) {
-    Write-Host "✗ DNS Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DNS Server role not installed" -ForegroundColor Red
     exit 1
 }
 
 # Find the record
 $Record = Get-DnsServerResourceRecord -ZoneName $ZoneName -Name $RecordName -RRType $RecordType -ErrorAction SilentlyContinue
 if (-not $Record) {
-    Write-Host "✗ Record not found: $RecordName ($RecordType) in $ZoneName" -ForegroundColor Red
+    Write-Host "[FAILED] Record not found: $RecordName ($RecordType) in $ZoneName" -ForegroundColor Red
     exit 1
 }
 
@@ -2536,12 +2536,12 @@ try {
     Remove-DnsServerResourceRecord -ZoneName $ZoneName -Name $RecordName -RRType $RecordType -Force -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ DNS record removed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS record removed successfully" -ForegroundColor Green
     Write-Host "  Zone: $ZoneName" -ForegroundColor Gray
     Write-Host "  Record: $RecordName" -ForegroundColor Gray
     Write-Host "  Type: $RecordType" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to remove record: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to remove record: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2593,7 +2593,7 @@ try {
 # Check for DHCP Server role
 $DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
 if (-not $DhcpServer) {
-    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DHCP Server role not installed" -ForegroundColor Red
     exit 1
 }
 
@@ -2632,7 +2632,7 @@ Write-Host ""
 Write-Host "Total scopes: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2687,14 +2687,14 @@ $ScopeId = "${scopeId}"
 # Check for DHCP Server role
 $DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
 if (-not $DhcpServer) {
-    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DHCP Server role not installed" -ForegroundColor Red
     exit 1
 }
 
 # Validate scope exists
 $Scope = Get-DhcpServerv4Scope -ScopeId $ScopeId -ErrorAction SilentlyContinue
 if (-not $Scope) {
-    Write-Host "✗ Scope not found: $ScopeId" -ForegroundColor Red
+    Write-Host "[FAILED] Scope not found: $ScopeId" -ForegroundColor Red
     exit 1
 }
 
@@ -2720,7 +2720,7 @@ Write-Host ""
 Write-Host "Total leases: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -2787,21 +2787,21 @@ $Description = "${description}"
 # Check for DHCP Server role
 $DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
 if (-not $DhcpServer) {
-    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DHCP Server role not installed" -ForegroundColor Red
     exit 1
 }
 
 # Validate scope exists
 $Scope = Get-DhcpServerv4Scope -ScopeId $ScopeId -ErrorAction SilentlyContinue
 if (-not $Scope) {
-    Write-Host "✗ Scope not found: $ScopeId" -ForegroundColor Red
+    Write-Host "[FAILED] Scope not found: $ScopeId" -ForegroundColor Red
     exit 1
 }
 
 # Check if reservation already exists
 $Existing = Get-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ErrorAction SilentlyContinue
 if ($Existing) {
-    Write-Host "✗ Reservation already exists for IP: $IPAddress" -ForegroundColor Red
+    Write-Host "[FAILED] Reservation already exists for IP: $IPAddress" -ForegroundColor Red
     exit 1
 }
 
@@ -2811,7 +2811,7 @@ try {
     Add-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ClientId $ClientId -Description $Description -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ DHCP reservation created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DHCP reservation created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Reservation Details:" -ForegroundColor Cyan
     Write-Host "  Scope: $ScopeId" -ForegroundColor Gray
@@ -2821,7 +2821,7 @@ try {
     
     Get-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress | Format-List
 } catch {
-    Write-Host "✗ Failed to create reservation: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create reservation: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2879,14 +2879,14 @@ $IPAddress = "${ipAddress}"
 # Check for DHCP Server role
 $DhcpServer = Get-Service -Name DHCPServer -ErrorAction SilentlyContinue
 if (-not $DhcpServer) {
-    Write-Host "✗ DHCP Server role not installed" -ForegroundColor Red
+    Write-Host "[FAILED] DHCP Server role not installed" -ForegroundColor Red
     exit 1
 }
 
 # Find the reservation
 $Reservation = Get-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ErrorAction SilentlyContinue
 if (-not $Reservation) {
-    Write-Host "✗ Reservation not found: $IPAddress in scope $ScopeId" -ForegroundColor Red
+    Write-Host "[FAILED] Reservation not found: $IPAddress in scope $ScopeId" -ForegroundColor Red
     exit 1
 }
 
@@ -2899,13 +2899,13 @@ try {
     Remove-DhcpServerv4Reservation -ScopeId $ScopeId -IPAddress $IPAddress -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ DHCP reservation removed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DHCP reservation removed successfully" -ForegroundColor Green
     Write-Host "  Scope: $ScopeId" -ForegroundColor Gray
     Write-Host "  IP Address: $IPAddress" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Note: Device will receive dynamic IP on next lease renewal" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to remove reservation: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to remove reservation: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -2977,7 +2977,7 @@ Write-Host ""
 Write-Host "Total connections: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3046,7 +3046,7 @@ $AllUsers = ${allUsers}
 # Check if connection already exists
 $Existing = Get-VpnConnection -Name $ConnectionName -ErrorAction SilentlyContinue
 if ($Existing) {
-    Write-Host "✗ VPN connection already exists: $ConnectionName" -ForegroundColor Red
+    Write-Host "[FAILED] VPN connection already exists: $ConnectionName" -ForegroundColor Red
     exit 1
 }
 
@@ -3068,7 +3068,7 @@ try {
     Add-VpnConnection @Params -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ VPN connection created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VPN connection created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Connection Details:" -ForegroundColor Cyan
     Write-Host "  Name: $ConnectionName" -ForegroundColor Gray
@@ -3079,7 +3079,7 @@ try {
     
     Get-VpnConnection -Name $ConnectionName | Format-List
 } catch {
-    Write-Host "✗ Failed to create VPN connection: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create VPN connection: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -3148,7 +3148,7 @@ Write-Host ""
 Write-Host "Total routes: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3216,7 +3216,7 @@ $Metric = ${metric}
 # Get interface index
 $Interface = Get-NetAdapter -Name $InterfaceName -ErrorAction SilentlyContinue
 if (-not $Interface) {
-    Write-Host "✗ Interface not found: $InterfaceName" -ForegroundColor Red
+    Write-Host "[FAILED] Interface not found: $InterfaceName" -ForegroundColor Red
     exit 1
 }
 
@@ -3226,7 +3226,7 @@ try {
     New-NetRoute -DestinationPrefix $Destination -NextHop $Gateway -InterfaceIndex $Interface.ifIndex -RouteMetric $Metric ${persistent ? '-PolicyStore PersistentStore' : ''} -ErrorAction Stop | Out-Null
     
     Write-Host ""
-    Write-Host "✓ Static route added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Static route added successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Route Details:" -ForegroundColor Cyan
     Write-Host "  Destination: $Destination" -ForegroundColor Gray
@@ -3237,7 +3237,7 @@ try {
     
     Get-NetRoute -DestinationPrefix $Destination -InterfaceIndex $Interface.ifIndex | Format-List
 } catch {
-    Write-Host "✗ Failed to add route: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to add route: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -3509,7 +3509,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Firewall logging configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall logging configured successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Configuration Details:" -ForegroundColor Cyan
     Write-Host "  Profile: $Profile" -ForegroundColor Gray
@@ -3521,7 +3521,7 @@ try {
     Write-Host "Current Logging Settings:" -ForegroundColor Cyan
     Get-NetFirewallProfile | Select-Object Name, LogAllowed, LogBlocked, LogFileName, LogMaxSizeKilobytes | Format-Table -AutoSize
 } catch {
-    Write-Host "✗ Failed to configure logging: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure logging: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -3578,7 +3578,7 @@ $RuleName = "${ruleName}"
 $Rules = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
 
 if (-not $Rules) {
-    Write-Host "✗ No firewall rules found matching: $RuleName" -ForegroundColor Red
+    Write-Host "[FAILED] No firewall rules found matching: $RuleName" -ForegroundColor Red
     exit 1
 }
 
@@ -3587,7 +3587,7 @@ Write-Host "Found $RuleCount matching rule(s):" -ForegroundColor Gray
 $Rules | Select-Object DisplayName, Direction, Action, Enabled | Format-Table -AutoSize
 
 ${removeAll ? '' : `if ($RuleCount -gt 1) {
-    Write-Host "⚠ Multiple rules match. Enable 'Remove All Matches' to delete all, or use exact name." -ForegroundColor Yellow
+    Write-Host "[WARNING] Multiple rules match. Enable 'Remove All Matches' to delete all, or use exact name." -ForegroundColor Yellow
     exit 1
 }`}
 
@@ -3597,10 +3597,10 @@ try {
     Remove-NetFirewallRule -DisplayName $RuleName -ErrorAction Stop
     
     Write-Host ""
-    Write-Host "✓ Removed $RuleCount firewall rule(s)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Removed $RuleCount firewall rule(s)" -ForegroundColor Green
     Write-Host "  Pattern: $RuleName" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to remove rule(s): $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to remove rule(s): $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -3692,7 +3692,7 @@ Write-Host ""
 Write-Host "Total listeners: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3854,7 +3854,7 @@ Write-Host ""
 Write-Host "Total entries: $($Report.Count)" -ForegroundColor Gray
 
 ${exportPath ? `$Report | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -3908,14 +3908,14 @@ Write-Host "Clearing ARP cache..." -ForegroundColor Yellow
 ${interfaceName ? `
 $Interface = Get-NetAdapter -Name "${interfaceName}" -ErrorAction SilentlyContinue
 if (-not $Interface) {
-    Write-Host "✗ Interface not found: ${interfaceName}" -ForegroundColor Red
+    Write-Host "[FAILED] Interface not found: ${interfaceName}" -ForegroundColor Red
     exit 1
 }
 Get-NetNeighbor -InterfaceIndex $Interface.ifIndex -ErrorAction SilentlyContinue | Remove-NetNeighbor -Confirm:$false -ErrorAction SilentlyContinue
-Write-Host "✓ ARP cache cleared for ${interfaceName}" -ForegroundColor Green
+Write-Host "[SUCCESS] ARP cache cleared for ${interfaceName}" -ForegroundColor Green
 ` : `
 Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue | Remove-NetNeighbor -Confirm:$false -ErrorAction SilentlyContinue
-Write-Host "✓ ARP cache cleared for all interfaces" -ForegroundColor Green
+Write-Host "[SUCCESS] ARP cache cleared for all interfaces" -ForegroundColor Green
 `}
 
 Write-Host ""
@@ -4020,7 +4020,7 @@ Write-Host ""
 Write-Host "Total: $($AllConnections.Count) connections/endpoints" -ForegroundColor Gray
 
 ${exportPath ? `$AllConnections | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -4090,8 +4090,8 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Network discovery ${action.toLowerCase()}d for $Profile profile" -ForegroundColor Green
-    Write-Host "✓ File and printer sharing ${action.toLowerCase()}d for $Profile profile" -ForegroundColor Green
+    Write-Host "[SUCCESS] Network discovery ${action.toLowerCase()}d for $Profile profile" -ForegroundColor Green
+    Write-Host "[SUCCESS] File and printer sharing ${action.toLowerCase()}d for $Profile profile" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "Current Status:" -ForegroundColor Cyan
@@ -4099,7 +4099,7 @@ try {
         Select-Object DisplayName, Profile, Enabled | 
         Format-Table -AutoSize
 } catch {
-    Write-Host "✗ Failed to configure network discovery: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure network discovery: $_" -ForegroundColor Red
     exit 1
 }`;
     }
@@ -4172,7 +4172,7 @@ Write-Host ""
 $Adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
 
 if (-not $Adapters) {
-    Write-Host "✗ No active network adapters found" -ForegroundColor Red
+    Write-Host "[FAILED] No active network adapters found" -ForegroundColor Red
     exit 1
 }
 
@@ -4282,10 +4282,10 @@ ${exportPath ? `
 # Export to CSV
 $Report | Export-Csv "${exportPath}" -NoTypeInformation
 Write-Host ""
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}
 
 Write-Host ""
-Write-Host "✓ Bandwidth statistics collection complete" -ForegroundColor Green`;
+Write-Host "[SUCCESS] Bandwidth statistics collection complete" -ForegroundColor Green`;
     }
   },
 ];

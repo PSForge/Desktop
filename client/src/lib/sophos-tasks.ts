@@ -49,7 +49,7 @@ try {
     
     foreach ($EndpointId in $EndpointIds) {
         Set-SophosEndpointIsolation -EndpointId $EndpointId -Action "${action}"
-        Write-Host "✓ ${params.action}d endpoint: $EndpointId" -ForegroundColor Green
+        Write-Host "[SUCCESS] ${params.action}d endpoint: $EndpointId" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -95,7 +95,7 @@ try {
         when,
         description | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Alerts exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alerts exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Alerts: $($Alerts.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -132,7 +132,7 @@ try {
     
     foreach ($EndpointId in $EndpointIds) {
         Set-SophosEndpointPolicy -EndpointId $EndpointId -PolicyId $Policy.id
-        Write-Host "✓ Policy applied to: $EndpointId" -ForegroundColor Green
+        Write-Host "[SUCCESS] Policy applied to: $EndpointId" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -181,7 +181,7 @@ try {
         description,
         mitigation_status | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Threat intelligence report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Threat intelligence report exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Threats Analyzed: $($Threats.Count)" -ForegroundColor Cyan
     Write-Host "  Period: Last ${params.days} days" -ForegroundColor Cyan
     
@@ -221,7 +221,7 @@ try {
     
     if (-not $WebPolicy) {
         $WebPolicy = New-SophosWebControlPolicy -Name $PolicyName
-        Write-Host "✓ Created new web control policy: $PolicyName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created new web control policy: $PolicyName" -ForegroundColor Green
     }
     
     foreach ($Category in $BlockedCategories) {
@@ -267,12 +267,12 @@ try {
     $User = Get-SophosUser -Email $UserEmail
     
     if (-not $User) {
-        Write-Host "⚠ User not found, creating invitation..." -ForegroundColor Yellow
+        Write-Host "[WARNING] User not found, creating invitation..." -ForegroundColor Yellow
         New-SophosUserInvitation -Email $UserEmail -Role $Role
-        Write-Host "✓ Invitation sent to $UserEmail with role: $Role" -ForegroundColor Green
+        Write-Host "[SUCCESS] Invitation sent to $UserEmail with role: $Role" -ForegroundColor Green
     } else {
         Set-SophosUserRole -UserId $User.id -Role $Role
-        Write-Host "✓ User role updated: $UserEmail" -ForegroundColor Green
+        Write-Host "[SUCCESS] User role updated: $UserEmail" -ForegroundColor Green
         Write-Host "  New Role: $Role" -ForegroundColor Cyan
     }
     
@@ -323,7 +323,7 @@ try {
     $ProtectedEndpoints = ($Endpoints | Where-Object { $_.health_status -eq 'good' }).Count
     $CoveragePercent = [math]::Round(($ProtectedEndpoints / $TotalEndpoints) * 100, 2)
     
-    Write-Host "✓ Endpoint status report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Endpoint status report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Coverage Summary:" -ForegroundColor Cyan
     Write-Host "  Total Endpoints: $TotalEndpoints"
@@ -383,7 +383,7 @@ try {
     
     Add-SophosScanExclusion @ExclusionParams
     
-    Write-Host "✓ Exclusion added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exclusion added successfully" -ForegroundColor Green
     Write-Host "  Type: ${exclusionType}" -ForegroundColor Cyan
     Write-Host "  Value: $ExclusionValue" -ForegroundColor Cyan
     Write-Host "  Policy ID: $PolicyId" -ForegroundColor Cyan
@@ -430,7 +430,7 @@ try {
             Status = $ScanResult.status
             StartedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         }
-        Write-Host "✓ Scan initiated on endpoint: $EndpointId" -ForegroundColor Green
+        Write-Host "[SUCCESS] Scan initiated on endpoint: $EndpointId" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -480,14 +480,14 @@ try {
                 Status = "Update Triggered"
                 Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             }
-            Write-Host "✓ Definition update triggered: $EndpointId" -ForegroundColor Green
+            Write-Host "[SUCCESS] Definition update triggered: $EndpointId" -ForegroundColor Green
         } catch {
             $UpdateResults += [PSCustomObject]@{
                 EndpointId = $EndpointId
                 Status = "Failed: $_"
                 Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             }
-            Write-Host "✗ Failed to update: $EndpointId" -ForegroundColor Red
+            Write-Host "[FAILED] Failed to update: $EndpointId" -ForegroundColor Red
         }
     }
     
@@ -535,21 +535,21 @@ try {
             $QuarantinedItems | Format-Table -Property id, threat_name, endpoint, quarantined_at, file_path -AutoSize
             
             ${exportPath ? `$QuarantinedItems | Export-Csv -Path "${exportPath}" -NoTypeInformation
-            Write-Host "✓ Exported to: ${exportPath}" -ForegroundColor Green` : `Write-Host "Total items: $($QuarantinedItems.Count)" -ForegroundColor Cyan`}
+            Write-Host "[SUCCESS] Exported to: ${exportPath}" -ForegroundColor Green` : `Write-Host "Total items: $($QuarantinedItems.Count)" -ForegroundColor Cyan`}
         }
         "Restore" {
             if ([string]::IsNullOrEmpty("${quarantineId}")) {
                 throw "Quarantine Item ID is required for restore operation"
             }
             Restore-SophosQuarantinedItem -Id "${quarantineId}"
-            Write-Host "✓ Item restored successfully: ${quarantineId}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Item restored successfully: ${quarantineId}" -ForegroundColor Green
         }
         "Delete" {
             if ([string]::IsNullOrEmpty("${quarantineId}")) {
                 throw "Quarantine Item ID is required for delete operation"
             }
             Remove-SophosQuarantinedItem -Id "${quarantineId}" -Confirm:$false
-            Write-Host "✓ Item deleted permanently: ${quarantineId}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Item deleted permanently: ${quarantineId}" -ForegroundColor Green
         }
     }
     
@@ -610,7 +610,7 @@ try {
         Offline = ($HealthReport | Where-Object { $_.HealthStatus -eq 'offline' }).Count
     }
     
-    Write-Host "✓ Health report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Health report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Health Summary:" -ForegroundColor Cyan
     Write-Host "  Total Endpoints: $($Summary.TotalEndpoints)"
@@ -658,12 +658,12 @@ try {
     $ExistingPolicy = Get-SophosPolicy -Name "${policyName}" -ErrorAction SilentlyContinue
     
     if ($ExistingPolicy) {
-        Write-Host "⚠ Policy already exists: ${policyName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Policy already exists: ${policyName}" -ForegroundColor Yellow
         Write-Host "  Policy ID: $($ExistingPolicy.id)" -ForegroundColor Cyan
     } else {
         $NewPolicy = New-SophosPolicy @PolicyParams
         
-        Write-Host "✓ Policy created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Policy created successfully" -ForegroundColor Green
         Write-Host "  Name: ${policyName}" -ForegroundColor Cyan
         Write-Host "  Type: ${policyType}" -ForegroundColor Cyan
         Write-Host "  Policy ID: $($NewPolicy.id)" -ForegroundColor Cyan
@@ -722,7 +722,7 @@ try {
     
     $ComplianceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Compliance report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Policy Compliance Summary:" -ForegroundColor Cyan
     $ComplianceReport | Format-Table PolicyName, TotalAssigned, Compliant, NonCompliant, ComplianceRate -AutoSize
@@ -764,7 +764,7 @@ try {
     
     $ClonedPolicy = Copy-SophosPolicy -SourceId "${sourcePolicyId}" -NewName "${newPolicyName}"
     
-    Write-Host "✓ Policy cloned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy cloned successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Source Policy:" -ForegroundColor Cyan
     Write-Host "  Name: $($SourcePolicy.name)"
@@ -814,12 +814,12 @@ try {
     $ExistingGroup = Get-SophosEndpointGroup -Name "${groupName}" -ErrorAction SilentlyContinue
     
     if ($ExistingGroup) {
-        Write-Host "⚠ Group already exists: ${groupName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Group already exists: ${groupName}" -ForegroundColor Yellow
         Write-Host "  Group ID: $($ExistingGroup.id)" -ForegroundColor Cyan
     } else {
         $NewGroup = New-SophosEndpointGroup @GroupParams
         
-        Write-Host "✓ Group created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Group created successfully" -ForegroundColor Green
         Write-Host "  Name: ${groupName}" -ForegroundColor Cyan
         Write-Host "  Type: ${groupType}" -ForegroundColor Cyan
         Write-Host "  Group ID: $($NewGroup.id)" -ForegroundColor Cyan
@@ -873,14 +873,14 @@ try {
                 Status = "Moved"
                 TargetGroup = $TargetGroup.name
             }
-            Write-Host "✓ Moved endpoint: $EndpointId" -ForegroundColor Green
+            Write-Host "[SUCCESS] Moved endpoint: $EndpointId" -ForegroundColor Green
         } catch {
             $MoveResults += [PSCustomObject]@{
                 EndpointId = $EndpointId
                 Status = "Failed: $_"
                 TargetGroup = $TargetGroup.name
             }
-            Write-Host "✗ Failed to move: $EndpointId" -ForegroundColor Red
+            Write-Host "[FAILED] Failed to move: $EndpointId" -ForegroundColor Red
         }
     }
     
@@ -954,7 +954,7 @@ try {
     
     $MembershipReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Group membership report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group membership report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Group Summary:" -ForegroundColor Cyan
     $Groups | ForEach-Object {
@@ -1002,7 +1002,7 @@ try {
     
     Remove-SophosScanExclusion -PolicyId $PolicyId -Id $ExclusionId -Confirm:$false
     
-    Write-Host "✓ Exclusion removed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exclusion removed successfully" -ForegroundColor Green
     Write-Host "  Exclusion ID: $ExclusionId" -ForegroundColor Cyan
     Write-Host "  Type: $($Exclusion.type)" -ForegroundColor Cyan
     Write-Host "  Value: $($Exclusion.value)" -ForegroundColor Cyan
@@ -1057,7 +1057,7 @@ try {
     
     $ExclusionReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Exclusion audit report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exclusion audit report exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Exclusion Summary:" -ForegroundColor Cyan
     Write-Host "  Total Exclusions: $($ExclusionReport.Count)"
@@ -1115,7 +1115,7 @@ try {
     
     $NewRule = New-SophosFirewallRule @RuleParams
     
-    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule created successfully" -ForegroundColor Green
     Write-Host "  Rule Name: ${ruleName}" -ForegroundColor Cyan
     Write-Host "  Action: ${action}" -ForegroundColor Cyan
     Write-Host "  Direction: ${direction}" -ForegroundColor Cyan
@@ -1164,7 +1164,7 @@ try {
     
     $Status = if ($Enabled) { "enabled" } else { "disabled" }
     
-    Write-Host "✓ Firewall rule $Status successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule $Status successfully" -ForegroundColor Green
     Write-Host "  Rule Name: $($Rule.name)" -ForegroundColor Cyan
     Write-Host "  Rule ID: $RuleId" -ForegroundColor Cyan
     Write-Host "  Status: $Status" -ForegroundColor Cyan
@@ -1215,7 +1215,7 @@ try {
     
     $RulesExport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Firewall rules exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rules exported: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "Export Summary:" -ForegroundColor Cyan
     Write-Host "  Total Rules: $($FirewallRules.Count)"
@@ -1269,7 +1269,7 @@ try {
                     Name = $Rule.name
                     Status = "Skipped (exists)"
                 }
-                Write-Host "⚠ Skipped existing rule: $($Rule.name)" -ForegroundColor Yellow
+                Write-Host "[WARNING] Skipped existing rule: $($Rule.name)" -ForegroundColor Yellow
                 continue
             }
             
@@ -1288,15 +1288,15 @@ try {
             if ($ExistingRule) {
                 Set-SophosFirewallRule -Id $ExistingRule.id @RuleParams
                 $ImportResults += [PSCustomObject]@{ Name = $Rule.name; Status = "Updated" }
-                Write-Host "✓ Updated rule: $($Rule.name)" -ForegroundColor Green
+                Write-Host "[SUCCESS] Updated rule: $($Rule.name)" -ForegroundColor Green
             } else {
                 New-SophosFirewallRule @RuleParams
                 $ImportResults += [PSCustomObject]@{ Name = $Rule.name; Status = "Created" }
-                Write-Host "✓ Created rule: $($Rule.name)" -ForegroundColor Green
+                Write-Host "[SUCCESS] Created rule: $($Rule.name)" -ForegroundColor Green
             }
         } catch {
             $ImportResults += [PSCustomObject]@{ Name = $Rule.name; Status = "Failed: $_" }
-            Write-Host "✗ Failed: $($Rule.name)" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $($Rule.name)" -ForegroundColor Red
         }
     }
     
@@ -1417,7 +1417,7 @@ try {
                     AlertId = $AlertId
                     Status = "Not Found"
                 }
-                Write-Host "⚠ Alert not found: $AlertId" -ForegroundColor Yellow
+                Write-Host "[WARNING] Alert not found: $AlertId" -ForegroundColor Yellow
                 continue
             }
             
@@ -1428,13 +1428,13 @@ try {
                 Status = "Acknowledged"
                 Type = $Alert.type
             }
-            Write-Host "✓ Acknowledged: $AlertId" -ForegroundColor Green
+            Write-Host "[SUCCESS] Acknowledged: $AlertId" -ForegroundColor Green
         } catch {
             $Results += [PSCustomObject]@{
                 AlertId = $AlertId
                 Status = "Failed: $_"
             }
-            Write-Host "✗ Failed: $AlertId - $_" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $AlertId - $_" -ForegroundColor Red
         }
     }
     
@@ -1500,31 +1500,31 @@ try {
     switch ($ResponseAction) {
         "Isolate Endpoint" {
             Set-SophosEndpointIsolation -EndpointId $EndpointId -Action "isolate"
-            Write-Host "✓ Endpoint isolated from network" -ForegroundColor Green
+            Write-Host "[SUCCESS] Endpoint isolated from network" -ForegroundColor Green
         }
         "Collect Forensics" {
             Start-SophosForensicCollection -EndpointId $EndpointId -IncidentId $IncidentId
-            Write-Host "✓ Forensic data collection initiated" -ForegroundColor Green
+            Write-Host "[SUCCESS] Forensic data collection initiated" -ForegroundColor Green
         }
         "Kill Process" {
             if ($Incident.process_id) {
                 Stop-SophosProcess -EndpointId $EndpointId -ProcessId $Incident.process_id
-                Write-Host "✓ Malicious process terminated" -ForegroundColor Green
+                Write-Host "[SUCCESS] Malicious process terminated" -ForegroundColor Green
             } else {
-                Write-Host "⚠ No process ID associated with incident" -ForegroundColor Yellow
+                Write-Host "[WARNING] No process ID associated with incident" -ForegroundColor Yellow
             }
         }
         "Full Remediation" {
             Set-SophosEndpointIsolation -EndpointId $EndpointId -Action "isolate"
             Start-SophosForensicCollection -EndpointId $EndpointId -IncidentId $IncidentId
             Invoke-SophosScan -EndpointId $EndpointId -Type "Full"
-            Write-Host "✓ Full remediation initiated (isolate, collect, scan)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Full remediation initiated (isolate, collect, scan)" -ForegroundColor Green
         }
     }
     
     if ($NotifyTeam) {
         Send-SophosIncidentNotification -IncidentId $IncidentId -Action $ResponseAction
-        Write-Host "✓ Security team notified" -ForegroundColor Green
+        Write-Host "[SUCCESS] Security team notified" -ForegroundColor Green
     }
     
     Set-SophosAlertStatus -Id $IncidentId -Status "InProgress" -Comment "Incident response action: $ResponseAction"
@@ -1625,7 +1625,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Compliance report generation failed: $_"
@@ -1690,7 +1690,7 @@ try {
         Write-Host ""
     }
     
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "License report generation failed: $_"
@@ -1765,7 +1765,7 @@ try {
         Write-Host "  $($_.Name): $($_.Count)"
     }
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Deployment status report failed: $_"
@@ -1811,7 +1811,7 @@ try {
     $AuthTime = ((Get-Date) - $AuthStart).TotalMilliseconds
     
     if ($AuthResponse.access_token) {
-        Write-Host "  ✓ Authentication successful ($([math]::Round($AuthTime, 0))ms)" -ForegroundColor Green
+        Write-Host "  [OK] Authentication successful ($([math]::Round($AuthTime, 0))ms)" -ForegroundColor Green
     } else {
         throw "Authentication failed - no token received"
     }
@@ -1828,7 +1828,7 @@ try {
     $TenantTime = ((Get-Date) - $TenantStart).TotalMilliseconds
     
     if ($TenantResponse.id) {
-        Write-Host "  ✓ Tenant access verified ($([math]::Round($TenantTime, 0))ms)" -ForegroundColor Green
+        Write-Host "  [OK] Tenant access verified ($([math]::Round($TenantTime, 0))ms)" -ForegroundColor Green
     }
     
     Write-Host "Testing Endpoint API..." -ForegroundColor Yellow
@@ -1836,14 +1836,14 @@ try {
     $EndpointResponse = Invoke-RestMethod -Uri "https://api-$($TenantResponse.dataRegion).central.sophos.com/endpoint/v1/endpoints?pageSize=1" \`
         -Headers $Headers -Method GET
     $EndpointTime = ((Get-Date) - $EndpointStart).TotalMilliseconds
-    Write-Host "  ✓ Endpoint API accessible ($([math]::Round($EndpointTime, 0))ms)" -ForegroundColor Green
+    Write-Host "  [OK] Endpoint API accessible ($([math]::Round($EndpointTime, 0))ms)" -ForegroundColor Green
     
     Write-Host "Testing Alert API..." -ForegroundColor Yellow
     $AlertStart = Get-Date
     $AlertResponse = Invoke-RestMethod -Uri "https://api-$($TenantResponse.dataRegion).central.sophos.com/common/v1/alerts?pageSize=1" \`
         -Headers $Headers -Method GET
     $AlertTime = ((Get-Date) - $AlertStart).TotalMilliseconds
-    Write-Host "  ✓ Alert API accessible ($([math]::Round($AlertTime, 0))ms)" -ForegroundColor Green
+    Write-Host "  [OK] Alert API accessible ($([math]::Round($AlertTime, 0))ms)" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "API Health: HEALTHY" -ForegroundColor Green
@@ -2098,7 +2098,7 @@ try {
                     Status = "Initiated"
                     StartTime = Get-Date
                 }
-                Write-Host "  ✓ $($Endpoint.hostname)" -ForegroundColor Green
+                Write-Host "  [OK] $($Endpoint.hostname)" -ForegroundColor Green
             } catch {
                 $ScanJobs += [PSCustomObject]@{
                     Endpoint = $Endpoint.hostname
@@ -2107,7 +2107,7 @@ try {
                     Status = "Failed: $_"
                     StartTime = Get-Date
                 }
-                Write-Host "  ✗ $($Endpoint.hostname)" -ForegroundColor Red
+                Write-Host "  [FAILED] $($Endpoint.hostname)" -ForegroundColor Red
             }
         }
         
@@ -2181,14 +2181,14 @@ try {
         
         foreach ($Endpoint in $GroupMembers) {
             Move-SophosEndpointToGroup -EndpointId $Endpoint.id -GroupId $TargetGroupId
-            Write-Host "  ✓ Moved: $($Endpoint.hostname)" -ForegroundColor Green
+            Write-Host "  [OK] Moved: $($Endpoint.hostname)" -ForegroundColor Green
         }
     }
     
     Remove-SophosEndpointGroup -Id $GroupId -Confirm:$false
     
     Write-Host ""
-    Write-Host "✓ Group deleted successfully: $($Group.name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group deleted successfully: $($Group.name)" -ForegroundColor Green
     
     if ($GroupMembers.Count -gt 0) {
         Write-Host "  $($GroupMembers.Count) endpoints moved to: $($TargetGroup.name)" -ForegroundColor Cyan
@@ -2261,7 +2261,7 @@ try {
         Write-Host ""
     }
     
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Tamper protection report failed: $_"
@@ -2320,13 +2320,13 @@ try {
                 Endpoint = $Endpoint.hostname
                 Status = "Enabled"
             }
-            Write-Host "✓ Enabled: $($Endpoint.hostname)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Enabled: $($Endpoint.hostname)" -ForegroundColor Green
         } catch {
             $Results += [PSCustomObject]@{
                 Endpoint = $EndpointId
                 Status = "Failed: $_"
             }
-            Write-Host "✗ Failed: $EndpointId" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $EndpointId" -ForegroundColor Red
         }
     }
     
@@ -2405,7 +2405,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "User activity report failed: $_"
@@ -2465,14 +2465,14 @@ try {
         
         foreach ($Endpoint in $AssignedEndpoints) {
             Set-SophosEndpointPolicy -EndpointId $Endpoint.id -PolicyId $ReassignPolicyId
-            Write-Host "  ✓ Reassigned: $($Endpoint.hostname)" -ForegroundColor Green
+            Write-Host "  [OK] Reassigned: $($Endpoint.hostname)" -ForegroundColor Green
         }
     }
     
     Remove-SophosPolicy -Id $PolicyId -Confirm:$false
     
     Write-Host ""
-    Write-Host "✓ Policy deleted successfully: $($Policy.name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy deleted successfully: $($Policy.name)" -ForegroundColor Green
     
     if ($AssignedEndpoints.Count -gt 0) {
         Write-Host "  $($AssignedEndpoints.Count) endpoints reassigned to: $($ReassignPolicy.name)" -ForegroundColor Cyan
@@ -2523,10 +2523,10 @@ try {
     
     if ($ExistingPolicy) {
         Set-SophosPeripheralControlPolicy -Id $ExistingPolicy.id @PolicySettings
-        Write-Host "✓ Updated existing peripheral control policy: $PolicyName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Updated existing peripheral control policy: $PolicyName" -ForegroundColor Green
     } else {
         $NewPolicy = New-SophosPeripheralControlPolicy -Name $PolicyName @PolicySettings
-        Write-Host "✓ Created new peripheral control policy: $PolicyName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created new peripheral control policy: $PolicyName" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -2582,7 +2582,7 @@ try {
     
     foreach ($App in $BlockedApps) {
         Add-SophosApplicationControlRule -PolicyId $Policy.id -Application $App -Action $Action
-        Write-Host "  ✓ Added rule for: $App ($Action)" -ForegroundColor Cyan
+        Write-Host "  [OK] Added rule for: $App ($Action)" -ForegroundColor Cyan
     }
     
     Write-Host ""
@@ -2668,7 +2668,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Blocked items report failed: $_"
@@ -2714,7 +2714,7 @@ try {
     
     Remove-SophosFirewallRule -Id $RuleId -Confirm:$false
     
-    Write-Host "✓ Firewall rule deleted successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule deleted successfully" -ForegroundColor Green
     Write-Host "  Rule Name: $($Rule.name)" -ForegroundColor Cyan
     Write-Host "  Rule ID: $RuleId" -ForegroundColor Cyan
     
@@ -2783,7 +2783,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Software inventory report failed: $_"
@@ -2831,7 +2831,7 @@ try {
                     AlertId = $AlertId
                     Status = "Not Found"
                 }
-                Write-Host "⚠ Alert not found: $AlertId" -ForegroundColor Yellow
+                Write-Host "[WARNING] Alert not found: $AlertId" -ForegroundColor Yellow
                 continue
             }
             
@@ -2843,13 +2843,13 @@ try {
                 Resolution = $Resolution
                 Type = $Alert.type
             }
-            Write-Host "✓ Resolved: $AlertId ($($Alert.type))" -ForegroundColor Green
+            Write-Host "[SUCCESS] Resolved: $AlertId ($($Alert.type))" -ForegroundColor Green
         } catch {
             $Results += [PSCustomObject]@{
                 AlertId = $AlertId
                 Status = "Failed: $_"
             }
-            Write-Host "✗ Failed: $AlertId - $_" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $AlertId - $_" -ForegroundColor Red
         }
     }
     
@@ -2932,7 +2932,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Encryption status report failed: $_"
@@ -3004,11 +3004,11 @@ ${queryText}
         $Results | Export-Csv -Path "${exportPath}" -NoTypeInformation
         
         Write-Host ""
-        Write-Host "✓ Query completed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Query completed successfully" -ForegroundColor Green
         Write-Host "  Results: $($Results.Count) rows" -ForegroundColor Cyan
         Write-Host "  Exported to: ${exportPath}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Query did not complete within timeout" -ForegroundColor Yellow
+        Write-Host "[WARNING] Query did not complete within timeout" -ForegroundColor Yellow
         Write-Host "  Final Status: $($JobStatus.status)"
     }
     
@@ -3058,7 +3058,7 @@ try {
                     Endpoint = $EndpointId
                     Status = "Not Found"
                 }
-                Write-Host "⚠ Endpoint not found: $EndpointId" -ForegroundColor Yellow
+                Write-Host "[WARNING] Endpoint not found: $EndpointId" -ForegroundColor Yellow
                 continue
             }
             
@@ -3079,13 +3079,13 @@ try {
                 Status = "Restart Initiated"
                 Service = $ServiceType
             }
-            Write-Host "✓ Restart initiated: $($Endpoint.hostname)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Restart initiated: $($Endpoint.hostname)" -ForegroundColor Green
         } catch {
             $Results += [PSCustomObject]@{
                 Endpoint = $EndpointId
                 Status = "Failed: $_"
             }
-            Write-Host "✗ Failed: $EndpointId" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $EndpointId" -ForegroundColor Red
         }
     }
     
@@ -3139,14 +3139,14 @@ try {
     $ExistingExclusions = Get-SophosGlobalExclusion | Where-Object { $_.value -eq "${exclusionValue}" -and $_.type -eq "${exclusionType}" }
     
     if ($ExistingExclusions) {
-        Write-Host "⚠ Exclusion already exists:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Exclusion already exists:" -ForegroundColor Yellow
         Write-Host "  Type: ${exclusionType}" -ForegroundColor Cyan
         Write-Host "  Value: ${exclusionValue}" -ForegroundColor Cyan
         Write-Host "  ID: $($ExistingExclusions.id)" -ForegroundColor Cyan
     } else {
         $NewExclusion = New-SophosGlobalExclusion @ExclusionParams
         
-        Write-Host "✓ Global exclusion created successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Global exclusion created successfully" -ForegroundColor Green
         Write-Host ""
         Write-Host "Exclusion Details:" -ForegroundColor Cyan
         Write-Host "  ID: $($NewExclusion.id)"
@@ -3241,7 +3241,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Alert statistics report failed: $_"

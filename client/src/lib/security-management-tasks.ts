@@ -75,7 +75,7 @@ Write-Host ""
 Write-Host "Total: $($Admins.Count) member(s)" -ForegroundColor Gray
 
 ${exportPath ? `$Admins | Export-Csv "${exportPath}" -NoTypeInformation
-Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
+Write-Host "[SUCCESS] Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
     }
   },
 
@@ -124,14 +124,14 @@ $UserName = "${userName}"
 
 try {
     Add-LocalGroupMember -Group "Administrators" -Member $UserName -ErrorAction Stop
-    Write-Host "✓ Added $UserName to local Administrators" -ForegroundColor Green
+    Write-Host "[SUCCESS] Added $UserName to local Administrators" -ForegroundColor Green
     
     # Display current members
     Write-Host ""
     Write-Host "Current Administrators:" -ForegroundColor Gray
     Get-LocalGroupMember -Group "Administrators" | Select-Object Name | Format-Table -AutoSize
 } catch {
-    Write-Host "✗ Failed to add user: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to add user: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -181,14 +181,14 @@ $UserName = "${userName}"
 
 try {
     Remove-LocalGroupMember -Group "Administrators" -Member $UserName -ErrorAction Stop
-    Write-Host "✓ Removed $UserName from local Administrators" -ForegroundColor Green
+    Write-Host "[SUCCESS] Removed $UserName from local Administrators" -ForegroundColor Green
     
     # Display current members
     Write-Host ""
     Write-Host "Current Administrators:" -ForegroundColor Gray
     Get-LocalGroupMember -Group "Administrators" | Select-Object Name | Format-Table -AutoSize
 } catch {
-    Write-Host "✗ Failed to remove user: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to remove user: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -310,7 +310,7 @@ Write-Host "Updating Windows Defender signatures..." -ForegroundColor Cyan
 
 try {
     Update-MpSignature -ErrorAction Stop
-    Write-Host "✓ Defender signatures updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Defender signatures updated successfully" -ForegroundColor Green
     
     # Show updated status
     $Status = Get-MpComputerStatus
@@ -319,7 +319,7 @@ try {
     Write-Host "  Antivirus Signature Version: $($Status.AntivirusSignatureVersion)" -ForegroundColor Gray
     Write-Host "  Last Updated: $($Status.AntivirusSignatureLastUpdated)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to update signatures: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to update signatures: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -375,19 +375,19 @@ Write-Host ""
 
 try {
     Start-MpScan -ScanType $ScanType -ErrorAction Stop
-    Write-Host "✓ Scan completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scan completed successfully" -ForegroundColor Green
     
     # Show threat detection summary
     $Threats = Get-MpThreatDetection -ErrorAction SilentlyContinue
     if ($Threats) {
         Write-Host ""
-        Write-Host "⚠ Threats detected: $($Threats.Count)" -ForegroundColor Red
+        Write-Host "[WARNING] Threats detected: $($Threats.Count)" -ForegroundColor Red
         $Threats | Select-Object ThreatName, Resources | Format-List
     } else {
         Write-Host "No threats detected" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Scan failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Scan failed: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -498,7 +498,7 @@ foreach ($Volume in $Volumes) {
 $Drive = "${drive}"
 $RecoveryPath = "${recoveryKeyPath}"
 
-Write-Host "⚠ WARNING: Enabling BitLocker encryption" -ForegroundColor Yellow
+Write-Host "[WARNING] WARNING: Enabling BitLocker encryption" -ForegroundColor Yellow
 Write-Host "  Drive: $Drive" -ForegroundColor Gray
 Write-Host "  This operation will encrypt the entire drive" -ForegroundColor Gray
 Write-Host ""
@@ -515,12 +515,12 @@ try {
     $RecoveryFile = Join-Path $RecoveryPath "BitLocker-$Drive-$(Get-Date -Format 'yyyyMMdd').txt"
     $RecoveryKey | Out-File $RecoveryFile
     
-    Write-Host "✓ BitLocker enabled on $Drive" -ForegroundColor Green
+    Write-Host "[SUCCESS] BitLocker enabled on $Drive" -ForegroundColor Green
     Write-Host "  Recovery key saved to: $RecoveryFile" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "⚠ IMPORTANT: Store recovery key in a secure location!" -ForegroundColor Yellow
+    Write-Host "[WARNING] IMPORTANT: Store recovery key in a secure location!" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to enable BitLocker: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to enable BitLocker: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -664,7 +664,7 @@ $Content | Set-Content $TempFile
 secedit /configure /db $env:windir\\security\\local.sdb /cfg $TempFile /areas SECURITYPOLICY /quiet
 Remove-Item $TempFile
 
-Write-Host "✓ Password policy configured:" -ForegroundColor Green
+Write-Host "[SUCCESS] Password policy configured:" -ForegroundColor Green
 Write-Host "  Minimum length: ${minLength} characters" -ForegroundColor Gray
 Write-Host "  Maximum age: ${maxAge} days" -ForegroundColor Gray
 Write-Host "  Complexity required: ${params.complexity ? 'Yes' : 'No'}" -ForegroundColor Gray`;
@@ -741,12 +741,12 @@ if ($Events) {
     $TopUsers = $FailedLogons | Group-Object User | Sort-Object Count -Descending | Select-Object -First $TopCount @{N='Username'; E={$_.Name}}, Count
     
     Write-Host ""
-    Write-Host "⚠ Total failed logons: $($Events.Count)" -ForegroundColor Red
+    Write-Host "[WARNING] Total failed logons: $($Events.Count)" -ForegroundColor Red
     Write-Host ""
     Write-Host "Top failed logon attempts by user:" -ForegroundColor Yellow
     $TopUsers | Format-Table -AutoSize
 } else {
-    Write-Host "✓ No failed logons detected" -ForegroundColor Green
+    Write-Host "[SUCCESS] No failed logons detected" -ForegroundColor Green
 }`;
     }
   },
@@ -790,7 +790,7 @@ if ($Events) {
 
 try {
     Disable-LocalUser -Name "Guest" -ErrorAction Stop
-    Write-Host "✓ Guest account disabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Guest account disabled" -ForegroundColor Green
     
     # Verify status
     $Guest = Get-LocalUser -Name "Guest"
@@ -798,7 +798,7 @@ try {
     Write-Host "Guest account status:" -ForegroundColor Gray
     Write-Host "  Enabled: $($Guest.Enabled)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to disable Guest account: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to disable Guest account: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -856,14 +856,14 @@ $AllowAny = Get-NetFirewallRule -Action Allow | Where-Object {
 
 $DisabledAllow = Get-NetFirewallRule -Action Allow -Enabled False
 
-Write-Host "⚠ Rules allowing ANY protocol:" -ForegroundColor Yellow
+Write-Host "[WARNING] Rules allowing ANY protocol:" -ForegroundColor Yellow
 Write-Host "  Count: $($AllowAny.Count)" -ForegroundColor Gray
 if ($AllowAny) {
     $AllowAny | Select-Object -First 10 DisplayName, Direction | Format-Table -AutoSize
 }
 
 Write-Host ""
-Write-Host "⚠ Disabled ALLOW rules:" -ForegroundColor Yellow
+Write-Host "[WARNING] Disabled ALLOW rules:" -ForegroundColor Yellow
 Write-Host "  Count: $($DisabledAllow.Count)" -ForegroundColor Gray
 if ($DisabledAllow) {
     $DisabledAllow | Select-Object -First 10 DisplayName, Direction | Format-Table -AutoSize
@@ -1000,13 +1000,13 @@ Write-Host "Exporting security policy baseline..." -ForegroundColor Cyan
 secedit /export /cfg $ExportPath /quiet
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "✓ Security policy exported:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security policy exported:" -ForegroundColor Green
     Write-Host "  File: $ExportPath" -ForegroundColor Gray
     
     $FileSize = (Get-Item $ExportPath).Length / 1KB
     Write-Host "  Size: $([math]::Round($FileSize, 2)) KB" -ForegroundColor Gray
 } else {
-    Write-Host "✗ Export failed" -ForegroundColor Red
+    Write-Host "[FAILED] Export failed" -ForegroundColor Red
 }`;
     }
   },
@@ -1084,11 +1084,11 @@ try {
         $Rules | ConvertTo-Json -Depth 3 | Out-File -FilePath $ExportPath
     }
     
-    Write-Host "✓ Exported $($Rules.Count) firewall rules" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported $($Rules.Count) firewall rules" -ForegroundColor Green
     Write-Host "  File: $ExportPath" -ForegroundColor Gray
     Write-Host "  Size: $([math]::Round((Get-Item $ExportPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Export failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Export failed: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1167,14 +1167,14 @@ try {
     
     New-NetFirewallRule @Params -ErrorAction Stop
     
-    Write-Host "✓ Inbound firewall rule created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inbound firewall rule created" -ForegroundColor Green
     Write-Host "  Name: $RuleName" -ForegroundColor Gray
     Write-Host "  Direction: Inbound" -ForegroundColor Gray
     Write-Host "  Port(s): $Port" -ForegroundColor Gray
     Write-Host "  Protocol: $Protocol" -ForegroundColor Gray
     Write-Host "  Action: $Action" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to create rule: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create rule: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1253,14 +1253,14 @@ try {
     
     New-NetFirewallRule @Params -ErrorAction Stop
     
-    Write-Host "✓ Outbound firewall rule created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Outbound firewall rule created" -ForegroundColor Green
     Write-Host "  Name: $RuleName" -ForegroundColor Gray
     Write-Host "  Direction: Outbound" -ForegroundColor Gray
     Write-Host "  Remote Port(s): $RemotePort" -ForegroundColor Gray
     Write-Host "  Protocol: $Protocol" -ForegroundColor Gray
     Write-Host "  Action: $Action" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to create rule: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to create rule: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1316,7 +1316,7 @@ try {
     $Rules = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
     
     if (-not $Rules) {
-        Write-Host "⚠ No rules found matching: $RuleName" -ForegroundColor Yellow
+        Write-Host "[WARNING] No rules found matching: $RuleName" -ForegroundColor Yellow
         exit
     }
     
@@ -1326,12 +1326,12 @@ try {
         $Rules | Disable-NetFirewallRule -ErrorAction Stop
     }
     
-    Write-Host "✓ $($Action)d $($Rules.Count) rule(s)" -ForegroundColor Green
+    Write-Host "[SUCCESS] $($Action)d $($Rules.Count) rule(s)" -ForegroundColor Green
     Write-Host ""
     Write-Host "Affected rules:" -ForegroundColor Gray
     $Rules | Select-Object DisplayName, Enabled | Format-Table -AutoSize
 } catch {
-    Write-Host "✗ Failed to modify rule: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to modify rule: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1388,9 +1388,9 @@ try {
     Write-Host ""
     
     Remove-NetFirewallRule -DisplayName $RuleName -ErrorAction Stop
-    Write-Host "✓ Firewall rule removed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule removed" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Failed to remove rule: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to remove rule: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1458,9 +1458,9 @@ try {
         }
     }
     
-    Write-Host "✓ Exclusion added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exclusion added successfully" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠ WARNING: Excluded items will NOT be scanned" -ForegroundColor Yellow
+    Write-Host "[WARNING] WARNING: Excluded items will NOT be scanned" -ForegroundColor Yellow
     
     # Show current exclusions
     $Prefs = Get-MpPreference
@@ -1472,7 +1472,7 @@ try {
         "Process" { $Prefs.ExclusionProcess | ForEach-Object { Write-Host "  $_" } }
     }
 } catch {
-    Write-Host "✗ Failed to add exclusion: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to add exclusion: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1537,10 +1537,10 @@ try {
         }
     }
     
-    Write-Host "✓ Exclusion removed: $ExclusionValue" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exclusion removed: $ExclusionValue" -ForegroundColor Green
     Write-Host "  Item will now be scanned by Defender" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to remove exclusion: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to remove exclusion: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1593,7 +1593,7 @@ try {
     $ThreatCatalog = Get-MpThreat -ErrorAction SilentlyContinue
     
     if ($Threats -or $ThreatCatalog) {
-        Write-Host "⚠ Threat Detections Found" -ForegroundColor Red
+        Write-Host "[WARNING] Threat Detections Found" -ForegroundColor Red
         Write-Host ""
         
         $ThreatCatalog | ForEach-Object {
@@ -1605,9 +1605,9 @@ try {
         }
         
 ${exportPath ? `        $ThreatCatalog | Select-Object ThreatName, SeverityID, ThreatStatusID, Resources | Export-Csv "${exportPath}" -NoTypeInformation
-        Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+        Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
     } else {
-        Write-Host "✓ No threats detected" -ForegroundColor Green
+        Write-Host "[SUCCESS] No threats detected" -ForegroundColor Green
     }
     
     # Show summary
@@ -1616,7 +1616,7 @@ ${exportPath ? `        $ThreatCatalog | Select-Object ThreatName, SeverityID, T
     $Quarantine = Get-MpThreat -ErrorAction SilentlyContinue | Where-Object { $_.IsActive -eq $false }
     Write-Host "  Quarantined items: $($Quarantine.Count)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to retrieve threats: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve threats: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1761,12 +1761,12 @@ try {
         "No Auditing" { auditpol /set /category:"$AuditCategory" /success:disable /failure:disable }
     }
     
-    Write-Host "✓ Audit policy configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit policy configured" -ForegroundColor Green
     Write-Host ""
     Write-Host "Current setting:" -ForegroundColor Gray
     auditpol /get /category:"$AuditCategory"
 } catch {
-    Write-Host "✗ Failed to configure audit policy: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to configure audit policy: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1830,7 +1830,7 @@ $Content | Set-Content $TempFile
 secedit /configure /db $env:windir\\security\\local.sdb /cfg $TempFile /areas SECURITYPOLICY /quiet
 Remove-Item $TempFile
 
-Write-Host "✓ Account lockout policy configured:" -ForegroundColor Green
+Write-Host "[SUCCESS] Account lockout policy configured:" -ForegroundColor Green
 Write-Host "  Lockout threshold: ${threshold} invalid attempts" -ForegroundColor Gray
 Write-Host "  Lockout duration: ${duration} minutes" -ForegroundColor Gray
 Write-Host "  Reset counter after: ${resetCounter} minutes" -ForegroundColor Gray`;
@@ -1895,7 +1895,7 @@ try {
     } | Sort-Object NotAfter
     
     if ($Certs) {
-        Write-Host "⚠ Certificates expiring soon:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Certificates expiring soon:" -ForegroundColor Yellow
         Write-Host ""
         
         foreach ($Cert in $Certs) {
@@ -1911,10 +1911,10 @@ try {
         
         Write-Host "Total expiring: $($Certs.Count)" -ForegroundColor Yellow
     } else {
-        Write-Host "✓ No certificates expiring within $Days days" -ForegroundColor Green
+        Write-Host "[SUCCESS] No certificates expiring within $Days days" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to check certificates: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to check certificates: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -1977,22 +1977,22 @@ try {
     $Cert = Get-ChildItem -Path Cert:\\ -Recurse | Where-Object { $_.Thumbprint -eq $Thumbprint } | Select-Object -First 1
     
     if (-not $Cert) {
-        Write-Host "✗ Certificate not found: $Thumbprint" -ForegroundColor Red
+        Write-Host "[FAILED] Certificate not found: $Thumbprint" -ForegroundColor Red
         exit
     }
     
     Write-Host "Found: $($Cert.Subject)" -ForegroundColor Gray
     
     if ($Format -eq "PFX") {
-        ${password ? 'Export-PfxCertificate -Cert $Cert -FilePath $ExportPath -Password $Password' : 'Write-Host "✗ Password required for PFX export" -ForegroundColor Red; exit'}
+        ${password ? 'Export-PfxCertificate -Cert $Cert -FilePath $ExportPath -Password $Password' : 'Write-Host "[FAILED] Password required for PFX export" -ForegroundColor Red; exit'}
     } else {
         Export-Certificate -Cert $Cert -FilePath $ExportPath -Type CERT
     }
     
-    Write-Host "✓ Certificate exported to: $ExportPath" -ForegroundColor Green
+    Write-Host "[SUCCESS] Certificate exported to: $ExportPath" -ForegroundColor Green
     Write-Host "  Size: $([math]::Round((Get-Item $ExportPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Export failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Export failed: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2059,17 +2059,17 @@ try {
         $Flags = [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::MachineKeySet
         ${exportable ? '$Flags = $Flags -bor [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable' : ''}
         
-        ${password ? '$Cert = Import-PfxCertificate -FilePath $CertPath -CertStoreLocation $Store -Password $Password -Exportable:$' + (exportable ? 'true' : 'false') : 'Write-Host "✗ Password required for PFX import" -ForegroundColor Red; exit'}
+        ${password ? '$Cert = Import-PfxCertificate -FilePath $CertPath -CertStoreLocation $Store -Password $Password -Exportable:$' + (exportable ? 'true' : 'false') : 'Write-Host "[FAILED] Password required for PFX import" -ForegroundColor Red; exit'}
     } else {
         $Cert = Import-Certificate -FilePath $CertPath -CertStoreLocation $Store
     }
     
-    Write-Host "✓ Certificate imported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Certificate imported successfully" -ForegroundColor Green
     Write-Host "  Subject: $($Cert.Subject)" -ForegroundColor Gray
     Write-Host "  Thumbprint: $($Cert.Thumbprint)" -ForegroundColor Gray
     Write-Host "  Expires: $($Cert.NotAfter)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Import failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Import failed: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2127,9 +2127,9 @@ Write-Host ""
 try {
     Suspend-BitLocker -MountPoint $Drive -RebootCount $RebootCount -ErrorAction Stop
     
-    Write-Host "✓ BitLocker protection suspended" -ForegroundColor Green
+    Write-Host "[SUCCESS] BitLocker protection suspended" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠ Protection will resume after $RebootCount reboot(s)" -ForegroundColor Yellow
+    Write-Host "[WARNING] Protection will resume after $RebootCount reboot(s)" -ForegroundColor Yellow
     Write-Host "  Drive remains encrypted" -ForegroundColor Gray
     
     # Show current status
@@ -2138,7 +2138,7 @@ try {
     Write-Host "Current status:" -ForegroundColor Gray
     Write-Host "  Protection Status: $($Status.ProtectionStatus)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to suspend BitLocker: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to suspend BitLocker: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2189,7 +2189,7 @@ Write-Host "Resuming BitLocker protection..." -ForegroundColor Cyan
 try {
     Resume-BitLocker -MountPoint $Drive -ErrorAction Stop
     
-    Write-Host "✓ BitLocker protection resumed" -ForegroundColor Green
+    Write-Host "[SUCCESS] BitLocker protection resumed" -ForegroundColor Green
     
     # Show current status
     $Status = Get-BitLockerVolume -MountPoint $Drive
@@ -2198,7 +2198,7 @@ try {
     Write-Host "  Protection Status: $($Status.ProtectionStatus)" -ForegroundColor Gray
     Write-Host "  Encryption Status: $($Status.VolumeStatus)" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to resume BitLocker: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to resume BitLocker: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2256,7 +2256,7 @@ try {
     $RecoveryProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
     
     if (-not $RecoveryProtector) {
-        Write-Host "✗ No recovery password protector found" -ForegroundColor Red
+        Write-Host "[FAILED] No recovery password protector found" -ForegroundColor Red
         exit
     }
     
@@ -2282,13 +2282,13 @@ IMPORTANT: Store this file securely!
     
     $Content | Out-File -FilePath $BackupPath -Encoding UTF8
     
-    Write-Host "✓ Recovery key backed up" -ForegroundColor Green
+    Write-Host "[SUCCESS] Recovery key backed up" -ForegroundColor Green
     Write-Host "  File: $BackupPath" -ForegroundColor Gray
     Write-Host "  Key ID: $($RecoveryProtector.KeyProtectorId)" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠ CRITICAL: Store this file in a secure location!" -ForegroundColor Yellow
+    Write-Host "[WARNING] CRITICAL: Store this file in a secure location!" -ForegroundColor Yellow
 } catch {
-    Write-Host "✗ Failed to backup key: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to backup key: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2364,7 +2364,7 @@ if ($CredOutput -match "Currently stored credentials") {
     Write-Host ""
     Write-Host "Total stored credentials: $($Credentials.Count)" -ForegroundColor Gray
 } else {
-    Write-Host "✓ No stored credentials found" -ForegroundColor Green
+    Write-Host "[SUCCESS] No stored credentials found" -ForegroundColor Green
 }
 
 Write-Host ""
@@ -2427,7 +2427,7 @@ $UserServices = $Services | Where-Object {
 }
 
 if ($UserServices) {
-    Write-Host "⚠ Services using user accounts:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Services using user accounts:" -ForegroundColor Yellow
     Write-Host ""
     
     $UserServices | ForEach-Object {
@@ -2445,7 +2445,7 @@ if ($UserServices) {
     Write-Host "Accounts summary:" -ForegroundColor Cyan
     $UserServices | Group-Object StartName | Select-Object @{N='Account';E={$_.Name}}, Count | Format-Table -AutoSize
 } else {
-    Write-Host "✓ No services using user accounts" -ForegroundColor Green
+    Write-Host "[SUCCESS] No services using user accounts" -ForegroundColor Green
 }
 
 Write-Host ""
@@ -2521,7 +2521,7 @@ try {
             }
         }
         
-        Write-Host "⚠ Privilege use events: $($Events.Count)" -ForegroundColor Yellow
+        Write-Host "[WARNING] Privilege use events: $($Events.Count)" -ForegroundColor Yellow
         Write-Host ""
         
         Write-Host "Top users by privilege use:" -ForegroundColor Cyan
@@ -2532,10 +2532,10 @@ try {
         $PrivilegeUse | Group-Object Privilege | Sort-Object Count -Descending |
             Select-Object -First 10 @{N='Privilege';E={$_.Name}}, Count | Format-Table -AutoSize
     } else {
-        Write-Host "✓ No privilege use events in last $Hours hours" -ForegroundColor Green
+        Write-Host "[SUCCESS] No privilege use events in last $Hours hours" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to retrieve events: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve events: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2627,13 +2627,13 @@ try {
             $AccessEvents | Group-Object ObjectName | Sort-Object Count -Descending |
                 Select-Object -First 10 @{N='Object';E={$_.Name}}, Count | Format-Table -AutoSize
         } else {
-            Write-Host "✓ No matching access events found" -ForegroundColor Green
+            Write-Host "[SUCCESS] No matching access events found" -ForegroundColor Green
         }
     } else {
-        Write-Host "✓ No object access events in last $Hours hours" -ForegroundColor Green
+        Write-Host "[SUCCESS] No object access events in last $Hours hours" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to retrieve events: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve events: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -2710,19 +2710,19 @@ try {
     
     if ($SecurityUpdates.Count -gt 0) {
         Write-Host ""
-        Write-Host "⚠ Pending security updates: $($SecurityUpdates.Count)" -ForegroundColor Red
+        Write-Host "[WARNING] Pending security updates: $($SecurityUpdates.Count)" -ForegroundColor Red
         Write-Host ""
         $SecurityUpdates | ForEach-Object {
             Write-Host "  $($_.Title)" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "✓ No pending security updates" -ForegroundColor Green
+        Write-Host "[SUCCESS] No pending security updates" -ForegroundColor Green
     }
     
     Write-Host ""
     Write-Host "Total pending updates: $($SearchResult.Updates.Count)" -ForegroundColor Gray
 } catch {
-    Write-Host "⚠ Could not check pending updates: $_" -ForegroundColor Yellow
+    Write-Host "[WARNING] Could not check pending updates: $_" -ForegroundColor Yellow
 }`;
     }
   },
@@ -2773,7 +2773,7 @@ Write-Host "============================================" -ForegroundColor Gray
 Write-Host ""
 
 if (-not (Test-Path $BaselinePath)) {
-    Write-Host "✗ Baseline file not found: $BaselinePath" -ForegroundColor Red
+    Write-Host "[FAILED] Baseline file not found: $BaselinePath" -ForegroundColor Red
     exit
 }
 
@@ -2820,13 +2820,13 @@ foreach ($Key in $BaselineSettings.Keys) {
 }
 
 if ($Differences) {
-    Write-Host "⚠ Settings differ from baseline:" -ForegroundColor Yellow
+    Write-Host "[WARNING] Settings differ from baseline:" -ForegroundColor Yellow
     Write-Host ""
     $Differences | Format-Table -AutoSize
     Write-Host ""
     Write-Host "Total differences: $($Differences.Count)" -ForegroundColor Yellow
 } else {
-    Write-Host "✓ Current settings match baseline" -ForegroundColor Green
+    Write-Host "[SUCCESS] Current settings match baseline" -ForegroundColor Green
 }
 
 # Cleanup
@@ -2893,9 +2893,9 @@ foreach ($Profile in $Profiles) {
 # Summary
 $DisabledProfiles = Get-NetFirewallProfile | Where-Object { -not $_.Enabled }
 if ($DisabledProfiles) {
-    Write-Host "⚠ Warning: Some profiles are disabled!" -ForegroundColor Red
+    Write-Host "[WARNING] Warning: Some profiles are disabled!" -ForegroundColor Red
 } else {
-    Write-Host "✓ All firewall profiles are enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] All firewall profiles are enabled" -ForegroundColor Green
 }`;
     }
   },
@@ -2955,10 +2955,10 @@ try {
         Set-NetFirewallProfile -Name $Profile -Enabled $Enabled -ErrorAction Stop
     }
     
-    Write-Host "✓ Firewall $Profile profile ${action.toLowerCase()}d" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall $Profile profile ${action.toLowerCase()}d" -ForegroundColor Green
     
     ${action === 'Disable' ? 'Write-Host ""' : ''}
-    ${action === 'Disable' ? 'Write-Host "⚠ WARNING: Firewall protection is now DISABLED!" -ForegroundColor Red' : ''}
+    ${action === 'Disable' ? 'Write-Host "[WARNING] WARNING: Firewall protection is now DISABLED!" -ForegroundColor Red' : ''}
     ${action === 'Disable' ? 'Write-Host "  System may be vulnerable to network attacks" -ForegroundColor Red' : ''}
     
     # Show current status
@@ -2966,7 +2966,7 @@ try {
     Write-Host "Current status:" -ForegroundColor Gray
     Get-NetFirewallProfile | Select-Object Name, Enabled | Format-Table -AutoSize
 } catch {
-    Write-Host "✗ Failed to modify firewall: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to modify firewall: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3040,7 +3040,7 @@ if (Test-Path $TempFile) {
             $Assigned = $Matches[2].Trim()
             
             $Color = if ($HighRiskRights -contains $Right) { "Yellow" } else { "Gray" }
-            $Prefix = if ($HighRiskRights -contains $Right) { "⚠ " } else { "  " }
+            $Prefix = if ($HighRiskRights -contains $Right) { "[WARNING] " } else { "  " }
             
             Write-Host "$Prefix$Right" -ForegroundColor $Color
             Write-Host "    $Assigned" -ForegroundColor Gray
@@ -3050,9 +3050,9 @@ if (Test-Path $TempFile) {
     Remove-Item $TempFile -Force
     
     Write-Host ""
-    Write-Host "⚠ High-risk rights marked with warning" -ForegroundColor Yellow
+    Write-Host "[WARNING] High-risk rights marked with warning" -ForegroundColor Yellow
 } else {
-    Write-Host "✗ Failed to export user rights" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to export user rights" -ForegroundColor Red
 }`;
     }
   },
@@ -3154,10 +3154,10 @@ try {
             Write-Host "No matching logons found" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "✓ No logon events in last $Hours hours" -ForegroundColor Green
+        Write-Host "[SUCCESS] No logon events in last $Hours hours" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to retrieve events: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve events: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3217,7 +3217,7 @@ try {
     } -ErrorAction SilentlyContinue
     
     if ($Events) {
-        Write-Host "⚠ Account lockouts detected: $($Events.Count)" -ForegroundColor Red
+        Write-Host "[WARNING] Account lockouts detected: $($Events.Count)" -ForegroundColor Red
         Write-Host ""
         
         $Lockouts = $Events | ForEach-Object {
@@ -3236,10 +3236,10 @@ try {
         $Lockouts | Group-Object Account | Sort-Object Count -Descending |
             Select-Object @{N='Account';E={$_.Name}}, Count | Format-Table -AutoSize
     } else {
-        Write-Host "✓ No account lockouts in last $Hours hours" -ForegroundColor Green
+        Write-Host "[SUCCESS] No account lockouts in last $Hours hours" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to retrieve events: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve events: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3331,10 +3331,10 @@ try {
         $Lockouts = ($Summary | Where-Object { $_.EventID -eq 4740 }).Count
         
         if ($FailedLogons -gt 100) {
-            Write-Host "⚠ High failed logon count: $FailedLogons" -ForegroundColor Red
+            Write-Host "[WARNING] High failed logon count: $FailedLogons" -ForegroundColor Red
         }
         if ($Lockouts -gt 0) {
-            Write-Host "⚠ Account lockouts detected: $Lockouts" -ForegroundColor Yellow
+            Write-Host "[WARNING] Account lockouts detected: $Lockouts" -ForegroundColor Yellow
         }
         
         Write-Host ""
@@ -3343,7 +3343,7 @@ try {
         Write-Host "No security events in last $Hours hours" -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "✗ Failed to retrieve events: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve events: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3428,7 +3428,7 @@ try {
     Write-Host ""
     
     if ($Expired) {
-        Write-Host "⚠ Expired Certificates:" -ForegroundColor Red
+        Write-Host "[WARNING] Expired Certificates:" -ForegroundColor Red
         $Expired | ForEach-Object {
             Write-Host "  $($_.Subject)" -ForegroundColor Red
             Write-Host "    Expired: $($_.NotAfter)" -ForegroundColor Gray
@@ -3437,7 +3437,7 @@ try {
     }
     
     if ($ExpiringSoon) {
-        Write-Host "⚠ Expiring Soon:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Expiring Soon:" -ForegroundColor Yellow
         $ExpiringSoon | ForEach-Object {
             $Days = ($_.NotAfter - (Get-Date)).Days
             Write-Host "  $($_.Subject) ($Days days)" -ForegroundColor Yellow
@@ -3446,13 +3446,13 @@ try {
     }
     
     if ($WeakKey) {
-        Write-Host "⚠ Weak Key Certificates:" -ForegroundColor Red
+        Write-Host "[WARNING] Weak Key Certificates:" -ForegroundColor Red
         $WeakKey | ForEach-Object {
             Write-Host "  $($_.Subject) ($($_.PublicKey.Key.KeySize)-bit)" -ForegroundColor Red
         }
     }
 } catch {
-    Write-Host "✗ Failed to analyze certificates: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to analyze certificates: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3514,7 +3514,7 @@ try {
     $ExpiredCerts = Get-ChildItem -Path $Store | Where-Object { $_.NotAfter -lt (Get-Date) }
     
     if (-not $ExpiredCerts) {
-        Write-Host "✓ No expired certificates found" -ForegroundColor Green
+        Write-Host "[SUCCESS] No expired certificates found" -ForegroundColor Green
         exit
     }
     
@@ -3541,14 +3541,14 @@ try {
             Remove-Item -Path $Cert.PSPath -Force
             $Deleted++
         } catch {
-            Write-Host "  ✗ Failed: $($Cert.Subject)" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $($Cert.Subject)" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Deleted $Deleted expired certificate(s)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deleted $Deleted expired certificate(s)" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3600,7 +3600,7 @@ Write-Host "============================================" -ForegroundColor Gray
 Write-Host ""
 
 if (-not (Test-Path $ScanPath)) {
-    Write-Host "✗ Path not found: $ScanPath" -ForegroundColor Red
+    Write-Host "[FAILED] Path not found: $ScanPath" -ForegroundColor Red
     exit
 }
 
@@ -3611,7 +3611,7 @@ try {
     Start-MpScan -ScanPath $ScanPath -ScanType CustomScan -ErrorAction Stop
     
     $Duration = (Get-Date) - $StartTime
-    Write-Host "✓ Scan completed in $([math]::Round($Duration.TotalSeconds, 1)) seconds" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scan completed in $([math]::Round($Duration.TotalSeconds, 1)) seconds" -ForegroundColor Green
     Write-Host ""
     
     # Check for threats
@@ -3620,16 +3620,16 @@ try {
     }
     
     if ($Threats) {
-        Write-Host "⚠ Threats detected: $($Threats.Count)" -ForegroundColor Red
+        Write-Host "[WARNING] Threats detected: $($Threats.Count)" -ForegroundColor Red
         $Threats | ForEach-Object {
             Write-Host "  $($_.ThreatName)" -ForegroundColor Red
             Write-Host "    $($_.Resources -join ', ')" -ForegroundColor Gray
         }
     } else {
-        Write-Host "✓ No threats detected in scanned path" -ForegroundColor Green
+        Write-Host "[SUCCESS] No threats detected in scanned path" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Scan failed: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Scan failed: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3690,7 +3690,7 @@ try {
             if ($Access) {
                 $EveryoneAccess = $Access | Where-Object { $_.AccountName -eq 'Everyone' }
                 if ($EveryoneAccess) {
-                    Write-Host "    ⚠ Everyone: $($EveryoneAccess.AccessRight)" -ForegroundColor Red
+                    Write-Host "    [WARNING] Everyone: $($EveryoneAccess.AccessRight)" -ForegroundColor Red
                 } else {
                     Write-Host "    Permissions:" -ForegroundColor Gray
                     $Access | ForEach-Object {
@@ -3716,12 +3716,12 @@ try {
     }
     
     if ($EveryoneShares) {
-        Write-Host "⚠ Shares with Everyone access: $($EveryoneShares.Count)" -ForegroundColor Red
+        Write-Host "[WARNING] Shares with Everyone access: $($EveryoneShares.Count)" -ForegroundColor Red
     } else {
-        Write-Host "✓ No shares with Everyone access" -ForegroundColor Green
+        Write-Host "[SUCCESS] No shares with Everyone access" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to retrieve shares: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve shares: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3780,7 +3780,7 @@ try {
     foreach ($Listener in $Listeners) {
         $IsHighRisk = $HighRiskPorts -contains $Listener.LocalPort
         $Color = if ($IsHighRisk) { "Yellow" } else { "Gray" }
-        $Prefix = if ($IsHighRisk) { "⚠ " } else { "  " }
+        $Prefix = if ($IsHighRisk) { "[WARNING] " } else { "  " }
         
         Write-Host "$Prefix$($Listener.LocalAddress):$($Listener.LocalPort)" -ForegroundColor $Color -NoNewline
         Write-Host " -> $($Listener.ProcessName) (PID: $($Listener.OwningProcess))" -ForegroundColor Gray
@@ -3792,16 +3792,16 @@ try {
     
     $RiskyOpen = $Listeners | Where-Object { $HighRiskPorts -contains $_.LocalPort }
     if ($RiskyOpen) {
-        Write-Host "  ⚠ High-risk ports open: $($RiskyOpen.Count)" -ForegroundColor Yellow
+        Write-Host "  [WARNING] High-risk ports open: $($RiskyOpen.Count)" -ForegroundColor Yellow
         Write-Host "    (Ports: $($RiskyOpen.LocalPort -join ', '))" -ForegroundColor Yellow
     } else {
-        Write-Host "  ✓ No high-risk ports detected" -ForegroundColor Green
+        Write-Host "  [OK] No high-risk ports detected" -ForegroundColor Green
     }
     
     Write-Host ""
     Write-Host "High-risk ports monitored: $($HighRiskPorts -join ', ')" -ForegroundColor Gray
 } catch {
-    Write-Host "✗ Failed to retrieve port information: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to retrieve port information: $_" -ForegroundColor Red
 }`;
     }
   },
@@ -3896,17 +3896,17 @@ try {
     }
     
     Write-Host ""
-    Write-Host "⚠ Potentially Suspicious Tasks:" -ForegroundColor Red
+    Write-Host "[WARNING] Potentially Suspicious Tasks:" -ForegroundColor Red
     if ($SuspiciousTasks) {
         $SuspiciousTasks | Select-Object -First 10 | ForEach-Object {
             Write-Host "  $($_.Name)" -ForegroundColor Red
             Write-Host "    Execute: $($_.Execute)" -ForegroundColor Gray
         }
     } else {
-        Write-Host "  ✓ None detected" -ForegroundColor Green
+        Write-Host "  [OK] None detected" -ForegroundColor Green
     }
 } catch {
-    Write-Host "✗ Failed to audit tasks: $_" -ForegroundColor Red
+    Write-Host "[FAILED] Failed to audit tasks: $_" -ForegroundColor Red
 }`;
     }
   },

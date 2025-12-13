@@ -91,7 +91,7 @@ try {
     
     $WebAppReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Web applications exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Web applications exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export web applications: $_"
@@ -168,7 +168,7 @@ try {
     
     $SiteReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Site collections exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collections exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export site collections: $_"
@@ -244,7 +244,7 @@ try {
     
     Backup-SPSite -Identity "${siteUrl}" -Path "${backupPath}" -Force
     
-    Write-Host "✓ Backup completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup completed successfully" -ForegroundColor Green
     Write-Host "  Backup location: ${backupPath}" -ForegroundColor Cyan
     
 } catch {
@@ -322,7 +322,7 @@ try {
     
     $DBReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Content databases exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Content databases exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export content databases: $_"
@@ -398,38 +398,38 @@ try {
     
     $ServiceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Service applications exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service applications exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export service applications: $_"
 }`;
     }
   },
-  {id:'sp-create-webapp',title:'Create Web Application',description:'Create new SharePoint web app',category:'Farm Management',parameters:[{name:'name',label:'Web App Name',type:'text',required:true},{name:'port',label:'Port',type:'number',required:true,defaultValue:80},{name:'appPool',label:'App Pool Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{New-SPWebApplication -Name "${escapePowerShellString(p.name)}" -Port ${p.port} -ApplicationPool "${escapePowerShellString(p.appPool)}" -ApplicationPoolAccount (Get-SPManagedAccount "domain\\serviceaccount");Write-Host "✓ Web app created" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-extend-webapp',title:'Extend Web Application',description:'Extend web app to new zone',category:'Farm Management',parameters:[{name:'webAppUrl',label:'Web App URL',type:'text',required:true},{name:'zone',label:'Zone',type:'select',required:true,options:[{value:'Intranet',label:'Intranet'},{value:'Extranet',label:'Extranet'},{value:'Internet',label:'Internet'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{$WebApp=Get-SPWebApplication "${escapePowerShellString(p.webAppUrl)}";New-SPWebApplicationExtension -Identity $WebApp -Zone ${p.zone} -Port 443;Write-Host "✓ Web app extended to ${p.zone}" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-create-site',title:'Create Site Collection',description:'Create new site collection',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'title',label:'Site Title',type:'text',required:true},{name:'owner',label:'Owner Login',type:'text',required:true,placeholder:'domain\\user'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{New-SPSite -Url "${escapePowerShellString(p.url)}" -Name "${escapePowerShellString(p.title)}" -OwnerAlias "${escapePowerShellString(p.owner)}" -Template "STS#0";Write-Host "✓ Site collection created" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-delete-site',title:'Delete Site Collection',description:'Remove site collection',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Remove-SPSite -Identity "${escapePowerShellString(p.url)}" -Confirm:$false;Write-Host "✓ Site deleted" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-backup-farm',title:'Backup Farm',description:'Full farm backup',category:'Backup & Recovery',parameters:[{name:'backupPath',label:'Backup Path',type:'text',required:true,placeholder:'\\\\server\\backup'},{name:'type',label:'Backup Type',type:'select',required:true,options:[{value:'Full',label:'Full'},{value:'Differential',label:'Differential'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Backup-SPFarm -Directory "${escapePowerShellString(p.backupPath)}" -BackupMethod ${p.type} -Item "Farm";Write-Host "✓ Farm backup started" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-restore-farm',title:'Restore Farm',description:'Restore farm from backup',category:'Backup & Recovery',parameters:[{name:'backupPath',label:'Backup Path',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Restore-SPFarm -Directory "${escapePowerShellString(p.backupPath)}" -Item "Farm" -RestoreMethod Overwrite;Write-Host "✓ Farm restore started" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-backup-site',title:'Backup Site Collection',description:'Backup single site',category:'Backup & Recovery',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'backupFile',label:'Backup File',type:'text',required:true,placeholder:'C:\\\\Backups\\\\site.bak'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Backup-SPSite -Identity "${escapePowerShellString(p.url)}" -Path "${escapePowerShellString(p.backupFile)}" -Force;Write-Host "✓ Site backed up" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-restore-site',title:'Restore Site Collection',description:'Restore site from backup',category:'Backup & Recovery',parameters:[{name:'backupFile',label:'Backup File',type:'text',required:true},{name:'url',label:'Target URL',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Restore-SPSite -Identity "${escapePowerShellString(p.url)}" -Path "${escapePowerShellString(p.backupFile)}" -Force;Write-Host "✓ Site restored" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-create-contentdb',title:'Create Content Database',description:'Add new content database',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true},{name:'webAppUrl',label:'Web App URL',type:'text',required:true},{name:'dbServer',label:'DB Server',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{New-SPContentDatabase -Name "${escapePowerShellString(p.dbName)}" -WebApplication "${escapePowerShellString(p.webAppUrl)}" -DatabaseServer "${escapePowerShellString(p.dbServer)}";Write-Host "✓ Content DB created" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-detach-contentdb',title:'Detach Content Database',description:'Dismount database',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Dismount-SPContentDatabase -Identity "${escapePowerShellString(p.dbName)}" -Confirm:$false;Write-Host "✓ Content DB detached" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-attach-contentdb',title:'Attach Content Database',description:'Mount existing database',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true},{name:'webAppUrl',label:'Web App URL',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Mount-SPContentDatabase -Name "${escapePowerShellString(p.dbName)}" -WebApplication "${escapePowerShellString(p.webAppUrl)}";Write-Host "✓ Content DB attached" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-set-quota',title:'Set Site Quota',description:'Configure site quota template',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'quotaMB',label:'Quota (MB)',type:'number',required:true,defaultValue:1024}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Set-SPSite -Identity "${escapePowerShellString(p.url)}" -MaxSize ${p.quotaMB};Write-Host "✓ Quota set to ${p.quotaMB}MB" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-enable-features',title:'Enable Site Features',description:'Activate site collection features',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'featureId',label:'Feature GUID',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Enable-SPFeature -Identity "${escapePowerShellString(p.featureId)}" -Url "${escapePowerShellString(p.url)}";Write-Host "✓ Feature enabled" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-disable-features',title:'Disable Site Features',description:'Deactivate features',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'featureId',label:'Feature GUID',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Disable-SPFeature -Identity "${escapePowerShellString(p.featureId)}" -Url "${escapePowerShellString(p.url)}" -Confirm:$false;Write-Host "✓ Feature disabled" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-create-managed-account',title:'Create Managed Account',description:'Register service account',category:'Farm Management',parameters:[{name:'account',label:'Account Name',type:'text',required:true,placeholder:'domain\\serviceaccount'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{$Cred=Get-Credential "${escapePowerShellString(p.account)}";New-SPManagedAccount -Credential $Cred;Write-Host "✓ Managed account created" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-start-service',title:'Start Farm Service',description:'Start SharePoint service',category:'Farm Management',parameters:[{name:'serviceName',label:'Service Name',type:'select',required:true,options:[{value:'SPTimerV4',label:'Timer'},{value:'SPAdminV4',label:'Admin'},{value:'SPTraceV4',label:'Trace'},{value:'SPSearchHostController',label:'Search'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Start-Service ${p.serviceName};Write-Host "✓ Service ${p.serviceName} started" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-stop-service',title:'Stop Farm Service',description:'Stop SharePoint service',category:'Farm Management',parameters:[{name:'serviceName',label:'Service Name',type:'select',required:true,options:[{value:'SPTimerV4',label:'Timer'},{value:'SPAdminV4',label:'Admin'},{value:'SPTraceV4',label:'Trace'},{value:'SPSearchHostController',label:'Search'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Stop-Service ${p.serviceName};Write-Host "✓ Service ${p.serviceName} stopped" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-iisreset',title:'IIS Reset',description:'Restart IIS on all servers',category:'Farm Management',parameters:[],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Get-SPServer|?{$_.Role -ne "Invalid"}|%{iisreset /noforce $_.Address};Write-Host "✓ IIS reset completed" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-create-service-app',title:'Create Service Application',description:'New service application',category:'Service Applications',parameters:[{name:'type',label:'Service Type',type:'select',required:true,options:[{value:'Search',label:'Search'},{value:'ManagedMetadata',label:'Managed Metadata'},{value:'UserProfile',label:'User Profile'}]},{name:'name',label:'Service Name',type:'text',required:true},{name:'appPool',label:'App Pool',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Write-Host "Creating ${p.type} service..." -ForegroundColor Cyan;Write-Host "✓ Service created" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-test-contentdb',title:'Test Content Database',description:'Check database integrity',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Test-SPContentDatabase -Name "${escapePowerShellString(p.dbName)}" -WebApplication (Get-SPWebApplication)[0];Write-Host "✓ Database test completed" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-set-logging',title:'Configure Diagnostic Logging',description:'Set ULS log levels',category:'Farm Management',parameters:[{name:'level',label:'Log Level',type:'select',required:true,options:[{value:'None',label:'None'},{value:'Minimal',label:'Minimal'},{value:'Medium',label:'Medium'},{value:'Verbose',label:'Verbose'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Set-SPLogLevel -TraceSeverity ${p.level};Write-Host "✓ Log level set to ${p.level}" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-clear-config-cache',title:'Clear Config Cache',description:'Reset timer service cache',category:'Farm Management',parameters:[],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Stop-Service SPTimerV4;Remove-Item "C:\\ProgramData\\Microsoft\\SharePoint\\Config\\*" -Recurse -Force;Start-Service SPTimerV4;Write-Host "✓ Config cache cleared" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-add-solution',title:'Add Farm Solution',description:'Upload WSP package',category:'Farm Management',parameters:[{name:'wspPath',label:'WSP File Path',type:'text',required:true,placeholder:'C:\\\\Solutions\\\\package.wsp'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Add-SPSolution -LiteralPath "${escapePowerShellString(p.wspPath)}";Write-Host "✓ Solution added" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-deploy-solution',title:'Deploy Farm Solution',description:'Install WSP to farm',category:'Farm Management',parameters:[{name:'wspName',label:'Solution Name',type:'text',required:true,placeholder:'package.wsp'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Install-SPSolution -Identity "${escapePowerShellString(p.wspName)}" -GACDeployment -AllWebApplications;Write-Host "✓ Solution deployment started" -ForegroundColor Green}catch{Write-Error $_}`},
-  {id:'sp-retract-solution',title:'Retract Farm Solution',description:'Uninstall WSP from farm',category:'Farm Management',parameters:[{name:'wspName',label:'Solution Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Uninstall-SPSolution -Identity "${escapePowerShellString(p.wspName)}" -AllWebApplications -Confirm:$false;Write-Host "✓ Solution retraction started" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-create-webapp',title:'Create Web Application',description:'Create new SharePoint web app',category:'Farm Management',parameters:[{name:'name',label:'Web App Name',type:'text',required:true},{name:'port',label:'Port',type:'number',required:true,defaultValue:80},{name:'appPool',label:'App Pool Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{New-SPWebApplication -Name "${escapePowerShellString(p.name)}" -Port ${p.port} -ApplicationPool "${escapePowerShellString(p.appPool)}" -ApplicationPoolAccount (Get-SPManagedAccount "domain\\serviceaccount");Write-Host "[SUCCESS] Web app created" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-extend-webapp',title:'Extend Web Application',description:'Extend web app to new zone',category:'Farm Management',parameters:[{name:'webAppUrl',label:'Web App URL',type:'text',required:true},{name:'zone',label:'Zone',type:'select',required:true,options:[{value:'Intranet',label:'Intranet'},{value:'Extranet',label:'Extranet'},{value:'Internet',label:'Internet'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{$WebApp=Get-SPWebApplication "${escapePowerShellString(p.webAppUrl)}";New-SPWebApplicationExtension -Identity $WebApp -Zone ${p.zone} -Port 443;Write-Host "[SUCCESS] Web app extended to ${p.zone}" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-create-site',title:'Create Site Collection',description:'Create new site collection',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'title',label:'Site Title',type:'text',required:true},{name:'owner',label:'Owner Login',type:'text',required:true,placeholder:'domain\\user'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{New-SPSite -Url "${escapePowerShellString(p.url)}" -Name "${escapePowerShellString(p.title)}" -OwnerAlias "${escapePowerShellString(p.owner)}" -Template "STS#0";Write-Host "[SUCCESS] Site collection created" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-delete-site',title:'Delete Site Collection',description:'Remove site collection',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Remove-SPSite -Identity "${escapePowerShellString(p.url)}" -Confirm:$false;Write-Host "[SUCCESS] Site deleted" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-backup-farm',title:'Backup Farm',description:'Full farm backup',category:'Backup & Recovery',parameters:[{name:'backupPath',label:'Backup Path',type:'text',required:true,placeholder:'\\\\server\\backup'},{name:'type',label:'Backup Type',type:'select',required:true,options:[{value:'Full',label:'Full'},{value:'Differential',label:'Differential'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Backup-SPFarm -Directory "${escapePowerShellString(p.backupPath)}" -BackupMethod ${p.type} -Item "Farm";Write-Host "[SUCCESS] Farm backup started" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-restore-farm',title:'Restore Farm',description:'Restore farm from backup',category:'Backup & Recovery',parameters:[{name:'backupPath',label:'Backup Path',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Restore-SPFarm -Directory "${escapePowerShellString(p.backupPath)}" -Item "Farm" -RestoreMethod Overwrite;Write-Host "[SUCCESS] Farm restore started" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-backup-site',title:'Backup Site Collection',description:'Backup single site',category:'Backup & Recovery',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'backupFile',label:'Backup File',type:'text',required:true,placeholder:'C:\\\\Backups\\\\site.bak'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Backup-SPSite -Identity "${escapePowerShellString(p.url)}" -Path "${escapePowerShellString(p.backupFile)}" -Force;Write-Host "[SUCCESS] Site backed up" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-restore-site',title:'Restore Site Collection',description:'Restore site from backup',category:'Backup & Recovery',parameters:[{name:'backupFile',label:'Backup File',type:'text',required:true},{name:'url',label:'Target URL',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Restore-SPSite -Identity "${escapePowerShellString(p.url)}" -Path "${escapePowerShellString(p.backupFile)}" -Force;Write-Host "[SUCCESS] Site restored" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-create-contentdb',title:'Create Content Database',description:'Add new content database',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true},{name:'webAppUrl',label:'Web App URL',type:'text',required:true},{name:'dbServer',label:'DB Server',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{New-SPContentDatabase -Name "${escapePowerShellString(p.dbName)}" -WebApplication "${escapePowerShellString(p.webAppUrl)}" -DatabaseServer "${escapePowerShellString(p.dbServer)}";Write-Host "[SUCCESS] Content DB created" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-detach-contentdb',title:'Detach Content Database',description:'Dismount database',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Dismount-SPContentDatabase -Identity "${escapePowerShellString(p.dbName)}" -Confirm:$false;Write-Host "[SUCCESS] Content DB detached" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-attach-contentdb',title:'Attach Content Database',description:'Mount existing database',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true},{name:'webAppUrl',label:'Web App URL',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Mount-SPContentDatabase -Name "${escapePowerShellString(p.dbName)}" -WebApplication "${escapePowerShellString(p.webAppUrl)}";Write-Host "[SUCCESS] Content DB attached" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-set-quota',title:'Set Site Quota',description:'Configure site quota template',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'quotaMB',label:'Quota (MB)',type:'number',required:true,defaultValue:1024}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Set-SPSite -Identity "${escapePowerShellString(p.url)}" -MaxSize ${p.quotaMB};Write-Host "[SUCCESS] Quota set to ${p.quotaMB}MB" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-enable-features',title:'Enable Site Features',description:'Activate site collection features',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'featureId',label:'Feature GUID',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Enable-SPFeature -Identity "${escapePowerShellString(p.featureId)}" -Url "${escapePowerShellString(p.url)}";Write-Host "[SUCCESS] Feature enabled" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-disable-features',title:'Disable Site Features',description:'Deactivate features',category:'Site Management',parameters:[{name:'url',label:'Site URL',type:'text',required:true},{name:'featureId',label:'Feature GUID',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Disable-SPFeature -Identity "${escapePowerShellString(p.featureId)}" -Url "${escapePowerShellString(p.url)}" -Confirm:$false;Write-Host "[SUCCESS] Feature disabled" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-create-managed-account',title:'Create Managed Account',description:'Register service account',category:'Farm Management',parameters:[{name:'account',label:'Account Name',type:'text',required:true,placeholder:'domain\\serviceaccount'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{$Cred=Get-Credential "${escapePowerShellString(p.account)}";New-SPManagedAccount -Credential $Cred;Write-Host "[SUCCESS] Managed account created" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-start-service',title:'Start Farm Service',description:'Start SharePoint service',category:'Farm Management',parameters:[{name:'serviceName',label:'Service Name',type:'select',required:true,options:[{value:'SPTimerV4',label:'Timer'},{value:'SPAdminV4',label:'Admin'},{value:'SPTraceV4',label:'Trace'},{value:'SPSearchHostController',label:'Search'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Start-Service ${p.serviceName};Write-Host "[SUCCESS] Service ${p.serviceName} started" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-stop-service',title:'Stop Farm Service',description:'Stop SharePoint service',category:'Farm Management',parameters:[{name:'serviceName',label:'Service Name',type:'select',required:true,options:[{value:'SPTimerV4',label:'Timer'},{value:'SPAdminV4',label:'Admin'},{value:'SPTraceV4',label:'Trace'},{value:'SPSearchHostController',label:'Search'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Stop-Service ${p.serviceName};Write-Host "[SUCCESS] Service ${p.serviceName} stopped" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-iisreset',title:'IIS Reset',description:'Restart IIS on all servers',category:'Farm Management',parameters:[],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Get-SPServer|?{$_.Role -ne "Invalid"}|%{iisreset /noforce $_.Address};Write-Host "[SUCCESS] IIS reset completed" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-create-service-app',title:'Create Service Application',description:'New service application',category:'Service Applications',parameters:[{name:'type',label:'Service Type',type:'select',required:true,options:[{value:'Search',label:'Search'},{value:'ManagedMetadata',label:'Managed Metadata'},{value:'UserProfile',label:'User Profile'}]},{name:'name',label:'Service Name',type:'text',required:true},{name:'appPool',label:'App Pool',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Write-Host "Creating ${p.type} service..." -ForegroundColor Cyan;Write-Host "[SUCCESS] Service created" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-test-contentdb',title:'Test Content Database',description:'Check database integrity',category:'Database Management',parameters:[{name:'dbName',label:'Database Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Test-SPContentDatabase -Name "${escapePowerShellString(p.dbName)}" -WebApplication (Get-SPWebApplication)[0];Write-Host "[SUCCESS] Database test completed" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-set-logging',title:'Configure Diagnostic Logging',description:'Set ULS log levels',category:'Farm Management',parameters:[{name:'level',label:'Log Level',type:'select',required:true,options:[{value:'None',label:'None'},{value:'Minimal',label:'Minimal'},{value:'Medium',label:'Medium'},{value:'Verbose',label:'Verbose'}]}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Set-SPLogLevel -TraceSeverity ${p.level};Write-Host "[SUCCESS] Log level set to ${p.level}" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-clear-config-cache',title:'Clear Config Cache',description:'Reset timer service cache',category:'Farm Management',parameters:[],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Stop-Service SPTimerV4;Remove-Item "C:\\ProgramData\\Microsoft\\SharePoint\\Config\\*" -Recurse -Force;Start-Service SPTimerV4;Write-Host "[SUCCESS] Config cache cleared" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-add-solution',title:'Add Farm Solution',description:'Upload WSP package',category:'Farm Management',parameters:[{name:'wspPath',label:'WSP File Path',type:'text',required:true,placeholder:'C:\\\\Solutions\\\\package.wsp'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Add-SPSolution -LiteralPath "${escapePowerShellString(p.wspPath)}";Write-Host "[SUCCESS] Solution added" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-deploy-solution',title:'Deploy Farm Solution',description:'Install WSP to farm',category:'Farm Management',parameters:[{name:'wspName',label:'Solution Name',type:'text',required:true,placeholder:'package.wsp'}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Install-SPSolution -Identity "${escapePowerShellString(p.wspName)}" -GACDeployment -AllWebApplications;Write-Host "[SUCCESS] Solution deployment started" -ForegroundColor Green}catch{Write-Error $_}`},
+  {id:'sp-retract-solution',title:'Retract Farm Solution',description:'Uninstall WSP from farm',category:'Farm Management',parameters:[{name:'wspName',label:'Solution Name',type:'text',required:true}],scriptTemplate:p=>`Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue\ntry{Uninstall-SPSolution -Identity "${escapePowerShellString(p.wspName)}" -AllWebApplications -Confirm:$false;Write-Host "[SUCCESS] Solution retraction started" -ForegroundColor Green}catch{Write-Error $_}`},
   
   {
     id: 'sp-set-site-admin',
@@ -478,7 +478,7 @@ try {
     $Site = Get-SPSite -Identity "${escapePowerShellString(params.siteUrl)}"
     Set-SPSite -Identity $Site -SecondaryOwnerAlias "${escapePowerShellString(params.adminLogin)}"
     
-    Write-Host "✓ Secondary administrator set: ${escapePowerShellString(params.adminLogin)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Secondary administrator set: ${escapePowerShellString(params.adminLogin)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to set site administrator: $_"
@@ -535,7 +535,7 @@ try {
     $TargetDB = Get-SPContentDatabase -Identity "${escapePowerShellString(params.targetDb)}"
     Move-SPSite -Identity "${escapePowerShellString(params.siteUrl)}" -DestinationDatabase $TargetDB -Confirm:$false
     
-    Write-Host "✓ Site collection moved successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection moved successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to move site collection: $_"
@@ -591,7 +591,7 @@ try {
     $PathType = "${params.pathType}" -eq "Wildcard"
     New-SPManagedPath -RelativeURL "${escapePowerShellString(params.pathName)}" -WebApplication "${escapePowerShellString(params.webAppUrl)}" -Explicit:(!$PathType)
     
-    Write-Host "✓ Managed path created: /${escapePowerShellString(params.pathName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Managed path created: /${escapePowerShellString(params.pathName)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create managed path: $_"
@@ -646,7 +646,7 @@ try {
     $ContentSource = Get-SPEnterpriseSearchCrawlContentSource -SearchApplication $SSA -Identity "${escapePowerShellString(params.contentSource)}"
     $ContentSource.StartFullCrawl()
     
-    Write-Host "✓ Full crawl started on: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Full crawl started on: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to start crawl: $_"
@@ -702,7 +702,7 @@ try {
     $ContentSource = Get-SPEnterpriseSearchCrawlContentSource -SearchApplication $SSA -Identity "${escapePowerShellString(params.contentSource)}"
     $ContentSource.StartIncrementalCrawl()
     
-    Write-Host "✓ Incremental crawl started on: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Incremental crawl started on: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to start crawl: $_"
@@ -768,7 +768,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Search topology exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search topology exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export search topology: $_"
@@ -827,7 +827,7 @@ try {
     $Connection = $ConnectionManager["${escapePowerShellString(params.connectionName)}"]
     $Connection.StartImport()
     
-    Write-Host "✓ User profile synchronization started" -ForegroundColor Green
+    Write-Host "[SUCCESS] User profile synchronization started" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to start sync: $_"
@@ -893,7 +893,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Managed metadata exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Managed metadata exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export metadata: $_"
@@ -956,7 +956,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Health report exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Health report exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to run health analyzer: $_"
@@ -1020,7 +1020,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Timer jobs exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Timer jobs exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export timer jobs: $_"
@@ -1080,7 +1080,7 @@ try {
     
     Add-SPDistributedCacheServiceInstance
     
-    Write-Host "✓ Distributed cache restarted" -ForegroundColor Green
+    Write-Host "[SUCCESS] Distributed cache restarted" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to restart distributed cache: $_"
@@ -1141,7 +1141,7 @@ try {
     
     $WebApp.Update()
     
-    Write-Host "✓ User policy added: ${escapePowerShellString(params.userLogin)} - ${params.permissionLevel}" -ForegroundColor Green
+    Write-Host "[SUCCESS] User policy added: ${escapePowerShellString(params.userLogin)} - ${params.permissionLevel}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to add user policy: $_"
@@ -1213,7 +1213,7 @@ try {
     $Web.Dispose()
     $Site.Dispose()
     
-    Write-Host "✓ Permissions exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export permissions: $_"
@@ -1281,7 +1281,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Backup history exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup history exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export backup history: $_"
@@ -1336,7 +1336,7 @@ try {
     
     Export-SPWeb -Identity "${escapePowerShellString(params.siteUrl)}" -Path "${escapePowerShellString(params.exportPath)}" -ItemUrl "Lists/${escapePowerShellString(params.listName)}" -IncludeVersions All -Force
     
-    Write-Host "✓ List exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] List exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export list: $_"
@@ -1392,7 +1392,7 @@ try {
     
     Remove-SPWebApplication -Identity "${escapePowerShellString(params.webAppUrl)}" -DeleteIISSite -RemoveContentDatabases:$DeleteDBs -Confirm:$false
     
-    Write-Host "✓ Web application deleted" -ForegroundColor Green
+    Write-Host "[SUCCESS] Web application deleted" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to delete web application: $_"
@@ -1445,7 +1445,7 @@ try {
     
     Remove-SPManagedPath -Identity "${escapePowerShellString(params.pathName)}" -WebApplication "${escapePowerShellString(params.webAppUrl)}" -Confirm:$false
     
-    Write-Host "✓ Managed path removed: /${escapePowerShellString(params.pathName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Managed path removed: /${escapePowerShellString(params.pathName)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to remove managed path: $_"
@@ -1502,7 +1502,7 @@ try {
     
     New-SPEnterpriseSearchCrawlContentSource -SearchApplication $SSA -Type SharePoint -Name "${escapePowerShellString(params.contentSourceName)}" -StartAddresses "${escapePowerShellString(params.startAddress)}"
     
-    Write-Host "✓ Content source created: ${escapePowerShellString(params.contentSourceName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Content source created: ${escapePowerShellString(params.contentSourceName)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create content source: $_"
@@ -1571,7 +1571,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ User profiles exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] User profiles exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export profiles: $_"
@@ -1660,7 +1660,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Farm health report exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Farm health report exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to check farm health: $_"
@@ -1733,7 +1733,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Search crawl status exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search crawl status exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export search crawl status: $_"
@@ -1800,7 +1800,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Farm solutions exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Farm solutions exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export farm solutions: $_"
@@ -1860,7 +1860,7 @@ try {
     
     $ContentSource.StartFullCrawl()
     
-    Write-Host "✓ Full crawl started on: ${escapePowerShellString(params.contentSourceName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Full crawl started on: ${escapePowerShellString(params.contentSourceName)}" -ForegroundColor Green
     Write-Host "  Monitor progress in Central Administration" -ForegroundColor Cyan
     
 } catch {
@@ -1959,7 +1959,7 @@ try {
     
     $Site.Dispose()
     
-    Write-Host "✓ Audit settings exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit settings exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export audit settings: $_"
@@ -2051,7 +2051,7 @@ try {
     
     $NeedsUpgrade = ($Report | Where-Object { $_.NeedsUpgrade -eq $true }).Count
     
-    Write-Host "✓ Upgrade status exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Upgrade status exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
     if ($NeedsUpgrade -gt 0) {
         Write-Host "  WARNING: $NeedsUpgrade component(s) need upgrade" -ForegroundColor Yellow
@@ -2116,7 +2116,7 @@ try {
     
     $NewWeb = $ParentWeb.Webs.Add("${escapePowerShellString(params.subsiteUrl)}", "${escapePowerShellString(params.title)}", "", [uint32]1033, "${params.template}", $false, $false)
     
-    Write-Host "✓ Subsite created: $($NewWeb.Url)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Subsite created: $($NewWeb.Url)" -ForegroundColor Green
     
     $NewWeb.Dispose()
     $ParentWeb.Dispose()
@@ -2186,7 +2186,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Site templates exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site templates exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export site templates: $_"
@@ -2249,7 +2249,7 @@ try {
     $ContentService.QuotaTemplates.Add($QuotaTemplate)
     $ContentService.Update()
     
-    Write-Host "✓ Quota template created: ${escapePowerShellString(params.templateName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quota template created: ${escapePowerShellString(params.templateName)}" -ForegroundColor Green
     Write-Host "  Warning: ${params.warningMB}MB | Maximum: ${params.maxMB}MB" -ForegroundColor Cyan
     
 } catch {
@@ -2309,7 +2309,7 @@ try {
     $User = $Web.EnsureUser("${escapePowerShellString(params.userLogin)}")
     $Group.AddUser($User)
     
-    Write-Host "✓ User added: ${escapePowerShellString(params.userLogin)} -> ${escapePowerShellString(params.groupName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] User added: ${escapePowerShellString(params.userLogin)} -> ${escapePowerShellString(params.groupName)}" -ForegroundColor Green
     
     $Web.Dispose()
     
@@ -2370,7 +2370,7 @@ try {
     $User = $Web.EnsureUser("${escapePowerShellString(params.userLogin)}")
     $Group.RemoveUser($User)
     
-    Write-Host "✓ User removed: ${escapePowerShellString(params.userLogin)} from ${escapePowerShellString(params.groupName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] User removed: ${escapePowerShellString(params.userLogin)} from ${escapePowerShellString(params.groupName)}" -ForegroundColor Green
     
     $Web.Dispose()
     
@@ -2438,7 +2438,7 @@ try {
     $RoleAssignment.RoleDefinitionBindings.Add($RoleDefinition)
     $Web.RoleAssignments.Add($RoleAssignment)
     
-    Write-Host "✓ Group created: ${escapePowerShellString(params.groupName)} with ${params.permLevel}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group created: ${escapePowerShellString(params.groupName)} with ${params.permLevel}" -ForegroundColor Green
     
     $Web.Dispose()
     
@@ -2510,7 +2510,7 @@ try {
     
     $Web.Dispose()
     
-    Write-Host "✓ Group membership exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group membership exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export group membership: $_"
@@ -2572,7 +2572,7 @@ try {
     $Library.EnableVersioning = $EnableVersioning
     $Library.Update()
     
-    Write-Host "✓ Document library created: ${escapePowerShellString(params.libraryName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Document library created: ${escapePowerShellString(params.libraryName)}" -ForegroundColor Green
     Write-Host "  Versioning: $EnableVersioning" -ForegroundColor Cyan
     
     $Web.Dispose()
@@ -2636,7 +2636,7 @@ try {
     $ListGuid = $Web.Lists.Add("${escapePowerShellString(params.listName)}", $Description, [Microsoft.SharePoint.SPListTemplateType]::GenericList)
     $List = $Web.Lists[$ListGuid]
     
-    Write-Host "✓ Custom list created: ${escapePowerShellString(params.listName)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Custom list created: ${escapePowerShellString(params.listName)}" -ForegroundColor Green
     Write-Host "  URL: $($List.DefaultViewUrl)" -ForegroundColor Cyan
     
     $Web.Dispose()
@@ -2701,7 +2701,7 @@ try {
     $List.Fields.Add("${escapePowerShellString(params.columnName)}", $ColumnType, $false)
     $List.Update()
     
-    Write-Host "✓ Column added: ${escapePowerShellString(params.columnName)} (${params.columnType})" -ForegroundColor Green
+    Write-Host "[SUCCESS] Column added: ${escapePowerShellString(params.columnName)} (${params.columnType})" -ForegroundColor Green
     
     $Web.Dispose()
     
@@ -2771,7 +2771,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Exported $($Items.Count) items to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported $($Items.Count) items to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
     $Web.Dispose()
     
@@ -2829,7 +2829,7 @@ try {
     
     $ContentSource.StartFullCrawl()
     
-    Write-Host "✓ Full crawl started: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Full crawl started: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
     Write-Host "  Monitor progress in Central Administration" -ForegroundColor Cyan
     
 } catch {
@@ -2886,7 +2886,7 @@ try {
     
     $ContentSource.StartIncrementalCrawl()
     
-    Write-Host "✓ Incremental crawl started: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Incremental crawl started: ${escapePowerShellString(params.contentSource)}" -ForegroundColor Green
     Write-Host "  Monitor progress in Central Administration" -ForegroundColor Cyan
     
 } catch {
@@ -2957,7 +2957,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Crawl log exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Crawl log exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export crawl log: $_"
@@ -3034,7 +3034,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Application pool accounts exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application pool accounts exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export app pool accounts: $_"
@@ -3103,7 +3103,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Site usage exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site usage exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export site usage: $_"
@@ -3183,7 +3183,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Found $($Report.Count) large files" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Report.Count) large files" -ForegroundColor Green
     Write-Host "  Exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Cyan
     
 } catch {
@@ -3254,7 +3254,7 @@ try {
     
     $Report | Export-Csv -Path "${escapePowerShellString(params.exportPath)}" -NoTypeInformation
     
-    Write-Host "✓ Found $($Report.Count) inactive sites" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Report.Count) inactive sites" -ForegroundColor Green
     Write-Host "  Exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Cyan
     
 } catch {
@@ -3334,7 +3334,7 @@ try {
     
     $ContentSource.Update()
     
-    Write-Host "✓ Crawl schedule configured: ${params.scheduleType}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Crawl schedule configured: ${params.scheduleType}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to set crawl schedule: $_"
@@ -3407,7 +3407,7 @@ try {
     $Web.Dispose()
     $Site.Dispose()
     
-    Write-Host "✓ Content types exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Content types exported to: ${escapePowerShellString(params.exportPath)}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export content types: $_"

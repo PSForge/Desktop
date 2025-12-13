@@ -44,9 +44,9 @@ try {
         choco install $Package -y --no-progress
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Installed: $Package" -ForegroundColor Green
+            Write-Host "[SUCCESS] Installed: $Package" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed: $Package" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $Package" -ForegroundColor Red
         }
     }
     
@@ -76,7 +76,7 @@ try {
     choco upgrade all -y --no-progress
     
     Write-Host ""
-    Write-Host "✓ All packages updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] All packages updated successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Update failed: $_"
@@ -104,7 +104,7 @@ try {
     
     choco export "${exportPath}" -y
     
-    Write-Host "✓ Package list exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package list exported: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Export failed: $_"
@@ -135,9 +135,9 @@ try {
         winget install --id $Package --silent --accept-package-agreements --accept-source-agreements
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Installed: $Package" -ForegroundColor Green
+            Write-Host "[SUCCESS] Installed: $Package" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed: $Package" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $Package" -ForegroundColor Red
         }
     }
     
@@ -167,7 +167,7 @@ try {
     winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
     
     Write-Host ""
-    Write-Host "✓ All packages updated successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] All packages updated successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "Update failed: $_"
@@ -203,7 +203,7 @@ try {
         }
     } | Format-Table -AutoSize
     
-    Write-Host "✓ Search completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search completed" -ForegroundColor Green
     
 } catch {
     Write-Error "Search failed: $_"
@@ -235,9 +235,9 @@ try {
     choco install "${packageName}" -y --no-progress${version}${installParams}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Package '${packageName}' installed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package '${packageName}' installed successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Installation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Installation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -268,13 +268,13 @@ try {
     # Create repository directory if it doesn't exist
     if (-not (Test-Path "${repoPath}")) {
         New-Item -Path "${repoPath}" -ItemType Directory -Force
-        Write-Host "✓ Created repository directory: ${repoPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created repository directory: ${repoPath}" -ForegroundColor Green
     }
     
     # Add repository source
     choco source add --name="${repoName}" --source="${repoPath}" --priority=${priority}
     
-    Write-Host "✓ Private repository '${repoName}' configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Private repository '${repoName}' configured!" -ForegroundColor Green
     Write-Host "  Path: ${repoPath}" -ForegroundColor Cyan
     Write-Host "  Priority: ${priority}" -ForegroundColor Cyan
     
@@ -315,11 +315,11 @@ try {
     choco push "${packagePath}" --source="${repoSource}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Package published successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package published successfully!" -ForegroundColor Green
         Write-Host "  Package: ${packagePath}" -ForegroundColor Cyan
         Write-Host "  Repository: ${repoSource}" -ForegroundColor Cyan
     } else {
-        Write-Host "✗ Publish failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Publish failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -353,9 +353,9 @@ try {
     choco ${action} "${packageName}"${version}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Package update ${action === 'approve' ? 'approved' : 'denied'}: ${packageName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package update ${action === 'approve' ? 'approved' : 'denied'}: ${packageName}" -ForegroundColor Green
     } else {
-        Write-Host "✗ Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -397,7 +397,7 @@ try {
     
     $Packages | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Audit report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit report exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Packages: $($Packages.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -440,7 +440,7 @@ try {
         -Settings $Settings \`
         -Force
     
-    Write-Host "✓ Scheduled task '${scheduleName}' created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scheduled task '${scheduleName}' created!" -ForegroundColor Green
     Write-Host "  Frequency: ${frequency}" -ForegroundColor Cyan
     Write-Host "  Time: ${scheduleTime}" -ForegroundColor Cyan
     
@@ -475,9 +475,9 @@ try {
     }`}
     
     ${exportPath ? `$Results | Out-File -FilePath "${exportPath}" -Encoding UTF8
-    Write-Host "✓ Integrity check results saved: ${exportPath}" -ForegroundColor Green` : `$Results | ForEach-Object { Write-Host $_ }`}
+    Write-Host "[SUCCESS] Integrity check results saved: ${exportPath}" -ForegroundColor Green` : `$Results | ForEach-Object { Write-Host $_ }`}
     
-    Write-Host "✓ Integrity verification completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Integrity verification completed" -ForegroundColor Green
     
 } catch {
     Write-Error "Verification failed: $_"
@@ -513,9 +513,9 @@ try {
     choco install "${packageName}" -y --no-progress${installArgs}${packageParams}${installDir}${ignoreChecksum}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Package '${packageName}' installed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package '${packageName}' installed successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Installation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Installation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -568,10 +568,10 @@ try {
         choco upgrade all -y --no-progress${preRelease}${excludePackages ? ` ${excludePackages}` : ''}
         
         ${logPath ? `$Outdated | Export-Csv -Path "${logPath}" -NoTypeInformation -Append
-        Write-Host "✓ Upgrade log saved: ${logPath}" -ForegroundColor Green` : ''}
+        Write-Host "[SUCCESS] Upgrade log saved: ${logPath}" -ForegroundColor Green` : ''}
     }
     
-    Write-Host "✓ Upgrade process completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Upgrade process completed!" -ForegroundColor Green
     
 } catch {
     Write-Error "Upgrade failed: $_"
@@ -614,9 +614,9 @@ try {
     choco install "${packageName}" -y --force --no-progress${version}${forceX86}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Package '${packageName}' reinstalled successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package '${packageName}' reinstalled successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Reinstall failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Reinstall failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -659,7 +659,7 @@ try {
     choco source add --name="${sourceName}" --source="${sourceUrl}" --priority=${priority}${username}${apiKey}${bypassProxy}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Source '${sourceName}' added successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Source '${sourceName}' added successfully!" -ForegroundColor Green
         Write-Host "  URL: ${sourceUrl}" -ForegroundColor Cyan
         Write-Host "  Priority: ${priority}" -ForegroundColor Cyan
         
@@ -668,7 +668,7 @@ try {
         Write-Host "Current sources:" -ForegroundColor Cyan
         choco source list
     } else {
-        Write-Host "✗ Failed to add source with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to add source with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -701,9 +701,9 @@ try {
         choco source remove --name="${sourceName}"
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Source '${sourceName}' removed successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Source '${sourceName}' removed successfully!" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed to remove source with exit code: $LASTEXITCODE" -ForegroundColor Red
+            Write-Host "[FAILED] Failed to remove source with exit code: $LASTEXITCODE" -ForegroundColor Red
         }
     } else {
         Write-Host "! Source '${sourceName}' not found" -ForegroundColor Yellow
@@ -751,9 +751,9 @@ try {
         choco source add --name="${sourceName}" --source="$SourceUrl" --priority=${newPriority}
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Source '${sourceName}' priority updated to ${newPriority}!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Source '${sourceName}' priority updated to ${newPriority}!" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed to update priority with exit code: $LASTEXITCODE" -ForegroundColor Red
+            Write-Host "[FAILED] Failed to update priority with exit code: $LASTEXITCODE" -ForegroundColor Red
         }
     } else {
         Write-Host "! Source '${sourceName}' not found" -ForegroundColor Yellow
@@ -1036,12 +1036,12 @@ try {
         $CreatedPackages = Get-ChildItem -Path "${outputDir}" -Filter "*.nupkg" | Sort-Object LastWriteTime -Descending | Select-Object -First 5
         
         Write-Host ""
-        Write-Host "✓ Package internalized successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package internalized successfully!" -ForegroundColor Green
         Write-Host "Created packages:" -ForegroundColor Cyan
         $CreatedPackages | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor White }
         Write-Host "  Location: ${outputDir}" -ForegroundColor Cyan
     } else {
-        Write-Host "✗ Internalization failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Internalization failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -1087,9 +1087,9 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ Package pushed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package pushed successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Push failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Push failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -1125,7 +1125,7 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ Synchronization completed!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Synchronization completed!" -ForegroundColor Green
         ${outputDir ? `Write-Host "Synced packages saved to: ${outputDir}" -ForegroundColor Cyan` : ''}
         
         # Show synchronized packages
@@ -1133,7 +1133,7 @@ try {
         Write-Host "Currently managed packages:" -ForegroundColor Cyan
         choco list --local-only
     } else {
-        Write-Host "✗ Synchronization failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Synchronization failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -1252,7 +1252,7 @@ try {
     }
     
     if ($OutdatedPackages.Count -eq 0) {
-        Write-Host "✓ All packages are up to date!" -ForegroundColor Green
+        Write-Host "[SUCCESS] All packages are up to date!" -ForegroundColor Green
     } else {
         # Export report
         $OutdatedPackages | Export-Csv -Path "${exportPath}" -NoTypeInformation
@@ -1325,9 +1325,9 @@ try {
     choco uninstall "${packageName}" -y${removeDataDir}${allVersions}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Package '${packageName}' uninstalled successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package '${packageName}' uninstalled successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Uninstall failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Uninstall failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -1358,9 +1358,9 @@ try {
     choco pin ${action} --name="${packageName}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Package '${packageName}' ${params.action === 'Pin' ? 'pinned' : 'unpinned'} successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package '${packageName}' ${params.action === 'Pin' ? 'pinned' : 'unpinned'} successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
     # Show current pins
@@ -1404,9 +1404,9 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         $DownloadedFile = Get-ChildItem -Path "${outputDir}" -Filter "${packageName}*.nupkg" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        Write-Host "✓ Package downloaded: $($DownloadedFile.FullName)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package downloaded: $($DownloadedFile.FullName)" -ForegroundColor Green
     } else {
-        Write-Host "✗ Download failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Download failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -1441,7 +1441,7 @@ try {
     
     $Sources | Format-Table -AutoSize
     
-    Write-Host "✓ Listed $($Sources.Count) source(s)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Listed $($Sources.Count) source(s)" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to list sources: $_"
@@ -1471,9 +1471,9 @@ try {
     choco source ${action} --name="${sourceName}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Source '${sourceName}' ${action}d successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Source '${sourceName}' ${action}d successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
     # Show current sources
@@ -1514,9 +1514,9 @@ try {
     choco feature ${action} --name="${featureName}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Feature '${featureName}' ${action}d successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Feature '${featureName}' ${action}d successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Operation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
     # Show current features
@@ -1555,9 +1555,9 @@ try {
     choco config set --name="${configName}" --value="${configValue}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Configuration '${configName}' set to '${configValue}'" -ForegroundColor Green
+        Write-Host "[SUCCESS] Configuration '${configName}' set to '${configValue}'" -ForegroundColor Green
     } else {
-        Write-Host "✗ Configuration failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Configuration failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
     # Show current configuration
@@ -1622,7 +1622,7 @@ try {
     
     $FreedSpace = [math]::Round(($BeforeSize - $AfterSize) / 1MB, 2)
     
-    Write-Host "✓ Cache cleared successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cache cleared successfully!" -ForegroundColor Green
     Write-Host "  Freed space: $FreedSpace MB" -ForegroundColor Cyan
     
 } catch {
@@ -1676,7 +1676,7 @@ try {
     choco upgrade chocolatey -y --no-progress
     
     Write-Host ""
-    Write-Host "✓ Chocolatey repair completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Chocolatey repair completed!" -ForegroundColor Green
     Write-Host "  Version: $(choco --version)" -ForegroundColor Cyan
     
 } catch {
@@ -1718,7 +1718,7 @@ try {
     if ($LASTEXITCODE -eq 0) {
         $PackageDir = Join-Path "${outputDir}" "${packageName}"
         Write-Host ""
-        Write-Host "✓ Package template created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package template created successfully!" -ForegroundColor Green
         Write-Host "  Location: $PackageDir" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "Files created:" -ForegroundColor Cyan
@@ -1726,7 +1726,7 @@ try {
             Write-Host "  - $($_.FullName.Replace($PackageDir, '.'))" -ForegroundColor White
         }
     } else {
-        Write-Host "✗ Package creation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Package creation failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
     Pop-Location
@@ -1773,11 +1773,11 @@ try {
     if ($LASTEXITCODE -eq 0) {
         $CreatedPackage = Get-ChildItem -Path "${outputDir}" -Filter "*.nupkg" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
         Write-Host ""
-        Write-Host "✓ Package created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package created successfully!" -ForegroundColor Green
         Write-Host "  Package: $($CreatedPackage.FullName)" -ForegroundColor Cyan
         Write-Host "  Size: $([math]::Round($CreatedPackage.Length / 1KB, 2)) KB" -ForegroundColor Cyan
     } else {
-        Write-Host "✗ Pack failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Pack failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
     Pop-Location
@@ -1818,10 +1818,10 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ Package installed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Package installed successfully!" -ForegroundColor Green
         Write-Host "  Testing completed." -ForegroundColor Cyan
     } else {
-        Write-Host "✗ Installation test failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Installation test failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
 } catch {
@@ -2007,9 +2007,9 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✓ All packages installed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] All packages installed successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Some packages failed to install (exit code: $LASTEXITCODE)" -ForegroundColor Red
+        Write-Host "[FAILED] Some packages failed to install (exit code: $LASTEXITCODE)" -ForegroundColor Red
     }
     
 } catch {
@@ -2153,9 +2153,9 @@ try {
         }
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Upgraded: $Package" -ForegroundColor Green
+            Write-Host "[SUCCESS] Upgraded: $Package" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed: $Package (Exit code: $LASTEXITCODE)" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $Package (Exit code: $LASTEXITCODE)" -ForegroundColor Red
             ${!ignoreFailures ? `throw "Upgrade failed for $Package"` : ''}
         }
     }
@@ -2199,7 +2199,7 @@ try {
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host ""
-        Write-Host "✗ Package not found or error occurred" -ForegroundColor Red
+        Write-Host "[FAILED] Package not found or error occurred" -ForegroundColor Red
     }
     
 } catch {
@@ -2260,7 +2260,7 @@ try {
     
     if (-not $RebootRequired) {
         Write-Host ""
-        Write-Host "✓ No pending reboots detected!" -ForegroundColor Green
+        Write-Host "[SUCCESS] No pending reboots detected!" -ForegroundColor Green
     } else {
         Write-Host ""
         Write-Host "! System reboot recommended" -ForegroundColor Yellow
@@ -2294,9 +2294,9 @@ try {
     choco apikey add --source="${sourceName}" --key="${apiKey}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ API key configured successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] API key configured successfully!" -ForegroundColor Green
     } else {
-        Write-Host "✗ Failed to set API key with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "[FAILED] Failed to set API key with exit code: $LASTEXITCODE" -ForegroundColor Red
     }
     
     # List configured API keys (keys are masked)
@@ -2469,7 +2469,7 @@ try {
         </div>
         
         <div class="issues $(if ($Issues.Count -eq 0) { 'healthy' })">
-            <h3>$(if ($Issues.Count -eq 0) { '✓ Environment Healthy' } else { '⚠ Issues Detected' })</h3>
+            <h3>$(if ($Issues.Count -eq 0) { '[OK] Environment Healthy' } else { '[WARNING] Issues Detected' })</h3>
             $(if ($Issues.Count -gt 0) {
                 $Issues | ForEach-Object { "<p>$_</p>" }
             } else {
@@ -2493,7 +2493,7 @@ try {
     Write-Host "  Total Size: $TotalSize MB" -ForegroundColor White
     Write-Host "  Issues: $($Issues.Count)" -ForegroundColor $(if ($Issues.Count -gt 0) { "Yellow" } else { "Green" })
     Write-Host ""
-    Write-Host "✓ Report saved: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report saved: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Environment report failed: $_"
@@ -2533,24 +2533,24 @@ try {
     $ConfigPath = Join-Path $env:ChocolateyInstall "config\\chocolatey.config"
     if (Test-Path $ConfigPath) {
         Copy-Item -Path $ConfigPath -Destination $BackupFolder -Force
-        Write-Host "  ✓ Configuration file backed up" -ForegroundColor Green
+        Write-Host "  [OK] Configuration file backed up" -ForegroundColor Green
     }
     
     # Export sources
     $SourcesFile = Join-Path $BackupFolder "sources.txt"
     choco source list | Out-File -FilePath $SourcesFile -Encoding UTF8
-    Write-Host "  ✓ Sources list backed up" -ForegroundColor Green
+    Write-Host "  [OK] Sources list backed up" -ForegroundColor Green
     
     # Export features
     $FeaturesFile = Join-Path $BackupFolder "features.txt"
     choco feature list | Out-File -FilePath $FeaturesFile -Encoding UTF8
-    Write-Host "  ✓ Features list backed up" -ForegroundColor Green
+    Write-Host "  [OK] Features list backed up" -ForegroundColor Green
     
     ${includePackages ? `
     # Export installed packages
     $PackagesFile = Join-Path $BackupFolder "packages.config"
     choco export $PackagesFile -y
-    Write-Host "  ✓ Installed packages list backed up" -ForegroundColor Green` : ''}
+    Write-Host "  [OK] Installed packages list backed up" -ForegroundColor Green` : ''}
     
     # Create backup manifest
     $Manifest = [PSCustomObject]@{
@@ -2562,7 +2562,7 @@ try {
     $Manifest | ConvertTo-Json | Out-File -FilePath (Join-Path $BackupFolder "manifest.json") -Encoding UTF8
     
     Write-Host ""
-    Write-Host "✓ Backup completed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup completed successfully!" -ForegroundColor Green
     Write-Host "  Location: $BackupFolder" -ForegroundColor Cyan
     
     # List backup contents

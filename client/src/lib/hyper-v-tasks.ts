@@ -95,7 +95,7 @@ try {
     $Result = Install-WindowsFeature -Name $Features -ComputerName "${serverName}" -IncludeManagementTools
     
     if ($Result.Success) {
-        Write-Host "✓ Hyper-V role installed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Hyper-V role installed successfully" -ForegroundColor Green
     }
     
     $Result | Select-Object Success, RestartNeeded, ExitCode | Format-List
@@ -196,7 +196,7 @@ try {
     New-VMSwitch -Name "${switchName}" -SwitchType Private
     `}
     
-    Write-Host "✓ Virtual switch created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual switch created successfully" -ForegroundColor Green
     
     Get-VMSwitch -Name "${switchName}" | Select-Object Name, SwitchType, Id | Format-List
     
@@ -328,7 +328,7 @@ try {
     
     Set-VMProcessor -VMName "${vmName}" -Count ${cpuCount}
     
-    Write-Host "✓ Virtual Machine created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual Machine created successfully" -ForegroundColor Green
     
     Get-VM -Name "${vmName}" | Select-Object Name, Generation, State, ProcessorCount | Format-List
     
@@ -418,10 +418,10 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
             ${action === 'Stop' ? 'Stop-VM -Name $VmName -Force' : ''}
             ${action === 'Restart' ? 'Restart-VM -Name $VmName -Force' : ''}
             
-            Write-Host "✓ $VmName ${action.toLowerCase()} completed" -ForegroundColor Green
+            Write-Host "[SUCCESS] $VmName ${action.toLowerCase()} completed" -ForegroundColor Green
             $SuccessCount++
         } catch {
-            Write-Warning "✗ Failed: $VmName - $_"
+            Write-Warning "[FAILED] Failed: $VmName - $_"
             $FailCount++
         }
     }
@@ -504,7 +504,7 @@ try {
     
     Export-VM -Name "${vmName}" -Path "${exportPath}"
     
-    Write-Host "✓ VM exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM exported successfully" -ForegroundColor Green
     
     $ExportFolder = Join-Path "${exportPath}" "${vmName}"
     Write-Host "  Location: $ExportFolder" -ForegroundColor Cyan
@@ -595,7 +595,7 @@ try {
     
     New-VHD -Path "${vhdPath}" -SizeBytes $SizeBytes -${diskType}
     
-    Write-Host "✓ Virtual hard disk created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual hard disk created successfully" -ForegroundColor Green
     
     Get-VHD -Path "${vhdPath}" | Select-Object Path, VhdType, Size | Format-List
     
@@ -678,7 +678,7 @@ try {
     
     Resize-VHD -Path "${vhdPath}" -SizeBytes $NewSizeBytes
     
-    Write-Host "✓ VHD resized successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VHD resized successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to resize VHD: $_"
@@ -757,7 +757,7 @@ try {
     
     Checkpoint-VM -Name "${vmName}" -SnapshotName $CheckpointName
     
-    Write-Host "✓ Checkpoint created: $CheckpointName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Checkpoint created: $CheckpointName" -ForegroundColor Green
     
     Get-VMCheckpoint -VMName "${vmName}" | Select-Object Name, CreationTime | Format-Table
     
@@ -837,7 +837,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inventory exported to: ${exportPath}" -ForegroundColor Green
     
     Write-Host \"\`nVMs by State:" -ForegroundColor Yellow
     $Inventory | Group-Object State | Format-Table Name, Count
@@ -940,7 +940,7 @@ try {
     
     Rename-VM -Name "${sourceVm}" -NewName "${newVm}"
     
-    Write-Host "✓ VM cloned successfully: ${newVm}" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM cloned successfully: ${newVm}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to clone VM: $_"
@@ -1041,7 +1041,7 @@ try {
     
     ${enableDynamic ? `Set-VMMemory -VMName "${vmName}" -MaximumBytes ${maxMB}MB -MinimumBytes ${startupMB}MB` : ''}
     
-    Write-Host "✓ Memory configured:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Memory configured:" -ForegroundColor Green
     Write-Host "  Startup: ${params.startupMemoryGB || 4} GB" -ForegroundColor Yellow
     ${enableDynamic ? `Write-Host "  Maximum: ${params.maxMemoryGB || 8} GB (Dynamic)" -ForegroundColor Yellow` : ''}
     
@@ -1128,7 +1128,7 @@ try {
     foreach ($VHD in $VHDs) {
         Set-VMHardDiskDrive -VMName "${vmName}" -ControllerType $VHD.ControllerType -ControllerNumber $VHD.ControllerNumber -ControllerLocation $VHD.ControllerLocation -MaximumIOPS ${maxIOPS} -MinimumIOPS ${minIOPS}
         
-        Write-Host "✓ QoS configured for: $($VHD.Path)" -ForegroundColor Green
+        Write-Host "[SUCCESS] QoS configured for: $($VHD.Path)" -ForegroundColor Green
     }
     
     Write-Host ${'\`n'}"QoS Settings:" -ForegroundColor Yellow
@@ -1215,7 +1215,7 @@ try {
     
     Resize-VHD -Path "${vhdPath}" -SizeBytes ${newSizeGB}GB
     
-    Write-Host "✓ VHD expanded successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VHD expanded successfully" -ForegroundColor Green
     Write-Host "  Old size: $CurrentSizeGB GB" -ForegroundColor Yellow
     Write-Host "  New size: ${newSizeGB} GB" -ForegroundColor Yellow
     
@@ -1290,7 +1290,7 @@ try {
     $SizeAfter = [math]::Round($VHDAfter.FileSize / 1GB, 2)
     $Saved = [math]::Round($SizeBefore - $SizeAfter, 2)
     
-    Write-Host "✓ Optimization complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Optimization complete" -ForegroundColor Green
     Write-Host "  Before: $SizeBefore GB" -ForegroundColor Yellow
     Write-Host "  After: $SizeAfter GB" -ForegroundColor Yellow
     Write-Host "  Reclaimed: $Saved GB" -ForegroundColor Green
@@ -1391,7 +1391,7 @@ try {
     New-VMSwitch -Name "${switchName}" -SwitchType Private
     ` : ''}
     
-    Write-Host "✓ Virtual switch created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual switch created successfully" -ForegroundColor Green
     
     $Switch = Get-VMSwitch -Name "${switchName}"
     Write-Host ${'\`n'}"Switch Details:" -ForegroundColor Yellow
@@ -1470,7 +1470,7 @@ try {
     
     Set-VMNetworkAdapterVlan -VMNetworkAdapter $VMNetAdapter -Access -VlanId ${vlanId}
     
-    Write-Host "✓ VLAN configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VLAN configured successfully" -ForegroundColor Green
     Write-Host "  VM: ${vmName}" -ForegroundColor Yellow
     Write-Host "  VLAN ID: ${vlanId}" -ForegroundColor Yellow
     
@@ -1563,7 +1563,7 @@ try {
     Write-Host "Starting initial replication..." -ForegroundColor Cyan
     Start-VMInitialReplication -VMName "${vmName}"
     
-    Write-Host "✓ Replication configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Replication configured successfully" -ForegroundColor Green
     Write-Host "  VM: ${vmName}" -ForegroundColor Yellow
     Write-Host "  Replica Server: ${replicaServer}" -ForegroundColor Yellow
     Write-Host "  Frequency: ${frequency} seconds" -ForegroundColor Yellow
@@ -1651,7 +1651,7 @@ try {
     
     Restore-VMSnapshot -VMName "${vmName}" -Name "${checkpointName}" -Confirm:\$false
     
-    Write-Host "✓ Checkpoint applied successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Checkpoint applied successfully" -ForegroundColor Green
     Write-Host "  VM restored to: ${checkpointName}" -ForegroundColor Yellow
     
 } catch {
@@ -1737,7 +1737,7 @@ try {
         Remove-VMSnapshot -VMName "${vmName}" -Name $Checkpoint.Name -Confirm:\$false
     }
     
-    Write-Host "✓ Old checkpoints removed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Old checkpoints removed successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to remove checkpoints: $_"
@@ -1927,10 +1927,10 @@ try {
             
             New-VM -Name $VMName -MemoryStartupBytes $MemoryBytes -VHDPath $VHDPath -Generation 2 -SwitchName $Spec.SwitchName -Path "${vmPath}"
             
-            Write-Host "✓ Created: $VMName" -ForegroundColor Green
+            Write-Host "[SUCCESS] Created: $VMName" -ForegroundColor Green
             $SuccessCount++
         } catch {
-            Write-Warning "✗ Failed: $VMName - $_"
+            Write-Warning "[FAILED] Failed: $VMName - $_"
             $FailCount++
         }
     }
@@ -2014,7 +2014,7 @@ try {
         }
     }
     
-    Write-Host "✓ Integration services configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Integration services configured" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to configure integration services: $_"
@@ -2108,7 +2108,7 @@ try {
     
     $Configs | ConvertTo-Json -Depth 10 | Out-File "${exportPath}"
     
-    Write-Host "✓ VM configurations exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM configurations exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total VMs: $($VMs.Count)" -ForegroundColor Yellow
     
 } catch {
@@ -2170,7 +2170,7 @@ try {
     
     Set-VMHost -EnableEnhancedSessionMode \$${enable}
     
-    Write-Host "✓ Enhanced session mode ${enable ? 'enabled' : 'disabled'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Enhanced session mode ${enable ? 'enabled' : 'disabled'}" -ForegroundColor Green
     Write-Host ${'\`n'}"Note: VMs must have RDP services running to use enhanced sessions" -ForegroundColor Yellow
     
 } catch {
@@ -2253,7 +2253,7 @@ try {
     Set-VMProcessor -VMName "${vmName}" -ExposeVirtualizationExtensions \$true
     Set-VM -VMName "${vmName}" -ProcessorCount ($VM.ProcessorCount)
     
-    Write-Host "✓ NUMA topology configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] NUMA topology configured" -ForegroundColor Green
     Write-Host "  NUMA Nodes: ${numaNodes}" -ForegroundColor Yellow
     Write-Host "  vCPUs: $($VM.ProcessorCount)" -ForegroundColor Yellow
     
@@ -2325,7 +2325,7 @@ ${vmNamesInput.split('\\n').filter((line: string) => line.trim()).map((name: str
     
     foreach ($VM in $VMs) {
         Enable-VMResourceMetering -VMName $VM.Name
-        Write-Host "✓ Metering enabled: $($VM.Name)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Metering enabled: $($VM.Name)" -ForegroundColor Green
     }
     
     Write-Host ${'\`n'}"Resource metering enabled for $($VMs.Count) VMs" -ForegroundColor Yellow
@@ -2410,7 +2410,7 @@ try {
     
     $SecurityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Security audit exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security audit exported to: ${exportPath}" -ForegroundColor Green
     
     $SecureBootCount = ($SecurityReport | Where-Object { $_.SecureBootEnabled }).Count
     $TPMCount = ($SecurityReport | Where-Object { $_.TPMEnabled }).Count
@@ -2518,7 +2518,7 @@ try {
     
     Set-VM -Name "${vmName}" -AutomaticStartAction ${startAction} -AutomaticStopAction ${stopAction} -AutomaticStartDelay ${startDelay}
     
-    Write-Host "✓ Automatic actions configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Automatic actions configured" -ForegroundColor Green
     Write-Host "  Start Action: ${startAction}" -ForegroundColor Yellow
     Write-Host "  Stop Action: ${stopAction}" -ForegroundColor Yellow
     ${startDelay > 0 ? `Write-Host "  Start Delay: ${startDelay} seconds" -ForegroundColor Yellow` : ''}
@@ -2604,7 +2604,7 @@ try {
     
     Move-VMStorage -Name "${vmName}" -DestinationStoragePath "${destPath}"
     
-    Write-Host "✓ Storage migration completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage migration completed successfully" -ForegroundColor Green
     
     $NewVM = Get-VM -Name "${vmName}"
     Write-Host ${'\`n'}"New VM location: $($NewVM.Path)" -ForegroundColor Yellow
@@ -2669,7 +2669,7 @@ try {
     
     $VM | Export-VM -Path "${exportPath}"
     
-    Write-Host "✓ VM config exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM config exported" -ForegroundColor Green
 } catch {
     Write-Error $_
 }`;
@@ -2744,7 +2744,7 @@ try {
     
     Start-VMInitialReplication -VMName "${vmName}"
     
-    Write-Host "✓ Replication configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Replication configured" -ForegroundColor Green
 } catch {
     Write-Error $_
 }`;
@@ -2848,7 +2848,7 @@ try {
     # Set performance option
     Set-VMHost -VirtualMachineMigrationPerformanceOption ${perfOption}
     
-    Write-Host "✓ Live Migration configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Live Migration configured successfully" -ForegroundColor Green
     Write-Host "  Max Concurrent: ${maxMigrations}" -ForegroundColor Gray
     Write-Host "  Authentication: ${authType}" -ForegroundColor Gray
     Write-Host "  Performance: ${perfOption}" -ForegroundColor Gray
@@ -2963,13 +2963,13 @@ try {
     $Switch = New-VMSwitch -Name "${switchName}" -SwitchType Private
     `}
     
-    Write-Host "✓ Virtual switch created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual switch created" -ForegroundColor Green
     
     ${vlanId ? `
     # Configure VLAN tagging
     Write-Host "Configuring VLAN ${vlanId}..." -ForegroundColor Cyan
     Set-VMNetworkAdapterVlan -ManagementOS -VMNetworkAdapterName "${switchName}" -Access -VlanId ${vlanId}
-    Write-Host "✓ VLAN ${vlanId} configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] VLAN ${vlanId} configured" -ForegroundColor Green
     ` : ''}
     
     # Display switch configuration
@@ -3084,13 +3084,13 @@ try {
         -RecoveryHistory ${recoveryPoints} \\
         -CompressionEnabled $true
     
-    Write-Host "✓ Replication enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Replication enabled" -ForegroundColor Green
     
     # Start initial replication
     Write-Host "Starting initial replication..." -ForegroundColor Cyan
     Start-VMInitialReplication -VMName "${vmName}"
     
-    Write-Host "✓ Initial replication started" -ForegroundColor Green
+    Write-Host "[SUCCESS] Initial replication started" -ForegroundColor Green
     Write-Host "  Initial replication will run in background" -ForegroundColor Gray
     Write-Host "  Time required depends on VM size and network speed" -ForegroundColor Gray
     
@@ -3190,7 +3190,7 @@ try {
             ${checkpointName ? `
             Write-Host "Creating checkpoint: ${checkpointName}" -ForegroundColor Cyan
             Checkpoint-VM -Name "${vmName}" -SnapshotName "${checkpointName}"
-            Write-Host "✓ Checkpoint created successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Checkpoint created successfully" -ForegroundColor Green
             ` : `
             Write-Error "Checkpoint name is required for Create operation"
             exit 1
@@ -3199,13 +3199,13 @@ try {
         
         "Apply" {
             ${checkpointName ? `
-            Write-Host "⚠ Applying checkpoint will revert VM to previous state" -ForegroundColor Yellow
+            Write-Host "[WARNING] Applying checkpoint will revert VM to previous state" -ForegroundColor Yellow
             Write-Host "Applying checkpoint: ${checkpointName}" -ForegroundColor Cyan
             
             $Checkpoint = Get-VMCheckpoint -VMName "${vmName}" -Name "${checkpointName}"
             Restore-VMCheckpoint -VMCheckpoint $Checkpoint -Confirm:$false
             
-            Write-Host "✓ Checkpoint applied successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Checkpoint applied successfully" -ForegroundColor Green
             Write-Host "  VM has been reverted to checkpoint state" -ForegroundColor Gray
             ` : `
             Write-Error "Checkpoint name is required for Apply operation"
@@ -3220,7 +3220,7 @@ try {
             $Checkpoint = Get-VMCheckpoint -VMName "${vmName}" -Name "${checkpointName}"
             Remove-VMCheckpoint -VMCheckpoint $Checkpoint -Confirm:$false
             
-            Write-Host "✓ Checkpoint deleted successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Checkpoint deleted successfully" -ForegroundColor Green
             Write-Host "  Changes have been merged" -ForegroundColor Gray
             ` : `
             Write-Error "Checkpoint name is required for Delete operation"
@@ -3322,14 +3322,14 @@ try {
         "Enable" {
             Write-Host "Enabling resource metering..." -ForegroundColor Cyan
             Enable-VMResourceMetering -VMName "${vmName}"
-            Write-Host "✓ Resource metering enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Resource metering enabled" -ForegroundColor Green
             Write-Host "  Metrics collection started" -ForegroundColor Gray
         }
         
         "Disable" {
             Write-Host "Disabling resource metering..." -ForegroundColor Cyan
             Disable-VMResourceMetering -VMName "${vmName}"
-            Write-Host "✓ Resource metering disabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] Resource metering disabled" -ForegroundColor Green
             Write-Host "  Metrics collection stopped" -ForegroundColor Gray
         }
         
@@ -3363,7 +3363,7 @@ try {
         "Reset" {
             Write-Host "Resetting resource metrics..." -ForegroundColor Cyan
             Reset-VMResourceMetering -VMName "${vmName}"
-            Write-Host "✓ Resource metrics reset" -ForegroundColor Green
+            Write-Host "[SUCCESS] Resource metrics reset" -ForegroundColor Green
             Write-Host "  Metrics collection restarted from zero" -ForegroundColor Gray
         }
     }
@@ -3493,7 +3493,7 @@ try {
             Set-VMNetworkAdapterVlan -VMName "${vmName}" -Access -VlanId ${vlanId}
             ` : ''}
             
-            Write-Host "✓ Network adapter added successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Network adapter added successfully" -ForegroundColor Green
             ` : `
             Write-Error "Virtual switch name is required for Add operation"
             exit 1
@@ -3501,13 +3501,13 @@ try {
         }
         
         "Remove" {
-            Write-Host "⚠ VM must be stopped to remove network adapter" -ForegroundColor Yellow
+            Write-Host "[WARNING] VM must be stopped to remove network adapter" -ForegroundColor Yellow
             Write-Host "Removing network adapter..." -ForegroundColor Cyan
             
             $Adapter = Get-VMNetworkAdapter -VMName "${vmName}" | Select-Object -First 1
             if ($Adapter) {
                 Remove-VMNetworkAdapter -VMName "${vmName}" -VMNetworkAdapter $Adapter
-                Write-Host "✓ Network adapter removed" -ForegroundColor Green
+                Write-Host "[SUCCESS] Network adapter removed" -ForegroundColor Green
             } else {
                 Write-Host "No network adapters found" -ForegroundColor Yellow
             }
@@ -3518,15 +3518,15 @@ try {
             
             ${macSpoofing !== undefined ? `
             Set-VMNetworkAdapter -VMName "${vmName}" -MacAddressSpoofing ${macSpoofing ? 'On' : 'Off'}
-            Write-Host "✓ MAC spoofing: ${macSpoofing ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
+            Write-Host "[SUCCESS] MAC spoofing: ${macSpoofing ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
             ` : ''}
             
             ${vlanId ? `
             Set-VMNetworkAdapterVlan -VMName "${vmName}" -Access -VlanId ${vlanId}
-            Write-Host "✓ VLAN ${vlanId} configured" -ForegroundColor Green
+            Write-Host "[SUCCESS] VLAN ${vlanId} configured" -ForegroundColor Green
             ` : ''}
             
-            Write-Host "✓ Network adapter configured" -ForegroundColor Green
+            Write-Host "[SUCCESS] Network adapter configured" -ForegroundColor Green
         }
         
         "List" {
@@ -3636,27 +3636,27 @@ try {
     # Create directories if they don't exist
     if (-not (Test-Path "${vmPath}")) {
         New-Item -Path "${vmPath}" -ItemType Directory -Force | Out-Null
-        Write-Host "✓ Created VM path: ${vmPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created VM path: ${vmPath}" -ForegroundColor Green
     }
     
     if (-not (Test-Path "${vhdPath}")) {
         New-Item -Path "${vhdPath}" -ItemType Directory -Force | Out-Null
-        Write-Host "✓ Created VHD path: ${vhdPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Created VHD path: ${vhdPath}" -ForegroundColor Green
     }
     
     # Set default VM paths
     Set-VMHost -VirtualMachinePath "${vmPath}" -VirtualHardDiskPath "${vhdPath}"
-    Write-Host "✓ VM paths configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM paths configured" -ForegroundColor Green
     Write-Host "  VM Path: ${vmPath}" -ForegroundColor Gray
     Write-Host "  VHD Path: ${vhdPath}" -ForegroundColor Gray
     
     # Configure NUMA spanning
     Set-VMHost -NumaSpanningEnabled $${numaSpanning ? 'true' : 'false'}
-    Write-Host "✓ NUMA spanning: ${numaSpanning ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] NUMA spanning: ${numaSpanning ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
     
     # Configure enhanced session mode
     Set-VMHost -EnableEnhancedSessionMode $${enhancedSession ? 'true' : 'false'}
-    Write-Host "✓ Enhanced session mode: ${enhancedSession ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Enhanced session mode: ${enhancedSession ? 'Enabled' : 'Disabled'}" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "=== Hyper-V Host Configuration ===" -ForegroundColor Cyan
@@ -3793,7 +3793,7 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
     # Export to CSV
     $PerformanceReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Performance report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Performance report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Summary ===" -ForegroundColor Cyan
     Write-Host "Total VMs: $($PerformanceReport.Count)" -ForegroundColor Gray
@@ -3802,7 +3802,7 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
     
     if ($WithMetering -lt $PerformanceReport.Count) {
         Write-Host ""
-        Write-Host "⚠ Enable resource metering on remaining VMs for complete data:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Enable resource metering on remaining VMs for complete data:" -ForegroundColor Yellow
         Write-Host "  Enable-VMResourceMetering -VMName <VMName>" -ForegroundColor Gray
     }
     
@@ -3918,7 +3918,7 @@ try {
     $ImportedVM = Import-VM -Path $ConfigPath -GenerateNewId
     `}
     
-    Write-Host "✓ VM imported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM imported successfully" -ForegroundColor Green
     
     $ImportedVM | Select-Object Name, State, Generation, ProcessorCount | Format-List
     
@@ -4013,7 +4013,7 @@ try {
     Start-VMFailover -VMName "${vmName}" -AsTest
     `}
     
-    Write-Host "✓ Test failover initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Test failover initiated successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Test VM created: ${vmName}-Test" -ForegroundColor Yellow
     Write-Host ""
@@ -4117,7 +4117,7 @@ try {
     Write-Host "Initiating planned failover..." -ForegroundColor Cyan
     Start-VMFailover -VMName "${vmName}" -Prepare
     
-    Write-Host "✓ Planned failover prepared" -ForegroundColor Green
+    Write-Host "[SUCCESS] Planned failover prepared" -ForegroundColor Green
     Write-Host ""
     Write-Host "Complete failover on replica server:" -ForegroundColor Yellow
     Write-Host "  1. Connect to replica server: $($Replication.ReplicaServer)"
@@ -4214,7 +4214,7 @@ try {
     Write-Host "Starting reverse replication sync..." -ForegroundColor Cyan
     Start-VMInitialReplication -VMName "${vmName}"
     
-    Write-Host "✓ Reverse replication configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Reverse replication configured successfully" -ForegroundColor Green
     
     # Display replication status
     Get-VMReplication -VMName "${vmName}" | Select-Object VMName, State, Mode, Health, ReplicaServer | Format-List
@@ -4441,12 +4441,12 @@ try {
     # Add pass-through disk
     Add-VMHardDiskDrive -VMName "${vmName}" -ControllerType SCSI -ControllerNumber $Controller.ControllerNumber -ControllerLocation $NextLocation -DiskNumber ${diskNumber}
     
-    Write-Host "✓ Pass-through disk attached successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Pass-through disk attached successfully" -ForegroundColor Green
     Write-Host "  Controller: SCSI $($Controller.ControllerNumber)" -ForegroundColor Yellow
     Write-Host "  Location: $NextLocation" -ForegroundColor Yellow
     
     Write-Host ""
-    Write-Host "⚠ Note: Checkpoints are not supported with pass-through disks" -ForegroundColor Yellow
+    Write-Host "[WARNING] Note: Checkpoints are not supported with pass-through disks" -ForegroundColor Yellow
     
 } catch {
     Write-Error "Failed to add pass-through disk: $_"
@@ -4535,7 +4535,7 @@ try {
     # Create differencing disk
     New-VHD -Path "${childPath}" -ParentPath "${parentPath}" -Differencing
     
-    Write-Host "✓ Differencing disk created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Differencing disk created successfully" -ForegroundColor Green
     
     $ChildVHD = Get-VHD -Path "${childPath}"
     Write-Host ""
@@ -4544,7 +4544,7 @@ try {
     Write-Host "  Type: $($ChildVHD.VhdType)" -ForegroundColor Yellow
     Write-Host "  Parent: $($ChildVHD.ParentPath)" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "⚠ Important: Do not modify the parent disk" -ForegroundColor Yellow
+    Write-Host "[WARNING] Important: Do not modify the parent disk" -ForegroundColor Yellow
     Write-Host "  The differencing disk depends on parent remaining unchanged" -ForegroundColor Gray
     
 } catch {
@@ -4648,7 +4648,7 @@ try {
     # Set bandwidth limits
     Set-VMNetworkAdapter -VMName "${vmName}" -MinimumBandwidthAbsolute $MinBandwidthAbsolute -MaximumBandwidth $MaxBandwidthAbsolute
     
-    Write-Host "✓ Bandwidth configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Bandwidth configured successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Bandwidth Settings:" -ForegroundColor Cyan
     Write-Host "  Minimum (Guaranteed): ${minBw} Mbps" -ForegroundColor Yellow
@@ -4912,11 +4912,11 @@ try {
     ${enableSecureBoot ? `
     Write-Host "Enabling Secure Boot with template: ${template}" -ForegroundColor Cyan
     Set-VMFirmware -VMName "${vmName}" -EnableSecureBoot On -SecureBootTemplate "${template}"
-    Write-Host "✓ Secure Boot enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Secure Boot enabled" -ForegroundColor Green
     ` : `
     Write-Host "Disabling Secure Boot..." -ForegroundColor Cyan
     Set-VMFirmware -VMName "${vmName}" -EnableSecureBoot Off
-    Write-Host "✓ Secure Boot disabled" -ForegroundColor Yellow
+    Write-Host "[SUCCESS] Secure Boot disabled" -ForegroundColor Yellow
     `}
     
     # Display current settings
@@ -5031,7 +5031,7 @@ try {
     Move-VM -Name "${vmName}" -DestinationHost "${destHost}"
     `}
     
-    Write-Host "✓ Live migration completed successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Live migration completed successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "VM ${vmName} is now running on: ${destHost}" -ForegroundColor Yellow
     

@@ -48,11 +48,11 @@ try {
     $InstanceIds = @(${instanceIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')})
     
 ${action === 'Start' ? `    Start-EC2Instance -InstanceId $InstanceIds
-    Write-Host "✓ Starting $($InstanceIds.Count) instances..." -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Starting $($InstanceIds.Count) instances..." -ForegroundColor Green` :
 action === 'Stop' ? `    Stop-EC2Instance -InstanceId $InstanceIds -Force
-    Write-Host "✓ Stopping $($InstanceIds.Count) instances..." -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Stopping $($InstanceIds.Count) instances..." -ForegroundColor Green` :
 `    Restart-EC2Instance -InstanceId $InstanceIds
-    Write-Host "✓ Rebooting $($InstanceIds.Count) instances..." -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Rebooting $($InstanceIds.Count) instances..." -ForegroundColor Green`}
     
     Write-Host ""
     Write-Host "Bulk EC2 operation completed!" -ForegroundColor Green
@@ -101,7 +101,7 @@ try {
     
     $InstanceId = $Instance.Instances[0].InstanceId
     
-    Write-Host "✓ EC2 instance created: $InstanceId" -ForegroundColor Green
+    Write-Host "[SUCCESS] EC2 instance created: $InstanceId" -ForegroundColor Green
     Write-Host "  AMI: ${amiId}" -ForegroundColor Cyan
     Write-Host "  Type: ${instanceType}" -ForegroundColor Cyan
     
@@ -136,9 +136,9 @@ try {
     Set-DefaultAWSRegion -Region "${region}"
     
 ${action === 'Create' ? `    New-S3Bucket -BucketName "${bucketName}" -Region "${region}"
-    Write-Host "✓ S3 bucket created: ${bucketName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] S3 bucket created: ${bucketName}" -ForegroundColor Green` :
 action === 'Enable Versioning' ? `    Write-S3BucketVersioning -BucketName "${bucketName}" -VersioningConfig_Status Enabled
-    Write-Host "✓ Versioning enabled for: ${bucketName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Versioning enabled for: ${bucketName}" -ForegroundColor Green` :
 `    $Config = New-Object Amazon.S3.Model.ServerSideEncryptionConfiguration
     $Rule = New-Object Amazon.S3.Model.ServerSideEncryptionRule
     $Rule.ApplyServerSideEncryptionByDefault = New-Object Amazon.S3.Model.ServerSideEncryptionByDefault
@@ -146,7 +146,7 @@ action === 'Enable Versioning' ? `    Write-S3BucketVersioning -BucketName "${bu
     $Config.Rules.Add($Rule)
     
     Set-S3BucketEncryption -BucketName "${bucketName}" -ServerSideEncryptionConfiguration $Config
-    Write-Host "✓ Encryption enabled for: ${bucketName}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Encryption enabled for: ${bucketName}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Operation failed: $_"
@@ -178,11 +178,11 @@ Import-Module AWS.Tools.IdentityManagement
 try {
     # Create user
     $User = New-IAMUser -UserName "${userName}"
-    Write-Host "✓ IAM user created: ${userName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] IAM user created: ${userName}" -ForegroundColor Green
     
 ${policyArn ? `    # Attach policy
     Register-IAMUserPolicy -UserName "${userName}" -PolicyArn "${policyArn}"
-    Write-Host "✓ Policy attached: ${policyArn}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy attached: ${policyArn}" -ForegroundColor Green
 ` : ''}
 ${createAccessKey ? `    # Create access key
     $AccessKey = New-IAMAccessKey -UserName "${userName}"
@@ -190,7 +190,7 @@ ${createAccessKey ? `    # Create access key
     Write-Host "Access Key Created:" -ForegroundColor Cyan
     Write-Host "  Access Key ID: $($AccessKey.AccessKeyId)" -ForegroundColor Yellow
     Write-Host "  Secret Access Key: $($AccessKey.SecretAccessKey)" -ForegroundColor Yellow
-    Write-Host "  ⚠ Save these credentials securely - they won't be shown again!" -ForegroundColor Red
+    Write-Host "  [WARNING] Save these credentials securely - they won't be shown again!" -ForegroundColor Red
 ` : ''}
 } catch {
     Write-Error "User creation failed: $_"
@@ -225,7 +225,7 @@ try {
     Set-DefaultAWSRegion -Region "${region}"
     
 ${action === 'Describe' ? `    $Instance = Get-EC2Instance -InstanceId "${instanceId}"
-    Write-Host "✓ Instance Details:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Instance Details:" -ForegroundColor Green
     Write-Host "  Instance ID: $($Instance.Instances[0].InstanceId)" -ForegroundColor Cyan
     Write-Host "  State: $($Instance.Instances[0].State.Name)" -ForegroundColor Cyan
     Write-Host "  Type: $($Instance.Instances[0].InstanceType)" -ForegroundColor Cyan
@@ -240,14 +240,14 @@ action === 'Modify Instance Type' ? `    # Stop instance if running
     
     # Modify instance type
     Edit-EC2InstanceAttribute -InstanceId "${instanceId}" -InstanceType "${newInstanceType}"
-    Write-Host "✓ Instance type changed to: ${newInstanceType}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Instance type changed to: ${newInstanceType}" -ForegroundColor Green
     
     # Restart instance
     Start-EC2Instance -InstanceId "${instanceId}"
-    Write-Host "✓ Instance restarted" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Instance restarted" -ForegroundColor Green` :
 `    # Terminate instance
     Remove-EC2Instance -InstanceId "${instanceId}" -Force
-    Write-Host "✓ Instance ${instanceId} terminated" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Instance ${instanceId} terminated" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Operation failed: $_"
@@ -300,7 +300,7 @@ try {
     
     Write-S3LifecycleConfiguration -BucketName "${bucketName}" -Configuration $LifecycleConfig
     
-    Write-Host "✓ Lifecycle policy configured for: ${bucketName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lifecycle policy configured for: ${bucketName}" -ForegroundColor Green
     Write-Host "  Glacier transition: ${daysToGlacier} days" -ForegroundColor Cyan
     Write-Host "  Expiration: ${daysToExpire} days" -ForegroundColor Cyan
     
@@ -334,17 +334,17 @@ Import-Module AWS.Tools.IdentityManagement
 try {
     # Create group
     New-IAMGroup -GroupName "${groupName}"
-    Write-Host "✓ IAM group created: ${groupName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] IAM group created: ${groupName}" -ForegroundColor Green
     
 ${policyArn ? `    # Attach policy to group
     Register-IAMGroupPolicy -GroupName "${groupName}" -PolicyArn "${policyArn}"
-    Write-Host "✓ Policy attached: ${policyArn}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy attached: ${policyArn}" -ForegroundColor Green
 ` : ''}
 ${userNamesRaw.length > 0 ? `    # Add users to group
     $Users = @(${userNamesRaw.map(u => `"${escapePowerShellString(u)}"`).join(', ')})
     foreach ($User in $Users) {
         Add-IAMUserToGroup -GroupName "${groupName}" -UserName $User
-        Write-Host "✓ Added user: $User" -ForegroundColor Cyan
+        Write-Host "[SUCCESS] Added user: $User" -ForegroundColor Cyan
     }
 ` : ''}
     Write-Host ""
@@ -402,7 +402,7 @@ try {
         -Description "${description}" \`
         -PolicyDocument $PolicyDocument
     
-    Write-Host "✓ IAM policy created: ${policyName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] IAM policy created: ${policyName}" -ForegroundColor Green
     Write-Host "  ARN: $($Policy.Arn)" -ForegroundColor Cyan
     Write-Host "  Service: ${service}" -ForegroundColor Cyan
     Write-Host "  Actions: ${actions}" -ForegroundColor Cyan
@@ -447,7 +447,7 @@ ${emailAddress ? `    # Create SNS topic for notifications
     Import-Module AWS.Tools.SimpleNotificationService
     $Topic = New-SNSTopic -Name "${alarmName}-notifications"
     New-SNSSubscription -TopicArn $Topic -Protocol email -Endpoint "${emailAddress}"
-    Write-Host "✓ SNS topic created and email subscription pending confirmation" -ForegroundColor Yellow
+    Write-Host "[SUCCESS] SNS topic created and email subscription pending confirmation" -ForegroundColor Yellow
     
 ` : ''}    # Create CloudWatch alarm
     $Dimension = New-Object Amazon.CloudWatch.Model.Dimension
@@ -467,7 +467,7 @@ ${emailAddress ? `    # Create SNS topic for notifications
         -AlarmAction $Topic` : ''} \`
         -Dimension $Dimension
     
-    Write-Host "✓ CloudWatch alarm created: ${alarmName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudWatch alarm created: ${alarmName}" -ForegroundColor Green
     Write-Host "  Metric: ${metricName}" -ForegroundColor Cyan
     Write-Host "  Threshold: ${threshold}" -ForegroundColor Cyan
     Write-Host "  Instance: ${instanceId}" -ForegroundColor Cyan
@@ -529,7 +529,7 @@ ${instanceId ? `    $Dimension = New-Object Amazon.CloudWatch.Model.Dimension
         -Period 3600 \`
         -Statistic Average
 `}
-    Write-Host "✓ CloudWatch Metrics Retrieved:" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudWatch Metrics Retrieved:" -ForegroundColor Green
     Write-Host "  Namespace: ${namespace}" -ForegroundColor Cyan
     Write-Host "  Metric: ${metricName}" -ForegroundColor Cyan
     Write-Host "  Period: Last ${hours} hours" -ForegroundColor Cyan
@@ -570,7 +570,7 @@ Import-Module AWS.Tools.Route53
 
 try {
 ${action === 'Create Hosted Zone' ? `    $Zone = New-R53HostedZone -Name "${domainName}" -CallerReference (Get-Date).Ticks
-    Write-Host "✓ Hosted zone created for: ${domainName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Hosted zone created for: ${domainName}" -ForegroundColor Green
     Write-Host "  Zone ID: $($Zone.HostedZone.Id)" -ForegroundColor Cyan
     Write-Host "  Nameservers:" -ForegroundColor Cyan
     $Zone.DelegationSet.NameServers | ForEach-Object { Write-Host "    $_" -ForegroundColor Yellow }` :
@@ -583,7 +583,7 @@ action === 'List Records' ? `    $Zones = Get-R53HostedZoneList | Where-Object {
     $ZoneId = $Zones[0].Id
     $Records = Get-R53ResourceRecordSet -HostedZoneId $ZoneId
     
-    Write-Host "✓ DNS Records for ${domainName}:" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS Records for ${domainName}:" -ForegroundColor Green
     $Records.ResourceRecordSets | Format-Table Name, Type, TTL, @{Name="Value";Expression={$_.ResourceRecords.Value}} -AutoSize` :
 `    # Get hosted zone ID
     $Zones = Get-R53HostedZoneList | Where-Object { $_.Name -eq "${domainName}." }
@@ -608,7 +608,7 @@ action === 'List Records' ? `    $Zones = Get-R53HostedZoneList | Where-Object {
     
     Edit-R53ResourceRecordSet -HostedZoneId $ZoneId -ChangeBatch $ChangeBatch
     
-    Write-Host "✓ ${action === 'Add A Record' ? 'A' : 'CNAME'} record created" -ForegroundColor Green
+    Write-Host "[SUCCESS] ${action === 'Add A Record' ? 'A' : 'CNAME'} record created" -ForegroundColor Green
     Write-Host "  Name: ${recordName}" -ForegroundColor Cyan
     Write-Host "  Value: ${recordValue}" -ForegroundColor Cyan
     Write-Host "  TTL: ${ttl}" -ForegroundColor Cyan`}
@@ -651,7 +651,7 @@ try {
     $Vpc = New-EC2Vpc -CidrBlock "${cidrBlock}"
     $VpcId = $Vpc.VpcId
     
-    Write-Host "✓ VPC created: $VpcId" -ForegroundColor Green
+    Write-Host "[SUCCESS] VPC created: $VpcId" -ForegroundColor Green
     
     # Tag VPC
     New-EC2Tag -Resource $VpcId -Tag @{Key="Name";Value="${vpcName}"}
@@ -660,7 +660,7 @@ try {
     Edit-EC2VpcAttribute -VpcId $VpcId -EnableDnsHostnames ${enableDnsHostnames}
     Edit-EC2VpcAttribute -VpcId $VpcId -EnableDnsSupport ${enableDnsSupport}
     
-    Write-Host "✓ VPC configuration completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] VPC configuration completed" -ForegroundColor Green
     Write-Host "  VPC ID: $VpcId" -ForegroundColor Cyan
     Write-Host "  CIDR Block: ${cidrBlock}" -ForegroundColor Cyan
     Write-Host "  DNS Hostnames: ${enableDnsHostnames}" -ForegroundColor Cyan
@@ -709,7 +709,7 @@ ${action === 'Create Subnet' ? `    $Subnet = New-EC2Subnet \`
         -CidrBlock "${cidrBlock}" \`
         -AvailabilityZone "${availabilityZone}"
     
-    Write-Host "✓ Subnet created: $($Subnet.SubnetId)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Subnet created: $($Subnet.SubnetId)" -ForegroundColor Green
     Write-Host "  CIDR: ${cidrBlock}" -ForegroundColor Cyan
     Write-Host "  AZ: ${availabilityZone}" -ForegroundColor Cyan` :
 `    # Create security group
@@ -718,7 +718,7 @@ ${action === 'Create Subnet' ? `    $Subnet = New-EC2Subnet \`
         -GroupName "${sgName}" \`
         -Description "${sgDescription}"
     
-    Write-Host "✓ Security group created: $SecurityGroup" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security group created: $SecurityGroup" -ForegroundColor Green
     
     # Add HTTP rule
     $IpPermission1 = New-Object Amazon.EC2.Model.IpPermission
@@ -736,7 +736,7 @@ ${action === 'Create Subnet' ? `    $Subnet = New-EC2Subnet \`
     
     Grant-EC2SecurityGroupIngress -GroupId $SecurityGroup -IpPermission @($IpPermission1, $IpPermission2)
     
-    Write-Host "✓ Ingress rules added (HTTP, HTTPS)" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Ingress rules added (HTTP, HTTPS)" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Configuration failed: $_"
@@ -782,7 +782,7 @@ try {
         -Metric "BlendedCost" \`
         -GroupBy $GroupDefinition
     
-    Write-Host "✓ AWS Cost Report (${startDate} to ${endDate})" -ForegroundColor Green
+    Write-Host "[SUCCESS] AWS Cost Report (${startDate} to ${endDate})" -ForegroundColor Green
     Write-Host ""
     
     foreach ($ResultByTime in $Result.ResultsByTime) {
@@ -831,16 +831,16 @@ try {
     Set-DefaultAWSRegion -Region "${region}"
     
 ${action === 'Create Snapshot' ? `    $Snapshot = New-EC2Snapshot -VolumeId "${volumeId}" -Description "${description}"
-    Write-Host "✓ Snapshot created: $($Snapshot.SnapshotId)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Snapshot created: $($Snapshot.SnapshotId)" -ForegroundColor Green
     Write-Host "  Volume: ${volumeId}" -ForegroundColor Cyan
     Write-Host "  Description: ${description}" -ForegroundColor Cyan
     Write-Host "  State: $($Snapshot.State)" -ForegroundColor Cyan` :
 action === 'List Snapshots' ? `    $Snapshots = Get-EC2Snapshot -OwnerIds self
     
-    Write-Host "✓ Your EBS Snapshots:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Your EBS Snapshots:" -ForegroundColor Green
     $Snapshots | Sort-Object StartTime -Descending | Select-Object -First 20 | Format-Table SnapshotId, VolumeId, State, StartTime, VolumeSize, Description -AutoSize` :
 `    Remove-EC2Snapshot -SnapshotId "${snapshotId}" -Force
-    Write-Host "✓ Snapshot deleted: ${snapshotId}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Snapshot deleted: ${snapshotId}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Snapshot operation failed: $_"
@@ -878,7 +878,7 @@ ${action === 'Block Public Access' ? `    $PublicAccessBlockConfig = New-Object 
     
     Add-S3PublicAccessBlock -BucketName "${bucketName}" -PublicAccessBlockConfiguration $PublicAccessBlockConfig
     
-    Write-Host "✓ Public access blocked for: ${bucketName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Public access blocked for: ${bucketName}" -ForegroundColor Green` :
 action === 'Allow Public Read' ? `    $Policy = @"
 {
     "Version": "2012-10-17",
@@ -895,8 +895,8 @@ action === 'Allow Public Read' ? `    $Policy = @"
     
     Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
     
-    Write-Host "✓ Public read access enabled for: ${bucketName}" -ForegroundColor Green
-    Write-Host "  ⚠ Bucket is now publicly accessible!" -ForegroundColor Yellow` :
+    Write-Host "[SUCCESS] Public read access enabled for: ${bucketName}" -ForegroundColor Green
+    Write-Host "  [WARNING] Bucket is now publicly accessible!" -ForegroundColor Yellow` :
 `    $Policy = @"
 {
     "Version": "2012-10-17",
@@ -919,7 +919,7 @@ action === 'Allow Public Read' ? `    $Policy = @"
     
     Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
     
-    Write-Host "✓ Bucket policy added for: ${bucketName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Bucket policy added for: ${bucketName}" -ForegroundColor Green
     Write-Host "  Principal: ${principalArn}" -ForegroundColor Cyan`}
     
 } catch {
@@ -973,7 +973,7 @@ ${action === 'Create Function' ? `    # Read zip file
         -Role "${roleArn}" \`
         -ZipFileContent $MemoryStream.ToArray()
     
-    Write-Host "✓ Lambda function created: ${functionName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lambda function created: ${functionName}" -ForegroundColor Green
     Write-Host "  Runtime: ${runtime}" -ForegroundColor Cyan
     Write-Host "  Handler: ${handler}" -ForegroundColor Cyan` :
 action === 'Update Code' ? `    # Read zip file
@@ -986,20 +986,20 @@ action === 'Update Code' ? `    # Read zip file
         -FunctionName "${functionName}" \`
         -ZipFileContent $MemoryStream.ToArray()
     
-    Write-Host "✓ Lambda function code updated: ${functionName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Lambda function code updated: ${functionName}" -ForegroundColor Green` :
 action === 'Invoke Function' ? `    # Invoke Lambda function
     $Response = Invoke-LMFunction -FunctionName "${functionName}" -InvocationType RequestResponse
     
     $Payload = [System.Text.Encoding]::UTF8.GetString($Response.Payload.ToArray())
     
-    Write-Host "✓ Lambda function invoked: ${functionName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lambda function invoked: ${functionName}" -ForegroundColor Green
     Write-Host "  Status Code: $($Response.StatusCode)" -ForegroundColor Cyan
     Write-Host "  Payload:" -ForegroundColor Cyan
     Write-Host $Payload -ForegroundColor Yellow` :
 `    # List Lambda functions
     $Functions = Get-LMFunctionList
     
-    Write-Host "✓ Lambda Functions:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lambda Functions:" -ForegroundColor Green
     $Functions | Format-Table FunctionName, Runtime, Handler, LastModified, CodeSize -AutoSize`}
     
 } catch {
@@ -1055,13 +1055,13 @@ ${action === 'Create Instance' ? `    # Generate secure password
         -BackupRetentionPeriod ${backupRetentionPeriod} \`
         -StorageEncrypted \$true
     
-    Write-Host "✓ RDS instance creation initiated: ${dbInstanceIdentifier}" -ForegroundColor Green
+    Write-Host "[SUCCESS] RDS instance creation initiated: ${dbInstanceIdentifier}" -ForegroundColor Green
     Write-Host "  Engine: ${engine}" -ForegroundColor Cyan
     Write-Host "  Instance Class: ${instanceClass}" -ForegroundColor Cyan
     Write-Host "  Storage: ${allocatedStorage} GB" -ForegroundColor Cyan
     Write-Host "  Master Username: ${masterUsername}" -ForegroundColor Cyan
     Write-Host "  Master Password: $MasterPassword" -ForegroundColor Yellow
-    Write-Host "  ⚠ Save the password securely - it won't be shown again!" -ForegroundColor Red` :
+    Write-Host "  [WARNING] Save the password securely - it won't be shown again!" -ForegroundColor Red` :
 action === 'Create Snapshot' ? `    # Create manual snapshot
     $SnapshotId = "${dbInstanceIdentifier}-snapshot-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     
@@ -1069,7 +1069,7 @@ action === 'Create Snapshot' ? `    # Create manual snapshot
         -DBSnapshotIdentifier $SnapshotId \`
         -DBInstanceIdentifier "${dbInstanceIdentifier}"
     
-    Write-Host "✓ RDS snapshot creation initiated: $SnapshotId" -ForegroundColor Green
+    Write-Host "[SUCCESS] RDS snapshot creation initiated: $SnapshotId" -ForegroundColor Green
     Write-Host "  DB Instance: ${dbInstanceIdentifier}" -ForegroundColor Cyan` :
 action === 'Modify Backup Settings' ? `    # Modify backup retention period
     Edit-RDSDBInstance \`
@@ -1077,12 +1077,12 @@ action === 'Modify Backup Settings' ? `    # Modify backup retention period
         -BackupRetentionPeriod ${backupRetentionPeriod} \`
         -ApplyImmediately \$true
     
-    Write-Host "✓ Backup settings updated for: ${dbInstanceIdentifier}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup settings updated for: ${dbInstanceIdentifier}" -ForegroundColor Green
     Write-Host "  Backup Retention: ${backupRetentionPeriod} days" -ForegroundColor Cyan` :
 `    # List RDS instances
     $Instances = Get-RDSDBInstance
     
-    Write-Host "✓ RDS Database Instances:" -ForegroundColor Green
+    Write-Host "[SUCCESS] RDS Database Instances:" -ForegroundColor Green
     $Instances | Format-Table DBInstanceIdentifier, Engine, DBInstanceClass, DBInstanceStatus, AllocatedStorage -AutoSize`}
     
 } catch {
@@ -1133,7 +1133,7 @@ ${action === 'Create Cluster' ? `    # Create EKS cluster
         -RoleArn "${roleArn}" \`
         -ResourcesVpcConfig $ResourcesVpcConfig
     
-    Write-Host "✓ EKS cluster creation initiated: ${clusterName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] EKS cluster creation initiated: ${clusterName}" -ForegroundColor Green
     Write-Host "  This may take 10-15 minutes to complete" -ForegroundColor Yellow
     Write-Host "  Role ARN: ${roleArn}" -ForegroundColor Cyan` :
 action === 'Create Node Group' ? `    # Create managed node group
@@ -1150,14 +1150,14 @@ action === 'Create Node Group' ? `    # Create managed node group
         -InstanceType @("${instanceTypes}") \`
         -NodeRole "${roleArn}"
     
-    Write-Host "✓ Node group creation initiated: ${nodeGroupName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Node group creation initiated: ${nodeGroupName}" -ForegroundColor Green
     Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
     Write-Host "  Instance Type: ${instanceTypes}" -ForegroundColor Cyan
     Write-Host "  Desired Size: ${desiredSize}" -ForegroundColor Cyan` :
 action === 'Describe Cluster' ? `    # Get cluster details
     $Cluster = Get-EKSCluster -Name "${clusterName}"
     
-    Write-Host "✓ EKS Cluster Details:" -ForegroundColor Green
+    Write-Host "[SUCCESS] EKS Cluster Details:" -ForegroundColor Green
     Write-Host "  Name: $($Cluster.Name)" -ForegroundColor Cyan
     Write-Host "  Status: $($Cluster.Status)" -ForegroundColor Cyan
     Write-Host "  Version: $($Cluster.Version)" -ForegroundColor Cyan
@@ -1166,7 +1166,7 @@ action === 'Describe Cluster' ? `    # Get cluster details
 `    # List EKS clusters
     $Clusters = Get-EKSClusterList
     
-    Write-Host "✓ EKS Clusters:" -ForegroundColor Green
+    Write-Host "[SUCCESS] EKS Clusters:" -ForegroundColor Green
     foreach ($Name in $Clusters) {
         $ClusterInfo = Get-EKSCluster -Name $Name
         Write-Host "  $Name - Status: $($ClusterInfo.Status) - Version: $($ClusterInfo.Version)" -ForegroundColor Cyan
@@ -1215,7 +1215,7 @@ ${action === 'Run Command' ? `    # Send command to instances
         -InstanceId @(${instanceIdsRaw.map(id => `"${escapePowerShellString(id)}"`).join(', ')}) \`
         -Parameter @{commands="${command}"}
     
-    Write-Host "✓ Command sent successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Command sent successfully" -ForegroundColor Green
     Write-Host "  Command ID: $($Response.CommandId)" -ForegroundColor Cyan
     Write-Host "  Targets: ${instanceIdsRaw.length} instance(s)" -ForegroundColor Cyan
     Write-Host ""
@@ -1227,13 +1227,13 @@ action === 'Put Parameter' ? `    # Store parameter
         -Type "${parameterType}" \`
         -Overwrite \$true
     
-    Write-Host "✓ Parameter stored successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Parameter stored successfully" -ForegroundColor Green
     Write-Host "  Name: ${parameterName}" -ForegroundColor Cyan
     Write-Host "  Type: ${parameterType}" -ForegroundColor Cyan` :
 action === 'Get Parameter' ? `    # Retrieve parameter
     $Parameter = Get-SSMParameter -Name "${parameterName}" -WithDecryption \$true
     
-    Write-Host "✓ Parameter retrieved successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Parameter retrieved successfully" -ForegroundColor Green
     Write-Host "  Name: $($Parameter.Name)" -ForegroundColor Cyan
     Write-Host "  Type: $($Parameter.Type)" -ForegroundColor Cyan
     Write-Host "  Value: $($Parameter.Value)" -ForegroundColor Yellow
@@ -1257,7 +1257,7 @@ action === 'Get Parameter' ? `    # Retrieve parameter
             }
         )
     
-    Write-Host "✓ Patch baseline created successfully" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Patch baseline created successfully" -ForegroundColor Green`}
     
 } catch {
     Write-Error "Systems Manager operation failed: $_"
@@ -1311,7 +1311,7 @@ ${action === 'Create ASG' ? `    # Create Auto Scaling Group
         -DesiredCapacity ${desiredCapacity} \`
         -VPCZoneIdentifier "${subnetIdsRaw.join(',')}"
     
-    Write-Host "✓ Auto Scaling Group created: ${asgName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auto Scaling Group created: ${asgName}" -ForegroundColor Green
     Write-Host "  Min Size: ${minSize}" -ForegroundColor Cyan
     Write-Host "  Max Size: ${maxSize}" -ForegroundColor Cyan
     Write-Host "  Desired Capacity: ${desiredCapacity}" -ForegroundColor Cyan` :
@@ -1322,7 +1322,7 @@ action === 'Update Capacity' ? `    # Update Auto Scaling Group capacity
         -MaxSize ${maxSize} \`
         -DesiredCapacity ${desiredCapacity}
     
-    Write-Host "✓ Auto Scaling Group updated: ${asgName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auto Scaling Group updated: ${asgName}" -ForegroundColor Green
     Write-Host "  New Min Size: ${minSize}" -ForegroundColor Cyan
     Write-Host "  New Max Size: ${maxSize}" -ForegroundColor Cyan
     Write-Host "  New Desired Capacity: ${desiredCapacity}" -ForegroundColor Cyan` :
@@ -1338,13 +1338,13 @@ action === 'Create Scaling Policy' ? `    # Create target tracking scaling polic
         -PolicyType "TargetTrackingScaling" \`
         -TargetTrackingConfiguration $TargetTrackingConfig
     
-    Write-Host "✓ Scaling policy created for: ${asgName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scaling policy created for: ${asgName}" -ForegroundColor Green
     Write-Host "  Policy Type: Target Tracking" -ForegroundColor Cyan
     Write-Host "  Target: 50% CPU Utilization" -ForegroundColor Cyan` :
 `    # List Auto Scaling Groups
     $ASGs = Get-ASAutoScalingGroup
     
-    Write-Host "✓ Auto Scaling Groups:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auto Scaling Groups:" -ForegroundColor Green
     $ASGs | Format-Table AutoScalingGroupName, MinSize, MaxSize, DesiredCapacity, @{Name="Instances";Expression={$_.Instances.Count}} -AutoSize`}
     
 } catch {
@@ -1405,7 +1405,7 @@ ${action === 'Enable Config' ? `    # Create configuration recorder
     # Start configuration recorder
     Start-CFGConfigurationRecorder -ConfigurationRecorderName "default"
     
-    Write-Host "✓ AWS Config enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] AWS Config enabled successfully" -ForegroundColor Green
     Write-Host "  S3 Bucket: ${bucketName}" -ForegroundColor Cyan
     Write-Host "  Recording: All supported resources" -ForegroundColor Cyan` :
 action === 'Create Rule' ? `    # Create managed config rule
@@ -1417,13 +1417,13 @@ action === 'Create Rule' ? `    # Create managed config rule
         -ConfigRuleName "${ruleName}" \`
         -Source $Source
     
-    Write-Host "✓ Config rule created: ${ruleName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Config rule created: ${ruleName}" -ForegroundColor Green
     Write-Host "  Type: ${ruleType}" -ForegroundColor Cyan
     Write-Host "  Source: AWS Managed Rule" -ForegroundColor Cyan` :
 action === 'Get Compliance' ? `    # Get compliance summary
     $ComplianceSummary = Get-CFGComplianceSummaryByConfigRule
     
-    Write-Host "✓ Config Rules Compliance Summary:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Config Rules Compliance Summary:" -ForegroundColor Green
     Write-Host "  Compliant Rules: $($ComplianceSummary.CompliantResourceCount.CappedCount)" -ForegroundColor Green
     Write-Host "  Non-Compliant Rules: $($ComplianceSummary.NonCompliantResourceCount.CappedCount)" -ForegroundColor Red
     Write-Host ""
@@ -1437,7 +1437,7 @@ action === 'Get Compliance' ? `    # Get compliance summary
 `    # List all config rules
     $Rules = Get-CFGConfigRule
     
-    Write-Host "✓ AWS Config Rules:" -ForegroundColor Green
+    Write-Host "[SUCCESS] AWS Config Rules:" -ForegroundColor Green
     $Rules | Format-Table ConfigRuleName, ConfigRuleState, @{Name="Source";Expression={$_.Source.Owner}} -AutoSize`}
     
 } catch {
@@ -1488,7 +1488,7 @@ ${action === 'Create ALB' ? `    # Create Application Load Balancer
         -Scheme "internet-facing" \`
         -IpAddressType "ipv4"
     
-    Write-Host "✓ Application Load Balancer created: ${lbName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Application Load Balancer created: ${lbName}" -ForegroundColor Green
     Write-Host "  ARN: $($LoadBalancer[0].LoadBalancerArn)" -ForegroundColor Cyan
     Write-Host "  DNS Name: $($LoadBalancer[0].DNSName)" -ForegroundColor Yellow
     Write-Host "  State: $($LoadBalancer[0].State.Code)" -ForegroundColor Cyan` :
@@ -1505,7 +1505,7 @@ action === 'Create Target Group' ? `    # Create target group
         -HealthyThresholdCount 2 \`
         -UnhealthyThresholdCount 2
     
-    Write-Host "✓ Target Group created: ${targetGroupName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Group created: ${targetGroupName}" -ForegroundColor Green
     Write-Host "  ARN: $($TargetGroup.TargetGroupArn)" -ForegroundColor Cyan
     Write-Host "  Protocol: HTTP" -ForegroundColor Cyan
     Write-Host "  Port: ${port}" -ForegroundColor Cyan` :
@@ -1529,14 +1529,14 @@ action === 'Create Listener' ? `    # Get load balancer ARN
         -Port ${port} \`
         -DefaultAction $DefaultAction
     
-    Write-Host "✓ Listener created for load balancer: ${lbName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Listener created for load balancer: ${lbName}" -ForegroundColor Green
     Write-Host "  Protocol: HTTP" -ForegroundColor Cyan
     Write-Host "  Port: ${port}" -ForegroundColor Cyan
     Write-Host "  Target Group: ${targetGroupName}" -ForegroundColor Cyan` :
 `    # List load balancers
     $LoadBalancers = Get-ELB2LoadBalancer
     
-    Write-Host "✓ Elastic Load Balancers:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Elastic Load Balancers:" -ForegroundColor Green
     $LoadBalancers | Format-Table LoadBalancerName, Type, Scheme, State, DNSName -AutoSize`}
     
 } catch {
@@ -1573,7 +1573,7 @@ try {
 ${action === 'Create Organization' ? `    # Create organization
     $Organization = New-ORGOrganization -FeatureSet "ALL"
     
-    Write-Host "✓ AWS Organization created" -ForegroundColor Green
+    Write-Host "[SUCCESS] AWS Organization created" -ForegroundColor Green
     Write-Host "  Organization ID: $($Organization.Id)" -ForegroundColor Cyan
     Write-Host "  Master Account ID: $($Organization.MasterAccountId)" -ForegroundColor Cyan
     Write-Host "  Feature Set: ALL" -ForegroundColor Cyan` :
@@ -1586,7 +1586,7 @@ action === 'Create OU' ? `    # Get root ID
         -ParentId $RootId \`
         -Name "${ouName}"
     
-    Write-Host "✓ Organizational Unit created: ${ouName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Organizational Unit created: ${ouName}" -ForegroundColor Green
     Write-Host "  OU ID: $($OU.Id)" -ForegroundColor Cyan
     Write-Host "  Parent: Root" -ForegroundColor Cyan` :
 action === 'Create Account' ? `    # Create new account
@@ -1594,7 +1594,7 @@ action === 'Create Account' ? `    # Create new account
         -AccountName "${accountName}" \`
         -Email "${accountEmail}"
     
-    Write-Host "✓ Account creation initiated: ${accountName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Account creation initiated: ${accountName}" -ForegroundColor Green
     Write-Host "  Request ID: $($Request.Id)" -ForegroundColor Cyan
     Write-Host "  Email: ${accountEmail}" -ForegroundColor Cyan
     Write-Host "  Status: $($Request.State)" -ForegroundColor Yellow
@@ -1623,14 +1623,14 @@ action === 'Attach SCP' ? `    # Create service control policy
         -Content $PolicyDocument \`
         -Type "SERVICE_CONTROL_POLICY"
     
-    Write-Host "✓ Service Control Policy created: ${policyName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service Control Policy created: ${policyName}" -ForegroundColor Green
     Write-Host "  Policy ID: $($Policy.PolicySummary.Id)" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Use Add-ORGPolicy to attach this policy to an account or OU" -ForegroundColor Yellow` :
 `    # List all accounts
     $Accounts = Get-ORGAccountList
     
-    Write-Host "✓ AWS Organization Accounts:" -ForegroundColor Green
+    Write-Host "[SUCCESS] AWS Organization Accounts:" -ForegroundColor Green
     $Accounts | Format-Table Id, Name, Email, Status, JoinedTimestamp -AutoSize`}
     
 } catch {
@@ -1674,37 +1674,37 @@ ${action === 'Create Secret' ? `    # Create secret
         -Description "${description}" \`
         -SecretString "${secretValue}"
     
-    Write-Host "✓ Secret created: ${secretName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Secret created: ${secretName}" -ForegroundColor Green
     Write-Host "  ARN: $($Secret.ARN)" -ForegroundColor Cyan
     Write-Host "  Version ID: $($Secret.VersionId)" -ForegroundColor Cyan` :
 action === 'Get Secret Value' ? `    # Retrieve secret value
     $Secret = Get-SECSecretValue -SecretId "${secretName}"
     
-    Write-Host "✓ Secret retrieved: ${secretName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Secret retrieved: ${secretName}" -ForegroundColor Green
     Write-Host "  ARN: $($Secret.ARN)" -ForegroundColor Cyan
     Write-Host "  Created: $($Secret.CreatedDate)" -ForegroundColor Cyan
     Write-Host "  Value: $($Secret.SecretString)" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "⚠ Handle this secret value securely!" -ForegroundColor Red` :
+    Write-Host "[WARNING] Handle this secret value securely!" -ForegroundColor Red` :
 action === 'Update Secret' ? `    # Update secret value
     Update-SECSecret \`
         -SecretId "${secretName}" \`
         -SecretString "${secretValue}"
     
-    Write-Host "✓ Secret updated: ${secretName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Secret updated: ${secretName}" -ForegroundColor Green` :
 action === 'Enable Rotation' ? `    # Enable automatic rotation
     Update-SECSecretRotation \`
         -SecretId "${secretName}" \`
         -RotationLambdaARN "${rotationLambdaArn}" \`
         -RotationRules_AutomaticallyAfterDays 30
     
-    Write-Host "✓ Rotation enabled for: ${secretName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Rotation enabled for: ${secretName}" -ForegroundColor Green
     Write-Host "  Lambda ARN: ${rotationLambdaArn}" -ForegroundColor Cyan
     Write-Host "  Rotation Period: 30 days" -ForegroundColor Cyan` :
 `    # List all secrets
     $Secrets = Get-SECSecretList
     
-    Write-Host "✓ AWS Secrets:" -ForegroundColor Green
+    Write-Host "[SUCCESS] AWS Secrets:" -ForegroundColor Green
     $Secrets | Format-Table Name, Description, LastChangedDate, LastRotatedDate -AutoSize`}
     
 } catch {
@@ -1755,7 +1755,7 @@ ${action === 'Create Trail' ? `    # Create CloudTrail trail
     # Start logging
     Start-CTLogging -Name "${trailName}"
     
-    Write-Host "✓ CloudTrail trail created and started: ${trailName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudTrail trail created and started: ${trailName}" -ForegroundColor Green
     Write-Host "  S3 Bucket: ${bucketName}" -ForegroundColor Cyan
     Write-Host "  Multi-Region: ${isMultiRegion}" -ForegroundColor Cyan
     Write-Host "  Global Events: ${includeGlobalEvents}" -ForegroundColor Cyan
@@ -1763,11 +1763,11 @@ ${action === 'Create Trail' ? `    # Create CloudTrail trail
 action === 'Start Logging' ? `    # Start logging for trail
     Start-CTLogging -Name "${trailName}"
     
-    Write-Host "✓ Logging started for trail: ${trailName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Logging started for trail: ${trailName}" -ForegroundColor Green` :
 action === 'Stop Logging' ? `    # Stop logging for trail
     Stop-CTLogging -Name "${trailName}"
     
-    Write-Host "✓ Logging stopped for trail: ${trailName}" -ForegroundColor Yellow` :
+    Write-Host "[SUCCESS] Logging stopped for trail: ${trailName}" -ForegroundColor Yellow` :
 action === 'Lookup Events' ? `    # Lookup recent events
     $LookupAttributes = New-Object Amazon.CloudTrail.Model.LookupAttribute
     $LookupAttributes.AttributeKey = "EventName"
@@ -1775,7 +1775,7 @@ action === 'Lookup Events' ? `    # Lookup recent events
     
     $Events = Find-CTEvent -LookupAttribute $LookupAttributes -MaxResult 50
     
-    Write-Host "✓ CloudTrail Events (Event: ${eventName}):" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudTrail Events (Event: ${eventName}):" -ForegroundColor Green
     foreach ($Event in $Events) {
         Write-Host ""
         Write-Host "  Event Time: $($Event.EventTime)" -ForegroundColor Cyan
@@ -1789,7 +1789,7 @@ action === 'Lookup Events' ? `    # Lookup recent events
 `    # List all trails
     $Trails = Get-CTTrail
     
-    Write-Host "✓ CloudTrail Trails:" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudTrail Trails:" -ForegroundColor Green
     foreach ($Trail in $Trails) {
         $Status = Get-CTTrailStatus -Name $Trail.Name
         Write-Host ""
@@ -1837,7 +1837,7 @@ try {
         -PreferredBackupWindow "${backupWindow}" \`
         -ApplyImmediately \\$true
     
-    Write-Host "✓ RDS automated snapshots configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] RDS automated snapshots configured" -ForegroundColor Green
     Write-Host "  DB Instance: ${dbInstanceId}" -ForegroundColor Cyan
     Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Cyan
     Write-Host "  Backup Window: ${backupWindow}" -ForegroundColor Cyan
@@ -1882,16 +1882,16 @@ ${policyDoc}
         -PolicyDocument $PolicyDocument \`
         -Description "Custom policy created via PowerShell"
     
-    Write-Host "✓ IAM policy created: ${policyName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] IAM policy created: ${policyName}" -ForegroundColor Green
     Write-Host "  Policy ARN: $($Policy.Arn)" -ForegroundColor Cyan
     
     # Attach policy
     ${attachTo === 'User' ? `Register-IAMUserPolicy -UserName "${targetName}" -PolicyArn $Policy.Arn
-    Write-Host "✓ Policy attached to user: ${targetName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Policy attached to user: ${targetName}" -ForegroundColor Green` :
     attachTo === 'Group' ? `Register-IAMGroupPolicy -GroupName "${targetName}" -PolicyArn $Policy.Arn
-    Write-Host "✓ Policy attached to group: ${targetName}" -ForegroundColor Green` :
+    Write-Host "[SUCCESS] Policy attached to group: ${targetName}" -ForegroundColor Green` :
     `Register-IAMRolePolicy -RoleName "${targetName}" -PolicyArn $Policy.Arn
-    Write-Host "✓ Policy attached to role: ${targetName}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Policy attached to role: ${targetName}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "IAM policy operation failed: $_"
@@ -1935,12 +1935,12 @@ try {
     # Tag the peering connection
     New-EC2Tag -Resource $PeeringId -Tag @{Key="Name"; Value="${peeringName}"}
     
-    Write-Host "✓ VPC peering connection created: $PeeringId" -ForegroundColor Green
+    Write-Host "[SUCCESS] VPC peering connection created: $PeeringId" -ForegroundColor Green
     Write-Host "  Name: ${peeringName}" -ForegroundColor Cyan
     Write-Host "  Requester VPC: ${requesterVpc}" -ForegroundColor Cyan
     Write-Host "  Accepter VPC: ${accepterVpc}" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "⚠️ Next step: Accept peering connection:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Next step: Accept peering connection:" -ForegroundColor Yellow
     Write-Host "  Approve-EC2VpcPeeringConnection -VpcPeeringConnectionId $PeeringId" -ForegroundColor Gray
     
 } catch {
@@ -1999,7 +1999,7 @@ try {
     
     Write-CWMetricAlarm @AlarmParams
     
-    Write-Host "✓ CloudWatch alarm created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudWatch alarm created successfully" -ForegroundColor Green
     Write-Host "  Alarm Name: ${alarmName}" -ForegroundColor Cyan
     Write-Host "  Metric: ${metricName}" -ForegroundColor Cyan
     Write-Host "  Instance: ${instanceId}" -ForegroundColor Cyan
@@ -2039,7 +2039,7 @@ try {
     # Allocate Elastic IP
     $EIP = New-EC2Address -Domain ${domain}
     
-    Write-Host "✓ Elastic IP allocated: $($EIP.PublicIp)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Elastic IP allocated: $($EIP.PublicIp)" -ForegroundColor Green
     Write-Host "  Allocation ID: $($EIP.AllocationId)" -ForegroundColor Cyan
     
     # Associate with instance
@@ -2047,7 +2047,7 @@ try {
         -InstanceId "${instanceId}" \`
         -AllocationId $EIP.AllocationId
     
-    Write-Host "✓ Elastic IP associated with instance" -ForegroundColor Green
+    Write-Host "[SUCCESS] Elastic IP associated with instance" -ForegroundColor Green
     Write-Host "  Instance ID: ${instanceId}" -ForegroundColor Cyan
     Write-Host "  Public IP: $($EIP.PublicIp)" -ForegroundColor Cyan
     Write-Host "  Association ID: $($Association.AssociationId)" -ForegroundColor Gray
@@ -2103,7 +2103,7 @@ try {
         -HealthCheckType EC2 \`
         -HealthCheckGracePeriod 300
     
-    Write-Host "✓ Auto Scaling Group created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auto Scaling Group created successfully" -ForegroundColor Green
     Write-Host "  ASG Name: ${asgName}" -ForegroundColor Cyan
     Write-Host "  Launch Configuration: ${lcName}" -ForegroundColor Cyan
     Write-Host "  Min Size: ${minSize}" -ForegroundColor Cyan
@@ -2162,7 +2162,7 @@ try {
         -Timeout 30 \`
         -MemorySize 256
     
-    Write-Host "✓ Lambda function created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lambda function created successfully" -ForegroundColor Green
     Write-Host "  Function Name: ${functionName}" -ForegroundColor Cyan
     Write-Host "  Runtime: ${runtime}" -ForegroundColor Cyan
     Write-Host "  Handler: ${handler}" -ForegroundColor Cyan
@@ -2229,7 +2229,7 @@ try {
         -ResourceId $HealthCheck.HealthCheck.Id \`
         -AddTag $Tag
     
-    Write-Host "✓ Route53 health check created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Route53 health check created successfully" -ForegroundColor Green
     Write-Host "  Health Check ID: $($HealthCheck.HealthCheck.Id)" -ForegroundColor Cyan
     Write-Host "  Name: ${healthCheckName}" -ForegroundColor Cyan
     Write-Host "  IP Address: ${ipAddress}" -ForegroundColor Cyan
@@ -2278,7 +2278,7 @@ try {
         -Description "${description}" \`
         -NoReboot ${noReboot}
     
-    Write-Host "✓ AMI creation initiated" -ForegroundColor Green
+    Write-Host "[SUCCESS] AMI creation initiated" -ForegroundColor Green
     Write-Host "  AMI ID: $($AMI)" -ForegroundColor Cyan
     Write-Host "  Source Instance: ${instanceId}" -ForegroundColor Cyan
     Write-Host "  Name: ${amiName}" -ForegroundColor Cyan
@@ -2295,9 +2295,9 @@ try {
     } while ($Image.State -eq "pending" -and $Attempts -lt 20)
     
     if ($Image.State -eq "available") {
-        Write-Host "✓ AMI is now available" -ForegroundColor Green
+        Write-Host "[SUCCESS] AMI is now available" -ForegroundColor Green
     } else {
-        Write-Host "⚠ AMI creation still in progress. Check console for status." -ForegroundColor Yellow
+        Write-Host "[WARNING] AMI creation still in progress. Check console for status." -ForegroundColor Yellow
     }
     
 } catch {
@@ -2350,7 +2350,7 @@ ${action === 'Create Security Group' ? `    # Create security group
         -Description "${description}" \`
         -VpcId "${vpcId}"
     
-    Write-Host "✓ Security group created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security group created" -ForegroundColor Green
     Write-Host "  Security Group ID: $SG" -ForegroundColor Cyan
     Write-Host "  Name: ${groupName}" -ForegroundColor Cyan
     Write-Host "  VPC: ${vpcId}" -ForegroundColor Cyan` :
@@ -2368,7 +2368,7 @@ action === 'Add Inbound Rule' ? `    # Create inbound rule
         -GroupId "${securityGroupId}" \`
         -IpPermission $IpPermission
     
-    Write-Host "✓ Inbound rule added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inbound rule added" -ForegroundColor Green
     Write-Host "  Security Group: ${securityGroupId}" -ForegroundColor Cyan
     Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
     Write-Host "  Ports: ${fromPort}-${toPort}" -ForegroundColor Cyan
@@ -2386,7 +2386,7 @@ action === 'Add Outbound Rule' ? `    # Create outbound rule
         -GroupId "${securityGroupId}" \`
         -IpPermission $IpPermission
     
-    Write-Host "✓ Outbound rule added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Outbound rule added" -ForegroundColor Green
     Write-Host "  Security Group: ${securityGroupId}" -ForegroundColor Cyan
     Write-Host "  Protocol: ${protocol}" -ForegroundColor Cyan
     Write-Host "  Ports: ${fromPort}-${toPort}" -ForegroundColor Cyan
@@ -2394,7 +2394,7 @@ action === 'Add Outbound Rule' ? `    # Create outbound rule
 `    # List security group rules
     $SG = Get-EC2SecurityGroup -GroupId "${securityGroupId}"
     
-    Write-Host "✓ Security Group Details" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security Group Details" -ForegroundColor Green
     Write-Host "  Name: $($SG.GroupName)" -ForegroundColor Cyan
     Write-Host "  ID: $($SG.GroupId)" -ForegroundColor Cyan
     Write-Host ""
@@ -2457,7 +2457,7 @@ ${action === 'Create Volume' ? `    # Create EBS volume
         -VolumeType "${volumeType}" \`
         -Encrypted ${encrypted}
     
-    Write-Host "✓ EBS volume created" -ForegroundColor Green
+    Write-Host "[SUCCESS] EBS volume created" -ForegroundColor Green
     Write-Host "  Volume ID: $($Volume.VolumeId)" -ForegroundColor Cyan
     Write-Host "  Size: ${volumeSize} GB" -ForegroundColor Cyan
     Write-Host "  Type: ${volumeType}" -ForegroundColor Cyan
@@ -2469,28 +2469,28 @@ action === 'Attach Volume' ? `    # Attach volume to instance
         -InstanceId "${instanceId}" \`
         -Device "${deviceName}"
     
-    Write-Host "✓ Volume attached successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume attached successfully" -ForegroundColor Green
     Write-Host "  Volume: ${volumeId}" -ForegroundColor Cyan
     Write-Host "  Instance: ${instanceId}" -ForegroundColor Cyan
     Write-Host "  Device: ${deviceName}" -ForegroundColor Cyan` :
 action === 'Detach Volume' ? `    # Detach volume from instance
     Dismount-EC2Volume -VolumeId "${volumeId}" -Force
     
-    Write-Host "✓ Volume detached successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume detached successfully" -ForegroundColor Green
     Write-Host "  Volume: ${volumeId}" -ForegroundColor Cyan` :
 action === 'Create Snapshot' ? `    # Create snapshot of volume
     $Snapshot = New-EC2Snapshot \`
         -VolumeId "${volumeId}" \`
         -Description "Snapshot created via PowerShell - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     
-    Write-Host "✓ Snapshot creation initiated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Snapshot creation initiated" -ForegroundColor Green
     Write-Host "  Snapshot ID: $($Snapshot.SnapshotId)" -ForegroundColor Cyan
     Write-Host "  Volume: ${volumeId}" -ForegroundColor Cyan
     Write-Host "  Status: $($Snapshot.State)" -ForegroundColor Cyan` :
 `    # List EBS volumes
     $Volumes = Get-EC2Volume
     
-    Write-Host "✓ EBS Volumes:" -ForegroundColor Green
+    Write-Host "[SUCCESS] EBS Volumes:" -ForegroundColor Green
     $Volumes | Format-Table VolumeId, Size, VolumeType, State, AvailabilityZone, Encrypted -AutoSize`}
     
 } catch {
@@ -2531,7 +2531,7 @@ ${policyType === 'Block Public Access' ? `    # Configure public access block
         -PublicAccessBlockConfiguration_IgnorePublicAcl \$true \`
         -PublicAccessBlockConfiguration_RestrictPublicBucket \$true
     
-    Write-Host "✓ Public access blocked for bucket: ${bucketName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Public access blocked for bucket: ${bucketName}" -ForegroundColor Green
     Write-Host "  BlockPublicAcls: Enabled" -ForegroundColor Cyan
     Write-Host "  BlockPublicPolicy: Enabled" -ForegroundColor Cyan
     Write-Host "  IgnorePublicAcls: Enabled" -ForegroundColor Cyan
@@ -2560,7 +2560,7 @@ policyType === 'Allow Cross-Account Access' ? `    # Create cross-account access
     
     Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
     
-    Write-Host "✓ Cross-account access policy applied" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cross-account access policy applied" -ForegroundColor Green
     Write-Host "  Bucket: ${bucketName}" -ForegroundColor Cyan
     Write-Host "  Granted to Account: ${crossAccountId}" -ForegroundColor Cyan` :
 policyType === 'Require SSL' ? `    # Create SSL-only policy
@@ -2587,7 +2587,7 @@ policyType === 'Require SSL' ? `    # Create SSL-only policy
     
     Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
     
-    Write-Host "✓ SSL-only policy applied" -ForegroundColor Green
+    Write-Host "[SUCCESS] SSL-only policy applied" -ForegroundColor Green
     Write-Host "  Bucket: ${bucketName}" -ForegroundColor Cyan
     Write-Host "  Non-SSL requests: Denied" -ForegroundColor Cyan` :
 `    # Create CloudFront OAI access policy
@@ -2608,7 +2608,7 @@ policyType === 'Require SSL' ? `    # Create SSL-only policy
     
     Write-S3BucketPolicy -BucketName "${bucketName}" -Policy $Policy
     
-    Write-Host "✓ CloudFront OAI access policy applied" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudFront OAI access policy applied" -ForegroundColor Green
     Write-Host "  Bucket: ${bucketName}" -ForegroundColor Cyan
     Write-Host "  CloudFront OAI: ${cloudfrontOAI}" -ForegroundColor Cyan`}
     
@@ -2730,7 +2730,7 @@ ${direction === 'Upload to S3' ? `    # Upload local files to S3
     }`}
     
     Write-Host ""
-    Write-Host "✓ Sync completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sync completed" -ForegroundColor Green
     Write-Host "  Files processed: $($Stats.Uploaded + $Stats.Downloaded)" -ForegroundColor Cyan
     Write-Host "  Files skipped: $($Stats.Skipped)" -ForegroundColor Gray
     Write-Host "  Files deleted: $($Stats.Deleted)" -ForegroundColor $(if ($Stats.Deleted -gt 0) { "Red" } else { "Gray" })
@@ -2790,7 +2790,7 @@ ${action === 'Create Role' ? `    # Create trust policy document
         -AssumeRolePolicyDocument $TrustPolicy \`
         -Description "${description}"
     
-    Write-Host "✓ IAM role created" -ForegroundColor Green
+    Write-Host "[SUCCESS] IAM role created" -ForegroundColor Green
     Write-Host "  Role Name: ${roleName}" -ForegroundColor Cyan
     Write-Host "  Role ARN: $($Role.Arn)" -ForegroundColor Cyan
     Write-Host "  Trusted Service: ${trustedService}" -ForegroundColor Cyan` :
@@ -2799,7 +2799,7 @@ action === 'Attach Policy' ? `    # Attach policy to role
         -RoleName "${roleName}" \`
         -PolicyArn "${policyArn}"
     
-    Write-Host "✓ Policy attached to role" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy attached to role" -ForegroundColor Green
     Write-Host "  Role: ${roleName}" -ForegroundColor Cyan
     Write-Host "  Policy: ${policyArn}" -ForegroundColor Cyan` :
 action === 'List Role Policies' ? `    # List attached policies
@@ -2849,7 +2849,7 @@ action === 'List Role Policies' ? `    # List attached policies
     # Delete the role
     Remove-IAMRole -RoleName "${roleName}" -Force
     
-    Write-Host "✓ IAM role deleted: ${roleName}" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] IAM role deleted: ${roleName}" -ForegroundColor Green`}
     
 } catch {
     Write-Error "IAM role operation failed: $_"
@@ -2896,9 +2896,9 @@ try {
         if ($DeleteOld) {
             $OldestKey = $ExistingKeys | Sort-Object CreateDate | Select-Object -First 1
             Remove-IAMAccessKey -UserName "${userName}" -AccessKeyId $OldestKey.AccessKeyId -Force
-            Write-Host "✓ Deleted oldest key: $($OldestKey.AccessKeyId)" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] Deleted oldest key: $($OldestKey.AccessKeyId)" -ForegroundColor Yellow
         } else {
-            Write-Host "⚠ User already has 2 access keys. Cannot create more until one is deleted." -ForegroundColor Red
+            Write-Host "[WARNING] User already has 2 access keys. Cannot create more until one is deleted." -ForegroundColor Red
             Write-Host "  Set 'Delete Old Keys' to true to automatically delete the oldest key." -ForegroundColor Yellow
             exit
         }
@@ -2907,11 +2907,11 @@ try {
     # Create new access key
     $NewKey = New-IAMAccessKey -UserName "${userName}"
     
-    Write-Host "✓ New access key created" -ForegroundColor Green
+    Write-Host "[SUCCESS] New access key created" -ForegroundColor Green
     Write-Host "  Access Key ID: $($NewKey.AccessKeyId)" -ForegroundColor Cyan
     Write-Host "  Secret Access Key: $($NewKey.SecretAccessKey)" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "⚠ IMPORTANT: Save the secret key now - it cannot be retrieved later!" -ForegroundColor Red
+    Write-Host "[WARNING] IMPORTANT: Save the secret key now - it cannot be retrieved later!" -ForegroundColor Red
     Write-Host ""
     
     # Handle old keys
@@ -2920,10 +2920,10 @@ try {
     foreach ($OldKey in $ExistingKeys) {
         if ($DeleteOld) {
             Remove-IAMAccessKey -UserName "${userName}" -AccessKeyId $OldKey.AccessKeyId -Force
-            Write-Host "✓ Deleted old key: $($OldKey.AccessKeyId)" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] Deleted old key: $($OldKey.AccessKeyId)" -ForegroundColor Yellow
         } elseif ($DeactivateOld -and $OldKey.Status -eq "Active") {
             Update-IAMAccessKey -UserName "${userName}" -AccessKeyId $OldKey.AccessKeyId -Status Inactive
-            Write-Host "✓ Deactivated old key: $($OldKey.AccessKeyId)" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] Deactivated old key: $($OldKey.AccessKeyId)" -ForegroundColor Yellow
         }
     }
     
@@ -2976,7 +2976,7 @@ ${action === 'Create Parameter Group' ? `    # Create parameter group
         -DBParameterGroupFamily "${family}" \`
         -Description "${description}"
     
-    Write-Host "✓ Parameter group created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Parameter group created" -ForegroundColor Green
     Write-Host "  Name: ${parameterGroupName}" -ForegroundColor Cyan
     Write-Host "  Family: ${family}" -ForegroundColor Cyan` :
 action === 'Modify Parameters' ? `    # Modify parameter
@@ -2989,7 +2989,7 @@ action === 'Modify Parameters' ? `    # Modify parameter
         -DBParameterGroupName "${parameterGroupName}" \`
         -Parameter $Parameter
     
-    Write-Host "✓ Parameter modified" -ForegroundColor Green
+    Write-Host "[SUCCESS] Parameter modified" -ForegroundColor Green
     Write-Host "  Group: ${parameterGroupName}" -ForegroundColor Cyan
     Write-Host "  Parameter: ${parameterName} = ${parameterValue}" -ForegroundColor Cyan
     Write-Host "  Note: Requires instance reboot to apply" -ForegroundColor Yellow` :
@@ -2999,7 +2999,7 @@ action === 'Apply to Instance' ? `    # Apply parameter group to instance
         -DBParameterGroupName "${parameterGroupName}" \`
         -ApplyImmediately \$true
     
-    Write-Host "✓ Parameter group applied" -ForegroundColor Green
+    Write-Host "[SUCCESS] Parameter group applied" -ForegroundColor Green
     Write-Host "  Instance: ${dbInstanceId}" -ForegroundColor Cyan
     Write-Host "  Parameter Group: ${parameterGroupName}" -ForegroundColor Cyan
     Write-Host "  Note: Some parameters require reboot to take effect" -ForegroundColor Yellow` :
@@ -3069,7 +3069,7 @@ ${action === 'Create Layer' ? `    # Read layer package
         -ZipFile $MemoryStream \`
         -CompatibleRuntime @("${compatibleRuntimes}")
     
-    Write-Host "✓ Lambda layer published" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lambda layer published" -ForegroundColor Green
     Write-Host "  Layer Name: ${layerName}" -ForegroundColor Cyan
     Write-Host "  Version: $($Layer.Version)" -ForegroundColor Cyan
     Write-Host "  Layer ARN: $($Layer.LayerVersionArn)" -ForegroundColor Cyan
@@ -3094,7 +3094,7 @@ action === 'Delete Layer Version' ? `    # Extract version from ARN
     
     Remove-LMLayerVersion -LayerName "${layerName}" -VersionNumber $Version
     
-    Write-Host "✓ Layer version deleted" -ForegroundColor Green
+    Write-Host "[SUCCESS] Layer version deleted" -ForegroundColor Green
     Write-Host "  Layer: ${layerName}" -ForegroundColor Cyan
     Write-Host "  Version: $Version" -ForegroundColor Cyan` :
 `    # Add layer to function
@@ -3109,7 +3109,7 @@ action === 'Delete Layer Version' ? `    # Extract version from ARN
         -FunctionName "${functionName}" \`
         -Layer $NewLayers
     
-    Write-Host "✓ Layer added to function" -ForegroundColor Green
+    Write-Host "[SUCCESS] Layer added to function" -ForegroundColor Green
     Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
     Write-Host "  Layer: ${layerVersionArn}" -ForegroundColor Cyan
     Write-Host "  Total layers: $($NewLayers.Count)" -ForegroundColor Cyan`}
@@ -3153,7 +3153,7 @@ try {
 ${action === 'Create Log Group' ? `    # Create log group
     New-CWLLogGroup -LogGroupName "${logGroupName}"
     
-    Write-Host "✓ Log group created: ${logGroupName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Log group created: ${logGroupName}" -ForegroundColor Green
     
     # Set retention if specified
 ${retentionDays > 0 ? `    Write-CWLRetentionPolicy -LogGroupName "${logGroupName}" -RetentionInDays ${retentionDays}
@@ -3161,11 +3161,11 @@ ${retentionDays > 0 ? `    Write-CWLRetentionPolicy -LogGroupName "${logGroupNam
 action === 'Set Retention' ? `    # Set retention policy
 ${retentionDays > 0 ? `    Write-CWLRetentionPolicy -LogGroupName "${logGroupName}" -RetentionInDays ${retentionDays}
     
-    Write-Host "✓ Retention policy updated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retention policy updated" -ForegroundColor Green
     Write-Host "  Log Group: ${logGroupName}" -ForegroundColor Cyan
     Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Cyan` : `    Remove-CWLRetentionPolicy -LogGroupName "${logGroupName}"
     
-    Write-Host "✓ Retention policy removed (logs never expire)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Retention policy removed (logs never expire)" -ForegroundColor Green
     Write-Host "  Log Group: ${logGroupName}" -ForegroundColor Cyan`}` :
 action === 'Query Logs' ? `    # Query logs using CloudWatch Logs Insights
     $StartTime = (Get-Date).AddHours(-${startTime})
@@ -3194,7 +3194,7 @@ fields @timestamp, @message
         $Status = Get-CWLQueryResult -QueryId $QueryId
     } while ($Status.Status -eq "Running")
     
-    Write-Host "✓ Query completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Query completed" -ForegroundColor Green
     Write-Host "  Records scanned: $($Status.Statistics.RecordsScanned)" -ForegroundColor Gray
     Write-Host "  Records matched: $($Status.Statistics.RecordsMatched)" -ForegroundColor Gray
     Write-Host ""
@@ -3208,12 +3208,12 @@ fields @timestamp, @message
 action === 'Delete Log Group' ? `    # Delete log group
     Remove-CWLLogGroup -LogGroupName "${logGroupName}" -Force
     
-    Write-Host "✓ Log group deleted: ${logGroupName}" -ForegroundColor Green
-    Write-Host "  ⚠ All logs have been permanently deleted" -ForegroundColor Yellow` :
+    Write-Host "[SUCCESS] Log group deleted: ${logGroupName}" -ForegroundColor Green
+    Write-Host "  [WARNING] All logs have been permanently deleted" -ForegroundColor Yellow` :
 `    # List log groups
     $LogGroups = Get-CWLLogGroup
     
-    Write-Host "✓ CloudWatch Log Groups:" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudWatch Log Groups:" -ForegroundColor Green
     Write-Host ""
     
     $LogGroups | ForEach-Object {
@@ -3355,7 +3355,7 @@ ${lambdaFunctionsRaw.length > 0 ? `    # Lambda Invocations Widget
     # Create/update dashboard
     Write-CWDashboard -DashboardName "${dashboardName}" -DashboardBody $DashboardBody
     
-    Write-Host "✓ CloudWatch dashboard created/updated" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudWatch dashboard created/updated" -ForegroundColor Green
     Write-Host "  Dashboard: ${dashboardName}" -ForegroundColor Cyan
     Write-Host "  Region: ${region}" -ForegroundColor Cyan
     Write-Host "  Widgets: $($Widgets.Count)" -ForegroundColor Cyan
@@ -3414,7 +3414,7 @@ ${action === 'Create Subnet' ? `    # Create subnet
     $Tag.Value = "${subnetName}"
     New-EC2Tag -Resource $Subnet.SubnetId -Tag $Tag
     
-    Write-Host "✓ Subnet created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Subnet created" -ForegroundColor Green
     Write-Host "  Subnet ID: $($Subnet.SubnetId)" -ForegroundColor Cyan
     Write-Host "  Name: ${subnetName}" -ForegroundColor Cyan
     Write-Host "  VPC: ${vpcId}" -ForegroundColor Cyan
@@ -3425,7 +3425,7 @@ action === 'Associate Route Table' ? `    # Associate route table with subnet
         -RouteTableId "${routeTableId}" \`
         -SubnetId "${subnetId}"
     
-    Write-Host "✓ Route table associated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Route table associated" -ForegroundColor Green
     Write-Host "  Subnet: ${subnetId}" -ForegroundColor Cyan
     Write-Host "  Route Table: ${routeTableId}" -ForegroundColor Cyan
     Write-Host "  Association ID: $($Association)" -ForegroundColor Cyan` :
@@ -3434,13 +3434,13 @@ action === 'Enable Auto-Assign IP' ? `    # Enable auto-assign public IP
         -SubnetId "${subnetId}" \`
         -MapPublicIpOnLaunch \$true
     
-    Write-Host "✓ Auto-assign public IP enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Auto-assign public IP enabled" -ForegroundColor Green
     Write-Host "  Subnet: ${subnetId}" -ForegroundColor Cyan
     Write-Host "  New instances will receive public IPs automatically" -ForegroundColor Yellow` :
 `    # List subnets in VPC
     $Subnets = Get-EC2Subnet -Filter @{Name="vpc-id";Values="${vpcId}"}
     
-    Write-Host "✓ Subnets in VPC ${vpcId}:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Subnets in VPC ${vpcId}:" -ForegroundColor Green
     Write-Host ""
     
     $Subnets | ForEach-Object {
@@ -3505,7 +3505,7 @@ ${action === 'Create NAT Gateway' ? `    # Create NAT Gateway
     $Tag.Value = "${natGatewayName}"
     New-EC2Tag -Resource $NatGateway.NatGateway.NatGatewayId -Tag $Tag
     
-    Write-Host "✓ NAT Gateway creation initiated" -ForegroundColor Green
+    Write-Host "[SUCCESS] NAT Gateway creation initiated" -ForegroundColor Green
     Write-Host "  NAT Gateway ID: $($NatGateway.NatGateway.NatGatewayId)" -ForegroundColor Cyan
     Write-Host "  Name: ${natGatewayName}" -ForegroundColor Cyan
     Write-Host "  Subnet: ${subnetId}" -ForegroundColor Cyan
@@ -3523,7 +3523,7 @@ ${action === 'Create NAT Gateway' ? `    # Create NAT Gateway
     } while ($Status.State -eq "pending" -and $Attempts -lt 20)
     
     if ($Status.State -eq "available") {
-        Write-Host "✓ NAT Gateway is now available" -ForegroundColor Green
+        Write-Host "[SUCCESS] NAT Gateway is now available" -ForegroundColor Green
     }` :
 action === 'Add Route to Private Subnet' ? `    # Add route to NAT Gateway in private route table
     New-EC2Route \`
@@ -3531,7 +3531,7 @@ action === 'Add Route to Private Subnet' ? `    # Add route to NAT Gateway in pr
         -DestinationCidrBlock "0.0.0.0/0" \`
         -NatGatewayId "${natGatewayId}"
     
-    Write-Host "✓ Route added to private subnet" -ForegroundColor Green
+    Write-Host "[SUCCESS] Route added to private subnet" -ForegroundColor Green
     Write-Host "  Route Table: ${routeTableId}" -ForegroundColor Cyan
     Write-Host "  Destination: 0.0.0.0/0" -ForegroundColor Cyan
     Write-Host "  NAT Gateway: ${natGatewayId}" -ForegroundColor Cyan
@@ -3540,13 +3540,13 @@ action === 'Add Route to Private Subnet' ? `    # Add route to NAT Gateway in pr
 action === 'Delete NAT Gateway' ? `    # Delete NAT Gateway
     Remove-EC2NatGateway -NatGatewayId "${natGatewayId}" -Force
     
-    Write-Host "✓ NAT Gateway deletion initiated: ${natGatewayId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] NAT Gateway deletion initiated: ${natGatewayId}" -ForegroundColor Green
     Write-Host "  Note: The associated Elastic IP is NOT automatically released" -ForegroundColor Yellow
     Write-Host "  You may want to release it to avoid charges" -ForegroundColor Yellow` :
 `    # List NAT Gateways
     $NatGateways = Get-EC2NatGateway
     
-    Write-Host "✓ NAT Gateways:" -ForegroundColor Green
+    Write-Host "[SUCCESS] NAT Gateways:" -ForegroundColor Green
     Write-Host ""
     
     $NatGateways | Where-Object { $_.State -ne "deleted" } | ForEach-Object {
@@ -3603,7 +3603,7 @@ ${action === 'Configure kubectl' ? `    # Update kubeconfig for EKS cluster
     aws eks update-kubeconfig --name "${clusterName}" --region "${region}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ kubectl configured for EKS cluster" -ForegroundColor Green
+        Write-Host "[SUCCESS] kubectl configured for EKS cluster" -ForegroundColor Green
         Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
         Write-Host "  Region: ${region}" -ForegroundColor Cyan
         Write-Host ""
@@ -3639,7 +3639,7 @@ action === 'Scale Deployment' ? `    # Scale deployment
     kubectl scale deployment "${deploymentName}" -n "${namespace}" --replicas=${replicas}
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Deployment scaled" -ForegroundColor Green
+        Write-Host "[SUCCESS] Deployment scaled" -ForegroundColor Green
         Write-Host "  Deployment: ${deploymentName}" -ForegroundColor Cyan
         Write-Host "  Namespace: ${namespace}" -ForegroundColor Cyan
         Write-Host "  Replicas: ${replicas}" -ForegroundColor Cyan
@@ -3726,7 +3726,7 @@ try {
         -Metric @("BlendedCost", "UnblendedCost", "UsageQuantity") \`
         -GroupBy $GroupDefinition
     
-    Write-Host "✓ AWS Cost Report" -ForegroundColor Green
+    Write-Host "[SUCCESS] AWS Cost Report" -ForegroundColor Green
     Write-Host "  Period: ${startDate} to ${endDate}" -ForegroundColor Cyan
     Write-Host "  Granularity: ${granularity}" -ForegroundColor Cyan
     Write-Host "  Grouped by: ${groupBy}" -ForegroundColor Cyan
@@ -3778,7 +3778,7 @@ try {
         
         $CsvData | Export-Csv -Path "${csvPath}" -NoTypeInformation
         Write-Host ""
-        Write-Host "✓ Report exported to: ${csvPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Report exported to: ${csvPath}" -ForegroundColor Green
     }
     
 } catch {
@@ -3858,7 +3858,7 @@ ${s3Prefix ? `    # Add prefix filter
     
     Write-S3BucketNotification -BucketName "${s3BucketName}" -NotificationConfiguration $NotificationConfig
     
-    Write-Host "✓ S3 trigger added to Lambda function" -ForegroundColor Green
+    Write-Host "[SUCCESS] S3 trigger added to Lambda function" -ForegroundColor Green
     Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
     Write-Host "  Bucket: ${s3BucketName}" -ForegroundColor Cyan
     Write-Host "  Events: ${s3Events}" -ForegroundColor Cyan
@@ -3870,7 +3870,7 @@ action === 'Add SQS Trigger' ? `    # Create SQS event source mapping
         -BatchSize ${batchSize} \`
         -Enabled \$true
     
-    Write-Host "✓ SQS trigger added to Lambda function" -ForegroundColor Green
+    Write-Host "[SUCCESS] SQS trigger added to Lambda function" -ForegroundColor Green
     Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
     Write-Host "  Queue ARN: ${sqsQueueArn}" -ForegroundColor Cyan
     Write-Host "  Batch Size: ${batchSize}" -ForegroundColor Cyan
@@ -3898,7 +3898,7 @@ action === 'Add CloudWatch Schedule' ? `    # Create CloudWatch Events rule
         -Principal "events.amazonaws.com" \`
         -SourceArn (Get-CWERule -Name $RuleName).Arn
     
-    Write-Host "✓ CloudWatch schedule trigger added" -ForegroundColor Green
+    Write-Host "[SUCCESS] CloudWatch schedule trigger added" -ForegroundColor Green
     Write-Host "  Function: ${functionName}" -ForegroundColor Cyan
     Write-Host "  Rule: $RuleName" -ForegroundColor Cyan
     Write-Host "  Schedule: ${scheduleExpression}" -ForegroundColor Cyan` :
@@ -3934,7 +3934,7 @@ action === 'List Triggers' ? `    # List event source mappings
 `    # Remove event source mapping
     Remove-LMEventSourceMapping -UUID "${triggerUUID}" -Force
     
-    Write-Host "✓ Event source mapping removed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Event source mapping removed" -ForegroundColor Green
     Write-Host "  UUID: ${triggerUUID}" -ForegroundColor Cyan`}
     
 } catch {

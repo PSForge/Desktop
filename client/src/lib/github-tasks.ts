@@ -64,14 +64,14 @@ try {
     $Uri = "https://api.github.com/orgs/${owner}/repos"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body -ErrorAction Stop
     
-    Write-Host "✓ Repository created: $($Response.full_name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Repository created: $($Response.full_name)" -ForegroundColor Green
     Write-Host "  URL: $($Response.html_url)" -ForegroundColor Cyan
     
 } catch {
     if ($_.Exception.Response.StatusCode -eq 404) {
         $Uri = "https://api.github.com/user/repos"
         $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
-        Write-Host "✓ Repository created: $($Response.full_name)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Repository created: $($Response.full_name)" -ForegroundColor Green
         Write-Host "  URL: $($Response.html_url)" -ForegroundColor Cyan
     } else {
         Write-Error "Failed: $_"
@@ -120,7 +120,7 @@ try {
         $Uri = "https://api.github.com/orgs/$Org/repos"
         Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
         
-        Write-Host "✓ Repository created: $Org/$RepoName" -ForegroundColor Green
+        Write-Host "[SUCCESS] Repository created: $Org/$RepoName" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -166,7 +166,7 @@ if ($Confirm -eq 'DELETE') {
         $Uri = "https://api.github.com/repos/$Owner/$Repo"
         Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers
         
-        Write-Host "✓ Repository deleted: $Owner/$Repo" -ForegroundColor Green
+        Write-Host "[SUCCESS] Repository deleted: $Owner/$Repo" -ForegroundColor Green
         
     } catch {
         Write-Error "Failed: $_"
@@ -211,7 +211,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}"
     Invoke-RestMethod -Uri $Uri -Method Patch -Headers $Headers -Body $Body
     
-    Write-Host "✓ Repository visibility changed to: ${visibility}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Repository visibility changed to: ${visibility}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -252,7 +252,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/forks"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body ($Body | ConvertTo-Json)
     
-    Write-Host "✓ Repository forked successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Repository forked successfully" -ForegroundColor Green
     Write-Host "  Fork URL: $($Response.html_url)" -ForegroundColor Cyan
     
 } catch {
@@ -298,7 +298,7 @@ if ($Confirm -eq 'TRANSFER') {
         $Uri = "https://api.github.com/repos/${owner}/${repo}/transfer"
         $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
         
-        Write-Host "✓ Repository transfer initiated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Repository transfer initiated" -ForegroundColor Green
         Write-Host "  New location: $($Response.html_url)" -ForegroundColor Cyan
         
     } catch {
@@ -344,7 +344,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}"
     Invoke-RestMethod -Uri $Uri -Method Patch -Headers $Headers -Body $Body
     
-    Write-Host "✓ Repository ${archive === 'true' ? 'archived' : 'unarchived'}: ${owner}/${repo}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Repository ${archive === 'true' ? 'archived' : 'unarchived'}: ${owner}/${repo}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -399,7 +399,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}"
     Invoke-RestMethod -Uri $Uri -Method Patch -Headers $Headers -Body ($Body | ConvertTo-Json)
     
-    Write-Host "✓ Repository settings updated: ${owner}/${repo}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Repository settings updated: ${owner}/${repo}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -505,7 +505,7 @@ try {
     
     $RepoData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Repositories exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Repositories exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Repositories: $($RepoData.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -557,7 +557,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/hooks"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Webhook created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Webhook created successfully" -ForegroundColor Green
     Write-Host "  ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  URL: ${webhookUrl}" -ForegroundColor Cyan
     Write-Host "  Events: ${params.events}" -ForegroundColor Cyan
@@ -614,7 +614,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/branches/${branch}/protection"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
     
-    Write-Host "✓ Branch protection enabled: ${branch}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Branch protection enabled: ${branch}" -ForegroundColor Green
     Write-Host "  Required reviews: $${requireReviews}" -ForegroundColor Cyan
     ${params.requireReviews ? `Write-Host "  Reviewers required: ${requiredReviewers}" -ForegroundColor Cyan` : ''}
     
@@ -665,10 +665,10 @@ try {
     } | ConvertTo-Json
     
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
-    Write-Host "✓ Collaborator added: ${username} with ${permission} permission" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collaborator added: ${username} with ${permission} permission" -ForegroundColor Green
     ` : `
     Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers
-    Write-Host "✓ Collaborator removed: ${username}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Collaborator removed: ${username}" -ForegroundColor Green
     `}
 } catch {
     Write-Error "Failed: $_"
@@ -714,7 +714,7 @@ try {
     $Uri = "https://api.github.com/orgs/${org}/teams"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Team created: ${teamName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Team created: ${teamName}" -ForegroundColor Green
     Write-Host "  ID: $($Response.id)" -ForegroundColor Cyan
     Write-Host "  Slug: $($Response.slug)" -ForegroundColor Cyan
     
@@ -755,7 +755,7 @@ if ($Confirm -eq 'DELETE') {
         $Uri = "https://api.github.com/orgs/${org}/teams/${teamSlug}"
         Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers
         
-        Write-Host "✓ Team deleted: ${teamSlug}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Team deleted: ${teamSlug}" -ForegroundColor Green
         
     } catch {
         Write-Error "Failed: $_"
@@ -805,10 +805,10 @@ try {
     } | ConvertTo-Json
     
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
-    Write-Host "✓ User ${username} added to team ${teamSlug} as ${role}" -ForegroundColor Green
+    Write-Host "[SUCCESS] User ${username} added to team ${teamSlug} as ${role}" -ForegroundColor Green
     ` : `
     Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers
-    Write-Host "✓ User ${username} removed from team ${teamSlug}" -ForegroundColor Green
+    Write-Host "[SUCCESS] User ${username} removed from team ${teamSlug}" -ForegroundColor Green
     `}
 } catch {
     Write-Error "Failed: $_"
@@ -855,7 +855,7 @@ try {
     
     $MemberData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Team members exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Team members exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Members: $($MemberData.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -910,7 +910,7 @@ try {
     
     $MemberData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Organization members exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Organization members exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Members: $($MemberData.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -957,7 +957,7 @@ try {
     $Uri = "https://api.github.com/orgs/${org}/invitations"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Invitation sent to ${email}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Invitation sent to ${email}" -ForegroundColor Green
     Write-Host "  Role: ${role}" -ForegroundColor Cyan
     
 } catch {
@@ -1002,7 +1002,7 @@ try {
     $Uri = "https://api.github.com/orgs/${org}/teams/${teamSlug}/repos/${org}/${repo}"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
     
-    Write-Host "✓ Team access granted: ${teamSlug}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Team access granted: ${teamSlug}" -ForegroundColor Green
     Write-Host "  Repository: ${repo}" -ForegroundColor Cyan
     Write-Host "  Permission: ${permission}" -ForegroundColor Cyan
     
@@ -1050,7 +1050,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Workflow triggered: ${workflowId} on ${ref}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workflow triggered: ${workflowId} on ${ref}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -1090,11 +1090,11 @@ try {
     ${action === 'Enable' ? `
     $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/enable"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers
-    Write-Host "✓ Workflow enabled: ${workflowId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workflow enabled: ${workflowId}" -ForegroundColor Green
     ` : `
     $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/disable"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers
-    Write-Host "✓ Workflow disabled: ${workflowId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workflow disabled: ${workflowId}" -ForegroundColor Green
     `}
     
 } catch {
@@ -1149,7 +1149,7 @@ try {
     
     $RunData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Workflow runs exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workflow runs exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Runs: $($RunData.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -1188,7 +1188,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}/cancel"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers
     
-    Write-Host "✓ Workflow run cancelled: ${runId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workflow run cancelled: ${runId}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -1232,7 +1232,7 @@ try {
     `}
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers
     
-    Write-Host "✓ Workflow run re-triggered: ${runId}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workflow run re-triggered: ${runId}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -1373,7 +1373,7 @@ if ($Confirm -eq 'DELETE') {
         $Uri = "https://api.github.com/repos/${owner}/${repo}/actions/secrets/${secretName}"
         Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers
         
-        Write-Host "✓ Secret deleted: ${secretName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Secret deleted: ${secretName}" -ForegroundColor Green
         
     } catch {
         Write-Error "Failed: $_"
@@ -1475,7 +1475,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/issues"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Issue created: #$($Response.number)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Issue created: #$($Response.number)" -ForegroundColor Green
     Write-Host "  Title: ${title}" -ForegroundColor Cyan
     Write-Host "  URL: $($Response.html_url)" -ForegroundColor Cyan
     
@@ -1522,7 +1522,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}"
     Invoke-RestMethod -Uri $Uri -Method Patch -Headers $Headers -Body $Body
     
-    Write-Host "✓ Issue #${issueNumber} closed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Issue #${issueNumber} closed" -ForegroundColor Green
     Write-Host "  Reason: ${reason}" -ForegroundColor Cyan
     
 } catch {
@@ -1576,7 +1576,7 @@ try {
     
     $IssueData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Issues exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Issues exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Issues: $($IssueData.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -1625,7 +1625,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/labels"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Label created: ${labelName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Label created: ${labelName}" -ForegroundColor Green
     Write-Host "  Color: #${color}" -ForegroundColor Cyan
     
 } catch {
@@ -1664,7 +1664,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/labels/${labelName}"
     Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers
     
-    Write-Host "✓ Label deleted: ${labelName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Label deleted: ${labelName}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -1712,7 +1712,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/milestones"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Milestone created: ${title}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Milestone created: ${title}" -ForegroundColor Green
     Write-Host "  Number: $($Response.number)" -ForegroundColor Cyan
     Write-Host "  URL: $($Response.html_url)" -ForegroundColor Cyan
     
@@ -1760,10 +1760,10 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/assignees"
     ${action === 'Add' ? `
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
-    Write-Host "✓ Assignees added to issue #${issueNumber}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Assignees added to issue #${issueNumber}" -ForegroundColor Green
     ` : `
     Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers -Body $Body
-    Write-Host "✓ Assignees removed from issue #${issueNumber}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Assignees removed from issue #${issueNumber}" -ForegroundColor Green
     `}
     
 } catch {
@@ -1818,7 +1818,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/pulls"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Pull request created: #$($Response.number)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Pull request created: #$($Response.number)" -ForegroundColor Green
     Write-Host "  Title: ${title}" -ForegroundColor Cyan
     Write-Host "  URL: $($Response.html_url)" -ForegroundColor Cyan
     
@@ -1867,7 +1867,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/merge"
     $Response = Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body $Body
     
-    Write-Host "✓ Pull request #${prNumber} merged" -ForegroundColor Green
+    Write-Host "[SUCCESS] Pull request #${prNumber} merged" -ForegroundColor Green
     Write-Host "  Method: ${mergeMethod}" -ForegroundColor Cyan
     Write-Host "  SHA: $($Response.sha)" -ForegroundColor Cyan
     
@@ -1916,7 +1916,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/requested_reviewers"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Reviewers requested for PR #${prNumber}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Reviewers requested for PR #${prNumber}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed: $_"
@@ -1967,7 +1967,7 @@ try {
     
     $CommitData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Commits exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Commits exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Commits: $($CommitData.Count)" -ForegroundColor Cyan
     Write-Host "  Branch: ${branch}" -ForegroundColor Cyan
     
@@ -2020,7 +2020,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/git/refs"
     Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Branch created: ${branchName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Branch created: ${branchName}" -ForegroundColor Green
     Write-Host "  From: ${sourceBranch}" -ForegroundColor Cyan
     Write-Host "  SHA: $Sha" -ForegroundColor Cyan
     
@@ -2063,7 +2063,7 @@ if ($Confirm -eq 'DELETE') {
         $Uri = "https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branchName}"
         Invoke-RestMethod -Uri $Uri -Method Delete -Headers $Headers
         
-        Write-Host "✓ Branch deleted: ${branchName}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Branch deleted: ${branchName}" -ForegroundColor Green
         
     } catch {
         Write-Error "Failed: $_"
@@ -2118,7 +2118,7 @@ try {
     
     $BranchData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Branches exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Branches exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Branches: $($BranchData.Count)" -ForegroundColor Cyan
     
 } catch {
@@ -2173,7 +2173,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/releases"
     $Response = Invoke-RestMethod -Uri $Uri -Method Post -Headers $Headers -Body $Body
     
-    Write-Host "✓ Release created: ${tag}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Release created: ${tag}" -ForegroundColor Green
     Write-Host "  URL: $($Response.html_url)" -ForegroundColor Cyan
     
 } catch {
@@ -2278,7 +2278,7 @@ try {
     $RefUri = "https://api.github.com/repos/${owner}/${repo}/git/refs"
     Invoke-RestMethod -Uri $RefUri -Method Post -Headers $Headers -Body $RefBody
     
-    Write-Host "✓ Tag created: ${tagName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tag created: ${tagName}" -ForegroundColor Green
     Write-Host "  SHA: ${sha}" -ForegroundColor Cyan
     
 } catch {
@@ -2423,12 +2423,12 @@ try {
     # Enable vulnerability alerts
     $AlertsUri = "https://api.github.com/repos/${owner}/${repo}/vulnerability-alerts"
     Invoke-RestMethod -Uri $AlertsUri -Method Put -Headers $Headers
-    Write-Host "✓ Vulnerability alerts enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Vulnerability alerts enabled" -ForegroundColor Green
     
     # Enable automated security fixes
     $SecurityFixesUri = "https://api.github.com/repos/${owner}/${repo}/automated-security-fixes"
     Invoke-RestMethod -Uri $SecurityFixesUri -Method Put -Headers $Headers
-    Write-Host "✓ Automated security fixes enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] Automated security fixes enabled" -ForegroundColor Green
     
     # Create dependabot.yml configuration
     $DependabotConfig = @"
@@ -2465,7 +2465,7 @@ updates:
     $ConfigUri = "https://api.github.com/repos/${owner}/${repo}/contents/.github/dependabot.yml"
     Invoke-RestMethod -Uri $ConfigUri -Method Put -Headers $Headers -Body ($Body | ConvertTo-Json)
     
-    Write-Host "✓ Dependabot configuration created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dependabot configuration created" -ForegroundColor Green
     Write-Host "  Ecosystem: ${ecosystem}" -ForegroundColor Cyan
     Write-Host "  Schedule: ${updateSchedule}" -ForegroundColor Cyan
     
@@ -2627,7 +2627,7 @@ try {
     $Uri = "https://api.github.com/repos/${owner}/${repo}/contents/.github/workflows/codeql.yml"
     Invoke-RestMethod -Uri $Uri -Method Put -Headers $Headers -Body ($Body | ConvertTo-Json)
     
-    Write-Host "✓ CodeQL code scanning enabled" -ForegroundColor Green
+    Write-Host "[SUCCESS] CodeQL code scanning enabled" -ForegroundColor Green
     Write-Host "  Languages: ${params.languages}" -ForegroundColor Cyan
     
 } catch {
@@ -2735,7 +2735,7 @@ try {
     
     $LogData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Audit log exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit log exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Entries: $($LogData.Count)" -ForegroundColor Cyan
     
 } catch {

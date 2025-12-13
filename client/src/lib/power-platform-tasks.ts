@@ -90,7 +90,7 @@ try {
     
     $EnvReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Environments exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Environments exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export environments: $_"
@@ -165,7 +165,7 @@ try {
     
     $AppReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Power Apps exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Power Apps exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export Power Apps: $_"
@@ -241,7 +241,7 @@ try {
     
     $FlowReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Power Automate flows exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Power Automate flows exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export flows: $_"
@@ -315,7 +315,7 @@ try {
     
     $ConnectorReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Custom connectors exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Custom connectors exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export connectors: $_"
@@ -389,7 +389,7 @@ try {
     
     $PolicyReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ DLP policies exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] DLP policies exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export DLP policies: $_"
@@ -470,7 +470,7 @@ try {
     
     $NewEnv = New-AdminPowerAppEnvironment -DisplayName "${environmentName}" -LocationName ${region} -EnvironmentSku Production
     
-    Write-Host "✓ Environment created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Environment created successfully" -ForegroundColor Green
     Write-Host "Environment ID: $($NewEnv.EnvironmentName)" -ForegroundColor Gray
     Write-Host "Location: $($NewEnv.Location)" -ForegroundColor Gray
     
@@ -505,7 +505,7 @@ This script permanently deletes a Power Platform environment and all its content
 - Confirms successful deletion
 
 **Important Notes:**
-- ⚠️ THIS ACTION IS IRREVERSIBLE - all data will be permanently lost
+- [WARNING]️ THIS ACTION IS IRREVERSIBLE - all data will be permanently lost
 - Cannot delete the default environment
 - All apps and flows in the environment will be deleted
 - Users will lose access immediately
@@ -529,10 +529,10 @@ This script permanently deletes a Power Platform environment and all its content
 
       return `# Delete Power Platform Environment
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This action is IRREVERSIBLE
+# [WARNING]️ WARNING: This action is IRREVERSIBLE
 
 try {
-    Write-Host "⚠️  WARNING: This will permanently delete the environment!" -ForegroundColor Red
+    Write-Host "[WARNING]️  WARNING: This will permanently delete the environment!" -ForegroundColor Red
     Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
     Write-Host ""
     
@@ -543,7 +543,7 @@ try {
         
         Remove-AdminPowerAppEnvironment -EnvironmentName "${environmentName}"
         
-        Write-Host "✓ Environment deleted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Environment deleted successfully" -ForegroundColor Green
         Write-Host "All apps, flows, and data have been permanently removed" -ForegroundColor Gray
     } else {
         Write-Host "Deletion cancelled" -ForegroundColor Yellow
@@ -623,7 +623,7 @@ try {
     
     Backup-CdsEnvironment -EnvironmentName "${environmentName}" -BackupLabel "${backupLabel}"
     
-    Write-Host "✓ Backup created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup created successfully" -ForegroundColor Green
     Write-Host "Backup label: ${backupLabel}" -ForegroundColor Gray
     Write-Host "Use this label to identify the backup for restore operations" -ForegroundColor Gray
     
@@ -660,7 +660,7 @@ This script restores a Power Platform environment from a previously created back
 - Reports restoration completion
 
 **Important Notes:**
-- ⚠️ WARNING: Target environment data will be OVERWRITTEN
+- [WARNING]️ WARNING: Target environment data will be OVERWRITTEN
 - All current apps and data in target will be replaced
 - Restoration can take 30-60 minutes for large environments
 - Users should not access target during restoration
@@ -693,10 +693,10 @@ This script restores a Power Platform environment from a previously created back
 
       return `# Restore Environment from Backup
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: Target environment will be OVERWRITTEN
+# [WARNING]️ WARNING: Target environment will be OVERWRITTEN
 
 try {
-    Write-Host "⚠️  WARNING: This will overwrite the target environment!" -ForegroundColor Red
+    Write-Host "[WARNING]️  WARNING: This will overwrite the target environment!" -ForegroundColor Red
     Write-Host "Source: ${sourceEnvironment}" -ForegroundColor Yellow
     Write-Host "Target: ${targetEnvironment}" -ForegroundColor Yellow
     Write-Host ""
@@ -709,7 +709,7 @@ try {
         
         Restore-CdsEnvironment -SourceEnvironmentName "${sourceEnvironment}" -TargetEnvironmentName "${targetEnvironment}"
         
-        Write-Host "✓ Environment restore initiated successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Environment restore initiated successfully" -ForegroundColor Green
         Write-Host "Monitor the Power Platform Admin Center for completion status" -ForegroundColor Gray
     } else {
         Write-Host "Restoration cancelled" -ForegroundColor Yellow
@@ -790,7 +790,7 @@ try {
     
     Copy-CdsEnvironment -SourceEnvironmentName "${sourceEnvironment}" -TargetEnvironmentDisplayName "${targetName}"
     
-    Write-Host "✓ Environment copy initiated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Environment copy initiated successfully" -ForegroundColor Green
     Write-Host "Monitor the Power Platform Admin Center for completion status" -ForegroundColor Gray
     Write-Host "Note: Connection credentials must be reconfigured in the new environment" -ForegroundColor Yellow
     
@@ -880,7 +880,7 @@ try {
     
     $AppReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Power Apps exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Power Apps exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to list Power Apps: $_"
@@ -913,7 +913,7 @@ This script permanently deletes a Power App from the Power Platform for cleanup 
 - Confirms successful deletion
 
 **Important Notes:**
-- ⚠️ THIS ACTION IS IRREVERSIBLE - the app cannot be recovered
+- [WARNING]️ THIS ACTION IS IRREVERSIBLE - the app cannot be recovered
 - All app versions will be deleted
 - Users will immediately lose access to the app
 - App data connections are removed
@@ -937,10 +937,10 @@ This script permanently deletes a Power App from the Power Platform for cleanup 
 
       return `# Delete Power App
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This action is IRREVERSIBLE
+# [WARNING]️ WARNING: This action is IRREVERSIBLE
 
 try {
-    Write-Host "⚠️  WARNING: This will permanently delete the app!" -ForegroundColor Red
+    Write-Host "[WARNING]️  WARNING: This will permanently delete the app!" -ForegroundColor Red
     Write-Host "App: ${appName}" -ForegroundColor Yellow
     Write-Host ""
     
@@ -951,7 +951,7 @@ try {
         
         Remove-AdminPowerApp -AppName "${appName}"
         
-        Write-Host "✓ Power App deleted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Power App deleted successfully" -ForegroundColor Green
         Write-Host "Users will no longer have access to this app" -ForegroundColor Gray
     } else {
         Write-Host "Deletion cancelled" -ForegroundColor Yellow
@@ -1044,7 +1044,7 @@ try {
     
     Set-AdminPowerAppRoleAssignment -AppName "${appName}" -PrincipalType User -PrincipalObjectId "${userEmail}" -RoleName ${role}
     
-    Write-Host "✓ Power App shared successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Power App shared successfully" -ForegroundColor Green
     Write-Host "User ${userEmail} now has ${role} permission" -ForegroundColor Gray
     Write-Host "Note: User may also need data source permissions" -ForegroundColor Yellow
     
@@ -1140,7 +1140,7 @@ try {
     
     $FlowReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Power Automate flows exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Power Automate flows exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to list Power Automate flows: $_"
@@ -1174,7 +1174,7 @@ This script disables a Power Automate flow to stop it from running while preserv
 - Confirms successful disablement
 
 **Important Notes:**
-- ⚠️ Flow will stop running immediately
+- [WARNING]️ Flow will stop running immediately
 - Existing flow runs will complete
 - Flow configuration and history are preserved
 - Can be re-enabled later without reconfiguration
@@ -1207,10 +1207,10 @@ This script disables a Power Automate flow to stop it from running while preserv
 
       return `# Disable Power Automate Flow
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: Flow will stop running immediately
+# [WARNING]️ WARNING: Flow will stop running immediately
 
 try {
-    Write-Host "⚠️  WARNING: This will stop the flow from running!" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  WARNING: This will stop the flow from running!" -ForegroundColor Yellow
     Write-Host "Environment: ${environmentName}" -ForegroundColor Gray
     Write-Host "Flow: ${flowName}" -ForegroundColor Gray
     Write-Host ""
@@ -1219,7 +1219,7 @@ try {
     
     Disable-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}"
     
-    Write-Host "✓ Flow disabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Flow disabled successfully" -ForegroundColor Green
     Write-Host "The flow will no longer trigger or run" -ForegroundColor Gray
     Write-Host "Flow can be re-enabled later without reconfiguration" -ForegroundColor Gray
     
@@ -1295,7 +1295,7 @@ try {
     
     Enable-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}"
     
-    Write-Host "✓ Flow enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Flow enabled successfully" -ForegroundColor Green
     Write-Host "The flow will now trigger and run based on its configuration" -ForegroundColor Gray
     Write-Host "Monitor the flow runs to ensure connections are valid" -ForegroundColor Yellow
     
@@ -1331,7 +1331,7 @@ This script permanently deletes a Power Automate flow from the Power Platform fo
 - Confirms successful deletion
 
 **Important Notes:**
-- ⚠️ THIS ACTION IS IRREVERSIBLE - flow cannot be recovered
+- [WARNING]️ THIS ACTION IS IRREVERSIBLE - flow cannot be recovered
 - All flow run history will be deleted
 - Flow will stop running immediately
 - Flow connections are removed
@@ -1364,10 +1364,10 @@ This script permanently deletes a Power Automate flow from the Power Platform fo
 
       return `# Delete Power Automate Flow
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This action is IRREVERSIBLE
+# [WARNING]️ WARNING: This action is IRREVERSIBLE
 
 try {
-    Write-Host "⚠️  WARNING: This will permanently delete the flow!" -ForegroundColor Red
+    Write-Host "[WARNING]️  WARNING: This will permanently delete the flow!" -ForegroundColor Red
     Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
     Write-Host "Flow: ${flowName}" -ForegroundColor Yellow
     Write-Host ""
@@ -1379,7 +1379,7 @@ try {
         
         Remove-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}"
         
-        Write-Host "✓ Flow deleted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Flow deleted successfully" -ForegroundColor Green
         Write-Host "All flow versions and run history have been permanently removed" -ForegroundColor Gray
     } else {
         Write-Host "Deletion cancelled" -ForegroundColor Yellow
@@ -1472,7 +1472,7 @@ try {
     
     $ConnectorReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Custom connectors exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Custom connectors exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "Review connectors for security and governance compliance" -ForegroundColor Gray
     
 } catch {
@@ -1507,7 +1507,7 @@ This script permanently deletes a custom connector from the Power Platform for A
 - Confirms successful deletion
 
 **Important Notes:**
-- ⚠️ THIS ACTION IS IRREVERSIBLE - connector cannot be recovered
+- [WARNING]️ THIS ACTION IS IRREVERSIBLE - connector cannot be recovered
 - Apps and flows using this connector will break
 - Verify connector is not in use before deletion
 - Export connector definition before deletion if needed
@@ -1540,10 +1540,10 @@ This script permanently deletes a custom connector from the Power Platform for A
 
       return `# Delete Custom Connector
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This action is IRREVERSIBLE
+# [WARNING]️ WARNING: This action is IRREVERSIBLE
 
 try {
-    Write-Host "⚠️  WARNING: This will permanently delete the custom connector!" -ForegroundColor Red
+    Write-Host "[WARNING]️  WARNING: This will permanently delete the custom connector!" -ForegroundColor Red
     Write-Host "Environment: ${environmentName}" -ForegroundColor Yellow
     Write-Host "Connector: ${connectorName}" -ForegroundColor Yellow
     Write-Host ""
@@ -1555,7 +1555,7 @@ try {
         
         Remove-AdminPowerAppConnector -EnvironmentName "${environmentName}" -ConnectorName "${connectorName}"
         
-        Write-Host "✓ Custom connector deleted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Custom connector deleted successfully" -ForegroundColor Green
         Write-Host "Apps and flows using this connector will no longer work" -ForegroundColor Yellow
     } else {
         Write-Host "Deletion cancelled" -ForegroundColor Yellow
@@ -1593,7 +1593,7 @@ This script adds a connector to the "Blocked" group in a DLP policy to prevent t
 - Confirms successful blocking
 
 **Important Notes:**
-- ⚠️ Apps and flows using this connector will break immediately
+- [WARNING]️ Apps and flows using this connector will break immediately
 - Blocking is tenant-wide or environment-specific based on policy scope
 - Use for security compliance (e.g., blocking consumer services)
 - Common blocked connectors: Twitter, Dropbox, Gmail, Box
@@ -1626,10 +1626,10 @@ This script adds a connector to the "Blocked" group in a DLP policy to prevent t
 
       return `# Block Connector in DLP Policy
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: Apps using this connector will break
+# [WARNING]️ WARNING: Apps using this connector will break
 
 try {
-    Write-Host "⚠️  WARNING: This will block the connector tenant-wide!" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  WARNING: This will block the connector tenant-wide!" -ForegroundColor Yellow
     Write-Host "DLP Policy: ${policyName}" -ForegroundColor Gray
     Write-Host "Connector: ${connectorId}" -ForegroundColor Gray
     Write-Host ""
@@ -1638,7 +1638,7 @@ try {
     
     Add-ConnectorToBusinessDataGroup -PolicyName "${policyName}" -ConnectorName "${connectorId}" -GroupName Blocked
     
-    Write-Host "✓ Connector blocked successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connector blocked successfully" -ForegroundColor Green
     Write-Host "Apps and flows using this connector will no longer work" -ForegroundColor Yellow
     Write-Host "Users cannot create new connections to this connector" -ForegroundColor Gray
     
@@ -1718,7 +1718,7 @@ try {
         disableCapacityAllocationByEnvironmentAdmins = ${disableCapacity}
     }
     
-    Write-Host "✓ Tenant settings updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tenant settings updated successfully" -ForegroundColor Green
     Write-Host "Changes are effective immediately across the tenant" -ForegroundColor Gray
     
 } catch {
@@ -1808,7 +1808,7 @@ try {
     
     $UserReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Environment users and permissions exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Environment users and permissions exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "Review for access certification and security audits" -ForegroundColor Gray
     
 } catch {
@@ -1898,7 +1898,7 @@ try {
     
     Set-AdminPowerAppEnvironmentRoleAssignment -EnvironmentName "${environmentName}" -PrincipalType User -PrincipalObjectId "${userEmail}" -RoleName ${roleName}
     
-    Write-Host "✓ Security role assigned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security role assigned successfully" -ForegroundColor Green
     Write-Host "User ${userEmail} now has ${roleName} permissions" -ForegroundColor Gray
     Write-Host "Changes are effective immediately" -ForegroundColor Gray
     
@@ -1984,7 +1984,7 @@ try {
     
     $CapacityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Capacity report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Capacity report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "Review for capacity planning and cost management" -ForegroundColor Gray
     
 } catch {
@@ -2068,7 +2068,7 @@ try {
     
     $NewPolicy = New-DlpPolicy @PolicyParams
     
-    Write-Host "✓ DLP policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DLP policy created successfully" -ForegroundColor Green
     Write-Host "Policy ID: $($NewPolicy.PolicyName)" -ForegroundColor Gray
     Write-Host "Next steps:" -ForegroundColor Yellow
     Write-Host "  1. Configure connector groups in Power Platform Admin Center" -ForegroundColor Gray
@@ -2105,7 +2105,7 @@ This script permanently deletes a DLP policy from Power Platform, removing all c
 - Confirms successful deletion
 
 **Important Notes:**
-- ⚠️ THIS ACTION IS IRREVERSIBLE - policy cannot be recovered
+- [WARNING]️ THIS ACTION IS IRREVERSIBLE - policy cannot be recovered
 - All connector restrictions are immediately removed
 - Apps and flows previously blocked may start working
 - May create security/compliance risk if deleted accidentally
@@ -2129,10 +2129,10 @@ This script permanently deletes a DLP policy from Power Platform, removing all c
 
       return `# Delete DLP Policy
 # Generated: ${new Date().toISOString()}
-# ⚠️ WARNING: This action is IRREVERSIBLE
+# [WARNING]️ WARNING: This action is IRREVERSIBLE
 
 try {
-    Write-Host "⚠️  WARNING: This will permanently delete the DLP policy!" -ForegroundColor Red
+    Write-Host "[WARNING]️  WARNING: This will permanently delete the DLP policy!" -ForegroundColor Red
     Write-Host "Policy: ${policyName}" -ForegroundColor Yellow
     Write-Host "All connector restrictions will be removed" -ForegroundColor Yellow
     Write-Host ""
@@ -2144,7 +2144,7 @@ try {
         
         Remove-DlpPolicy -PolicyName "${policyName}"
         
-        Write-Host "✓ DLP policy deleted successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] DLP policy deleted successfully" -ForegroundColor Green
         Write-Host "All connector restrictions from this policy are removed" -ForegroundColor Gray
     } else {
         Write-Host "Deletion cancelled" -ForegroundColor Yellow
@@ -2257,7 +2257,7 @@ try {
     
     $RunReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Flow run history exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Flow run history exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "Review for troubleshooting and performance analysis" -ForegroundColor Gray
     
 } catch {
@@ -2357,11 +2357,11 @@ try {
         }
     }
     
-    Write-Host "✓ Found $($OrphanedResources.Count) orphaned resources" -ForegroundColor Yellow
+    Write-Host "[SUCCESS] Found $($OrphanedResources.Count) orphaned resources" -ForegroundColor Yellow
     
     if ($OrphanedResources.Count -gt 0) {
         $OrphanedResources | Export-Csv -Path "${exportPath}" -NoTypeInformation
-        Write-Host "✓ Orphaned resources exported to: ${exportPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Orphaned resources exported to: ${exportPath}" -ForegroundColor Green
         Write-Host "Review for reassignment or cleanup" -ForegroundColor Gray
     } else {
         Write-Host "No orphaned resources found - excellent!" -ForegroundColor Green
@@ -2439,7 +2439,7 @@ try {
     
     $DaysBack = ${daysBack}
     if ($DaysBack -gt 28) {
-        Write-Host "⚠️  Warning: Analytics limited to 28 days, using 28" -ForegroundColor Yellow
+        Write-Host "[WARNING]️  Warning: Analytics limited to 28 days, using 28" -ForegroundColor Yellow
         $DaysBack = 28
     }
     
@@ -2483,7 +2483,7 @@ try {
     
     if ($AnalyticsReport) {
         $AnalyticsReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-        Write-Host "✓ Usage analytics exported to: ${exportPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Usage analytics exported to: ${exportPath}" -ForegroundColor Green
         Write-Host "Review for adoption tracking and performance insights" -ForegroundColor Gray
     } else {
         Write-Host "No usage data found for the specified period" -ForegroundColor Yellow
@@ -2592,7 +2592,7 @@ try {
     
     Export-CdsSolution @ExportParams
     
-    Write-Host "✓ Solution exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Solution exported successfully" -ForegroundColor Green
     Write-Host "Solution package: ${exportPath}" -ForegroundColor Gray
     
     if (${managed} -eq $true) {
@@ -2686,7 +2686,7 @@ try {
     # Note: This requires Dataverse Web API or PowerShell CDS module
     # Example shown for reference - adjust based on your module
     
-    Write-Host "⚠ Creating custom tables requires Dataverse API access" -ForegroundColor Yellow
+    Write-Host "[WARNING] Creating custom tables requires Dataverse API access" -ForegroundColor Yellow
     Write-Host "Use Power Apps Maker portal or Dataverse API for table creation" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Recommended approach:" -ForegroundColor Cyan
@@ -2789,30 +2789,30 @@ try {
         "Enable" {
             Write-Host "Enabling flow..." -ForegroundColor Cyan
             Set-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}" -Enabled $true
-            Write-Host "✓ Flow enabled successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Flow enabled successfully" -ForegroundColor Green
         }
         
         "Disable" {
             Write-Host "Disabling flow..." -ForegroundColor Cyan
             Set-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}" -Enabled $false
-            Write-Host "✓ Flow disabled successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Flow disabled successfully" -ForegroundColor Green
             Write-Host "  Flow will not trigger automatically" -ForegroundColor Gray
         }
         
         "Run" {
             Write-Host "Running flow manually..." -ForegroundColor Cyan
             # Note: Manual run requires flow trigger parameters
-            Write-Host "⚠ Manual flow run requires trigger payload" -ForegroundColor Yellow
+            Write-Host "[WARNING] Manual flow run requires trigger payload" -ForegroundColor Yellow
             Write-Host "Use Power Automate portal to run manually with inputs" -ForegroundColor Gray
         }
         
         "Delete" {
-            Write-Host "⚠ WARNING: This will permanently delete the flow!" -ForegroundColor Red
+            Write-Host "[WARNING] WARNING: This will permanently delete the flow!" -ForegroundColor Red
             $Confirm = Read-Host "Type 'DELETE' to confirm"
             
             if ($Confirm -eq 'DELETE') {
                 Remove-AdminFlow -EnvironmentName "${environmentName}" -FlowName "${flowName}"
-                Write-Host "✓ Flow deleted successfully" -ForegroundColor Green
+                Write-Host "[SUCCESS] Flow deleted successfully" -ForegroundColor Green
             } else {
                 Write-Host "Deletion cancelled" -ForegroundColor Yellow
             }
@@ -2898,7 +2898,7 @@ try {
     # Create new DLP policy
     $Policy = New-AdminDlpPolicy -DisplayName "${policyName}"
     
-    Write-Host "✓ DLP policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] DLP policy created" -ForegroundColor Green
     Write-Host "  Policy ID: $($Policy.PolicyName)" -ForegroundColor Gray
     
     # Example: Add connectors to business data group
@@ -3014,17 +3014,17 @@ try {
             
             $NewEnv = New-AdminPowerAppEnvironment -DisplayName "${envName}" -LocationName ${region} -EnvironmentSku Production
             
-            Write-Host "✓ Environment created successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Environment created successfully" -ForegroundColor Green
             Write-Host "  Environment ID: $($NewEnv.EnvironmentName)" -ForegroundColor Gray
         }
         
         "Delete" {
-            Write-Host "⚠ WARNING: This will permanently delete the environment!" -ForegroundColor Red
+            Write-Host "[WARNING] WARNING: This will permanently delete the environment!" -ForegroundColor Red
             $Confirm = Read-Host "Type 'DELETE' to confirm"
             
             if ($Confirm -eq 'DELETE') {
                 Remove-AdminPowerAppEnvironment -EnvironmentName "${envName}"
-                Write-Host "✓ Environment deleted" -ForegroundColor Green
+                Write-Host "[SUCCESS] Environment deleted" -ForegroundColor Green
             } else {
                 Write-Host "Deletion cancelled" -ForegroundColor Yellow
             }
@@ -3035,18 +3035,18 @@ try {
             
             Write-Host "Creating backup..." -ForegroundColor Cyan
             Backup-CdsEnvironment -EnvironmentName "${envName}" -BackupLabel $BackupLabel
-            Write-Host "✓ Backup created successfully" -ForegroundColor Green
+            Write-Host "[SUCCESS] Backup created successfully" -ForegroundColor Green
         }
         
         "Restore" {
-            Write-Host "⚠ Restore will overwrite target environment" -ForegroundColor Yellow
+            Write-Host "[WARNING] Restore will overwrite target environment" -ForegroundColor Yellow
             $SourceEnv = Read-Host "Enter source environment name"
             $TargetEnv = Read-Host "Enter target environment name"
             
             $Confirm = Read-Host "Type 'RESTORE' to confirm"
             if ($Confirm -eq 'RESTORE') {
                 Restore-CdsEnvironment -SourceEnvironmentName $SourceEnv -TargetEnvironmentName $TargetEnv
-                Write-Host "✓ Restore initiated" -ForegroundColor Green
+                Write-Host "[SUCCESS] Restore initiated" -ForegroundColor Green
             }
         }
     }
@@ -3140,7 +3140,7 @@ try {
     # Add user to environment with role
     Set-AdminPowerAppEnvironmentRoleAssignment -EnvironmentName "${envName}" -PrincipalType User -PrincipalObjectId "${userEmail}" -RoleName "${roleName}"
     
-    Write-Host "✓ Security role assigned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Security role assigned successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "User now has '${roleName}' permissions in environment" -ForegroundColor Gray
     
@@ -3240,7 +3240,7 @@ try {
         throw "Workspace not found: ${workspaceName}"
     }
     
-    Write-Host "✓ Workspace found: $($Workspace.Id)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workspace found: $($Workspace.Id)" -ForegroundColor Green
     
     # Get report
     $Report = Get-PowerBIReport -WorkspaceId $Workspace.Id | Where-Object { $_.Name -eq "${reportName}" }
@@ -3249,13 +3249,13 @@ try {
         throw "Report not found: ${reportName}"
     }
     
-    Write-Host "✓ Report found: $($Report.Id)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report found: $($Report.Id)" -ForegroundColor Green
     
     # Export report
     Write-Host "Exporting report..." -ForegroundColor Cyan
     Export-PowerBIReport -WorkspaceId $Workspace.Id -Id $Report.Id -OutFile "${exportPath}"
     
-    Write-Host "✓ Report exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported successfully" -ForegroundColor Green
     Write-Host "  Location: ${exportPath}" -ForegroundColor Gray
     
     # Display file size
@@ -3352,7 +3352,7 @@ try {
     switch ("${action}") {
         "Create" {
             Write-Host "Creating new bot..." -ForegroundColor Cyan
-            Write-Host "⚠ Bot creation typically done through Power Virtual Agents portal" -ForegroundColor Yellow
+            Write-Host "[WARNING] Bot creation typically done through Power Virtual Agents portal" -ForegroundColor Yellow
             Write-Host ""
             Write-Host "Steps to create bot:" -ForegroundColor Cyan
             Write-Host "1. Go to https://powerva.microsoft.com" -ForegroundColor Gray
@@ -3366,7 +3366,7 @@ try {
             Write-Host "Publishing bot..." -ForegroundColor Cyan
             Write-Host "This makes the bot available to users" -ForegroundColor Gray
             Write-Host ""
-            Write-Host "⚠ Use Power Virtual Agents portal to publish:" -ForegroundColor Yellow
+            Write-Host "[WARNING] Use Power Virtual Agents portal to publish:" -ForegroundColor Yellow
             Write-Host "1. Open bot: ${botName}" -ForegroundColor Gray
             Write-Host "2. Click 'Publish' in top navigation" -ForegroundColor Gray
             Write-Host "3. Review changes" -ForegroundColor Gray
@@ -3374,7 +3374,7 @@ try {
         }
         
         "Delete" {
-            Write-Host "⚠ WARNING: This will permanently delete the bot!" -ForegroundColor Red
+            Write-Host "[WARNING] WARNING: This will permanently delete the bot!" -ForegroundColor Red
             Write-Host "Use Power Virtual Agents portal to delete" -ForegroundColor Gray
         }
         
@@ -3509,7 +3509,7 @@ try {
     # Export to CSV
     $UsageReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Usage report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Usage report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""
     Write-Host "=== Usage Summary ===" -ForegroundColor Cyan
     Write-Host "Total Apps: $($Apps.Count)" -ForegroundColor Gray
@@ -3606,14 +3606,14 @@ try {
         throw "App not found: ${appName}"
     }
     
-    Write-Host "✓ App found: $($App.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] App found: $($App.DisplayName)" -ForegroundColor Green
     
     # Export the app package
     Write-Host "Exporting app package..." -ForegroundColor Cyan
     
     Export-PowerApp -EnvironmentName "${environmentName}" -AppName "${appName}" -PackageFilePath "${exportPath}"
     
-    Write-Host "✓ App package exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] App package exported successfully" -ForegroundColor Green
     Write-Host "Location: ${exportPath}" -ForegroundColor Gray
     
     # Display file info
@@ -3662,7 +3662,7 @@ This script imports a Power App from a .msapp package into an environment for de
 - Confirms successful import
 
 **Important Notes:**
-- ⚠️ Data source connections must be reconfigured after import
+- [WARNING]️ Data source connections must be reconfigured after import
 - App will be created in "draft" state initially
 - Existing app with same name is NOT overwritten
 - Users must reshare app permissions after import
@@ -3716,7 +3716,7 @@ try {
     }
     
     $FileInfo = Get-Item "${packagePath}"
-    Write-Host "✓ Package found: $([math]::Round($FileInfo.Length / 1KB, 2)) KB" -ForegroundColor Green
+    Write-Host "[SUCCESS] Package found: $([math]::Round($FileInfo.Length / 1KB, 2)) KB" -ForegroundColor Green
     
     # Import the app
     Write-Host "Importing app..." -ForegroundColor Cyan
@@ -3724,11 +3724,11 @@ try {
     
     $ImportedApp = Import-PowerApp -EnvironmentName "${environmentName}" -PackageFilePath "${packagePath}" -DisplayName "${appDisplayName}"
     
-    Write-Host "✓ App imported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] App imported successfully" -ForegroundColor Green
     Write-Host "App ID: $($ImportedApp.AppName)" -ForegroundColor Gray
     
     Write-Host ""
-    Write-Host "⚠️  Important next steps:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  Important next steps:" -ForegroundColor Yellow
     Write-Host "  1. Open the app in Power Apps Studio" -ForegroundColor Gray
     Write-Host "  2. Reconfigure data source connections" -ForegroundColor Gray
     Write-Host "  3. Test all functionality thoroughly" -ForegroundColor Gray
@@ -3822,7 +3822,7 @@ try {
         throw "App not found: ${appName}"
     }
     
-    Write-Host "✓ App found: $($App.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] App found: $($App.DisplayName)" -ForegroundColor Green
     
     # Get version history
     $Versions = Get-PowerAppVersion -EnvironmentName "${environmentName}" -AppName "${appName}"
@@ -3844,7 +3844,7 @@ try {
     
     $VersionReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Version history exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Version history exported to: ${exportPath}" -ForegroundColor Green
     
     # Show recent versions
     Write-Host ""
@@ -3938,7 +3938,7 @@ try {
         throw "Flow not found: ${flowName}"
     }
     
-    Write-Host "✓ Flow found: $($Flow.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Flow found: $($Flow.DisplayName)" -ForegroundColor Green
     Write-Host "  Status: $(if ($Flow.Enabled) { 'Enabled' } else { 'Disabled' })" -ForegroundColor Gray
     Write-Host "  Owner: $($Flow.CreatedBy.displayName)" -ForegroundColor Gray
     
@@ -3961,7 +3961,7 @@ try {
     
     $FlowDefinition | ConvertTo-Json -Depth 20 | Out-File -FilePath "${exportPath}" -Encoding UTF8
     
-    Write-Host "✓ Flow definition exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Flow definition exported successfully" -ForegroundColor Green
     Write-Host "Location: ${exportPath}" -ForegroundColor Gray
     
     # Display file info
@@ -4059,7 +4059,7 @@ try {
     
     $DaysBack = ${daysBack}
     if ($DaysBack -gt 28) {
-        Write-Host "⚠️  Run history limited to 28 days, using 28" -ForegroundColor Yellow
+        Write-Host "[WARNING]️  Run history limited to 28 days, using 28" -ForegroundColor Yellow
         $DaysBack = 28
     }
     
@@ -4105,11 +4105,11 @@ try {
     
     Write-Progress -Activity "Analyzing flows" -Completed
     
-    Write-Host "✓ Found $($FailedRuns.Count) failed runs in the last $DaysBack days" -ForegroundColor Yellow
+    Write-Host "[SUCCESS] Found $($FailedRuns.Count) failed runs in the last $DaysBack days" -ForegroundColor Yellow
     
     if ($FailedRuns.Count -gt 0) {
         $FailedRuns | Export-Csv -Path "${exportPath}" -NoTypeInformation
-        Write-Host "✓ Failed runs report exported to: ${exportPath}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Failed runs report exported to: ${exportPath}" -ForegroundColor Green
         
         # Show summary
         Write-Host ""
@@ -4120,7 +4120,7 @@ try {
         Write-Host "Common error codes:" -ForegroundColor Gray
         $FailedRuns | Group-Object ErrorCode | Sort-Object Count -Descending | Select-Object -First 5 Name, Count | Format-Table
     } else {
-        Write-Host "✓ No failed runs found - excellent!" -ForegroundColor Green
+        Write-Host "[SUCCESS] No failed runs found - excellent!" -ForegroundColor Green
     }
     
 } catch {
@@ -4214,7 +4214,7 @@ try {
         throw "Dataverse is not enabled in this environment"
     }
     
-    Write-Host "✓ Connected to: $OrgUrl" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connected to: $OrgUrl" -ForegroundColor Green
     
     # Get all entities/tables
     Write-Host "Retrieving tables..." -ForegroundColor Cyan
@@ -4254,7 +4254,7 @@ try {
     
     $TableReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Table inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Table inventory exported to: ${exportPath}" -ForegroundColor Green
     
     # Show summary
     Write-Host ""
@@ -4378,7 +4378,7 @@ try {
         throw "Dataverse is not enabled in this environment"
     }
     
-    Write-Host "✓ Connected to: $OrgUrl" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connected to: $OrgUrl" -ForegroundColor Green
     
     # Map variable type to Dataverse type code
     $TypeMapping = @{
@@ -4412,7 +4412,7 @@ try {
     Write-Host "Creating variable definition..." -ForegroundColor Cyan
     $Response = Invoke-RestMethod -Uri $ApiUrl -Headers $Headers -Method Post -Body $Body
     
-    Write-Host "✓ Environment variable created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Environment variable created successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Variable Details:" -ForegroundColor Cyan
     Write-Host "  Schema Name: ${schemaName}" -ForegroundColor Gray
@@ -4458,7 +4458,7 @@ This script updates DLP policy connector classifications by moving connectors be
 - Confirms successful update
 
 **Important Notes:**
-- ⚠️ Changes take effect immediately
+- [WARNING]️ Changes take effect immediately
 - Apps/flows using misclassified connectors may break
 - Business connectors can share data with each other
 - Non-Business connectors can share data with each other
@@ -4517,7 +4517,7 @@ try {
         throw "DLP Policy not found: ${policyName}"
     }
     
-    Write-Host "✓ Policy found: $($Policy.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy found: $($Policy.DisplayName)" -ForegroundColor Green
     
     # Prepare connector classification update
     $ConnectorConfig = @{
@@ -4542,9 +4542,9 @@ try {
         $DlpGroup = @($ConnectorConfig)
     }
     
-    Write-Host "✓ Connector classification updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connector classification updated successfully" -ForegroundColor Green
     Write-Host ""
-    Write-Host "⚠️  Important:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  Important:" -ForegroundColor Yellow
     Write-Host "  - Changes take effect immediately" -ForegroundColor Gray
     Write-Host "  - Apps/flows using this connector may be affected" -ForegroundColor Gray
     Write-Host "  - Verify no critical processes are disrupted" -ForegroundColor Gray
@@ -4683,7 +4683,7 @@ try {
     # Export report
     $LicenseReport | Sort-Object TotalResources -Descending | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ License consumption report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] License consumption report exported to: ${exportPath}" -ForegroundColor Green
     
     # Show summary
     Write-Host ""
@@ -4799,7 +4799,7 @@ try {
     # Export report
     $HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Connection health report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Connection health report exported to: ${exportPath}" -ForegroundColor Green
     
     # Summary statistics
     $HealthyCount = ($HealthReport | Where-Object { $_.IsHealthy }).Count
@@ -4815,7 +4815,7 @@ try {
     
     if ($AttentionCount -gt 0) {
         Write-Host ""
-        Write-Host "⚠️  Connections requiring attention:" -ForegroundColor Red
+        Write-Host "[WARNING]️  Connections requiring attention:" -ForegroundColor Red
         $HealthReport | Where-Object { $_.NeedsAttention } | Format-Table ConnectionName, ConnectorName, Status, CreatedByEmail
         
         Write-Host ""
@@ -4825,7 +4825,7 @@ try {
         Write-Host "  3. Remove unused broken connections" -ForegroundColor Gray
     } else {
         Write-Host ""
-        Write-Host "✓ All connections are healthy!" -ForegroundColor Green
+        Write-Host "[SUCCESS] All connections are healthy!" -ForegroundColor Green
     }
     
 } catch {
@@ -4917,7 +4917,7 @@ try {
         throw "App not found: ${appName}"
     }
     
-    Write-Host "✓ App found: $($App.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] App found: $($App.DisplayName)" -ForegroundColor Green
     Write-Host "  Current Owner: $($App.Owner.displayName) ($($App.Owner.userPrincipalName))" -ForegroundColor Gray
     
     # Transfer ownership
@@ -4925,7 +4925,7 @@ try {
     
     Set-AdminPowerAppOwner -EnvironmentName "${environmentName}" -AppName "${appName}" -AppOwner "${newOwnerEmail}"
     
-    Write-Host "✓ Ownership transferred successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Ownership transferred successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Transfer Details:" -ForegroundColor Cyan
     Write-Host "  App: $($App.DisplayName)" -ForegroundColor Gray
@@ -4976,7 +4976,7 @@ This script transfers ownership of a Power Automate flow from one user to anothe
 - Essential for employee offboarding/transitions
 - New owner gets full control of the flow
 - Flow connections may need to be updated
-- ⚠️ Flow may pause if connections are user-specific
+- [WARNING]️ Flow may pause if connections are user-specific
 - Check flow runs after transfer
 - Typical use: employee departures, team changes
 - New owner should verify all connections work
@@ -5028,7 +5028,7 @@ try {
         throw "Flow not found: ${flowName}"
     }
     
-    Write-Host "✓ Flow found: $($Flow.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Flow found: $($Flow.DisplayName)" -ForegroundColor Green
     Write-Host "  Current Owner: $($Flow.CreatedBy.displayName) ($($Flow.CreatedBy.userPrincipalName))" -ForegroundColor Gray
     Write-Host "  Status: $(if ($Flow.Enabled) { 'Enabled' } else { 'Disabled' })" -ForegroundColor Gray
     
@@ -5037,7 +5037,7 @@ try {
     
     Set-AdminFlowOwnerRole -EnvironmentName "${environmentName}" -FlowName "${flowName}" -PrincipalType User -PrincipalObjectId "${newOwnerEmail}" -RoleName Owner
     
-    Write-Host "✓ Ownership transferred successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Ownership transferred successfully" -ForegroundColor Green
     Write-Host ""
     Write-Host "Transfer Details:" -ForegroundColor Cyan
     Write-Host "  Flow: $($Flow.DisplayName)" -ForegroundColor Gray
@@ -5045,7 +5045,7 @@ try {
     Write-Host "  New Owner: ${newOwnerEmail}" -ForegroundColor Gray
     
     Write-Host ""
-    Write-Host "⚠️  Important next steps for new owner:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️  Important next steps for new owner:" -ForegroundColor Yellow
     Write-Host "  1. Open flow in Power Automate portal" -ForegroundColor Gray
     Write-Host "  2. Update connection credentials if needed" -ForegroundColor Gray
     Write-Host "  3. Verify flow triggers are working" -ForegroundColor Gray

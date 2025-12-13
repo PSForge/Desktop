@@ -104,13 +104,13 @@ try {
     # Check if mailbox exists
     $Existing = Get-Mailbox -Identity $Alias -ErrorAction SilentlyContinue
     if ($Existing) {
-        Write-Host "⚠ Mailbox already exists: $Alias" -ForegroundColor Yellow
+        Write-Host "[WARNING] Mailbox already exists: $Alias" -ForegroundColor Yellow
         exit 0
     }
     
     # Verify database exists
     $DB = Get-MailboxDatabase -Identity $Database -ErrorAction Stop
-    Write-Host "✓ Target Database: $($DB.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Database: $($DB.Name)" -ForegroundColor Green
     
     # Create mailbox based on type
     $params = @{
@@ -126,19 +126,19 @@ try {
             # For user mailbox, AD account should already exist
             # Enable existing AD user for mailbox
             Enable-Mailbox @params
-            Write-Host "✓ User mailbox enabled" -ForegroundColor Green
+            Write-Host "[SUCCESS] User mailbox enabled" -ForegroundColor Green
         }
         "Shared" {
             New-Mailbox @params -Shared
-            Write-Host "✓ Shared mailbox created" -ForegroundColor Green
+            Write-Host "[SUCCESS] Shared mailbox created" -ForegroundColor Green
         }
         "Room" {
             New-Mailbox @params -Room
-            Write-Host "✓ Room mailbox created" -ForegroundColor Green
+            Write-Host "[SUCCESS] Room mailbox created" -ForegroundColor Green
         }
         "Equipment" {
             New-Mailbox @params -Equipment
-            Write-Host "✓ Equipment mailbox created" -ForegroundColor Green
+            Write-Host "[SUCCESS] Equipment mailbox created" -ForegroundColor Green
         }
     }
     
@@ -219,16 +219,16 @@ $TestMode = ${testMode}
 try {
     # Verify mailbox exists
     $Mailbox = Get-Mailbox -Identity $MailboxIdentity -ErrorAction Stop
-    Write-Host "✓ Source Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Source Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
     Write-Host "  Current Database: $($Mailbox.Database)" -ForegroundColor Gray
     
     # Verify target database exists
     $TargetDB = Get-MailboxDatabase -Identity $TargetDatabase -ErrorAction Stop
-    Write-Host "✓ Target Database: $($TargetDB.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Database: $($TargetDB.Name)" -ForegroundColor Green
     
     if ($TestMode) {
         Write-Host ""
-        Write-Host "⚠ TEST MODE - No mailbox will be moved" -ForegroundColor Yellow
+        Write-Host "[WARNING] TEST MODE - No mailbox will be moved" -ForegroundColor Yellow
         Write-Host "  Would move: $MailboxIdentity" -ForegroundColor Gray
         Write-Host "  From: $($Mailbox.Database)" -ForegroundColor Gray
         Write-Host "  To: $TargetDatabase" -ForegroundColor Gray
@@ -242,7 +242,7 @@ try {
             -BadItemLimit $BadItemLimit \`
             -AcceptLargeDataLoss
         
-        Write-Host "✓ Move request created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Move request created" -ForegroundColor Green
         Write-Host "  Request Name: $($MoveRequest.DisplayName)" -ForegroundColor Gray
         Write-Host "  Status: $($MoveRequest.Status)" -ForegroundColor Gray
         Write-Host ""
@@ -324,7 +324,7 @@ $IMAPEnabled = ${imapEnabled}
 try {
     # Verify mailbox exists
     $Mailbox = Get-Mailbox -Identity $MailboxIdentity -ErrorAction Stop
-    Write-Host "✓ Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
     
     # Set CAS mailbox settings
     Set-CASMailbox -Identity $MailboxIdentity \`
@@ -333,7 +333,7 @@ try {
         -PopEnabled $POPEnabled \`
         -ImapEnabled $IMAPEnabled
     
-    Write-Host "✓ Protocol access configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Protocol access configured" -ForegroundColor Green
     Write-Host ""
     Write-Host "Protocol Status:" -ForegroundColor Cyan
     Write-Host "  OWA: $OWAEnabled" -ForegroundColor Gray
@@ -415,7 +415,7 @@ try {
     # Check if group exists
     $Existing = Get-DistributionGroup -Identity $EmailAddress -ErrorAction SilentlyContinue
     if ($Existing) {
-        Write-Host "⚠ Group already exists: $EmailAddress" -ForegroundColor Yellow
+        Write-Host "[WARNING] Group already exists: $EmailAddress" -ForegroundColor Yellow
         exit 0
     }
     
@@ -425,16 +425,16 @@ try {
         -ManagedBy $Owner \`
         -Type "Distribution"
     
-    Write-Host "✓ Distribution group created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Distribution group created" -ForegroundColor Green
     
     ${members.length > 0 ? `
     # Add members
     foreach ($Member in $Members) {
         try {
             Add-DistributionGroupMember -Identity $EmailAddress -Member $Member
-            Write-Host "  ✓ Added member: $Member" -ForegroundColor Green
+            Write-Host "  [OK] Added member: $Member" -ForegroundColor Green
         } catch {
-            Write-Host "  ⚠ Failed to add $Member: $_" -ForegroundColor Yellow
+            Write-Host "  [WARNING] Failed to add $Member: $_" -ForegroundColor Yellow
         }
     }
     ` : ''}
@@ -515,7 +515,7 @@ $RequireSenderAuth = ${requireSenderAuth}
 try {
     # Verify group exists
     $Group = Get-DistributionGroup -Identity $GroupIdentity -ErrorAction Stop
-    Write-Host "✓ Group: $($Group.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group: $($Group.DisplayName)" -ForegroundColor Green
     
     # Configure moderation
     $params = @{
@@ -528,7 +528,7 @@ try {
     
     Set-DistributionGroup @params
     
-    Write-Host "✓ Moderation configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Moderation configured" -ForegroundColor Green
     Write-Host ""
     Write-Host "Settings:" -ForegroundColor Cyan
     Write-Host "  Moderation Enabled: $ModerationEnabled" -ForegroundColor Gray
@@ -616,9 +616,9 @@ try {
     $Existing = Get-TransportRule -Identity $RuleName -ErrorAction SilentlyContinue
     
     if ($Existing) {
-        Write-Host "⚠ Rule already exists. Updating..." -ForegroundColor Yellow
+        Write-Host "[WARNING] Rule already exists. Updating..." -ForegroundColor Yellow
         Set-TransportRule -Identity $RuleName -Enabled $Enabled
-        Write-Host "✓ Transport rule updated" -ForegroundColor Green
+        Write-Host "[SUCCESS] Transport rule updated" -ForegroundColor Green
     } else {
         # Create new rule
         $params = @{
@@ -642,7 +642,7 @@ try {
         }
         
         New-TransportRule @params
-        Write-Host "✓ Transport rule created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Transport rule created" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -719,20 +719,20 @@ try {
     
     if ($Action -eq "Add") {
         if ($Existing) {
-            Write-Host "⚠ Domain already exists. Updating type..." -ForegroundColor Yellow
+            Write-Host "[WARNING] Domain already exists. Updating type..." -ForegroundColor Yellow
             Set-AcceptedDomain -Identity $DomainName -DomainType $DomainType
-            Write-Host "✓ Domain type updated to: $DomainType" -ForegroundColor Green
+            Write-Host "[SUCCESS] Domain type updated to: $DomainType" -ForegroundColor Green
         } else {
             New-AcceptedDomain -Name $DomainName -DomainName $DomainName -DomainType $DomainType
-            Write-Host "✓ Accepted domain added" -ForegroundColor Green
+            Write-Host "[SUCCESS] Accepted domain added" -ForegroundColor Green
         }
     } else {
         # Remove domain
         if ($Existing) {
             Remove-AcceptedDomain -Identity $DomainName -Confirm:\$false
-            Write-Host "✓ Accepted domain removed" -ForegroundColor Green
+            Write-Host "[SUCCESS] Accepted domain removed" -ForegroundColor Green
         } else {
-            Write-Host "⚠ Domain does not exist: $DomainName" -ForegroundColor Yellow
+            Write-Host "[WARNING] Domain does not exist: $DomainName" -ForegroundColor Yellow
         }
     }
     
@@ -817,7 +817,7 @@ try {
     # Check if database exists
     $Existing = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction SilentlyContinue
     if ($Existing) {
-        Write-Host "⚠ Database already exists: $DatabaseName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Database already exists: $DatabaseName" -ForegroundColor Yellow
         exit 0
     }
     
@@ -827,13 +827,13 @@ try {
         -EdbFilePath $EdbFilePath \`
         -LogFolderPath $LogFolderPath
     
-    Write-Host "✓ Mailbox database created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mailbox database created" -ForegroundColor Green
     
     # Mount database
     Write-Host "Mounting database..." -ForegroundColor Cyan
     Mount-Database -Identity $DatabaseName
     
-    Write-Host "✓ Database mounted successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database mounted successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Database Details:" -ForegroundColor Cyan
     Write-Host "  Name: $DatabaseName" -ForegroundColor Gray
@@ -903,23 +903,23 @@ $Action = "${action}"
 try {
     # Verify database exists
     $Database = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction Stop
-    Write-Host "✓ Database: $($Database.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database: $($Database.Name)" -ForegroundColor Green
     Write-Host "  Server: $($Database.Server)" -ForegroundColor Gray
     Write-Host "  Current Status: $($Database.Mounted)" -ForegroundColor Gray
     
     if ($Action -eq "Mount") {
         if ($Database.Mounted) {
-            Write-Host "⚠ Database is already mounted" -ForegroundColor Yellow
+            Write-Host "[WARNING] Database is already mounted" -ForegroundColor Yellow
         } else {
             Mount-Database -Identity $DatabaseName
-            Write-Host "✓ Database mounted successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Database mounted successfully!" -ForegroundColor Green
         }
     } else {
         if (-not $Database.Mounted) {
-            Write-Host "⚠ Database is already dismounted" -ForegroundColor Yellow
+            Write-Host "[WARNING] Database is already dismounted" -ForegroundColor Yellow
         } else {
             Dismount-Database -Identity $DatabaseName -Confirm:\$false
-            Write-Host "✓ Database dismounted successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Database dismounted successfully!" -ForegroundColor Green
         }
     }
     
@@ -1016,7 +1016,7 @@ try {
     # Export report
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ DAG health report generated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DAG health report generated!" -ForegroundColor Green
     Write-Host "  Database Copies: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -1094,7 +1094,7 @@ try {
     $Disconnected = Get-MailboxStatistics -Database $DatabaseName | 
         Where-Object { $_.DisconnectReason -ne \$null }
     
-    Write-Host "✓ Found $($Disconnected.Count) disconnected mailboxes" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Disconnected.Count) disconnected mailboxes" -ForegroundColor Green
     
     $Results = @()
     
@@ -1110,9 +1110,9 @@ try {
         if ($Action -eq "Purge") {
             try {
                 Remove-StoreMailbox -Database $DatabaseName -Identity $Mailbox.MailboxGuid -MailboxState Disabled
-                Write-Host "  ✓ Purged: $($Mailbox.DisplayName)" -ForegroundColor Green
+                Write-Host "  [OK] Purged: $($Mailbox.DisplayName)" -ForegroundColor Green
             } catch {
-                Write-Host "  ✗ Failed to purge: $($Mailbox.DisplayName)" -ForegroundColor Red
+                Write-Host "  [FAILED] Failed to purge: $($Mailbox.DisplayName)" -ForegroundColor Red
             }
         } else {
             Write-Host "  Found: $($Mailbox.DisplayName) - $($Mailbox.DisconnectReason)" -ForegroundColor Gray
@@ -1122,7 +1122,7 @@ try {
     # Export report
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Operation completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Operation completed!" -ForegroundColor Green
     Write-Host "  Disconnected Mailboxes: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -1207,7 +1207,7 @@ try {
     $Mailboxes = Get-Mailbox -ResultSize Unlimited
     `}
     
-    Write-Host "✓ Found $($Mailboxes.Count) mailboxes" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Mailboxes.Count) mailboxes" -ForegroundColor Green
     
     $EnabledCount = 0
     
@@ -1226,14 +1226,14 @@ try {
             }
             
             $EnabledCount++
-            Write-Host "  ✓ Enabled: $($Mailbox.DisplayName)" -ForegroundColor Green
+            Write-Host "  [OK] Enabled: $($Mailbox.DisplayName)" -ForegroundColor Green
         } catch {
-            Write-Host "  ✗ Failed: $($Mailbox.DisplayName) - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $($Mailbox.DisplayName) - $_" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Mailbox auditing enabled!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mailbox auditing enabled!" -ForegroundColor Green
     Write-Host "  Total Enabled: $EnabledCount" -ForegroundColor Gray
     
 } catch {
@@ -1320,13 +1320,13 @@ try {
             CircularLoggingEnabled = $Database.CircularLoggingEnabled
         }
         
-        Write-Host "✓ $($Database.Name): $([Math]::Round($DBSize / 1GB, 2)) GB" -ForegroundColor Green
+        Write-Host "[SUCCESS] $($Database.Name): $([Math]::Round($DBSize / 1GB, 2)) GB" -ForegroundColor Green
     }
     
     # Export report
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Database size report generated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database size report generated!" -ForegroundColor Green
     Write-Host "  Databases: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -1426,7 +1426,7 @@ try {
     # Export report
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Queue monitoring report generated!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Queue monitoring report generated!" -ForegroundColor Green
     Write-Host "  Queues Checked: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -1434,7 +1434,7 @@ try {
     $HighQueues = $Results | Where-Object { $_.MessageCount -gt $ThresholdCount }
     if ($HighQueues) {
         Write-Host ""
-        Write-Host "⚠ WARNING: $($HighQueues.Count) queue(s) exceed threshold!" -ForegroundColor Red
+        Write-Host "[WARNING] WARNING: $($HighQueues.Count) queue(s) exceed threshold!" -ForegroundColor Red
     }
     
 } catch {
@@ -1511,32 +1511,32 @@ try {
     $Services = Get-Service -ComputerName $Server -Name $ServiceFilter | 
         Where-Object { $_.Status -ne "Disabled" }
     
-    Write-Host "✓ Found $($Services.Count) services" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Services.Count) services" -ForegroundColor Green
     
     foreach ($Service in $Services) {
         try {
             if ($Action -eq "Start") {
                 if ($Service.Status -ne "Running") {
                     Start-Service -InputObject $Service
-                    Write-Host "  ✓ Started: $($Service.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [OK] Started: $($Service.DisplayName)" -ForegroundColor Green
                 }
             } elseif ($Action -eq "Stop") {
                 if ($Service.Status -eq "Running") {
                     Stop-Service -InputObject $Service -Force
-                    Write-Host "  ✓ Stopped: $($Service.DisplayName)" -ForegroundColor Green
+                    Write-Host "  [OK] Stopped: $($Service.DisplayName)" -ForegroundColor Green
                 }
             } else {
                 # Restart
                 Restart-Service -InputObject $Service -Force
-                Write-Host "  ✓ Restarted: $($Service.DisplayName)" -ForegroundColor Green
+                Write-Host "  [OK] Restarted: $($Service.DisplayName)" -ForegroundColor Green
             }
         } catch {
-            Write-Host "  ✗ Failed: $($Service.DisplayName) - $_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: $($Service.DisplayName) - $_" -ForegroundColor Red
         }
     }
     
     Write-Host ""
-    Write-Host "✓ Service operation completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service operation completed!" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to manage services: $_"
@@ -1600,7 +1600,7 @@ try {
     
     $Results | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Database sizes exported: $($Results.Count) databases" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database sizes exported: $($Results.Count) databases" -ForegroundColor Green
 } catch {
     Write-Error $_
 }`;
@@ -1661,7 +1661,7 @@ try {
     
     Set-MailboxDatabase -Identity "${dbName}" -CircularLoggingEnabled $${circularLogging}
     
-    Write-Host "✓ Circular logging: ${circularLogging}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Circular logging: ${circularLogging}" -ForegroundColor Green
     Write-Host "  Run full backup to apply changes" -ForegroundColor Yellow
 } catch {
     Write-Error $_
@@ -1725,7 +1725,7 @@ try {
     
     Send-MailMessage -From "${sender}" -To "${recipient}" -Subject "Mail Flow Test - $(Get-Date)" -Body "This is a test message generated by PSForge" -SmtpServer localhost
     
-    Write-Host "✓ Test message sent successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Test message sent successfully" -ForegroundColor Green
 } catch {
     Write-Error $_
 }`;
@@ -1787,7 +1787,7 @@ try {
     
     $Results | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Queue stats exported: $($Queues.Count) queues" -ForegroundColor Green
+    Write-Host "[SUCCESS] Queue stats exported: $($Queues.Count) queues" -ForegroundColor Green
     
     $TotalMessages = ($Queues | Measure-Object -Property MessageCount -Sum).Sum
     Write-Host "  Total messages in queues: $TotalMessages" -ForegroundColor Yellow
@@ -1859,7 +1859,7 @@ try {
     
     Set-MailboxDatabase -Identity "${dbName}" -MaintenanceSchedule "${schedule}"
     
-    Write-Host "✓ Maintenance schedule configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Maintenance schedule configured" -ForegroundColor Green
     Write-Host "  Schedule: ${schedule}" -ForegroundColor Yellow
 } catch {
     Write-Error $_
@@ -1932,7 +1932,7 @@ try {
     
     New-DatabaseAvailabilityGroup @DAGParams
     
-    Write-Host "✓ DAG created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DAG created successfully" -ForegroundColor Green
     Write-Host "  Name: ${dagName}" -ForegroundColor Gray
     Write-Host "  Witness Server: ${witnessServer}" -ForegroundColor Gray
     Write-Host "  Witness Directory: ${witnessDir}" -ForegroundColor Gray
@@ -2006,7 +2006,7 @@ try {
     
     Add-MailboxDatabaseCopy @CopyParams
     
-    Write-Host "✓ Database copy added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database copy added successfully" -ForegroundColor Green
     Write-Host "  Database: ${dbName}" -ForegroundColor Gray
     Write-Host "  Copy Location: ${targetServer}" -ForegroundColor Gray
     ${lagDays > 0 ? `Write-Host "  Replay Lag: ${lagDays} days" -ForegroundColor Gray` : ''}
@@ -2077,7 +2077,7 @@ try {
     Write-Host "  Seeding initiated" -ForegroundColor Yellow
     
     Write-Host ""
-    Write-Host "✓ Seeding started successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Seeding started successfully" -ForegroundColor Green
     Write-Host "  Database: ${dbName}" -ForegroundColor Gray
     Write-Host "  Target: ${targetServer}" -ForegroundColor Gray
     Write-Host ""
@@ -2157,7 +2157,7 @@ try {
     # Save CSR to file
     $CertRequest | Out-File -FilePath "${outputPath}" -Encoding ASCII
     
-    Write-Host "✓ Certificate request generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Certificate request generated" -ForegroundColor Green
     Write-Host "  Subject: ${subjectName}" -ForegroundColor Gray
     Write-Host "  SANs: ${sans.join(', ')}" -ForegroundColor Gray
     Write-Host "  Output: ${outputPath}" -ForegroundColor Gray
@@ -2227,12 +2227,12 @@ try {
     
     Set-OwaVirtualDirectory -Identity "${serverName}\\\\owa (Default Web Site)" -InternalUrl "${internalUrl}" -ExternalUrl "${externalUrl}"
     
-    Write-Host "✓ OWA virtual directory configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] OWA virtual directory configured" -ForegroundColor Green
     Write-Host "  Server: ${serverName}" -ForegroundColor Gray
     Write-Host "  Internal URL: ${internalUrl}" -ForegroundColor Gray
     Write-Host "  External URL: ${externalUrl}" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠️ Restart IIS to apply changes:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Restart IIS to apply changes:" -ForegroundColor Yellow
     Write-Host "  iisreset /noforce" -ForegroundColor Gray
     
 } catch {
@@ -2307,7 +2307,7 @@ try {
     
     New-SendConnector @ConnectorParams
     
-    Write-Host "✓ Send connector created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Send connector created successfully" -ForegroundColor Green
     Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
     Write-Host "  Address Spaces: ${addressSpaces.join(', ')}" -ForegroundColor Gray
     ${smartHost ? `Write-Host "  Smart Host: ${smartHost}" -ForegroundColor Gray` : `Write-Host "  Routing: DNS" -ForegroundColor Gray`}
@@ -2374,13 +2374,13 @@ try {
     
     New-ReceiveConnector -Name "${connectorName}" -Server "${serverName}" -TransportRole FrontendTransport -Bindings "0.0.0.0:${port}" -RemoteIPRanges @(${remoteIPs.map((ip: string) => `"${ip}"`).join(', ')})
     
-    Write-Host "✓ Receive connector created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Receive connector created successfully" -ForegroundColor Green
     Write-Host "  Name: ${connectorName}" -ForegroundColor Gray
     Write-Host "  Server: ${serverName}" -ForegroundColor Gray
     Write-Host "  Port: ${port}" -ForegroundColor Gray
     Write-Host "  Remote IPs: ${remoteIPs.join(', ')}" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠️ Configure permissions as needed:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Configure permissions as needed:" -ForegroundColor Yellow
     Write-Host "  Set-ReceiveConnector '${serverName}\\\\${connectorName}' -PermissionGroups <groups>" -ForegroundColor Gray
     
 } catch {
@@ -2470,7 +2470,7 @@ try {
     }
     
     Write-Host ""
-    Write-Host "✓ Server in maintenance mode" -ForegroundColor Green
+    Write-Host "[SUCCESS] Server in maintenance mode" -ForegroundColor Green
     Write-Host "  Server: ${serverName}" -ForegroundColor Gray
     Write-Host ""
     Write-Host "ℹ️ Perform maintenance now" -ForegroundColor Cyan
@@ -2537,10 +2537,10 @@ try {
     Restart-Service MSExchangeMailboxReplication
     
     Write-Host ""
-    Write-Host "✓ MRS Proxy enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] MRS Proxy enabled successfully" -ForegroundColor Green
     Write-Host "  Server: ${serverName}" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠️ Restart IIS for changes to take effect:" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Restart IIS for changes to take effect:" -ForegroundColor Yellow
     Write-Host "  iisreset /noforce" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Test MRS Proxy:" -ForegroundColor Cyan
@@ -2608,7 +2608,7 @@ try {
         -NetworkCompression ${compression ? 'Enabled' : 'Disabled'} \`
         -NetworkEncryption ${encryption ? 'Enabled' : 'Disabled'}
     
-    Write-Host "✓ DAG network configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] DAG network configured successfully" -ForegroundColor Green
     Write-Host "  DAG: ${dagName}" -ForegroundColor Gray
     Write-Host "  Network: ${networkName}" -ForegroundColor Gray
     Write-Host "  Compression: ${compression ? 'Enabled' : 'Disabled'}" -ForegroundColor Gray
@@ -2671,7 +2671,7 @@ Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
 
 try {
     Write-Host "Configuring circular logging for: ${dbName}" -ForegroundColor Cyan
-    Write-Host "⚠️ This will dismount the database temporarily!" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ This will dismount the database temporarily!" -ForegroundColor Yellow
     Read-Host "Press Enter to continue or Ctrl+C to cancel"
     
     # Dismount database
@@ -2681,18 +2681,18 @@ try {
     # Configure circular logging
     Set-MailboxDatabase -Identity "${dbName}" -CircularLoggingEnabled $${enable ? 'true' : 'false'}
     
-    Write-Host "✓ Circular logging ${enable ? 'enabled' : 'disabled'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Circular logging ${enable ? 'enabled' : 'disabled'}" -ForegroundColor Green
     
     # Mount database
     Write-Host "Mounting database..." -ForegroundColor Yellow
     Mount-Database -Identity "${dbName}"
     
-    Write-Host "✓ Database mounted successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database mounted successfully" -ForegroundColor Green
     Write-Host "  Database: ${dbName}" -ForegroundColor Gray
     Write-Host "  Circular Logging: ${enable ? 'Enabled' : 'Disabled'}" -ForegroundColor Gray
     
     ${enable ? `Write-Host ""
-    Write-Host "⚠️ WARNING: Circular logging is now ENABLED" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ WARNING: Circular logging is now ENABLED" -ForegroundColor Yellow
     Write-Host "  - Transaction log backups will NOT truncate logs" -ForegroundColor Yellow
     Write-Host "  - Only full/incremental database backups supported" -ForegroundColor Yellow
     Write-Host "  - NOT recommended for production environments" -ForegroundColor Yellow` : ''}
@@ -2768,7 +2768,7 @@ try {
         -DNSRoutingEnabled $${smartHost ? 'false' : 'true'} \`
         -UseExternalDNSServersEnabled \\$false
     
-    Write-Host "✓ Send connector created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Send connector created" -ForegroundColor Green
     ${smartHost ? `Write-Host "  Smart Host: ${smartHost}" -ForegroundColor Gray` : ''}` :
     `
     # Create Receive Connector
@@ -2778,7 +2778,7 @@ try {
         -RemoteIPRanges ${remoteIPs ? `"${remoteIPs}"` : '"0.0.0.0-255.255.255.255"'} \`
         -PermissionGroups AnonymousUsers
     
-    Write-Host "✓ Receive connector created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Receive connector created" -ForegroundColor Green
     ${remoteIPs ? `Write-Host "  Remote IPs: ${remoteIPs}" -ForegroundColor Gray` : `Write-Host "  Remote IPs: All (0.0.0.0-255.255.255.255)" -ForegroundColor Gray`}`}
     
     Write-Host "  Server: ${serverName}" -ForegroundColor Gray
@@ -2849,15 +2849,15 @@ try {
             
             if ($Existing) {
                 Set-AcceptedDomain -Identity $Domain -DomainType $DomainType
-                Write-Host "✓ Updated: $Domain" -ForegroundColor Green
+                Write-Host "[SUCCESS] Updated: $Domain" -ForegroundColor Green
             } else {
                 New-AcceptedDomain -Name $Domain -DomainName $Domain -DomainType $DomainType
-                Write-Host "✓ Added: $Domain" -ForegroundColor Green
+                Write-Host "[SUCCESS] Added: $Domain" -ForegroundColor Green
             }
             
             $SuccessCount++
         } catch {
-            Write-Host "✗ Failed: $Domain - $_" -ForegroundColor Red
+            Write-Host "[FAILED] Failed: $Domain - $_" -ForegroundColor Red
             $FailCount++
         }
     }
@@ -2932,7 +2932,7 @@ try {
         -BypassedSenders ${enableBypass ? '$null' : '@()'} \`
         -Enabled \\$true
     
-    Write-Host "✓ Content filtering configured successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Content filtering configured successfully" -ForegroundColor Green
     Write-Host "  SCL Reject Threshold: ${rejectThreshold}" -ForegroundColor Gray
     Write-Host "  SCL Quarantine Threshold: ${quarantineThreshold}" -ForegroundColor Gray
     Write-Host "  Bypassed Senders: ${enableBypass ? 'Enabled' : 'Disabled'}" -ForegroundColor Gray
@@ -3007,7 +3007,7 @@ try {
     # Configure specific mailbox
     Set-Mailbox -Identity "${targetMailbox}" -AuditLogAgeLimit ${retentionDays}.00:00:00
     
-    Write-Host "✓ Audit log retention configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit log retention configured" -ForegroundColor Green
     Write-Host "  Mailbox: ${targetMailbox}" -ForegroundColor Gray
     Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Gray
     
@@ -3028,7 +3028,7 @@ try {
         }
     }
     
-    Write-Host "✓ Audit log retention configured for all mailboxes" -ForegroundColor Green
+    Write-Host "[SUCCESS] Audit log retention configured for all mailboxes" -ForegroundColor Green
     Write-Host "  Mailboxes Updated: $($Mailboxes.Count)" -ForegroundColor Gray
     Write-Host "  Retention: ${retentionDays} days" -ForegroundColor Gray`}
     
@@ -3105,7 +3105,7 @@ try {
         -InternalClientsRequireSsl $${requireSSL ? 'true' : 'false'} \`
         -DefaultAuthenticationMethod ${authMethod}
     
-    Write-Host "✓ Outlook Anywhere enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Outlook Anywhere enabled successfully" -ForegroundColor Green
     Write-Host "  Server: ${serverName}" -ForegroundColor Gray
     Write-Host "  External Hostname: ${externalHostname}" -ForegroundColor Gray
     Write-Host "  Authentication: ${authMethod}" -ForegroundColor Gray
@@ -3116,7 +3116,7 @@ try {
     Write-Host "Restarting IIS..." -ForegroundColor Yellow
     Invoke-Command -ComputerName "${serverName}" -ScriptBlock { iisreset /noforce }
     
-    Write-Host "✓ IIS restarted successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] IIS restarted successfully" -ForegroundColor Green
     
     Write-Host ""
     Write-Host "Client Configuration:" -ForegroundColor Cyan
@@ -3125,7 +3125,7 @@ try {
     Write-Host "  Encryption: ${requireSSL ? 'Required' : 'Optional'}" -ForegroundColor Gray
     
     ${authMethod === 'Basic' ? `Write-Host ""
-    Write-Host "⚠️ WARNING: Basic authentication selected" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ WARNING: Basic authentication selected" -ForegroundColor Yellow
     Write-Host "  Consider using NTLM or Negotiate for better security" -ForegroundColor Yellow` : ''}
     
 } catch {
@@ -3213,7 +3213,7 @@ try {
         -RoomList "${roomList}" \`
         -OfflineAddressBook "\\Default Offline Address Book"
     
-    Write-Host "✓ Address Book Policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Address Book Policy created successfully" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Gray
     Write-Host "  Address List: ${addressList}" -ForegroundColor Gray
     Write-Host "  GAL: ${gal}" -ForegroundColor Gray
@@ -3296,12 +3296,12 @@ $UseDatabaseDefaults = ${useDefaults}
 try {
     # Verify mailbox exists
     $Mailbox = Get-Mailbox -Identity $MailboxIdentity -ErrorAction Stop
-    Write-Host "✓ Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
     
     if ($UseDatabaseDefaults) {
         # Use database default quotas
         Set-Mailbox -Identity $MailboxIdentity -UseDatabaseQuotaDefaults $true
-        Write-Host "✓ Mailbox set to use database default quotas" -ForegroundColor Green
+        Write-Host "[SUCCESS] Mailbox set to use database default quotas" -ForegroundColor Green
     } else {
         # Set individual quotas
         Set-Mailbox -Identity $MailboxIdentity \`
@@ -3310,7 +3310,7 @@ try {
             -ProhibitSendQuota "$($ProhibitSendMB)MB" \`
             -ProhibitSendReceiveQuota "$($ProhibitSendReceiveMB)MB"
         
-        Write-Host "✓ Mailbox quotas configured" -ForegroundColor Green
+        Write-Host "[SUCCESS] Mailbox quotas configured" -ForegroundColor Green
         Write-Host "  Issue Warning At: $IssueWarningMB MB" -ForegroundColor Gray
         Write-Host "  Prohibit Send At: $ProhibitSendMB MB" -ForegroundColor Gray
         Write-Host "  Prohibit Send Receive At: $ProhibitSendReceiveMB MB" -ForegroundColor Gray
@@ -3397,11 +3397,11 @@ $Automapping = ${automapping}
 try {
     # Verify target mailbox exists
     $Target = Get-Mailbox -Identity $TargetMailbox -ErrorAction Stop
-    Write-Host "✓ Target Mailbox: $($Target.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Target Mailbox: $($Target.DisplayName)" -ForegroundColor Green
     
     # Verify trustee exists
     $User = Get-Mailbox -Identity $Trustee -ErrorAction Stop
-    Write-Host "✓ Trustee: $($User.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Trustee: $($User.DisplayName)" -ForegroundColor Green
     
     if ($GrantFullAccess) {
         Add-MailboxPermission -Identity $TargetMailbox \`
@@ -3410,7 +3410,7 @@ try {
             -InheritanceType All \`
             -AutoMapping $Automapping
         
-        Write-Host "✓ Full Access granted" -ForegroundColor Green
+        Write-Host "[SUCCESS] Full Access granted" -ForegroundColor Green
         Write-Host "  Automapping: $Automapping" -ForegroundColor Gray
     }
     
@@ -3420,7 +3420,7 @@ try {
             -AccessRights ExtendedRight \`
             -ExtendedRights "Send As"
         
-        Write-Host "✓ Send As permission granted" -ForegroundColor Green
+        Write-Host "[SUCCESS] Send As permission granted" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -3430,7 +3430,7 @@ try {
     Write-Host "  Full Access: $GrantFullAccess" -ForegroundColor Gray
     Write-Host "  Send As: $GrantSendAs" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠️ Permissions may take up to 60 minutes to propagate" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Permissions may take up to 60 minutes to propagate" -ForegroundColor Yellow
     Write-Host "  User should restart Outlook to see changes" -ForegroundColor Yellow
     
 } catch {
@@ -3506,7 +3506,7 @@ ${endDate ? `$EndDate = "${endDate}"` : ''}
 try {
     # Verify mailbox exists
     $Mailbox = Get-Mailbox -Identity $MailboxIdentity -ErrorAction Stop
-    Write-Host "✓ Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Mailbox: $($Mailbox.DisplayName)" -ForegroundColor Green
     
     # Build export request parameters
     $params = @{
@@ -3530,7 +3530,7 @@ try {
     
     $Request = New-MailboxExportRequest @params
     
-    Write-Host "✓ Export request created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Export request created" -ForegroundColor Green
     Write-Host "  Request Name: $($Request.Name)" -ForegroundColor Gray
     Write-Host "  Status: $($Request.Status)" -ForegroundColor Gray
     Write-Host "  Export Path: $ExportPath" -ForegroundColor Gray
@@ -3615,12 +3615,12 @@ $MountDatabase = ${mountDatabase}
 try {
     # Verify server exists
     $Server = Get-ExchangeServer -Identity $ServerName -ErrorAction Stop
-    Write-Host "✓ Server: $($Server.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Server: $($Server.Name)" -ForegroundColor Green
     
     # Check if database already exists
     $Existing = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction SilentlyContinue
     if ($Existing) {
-        Write-Host "⚠ Database already exists: $DatabaseName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Database already exists: $DatabaseName" -ForegroundColor Yellow
         exit 0
     }
     
@@ -3633,12 +3633,12 @@ try {
         -EdbFilePath $EdbFilePath \`
         -LogFolderPath $LogFolderPath
     
-    Write-Host "✓ Database created: $DatabaseName" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database created: $DatabaseName" -ForegroundColor Green
     
     if ($MountDatabase) {
         Write-Host "Mounting database..." -ForegroundColor Cyan
         Mount-Database -Identity $DatabaseName
-        Write-Host "✓ Database mounted" -ForegroundColor Green
+        Write-Host "[SUCCESS] Database mounted" -ForegroundColor Green
     }
     
     # Get database status
@@ -3720,7 +3720,7 @@ $DurationHours = ${durationHours}
 try {
     # Verify database exists
     $Database = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction Stop
-    Write-Host "✓ Database: $($Database.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database: $($Database.Name)" -ForegroundColor Green
     
     # Build maintenance schedule
     # Format: Day.StartTime-Day.EndTime
@@ -3746,7 +3746,7 @@ try {
     
     Set-MailboxDatabase -Identity $DatabaseName -MaintenanceSchedule $Schedule
     
-    Write-Host "✓ Maintenance schedule configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Maintenance schedule configured" -ForegroundColor Green
     
     # Display current settings
     $Updated = Get-MailboxDatabase -Identity $DatabaseName
@@ -3833,15 +3833,15 @@ try {
     # Verify journal recipient exists
     $JournalMbx = Get-Mailbox -Identity $JournalRecipient -ErrorAction SilentlyContinue
     if (-not $JournalMbx) {
-        Write-Host "⚠ Journal recipient mailbox not found, will use as external address" -ForegroundColor Yellow
+        Write-Host "[WARNING] Journal recipient mailbox not found, will use as external address" -ForegroundColor Yellow
     } else {
-        Write-Host "✓ Journal Recipient: $($JournalMbx.DisplayName)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Journal Recipient: $($JournalMbx.DisplayName)" -ForegroundColor Green
     }
     
     # Check if rule exists
     $Existing = Get-JournalRule -Identity $RuleName -ErrorAction SilentlyContinue
     if ($Existing) {
-        Write-Host "⚠ Journal rule already exists: $RuleName" -ForegroundColor Yellow
+        Write-Host "[WARNING] Journal rule already exists: $RuleName" -ForegroundColor Yellow
         Write-Host "  Updating existing rule..." -ForegroundColor Gray
         
         ${targetRecipient ? `
@@ -3871,7 +3871,7 @@ try {
             -Enabled $true`}
     }
     
-    Write-Host "✓ Journal rule configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Journal rule configured" -ForegroundColor Green
     Write-Host ""
     Write-Host "Journal Rule Settings:" -ForegroundColor Cyan
     Write-Host "  Name: $RuleName" -ForegroundColor Gray
@@ -3879,7 +3879,7 @@ try {
     Write-Host "  Scope: $Scope" -ForegroundColor Gray
     ${targetRecipient ? 'Write-Host "  Target: $TargetRecipient" -ForegroundColor Gray' : 'Write-Host "  Target: All Recipients" -ForegroundColor Gray'}
     Write-Host ""
-    Write-Host "⚠️ Ensure journal mailbox has adequate quota" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Ensure journal mailbox has adequate quota" -ForegroundColor Yellow
     Write-Host "  High volume can quickly fill journal mailbox" -ForegroundColor Yellow
     
 } catch {
@@ -4003,14 +4003,14 @@ try {
     New-TransportRule @params
     
     Write-Host ""
-    Write-Host "✓ DLP transport rule created" -ForegroundColor Green
+    Write-Host "[SUCCESS] DLP transport rule created" -ForegroundColor Green
     Write-Host ""
     Write-Host "Rule Configuration:" -ForegroundColor Cyan
     Write-Host "  Name: $RuleName" -ForegroundColor Gray
     Write-Host "  Data Type: $DataType" -ForegroundColor Gray
     Write-Host "  Action: $Action" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "⚠️ Test the rule before production deployment" -ForegroundColor Yellow
+    Write-Host "[WARNING]️ Test the rule before production deployment" -ForegroundColor Yellow
     Write-Host "  Use -Mode Enforce or -Mode Audit as needed" -ForegroundColor Yellow
     
 } catch {
@@ -4109,10 +4109,10 @@ try {
     
     if ($SetAsDefault) {
         Set-OwaMailboxPolicy -Identity $PolicyName -IsDefault $true
-        Write-Host "✓ Set as default policy" -ForegroundColor Green
+        Write-Host "[SUCCESS] Set as default policy" -ForegroundColor Green
     }
     
-    Write-Host "✓ OWA policy configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] OWA policy configured" -ForegroundColor Green
     Write-Host ""
     Write-Host "Policy Settings:" -ForegroundColor Cyan
     Write-Host "  Name: $PolicyName" -ForegroundColor Gray
@@ -4225,10 +4225,10 @@ try {
     
     if ($SetAsDefault) {
         Set-MobileDeviceMailboxPolicy -Identity $PolicyName -IsDefault $true
-        Write-Host "✓ Set as default policy" -ForegroundColor Green
+        Write-Host "[SUCCESS] Set as default policy" -ForegroundColor Green
     }
     
-    Write-Host "✓ ActiveSync policy configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] ActiveSync policy configured" -ForegroundColor Green
     Write-Host ""
     Write-Host "Policy Settings:" -ForegroundColor Cyan
     Write-Host "  Name: $PolicyName" -ForegroundColor Gray
@@ -4308,7 +4308,7 @@ $MountDialOverride = "${mountDialOverride}"
 try {
     # Verify database exists
     $Database = Get-MailboxDatabase -Identity $DatabaseName -ErrorAction Stop
-    Write-Host "✓ Database: $($Database.Name)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database: $($Database.Name)" -ForegroundColor Green
     
     # Get current status
     $CurrentStatus = Get-MailboxDatabaseCopyStatus -Identity "$DatabaseName\\*" | Where-Object { $_.Status -eq "Mounted" }
@@ -4319,7 +4319,7 @@ try {
     Write-Host "  Target copy status: $($TargetStatus.Status)" -ForegroundColor Gray
     
     if ($TargetStatus.Status -ne "Healthy") {
-        Write-Host "⚠ Warning: Target copy is not Healthy ($($TargetStatus.Status))" -ForegroundColor Yellow
+        Write-Host "[WARNING] Warning: Target copy is not Healthy ($($TargetStatus.Status))" -ForegroundColor Yellow
     }
     
     Write-Host ""
@@ -4344,7 +4344,7 @@ try {
     $NewStatus = Get-MailboxDatabaseCopyStatus -Identity "$DatabaseName\\*" | Where-Object { $_.Status -eq "Mounted" }
     
     Write-Host ""
-    Write-Host "✓ Failover completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Failover completed" -ForegroundColor Green
     Write-Host "  Database: $DatabaseName" -ForegroundColor Gray
     Write-Host "  Now mounted on: $($NewStatus.MailboxServer)" -ForegroundColor Gray
     Write-Host ""
@@ -4455,7 +4455,7 @@ try {
         RecipientStatus
     
     Write-Host ""
-    Write-Host "✓ Found $($Results.Count) message tracking entries" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Results.Count) message tracking entries" -ForegroundColor Green
     
     if ($Results.Count -gt 0) {
         # Export to CSV
@@ -4476,7 +4476,7 @@ try {
             Write-Host "  [$($_.Timestamp)] $($_.EventId): $($_.MessageSubject)" -ForegroundColor Gray
         }
     } else {
-        Write-Host "⚠ No messages found matching criteria" -ForegroundColor Yellow
+        Write-Host "[WARNING] No messages found matching criteria" -ForegroundColor Yellow
     }
     
 } catch {
@@ -4576,7 +4576,7 @@ try {
                 ProhibitSendQuota = $Mailbox.ProhibitSendQuota
             }
         } catch {
-            Write-Host "    ⚠ Failed to get stats for: $($Mailbox.DisplayName)" -ForegroundColor Yellow
+            Write-Host "    [WARNING] Failed to get stats for: $($Mailbox.DisplayName)" -ForegroundColor Yellow
         }
     }
     
@@ -4615,7 +4615,7 @@ try {
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     
     Write-Host ""
-    Write-Host "✓ Report generated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report generated successfully" -ForegroundColor Green
     Write-Host "  Total Mailboxes: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -4745,7 +4745,7 @@ try {
     $Results | Export-Csv -Path $OutputPath -NoTypeInformation
     
     Write-Host ""
-    Write-Host "✓ Backup status report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup status report generated" -ForegroundColor Green
     Write-Host "  Total Databases: $($Results.Count)" -ForegroundColor Gray
     Write-Host "  Output: $OutputPath" -ForegroundColor Gray
     
@@ -4762,7 +4762,7 @@ try {
     
     if ($Critical -gt 0) {
         Write-Host ""
-        Write-Host "⚠️ $Critical database(s) require immediate backup attention!" -ForegroundColor Red
+        Write-Host "[WARNING]️ $Critical database(s) require immediate backup attention!" -ForegroundColor Red
     }
     
 } catch {

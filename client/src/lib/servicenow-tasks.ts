@@ -73,7 +73,7 @@ ${assignmentGroup ? `        assignment_group = "${assignmentGroup}"` : ''}
         -Credential $Credential \`
         -Body $Body
 
-    Write-Host "✓ Incident created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Incident created successfully!" -ForegroundColor Green
     Write-Host "  Number: $($Response.result.number)" -ForegroundColor Cyan
     Write-Host "  Sys ID: $($Response.result.sys_id)" -ForegroundColor Cyan
     Write-Host "  Priority: ${priority}" -ForegroundColor Cyan
@@ -131,7 +131,7 @@ try {
             -Credential $Credential \`
             -Body $Body
 
-        Write-Host "✓ Incident created: $($Response.result.number) - $Description" -ForegroundColor Green
+        Write-Host "[SUCCESS] Incident created: $($Response.result.number) - $Description" -ForegroundColor Green
         $CreatedCount++
     }
 
@@ -188,7 +188,7 @@ ${state !== 'All' ? `    $StateFilter = "?sysparm_query=state=${state}"
     $Incidents | Format-Table -AutoSize
 
 ${exportPath ? `    $Incidents | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to: ${exportPath}" -ForegroundColor Green` : ''}
 
 } catch {
     Write-Error "Query failed: $_"
@@ -249,10 +249,10 @@ ${workNotes ? `        $Body["work_notes"] = "${workNotes}"` : ''}
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body ($Body | ConvertTo-Json)
 
-        Write-Host "✓ Incident ${incidentNumber} updated successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Incident ${incidentNumber} updated successfully!" -ForegroundColor Green
 ${state ? `        Write-Host "  State: ${state}" -ForegroundColor Cyan` : ''}
     } else {
-        Write-Host "⚠ Incident not found: ${incidentNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Incident not found: ${incidentNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -311,11 +311,11 @@ ${closeNotes ? `            work_notes = "${closeNotes}"` : ''}
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Incident ${incidentNumber} resolved!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Incident ${incidentNumber} resolved!" -ForegroundColor Green
         Write-Host "  Resolution Code: ${resolutionCode}" -ForegroundColor Cyan
         Write-Host "  Resolution Notes: ${resolutionNotes}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Incident not found: ${incidentNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Incident not found: ${incidentNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -381,14 +381,14 @@ try {
                 -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
                 -Body $Body
 
-            Write-Host "✓ Incident ${incidentNumber} escalated!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Incident ${incidentNumber} escalated!" -ForegroundColor Green
             Write-Host "  New Priority: ${newPriority}" -ForegroundColor Cyan
             Write-Host "  Assigned to: ${escalationGroup}" -ForegroundColor Cyan
         } else {
-            Write-Host "⚠ Escalation group not found: ${escalationGroup}" -ForegroundColor Yellow
+            Write-Host "[WARNING] Escalation group not found: ${escalationGroup}" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "⚠ Incident not found: ${incidentNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Incident not found: ${incidentNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -458,11 +458,11 @@ ${assignmentGroup ? `        # Find group
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body ($Body | ConvertTo-Json)
 
-        Write-Host "✓ Incident ${incidentNumber} reassigned!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Incident ${incidentNumber} reassigned!" -ForegroundColor Green
 ${assignedTo ? `        Write-Host "  Assigned To: ${assignedTo}" -ForegroundColor Cyan` : ''}
 ${assignmentGroup ? `        Write-Host "  Assignment Group: ${assignmentGroup}" -ForegroundColor Cyan` : ''}
     } else {
-        Write-Host "⚠ Incident not found: ${incidentNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Incident not found: ${incidentNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -516,10 +516,10 @@ ${isPublic ? `            comments = "${workNotes}"` : `            work_notes =
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Work notes added to ${incidentNumber}" -ForegroundColor Green
+        Write-Host "[SUCCESS] Work notes added to ${incidentNumber}" -ForegroundColor Green
         Write-Host "  Type: ${isPublic ? 'Customer Visible' : 'Internal Work Notes'}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Incident not found: ${incidentNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Incident not found: ${incidentNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -581,7 +581,7 @@ try {
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body ($Body | ConvertTo-Json)
 
-    Write-Host "✓ Change request created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Change request created!" -ForegroundColor Green
     Write-Host "  Number: $($Response.result.number)" -ForegroundColor Cyan
     Write-Host "  Type: ${type}" -ForegroundColor Cyan
     Write-Host "  Category: ${category}" -ForegroundColor Cyan
@@ -654,7 +654,7 @@ ${type !== 'All' ? `    $Query += "type=${type.toLowerCase()}"` : ''}
     $Changes | Format-Table -AutoSize
 
 ${exportPath ? `    $Changes | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to: ${exportPath}" -ForegroundColor Green` : ''}
 
 } catch {
     Write-Error "Query failed: $_"
@@ -713,13 +713,13 @@ try {
                 -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
                 -Body $Body
 
-            Write-Host "✓ Change ${changeNumber} approved!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Change ${changeNumber} approved!" -ForegroundColor Green
             Write-Host "  Comments: ${approvalComments}" -ForegroundColor Cyan
         } else {
-            Write-Host "⚠ No pending approval found for ${changeNumber}" -ForegroundColor Yellow
+            Write-Host "[WARNING] No pending approval found for ${changeNumber}" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "⚠ Change request not found: ${changeNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Change request not found: ${changeNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -779,13 +779,13 @@ try {
                 -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
                 -Body $Body
 
-            Write-Host "✓ Change ${changeNumber} rejected!" -ForegroundColor Red
+            Write-Host "[SUCCESS] Change ${changeNumber} rejected!" -ForegroundColor Red
             Write-Host "  Reason: ${rejectionReason}" -ForegroundColor Cyan
         } else {
-            Write-Host "⚠ No pending approval found for ${changeNumber}" -ForegroundColor Yellow
+            Write-Host "[WARNING] No pending approval found for ${changeNumber}" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "⚠ Change request not found: ${changeNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Change request not found: ${changeNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -844,11 +844,11 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Change ${changeNumber} scheduled!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Change ${changeNumber} scheduled!" -ForegroundColor Green
         Write-Host "  Start: ${startDate}" -ForegroundColor Cyan
         Write-Host "  End: ${endDate}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Change request not found: ${changeNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Change request not found: ${changeNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -898,7 +898,7 @@ try {
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body $Body
 
-    Write-Host "✓ CAB meeting scheduled!" -ForegroundColor Green
+    Write-Host "[SUCCESS] CAB meeting scheduled!" -ForegroundColor Green
     Write-Host "  Name: ${meetingName}" -ForegroundColor Cyan
     Write-Host "  Start: ${startDateTime}" -ForegroundColor Cyan
     Write-Host "  End: ${endDateTime}" -ForegroundColor Cyan
@@ -957,10 +957,10 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Change ${changeNumber} closed!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Change ${changeNumber} closed!" -ForegroundColor Green
         Write-Host "  Close Code: ${closeCode}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Change request not found: ${changeNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Change request not found: ${changeNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1019,7 +1019,7 @@ try {
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body ($Body | ConvertTo-Json)
 
-    Write-Host "✓ Problem created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Problem created!" -ForegroundColor Green
     Write-Host "  Number: $($Response.result.number)" -ForegroundColor Cyan
     Write-Host "  Priority: ${priority}" -ForegroundColor Cyan
     Write-Host "  Sys ID: $($Response.result.sys_id)" -ForegroundColor Cyan
@@ -1083,7 +1083,7 @@ ${state !== 'All' ? `    $Query = "?sysparm_query=state=$($StateMap['${state}'])
     $Problems | Format-Table -AutoSize
 
 ${exportPath ? `    $Problems | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Exported to: ${exportPath}" -ForegroundColor Green` : ''}
 
 } catch {
     Write-Error "Query failed: $_"
@@ -1138,11 +1138,11 @@ ${workaround ? `            workaround = "${workaround}"` : ''}
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Problem ${problemNumber} updated with root cause!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Problem ${problemNumber} updated with root cause!" -ForegroundColor Green
         Write-Host "  Root Cause: ${rootCause}" -ForegroundColor Cyan
 ${workaround ? `        Write-Host "  Workaround: ${workaround}" -ForegroundColor Cyan` : ''}
     } else {
-        Write-Host "⚠ Problem not found: ${problemNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Problem not found: ${problemNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1198,11 +1198,11 @@ ${knowledgeArticle ? `            work_notes = "Known Error documented. Related 
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Problem ${problemNumber} marked as Known Error!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Problem ${problemNumber} marked as Known Error!" -ForegroundColor Green
         Write-Host "  Workaround documented" -ForegroundColor Cyan
 ${knowledgeArticle ? `        Write-Host "  Related KB: ${knowledgeArticle}" -ForegroundColor Cyan` : ''}
     } else {
-        Write-Host "⚠ Problem not found: ${problemNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Problem not found: ${problemNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1264,17 +1264,17 @@ try {
                     -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
                     -Body $Body
 
-                Write-Host "✓ Linked $IncNumber to ${problemNumber}" -ForegroundColor Green
+                Write-Host "[SUCCESS] Linked $IncNumber to ${problemNumber}" -ForegroundColor Green
                 $LinkedCount++
             } else {
-                Write-Host "⚠ Incident not found: $IncNumber" -ForegroundColor Yellow
+                Write-Host "[WARNING] Incident not found: $IncNumber" -ForegroundColor Yellow
             }
         }
 
         Write-Host ""
         Write-Host "Linked $LinkedCount incidents to problem ${problemNumber}" -ForegroundColor Green
     } else {
-        Write-Host "⚠ Problem not found: ${problemNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Problem not found: ${problemNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1331,11 +1331,11 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Problem ${problemNumber} resolved!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Problem ${problemNumber} resolved!" -ForegroundColor Green
         Write-Host "  Resolution Code: ${resolutionCode}" -ForegroundColor Cyan
         Write-Host "  Fix Notes: ${fixNotes}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ Problem not found: ${problemNumber}" -ForegroundColor Yellow
+        Write-Host "[WARNING] Problem not found: ${problemNumber}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1398,7 +1398,7 @@ ${manufacturer ? `        manufacturer = "${manufacturer}"` : ''}
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body $Body
 
-    Write-Host "✓ CI created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] CI created successfully!" -ForegroundColor Green
     Write-Host "  Name: ${name}" -ForegroundColor Cyan
     Write-Host "  Class: ${ciClass}" -ForegroundColor Cyan
     Write-Host "  Sys ID: $($Response.result.sys_id)" -ForegroundColor Cyan
@@ -1452,9 +1452,9 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ CI '${ciName}' updated: ${field} = ${value}" -ForegroundColor Green
+        Write-Host "[SUCCESS] CI '${ciName}' updated: ${field} = ${value}" -ForegroundColor Green
     } else {
-        Write-Host "⚠ CI not found: ${ciName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] CI not found: ${ciName}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1505,7 +1505,7 @@ try {
 
     $Assets | Export-Csv -Path "${exportPath}" -NoTypeInformation
 
-    Write-Host "✓ CMDB assets exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] CMDB assets exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total Assets: $($Assets.Count)" -ForegroundColor Cyan
     Write-Host "  Class: ${ciClass}" -ForegroundColor Cyan
 
@@ -1571,14 +1571,14 @@ try {
                 -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
                 -Body $Body
 
-            Write-Host "✓ Relationship created!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Relationship created!" -ForegroundColor Green
             Write-Host "  ${parentCI} ${relationshipType} ${childCI}" -ForegroundColor Cyan
         } else {
-            Write-Host "⚠ Relationship type not found: ${relationshipType}" -ForegroundColor Yellow
+            Write-Host "[WARNING] Relationship type not found: ${relationshipType}" -ForegroundColor Yellow
         }
     } else {
-        if (-not $Parent.result) { Write-Host "⚠ Parent CI not found: ${parentCI}" -ForegroundColor Yellow }
-        if (-not $Child.result) { Write-Host "⚠ Child CI not found: ${childCI}" -ForegroundColor Yellow }
+        if (-not $Parent.result) { Write-Host "[WARNING] Parent CI not found: ${parentCI}" -ForegroundColor Yellow }
+        if (-not $Child.result) { Write-Host "[WARNING] Child CI not found: ${childCI}" -ForegroundColor Yellow }
     }
 
 } catch {
@@ -1646,9 +1646,9 @@ try {
         $AllRelationships | Format-Table -AutoSize
 
 ${exportPath ? `        $AllRelationships | Export-Csv -Path "${exportPath}" -NoTypeInformation
-        Write-Host "✓ Exported to: ${exportPath}" -ForegroundColor Green` : ''}
+        Write-Host "[SUCCESS] Exported to: ${exportPath}" -ForegroundColor Green` : ''}
     } else {
-        Write-Host "⚠ CI not found: ${ciName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] CI not found: ${ciName}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1702,10 +1702,10 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ CI '${ciName}' retired" -ForegroundColor Green
+        Write-Host "[SUCCESS] CI '${ciName}' retired" -ForegroundColor Green
         Write-Host "  Reason: ${retirementReason}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ CI not found: ${ciName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] CI not found: ${ciName}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1763,7 +1763,7 @@ try {
     $StaleCIs | Format-Table name, sys_class_name, DaysSinceUpdate, operational_status -AutoSize
 
     $StaleCIs | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green
 
 } catch {
     Write-Error "Reconciliation report failed: $_"
@@ -1820,7 +1820,7 @@ ${title ? `        title = "${title}"` : ''}
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body $Body
 
-    Write-Host "✓ User created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] User created successfully!" -ForegroundColor Green
     Write-Host "  Username: ${userName}" -ForegroundColor Cyan
     Write-Host "  Name: ${firstName} ${lastName}" -ForegroundColor Cyan
     Write-Host "  Email: ${email}" -ForegroundColor Cyan
@@ -1876,10 +1876,10 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ User '${userName}' deactivated" -ForegroundColor Green
+        Write-Host "[SUCCESS] User '${userName}' deactivated" -ForegroundColor Green
         Write-Host "  Reason: ${deactivationReason}" -ForegroundColor Cyan
     } else {
-        Write-Host "⚠ User not found: ${userName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] User not found: ${userName}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1937,12 +1937,12 @@ try {
                 -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
                 -Body $Body
 
-            Write-Host "✓ Role '${roleName}' assigned to user '${userName}'" -ForegroundColor Green
+            Write-Host "[SUCCESS] Role '${roleName}' assigned to user '${userName}'" -ForegroundColor Green
         } else {
-            Write-Host "⚠ Role not found: ${roleName}" -ForegroundColor Yellow
+            Write-Host "[WARNING] Role not found: ${roleName}" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "⚠ User not found: ${userName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] User not found: ${userName}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -1994,15 +1994,15 @@ try {
             if ($Assignment.result) {
                 $DeleteUrl = "https://$Instance/api/now/table/sys_user_has_role/$($Assignment.result[0].sys_id)"
                 Invoke-RestMethod -Uri $DeleteUrl -Method Delete -Credential $Credential -Headers @{"Accept"="application/json"}
-                Write-Host "✓ Role '${roleName}' removed from user '${userName}'" -ForegroundColor Green
+                Write-Host "[SUCCESS] Role '${roleName}' removed from user '${userName}'" -ForegroundColor Green
             } else {
-                Write-Host "⚠ User does not have role: ${roleName}" -ForegroundColor Yellow
+                Write-Host "[WARNING] User does not have role: ${roleName}" -ForegroundColor Yellow
             }
         } else {
-            Write-Host "⚠ Role not found: ${roleName}" -ForegroundColor Yellow
+            Write-Host "[WARNING] Role not found: ${roleName}" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "⚠ User not found: ${userName}" -ForegroundColor Yellow
+        Write-Host "[WARNING] User not found: ${userName}" -ForegroundColor Yellow
     }
 
 } catch {
@@ -2057,10 +2057,10 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ User '${userName}' added to group '${groupName}'" -ForegroundColor Green
+        Write-Host "[SUCCESS] User '${userName}' added to group '${groupName}'" -ForegroundColor Green
     } else {
-        if (-not $User.result) { Write-Host "⚠ User not found: ${userName}" -ForegroundColor Yellow }
-        if (-not $Group.result) { Write-Host "⚠ Group not found: ${groupName}" -ForegroundColor Yellow }
+        if (-not $User.result) { Write-Host "[WARNING] User not found: ${userName}" -ForegroundColor Yellow }
+        if (-not $Group.result) { Write-Host "[WARNING] Group not found: ${groupName}" -ForegroundColor Yellow }
     }
 
 } catch {
@@ -2116,7 +2116,7 @@ ${manager ? `    # Find manager
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body ($Body | ConvertTo-Json)
 
-    Write-Host "✓ Group created: ${groupName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Group created: ${groupName}" -ForegroundColor Green
     Write-Host "  Description: ${description}" -ForegroundColor Cyan
     Write-Host "  Sys ID: $($Response.result.sys_id)" -ForegroundColor Cyan
 
@@ -2178,12 +2178,12 @@ try {
             -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
             -Body $Body
 
-        Write-Host "✓ Delegation set!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Delegation set!" -ForegroundColor Green
         Write-Host "  ${userName} delegated to ${delegateTo}" -ForegroundColor Cyan
         Write-Host "  Period: ${startDate} to ${endDate}" -ForegroundColor Cyan
     } else {
-        if (-not $User.result) { Write-Host "⚠ User not found: ${userName}" -ForegroundColor Yellow }
-        if (-not $Delegate.result) { Write-Host "⚠ Delegate not found: ${delegateTo}" -ForegroundColor Yellow }
+        if (-not $User.result) { Write-Host "[WARNING] User not found: ${userName}" -ForegroundColor Yellow }
+        if (-not $Delegate.result) { Write-Host "[WARNING] Delegate not found: ${delegateTo}" -ForegroundColor Yellow }
     }
 
 } catch {
@@ -2238,7 +2238,7 @@ ${activeOnly ? `    $Query = "?sysparm_query=active=true"` : `    $Query = ""`}
     $Users | Format-Table user_name, first_name, last_name, email, active -AutoSize
 
     $Users | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Exported to: ${exportPath}" -ForegroundColor Green
 
 } catch {
     Write-Error "Query failed: $_"
@@ -2295,7 +2295,7 @@ try {
     $Statistics | Format-Table -AutoSize
 
 ${exportPath ? `    $Statistics | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Statistics exported: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Statistics exported: ${exportPath}" -ForegroundColor Green` : ''}
 
 } catch {
     Write-Error "Statistics retrieval failed: $_"
@@ -2347,7 +2347,7 @@ try {
     $BreachedSLAs = ($SLAMetrics | Where-Object HasBreached -eq "true").Count
     $ComplianceRate = if ($TotalSLAs -gt 0) { [Math]::Round((($TotalSLAs - $BreachedSLAs) / $TotalSLAs) * 100, 2) } else { 100 }
 
-    Write-Host "✓ SLA metrics exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] SLA metrics exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total SLAs: $TotalSLAs" -ForegroundColor Cyan
     Write-Host "  Breached: $BreachedSLAs" -ForegroundColor Red
     Write-Host "  Compliance Rate: $ComplianceRate%" -ForegroundColor Green
@@ -2400,7 +2400,7 @@ try {
 
     $Report | Out-File -FilePath "${exportPath}" -Encoding UTF8
 
-    Write-Host "✓ Performance report generated: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Performance report generated: ${exportPath}" -ForegroundColor Green
     $Report | ForEach-Object { Write-Host $_ }
 
 } catch {
@@ -2448,7 +2448,7 @@ try {
     $GroupWorkload | Sort-Object -Property OpenIncidents -Descending | Format-Table -AutoSize
 
     $GroupWorkload | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Workload report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Workload report exported: ${exportPath}" -ForegroundColor Green
 
 } catch {
     Write-Error "Workload report failed: $_"
@@ -2505,7 +2505,7 @@ try {
     $AgingIncidents | Sort-Object -Property Age_Days -Descending | Format-Table number, short_description, Age_Days, priority -AutoSize
 
     $AgingIncidents | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Aging report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Aging report exported: ${exportPath}" -ForegroundColor Green
 
 } catch {
     Write-Error "Aging report failed: $_"
@@ -2561,7 +2561,7 @@ try {
     $UpcomingChanges | Sort-Object -Property ScheduledStart | Format-Table number, short_description, ScheduledStart, type -AutoSize
 
     $UpcomingChanges | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Change calendar exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Change calendar exported: ${exportPath}" -ForegroundColor Green
 
 } catch {
     Write-Error "Change calendar report failed: $_"
@@ -2628,7 +2628,7 @@ try {
     $MTTRByPriority | Format-Table -AutoSize
 
     $MTTRByPriority | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ MTTR report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] MTTR report exported: ${exportPath}" -ForegroundColor Green
 
 } catch {
     Write-Error "MTTR report failed: $_"
@@ -2678,7 +2678,7 @@ try {
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body $Body
 
-    Write-Host "✓ Scheduled report created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Scheduled report created!" -ForegroundColor Green
     Write-Host "  Name: ${reportName}" -ForegroundColor Cyan
     Write-Host "  Table: ${reportTable}" -ForegroundColor Cyan
     Write-Host "  Frequency: ${frequency}" -ForegroundColor Cyan
@@ -2754,7 +2754,7 @@ try {
 
     $DashboardData | ConvertTo-Json -Depth 5 | Out-File -FilePath "${exportPath}" -Encoding UTF8
 
-    Write-Host "✓ Dashboard data exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Dashboard data exported: ${exportPath}" -ForegroundColor Green
     Write-Host "  Incidents: $($DashboardData.Incidents.Total)" -ForegroundColor Cyan
     Write-Host "  Changes: $($DashboardData.Changes.Total)" -ForegroundColor Cyan
     Write-Host "  Problems: $($DashboardData.Problems.Total)" -ForegroundColor Cyan
@@ -2811,7 +2811,7 @@ try {
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body ($Body | ConvertTo-Json)
 
-    Write-Host "✓ Service request created: $($Response.result.number)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Service request created: $($Response.result.number)" -ForegroundColor Green
     Write-Host "  Description: ${shortDescription}" -ForegroundColor Cyan
     Write-Host "  Requested For: ${requestedFor}" -ForegroundColor Cyan
 
@@ -2875,7 +2875,7 @@ try {
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body $Body
 
-    Write-Host "✓ Event alert created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Event alert created!" -ForegroundColor Green
     Write-Host "  Source: ${eventSource}" -ForegroundColor Cyan
     Write-Host "  Type: ${eventType}" -ForegroundColor Cyan
     Write-Host "  Severity: ${severity}" -ForegroundColor Cyan
@@ -2928,7 +2928,7 @@ ${category ? `        category = "${category}"` : ''}
         -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
         -Body $Body
 
-    Write-Host "✓ Knowledge article created!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Knowledge article created!" -ForegroundColor Green
     Write-Host "  Title: ${title}" -ForegroundColor Cyan
     Write-Host "  Number: $($Response.result.number)" -ForegroundColor Cyan
     Write-Host "  Status: Draft" -ForegroundColor Yellow
@@ -2989,10 +2989,10 @@ try {
                 -Headers @{"Accept"="application/json";"Content-Type"="application/json"} \`
                 -Body $Body
 
-            Write-Host "✓ Updated $IncNumber: ${field} = ${value}" -ForegroundColor Green
+            Write-Host "[SUCCESS] Updated $IncNumber: ${field} = ${value}" -ForegroundColor Green
             $UpdatedCount++
         } else {
-            Write-Host "⚠ Incident not found: $IncNumber" -ForegroundColor Yellow
+            Write-Host "[WARNING] Incident not found: $IncNumber" -ForegroundColor Yellow
             $FailedCount++
         }
     }
@@ -3067,7 +3067,7 @@ try {
     $AvgResponseByPriority | Format-Table -AutoSize
 
     $AvgResponseByPriority | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ First response report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] First response report exported: ${exportPath}" -ForegroundColor Green
 
 } catch {
     Write-Error "First response report failed: $_"

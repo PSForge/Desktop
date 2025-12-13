@@ -80,7 +80,7 @@ try {
     
     $StorageReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Storage report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage report exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export storage report: $_"
@@ -145,7 +145,7 @@ try {
     
     $SharingReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Sharing report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sharing report exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export sharing report: $_"
@@ -279,7 +279,7 @@ try {
     
     $SyncHealth | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Sync health exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sync health exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export sync health: $_"
@@ -353,7 +353,7 @@ try {
     
     $SiteReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ OneDrive sites exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive sites exported to: ${exportPath}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export OneDrive sites: $_"
@@ -413,7 +413,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 try {
     $Site = Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '${userEmail}'"
     Set-SPOSite -Identity $Site.Url -StorageQuota $((${quotaGB})*1024)
-    Write-Host "✓ Quota set to ${quotaGB}GB for ${userEmail}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quota set to ${quotaGB}GB for ${userEmail}" -ForegroundColor Green
 } catch {
     Write-Error "Failed to set quota: $_"
 }`;
@@ -469,7 +469,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 try {
     $Site = Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '${userEmail}'"
     Set-SPOSite -Identity $Site.Url -DisableCompanyWideSharingLinks -LimitedAccessFileType WebPreviewableFiles
-    Write-Host "✓ Downloads blocked for ${userEmail}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Downloads blocked for ${userEmail}" -ForegroundColor Green
     Write-Host "  Files can still be viewed in browser" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to block downloads: $_"
@@ -533,7 +533,7 @@ try {
     Connect-PnPOnline -Url $Site.Url -Interactive
     Set-PnPList -Identity "Documents" -EnableVersioning $true -MajorVersions ${versions}
     Disconnect-PnPOnline
-    Write-Host "✓ Version limit set to ${versions} for ${userEmail}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Version limit set to ${versions} for ${userEmail}" -ForegroundColor Green
     Write-Host "  Versioning is always enabled on OneDrive" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure versioning: $_"
@@ -589,7 +589,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -RequireAnonymousLinksExpireInDays ${days}
-    Write-Host "✓ Anonymous sharing links will expire in ${days} days" -ForegroundColor Green
+    Write-Host "[SUCCESS] Anonymous sharing links will expire in ${days} days" -ForegroundColor Green
     Write-Host "  Applies to new links only (existing links unchanged)" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to set link expiration: $_"
@@ -647,7 +647,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 try {
     $Site = Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '${userEmail}'"
     Set-SPOSite -Identity $Site.Url -LimitedAccessFileType WebPreviewableFiles
-    Write-Host "✓ OneDrive sync blocked for ${userEmail}" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive sync blocked for ${userEmail}" -ForegroundColor Green
     Write-Host "  Files restricted to web preview only (no downloads/sync)" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to block sync: $_"
@@ -704,7 +704,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -OneDriveSharingCapability ${level}
-    Write-Host "✓ OneDrive external sharing set to: ${level}" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive external sharing set to: ${level}" -ForegroundColor Green
     Write-Host "  Applies to all users' OneDrive sites" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure external sharing: $_"
@@ -761,7 +761,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -OrphanedPersonalSitesRetentionPeriod ${days}
-    Write-Host "✓ Orphaned OneDrive retention set to ${days} days" -ForegroundColor Green
+    Write-Host "[SUCCESS] Orphaned OneDrive retention set to ${days} days" -ForegroundColor Green
     Write-Host "  Applies when user accounts are deleted" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to set retention policy: $_"
@@ -818,7 +818,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -RecycleBinRetentionPeriod ${days}
-    Write-Host "✓ Recycle bin retention set to ${days} days" -ForegroundColor Green
+    Write-Host "[SUCCESS] Recycle bin retention set to ${days} days" -ForegroundColor Green
     Write-Host "  Maximum allowed: 93 days" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to set recycle bin retention: $_"
@@ -876,7 +876,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -DefaultSharingLinkType ${type}
-    Write-Host "✓ Default sharing link type set to: ${type}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Default sharing link type set to: ${type}" -ForegroundColor Green
     Write-Host "  Users can still choose other types if allowed" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to set default link type: $_"
@@ -933,7 +933,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -NotifyOwnersWhenItemsReshared \\$${enable}
-    Write-Host "✓ Owner notifications ${enable ? 'enabled' : 'disabled'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Owner notifications ${enable ? 'enabled' : 'disabled'}" -ForegroundColor Green
     Write-Host "  Owners will ${enable ? '' : 'not '}receive alerts when items are reshared" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure owner notifications: $_"
@@ -989,7 +989,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -DisallowInfectedFileDownload \\$${enable}
-    Write-Host "✓ Infected file downloads ${enable ? 'blocked' : 'allowed'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Infected file downloads ${enable ? 'blocked' : 'allowed'}" -ForegroundColor Green
     Write-Host "  ${enable ? 'Users cannot download detected malware' : 'Warning: Malware can be downloaded'}" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure malware protection: $_"
@@ -1045,7 +1045,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -AllowDownloadingNonWebViewableFiles \\$${!restrict}
-    Write-Host "✓ Non-web-viewable file downloads ${restrict ? 'restricted' : 'allowed'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Non-web-viewable file downloads ${restrict ? 'restricted' : 'allowed'}" -ForegroundColor Green
     Write-Host "  ${restrict ? 'Users can only download Office docs and previewable files' : 'All file types can be downloaded'}" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure download restrictions: $_"
@@ -1107,7 +1107,7 @@ try {
     $Report = $Sites | Select-Object Owner, Url, @{N='FileCount';E={$_.ItemCount}}
     $Report | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ File count report exported to ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] File count report exported to ${exportPath}" -ForegroundColor Green
     Write-Host "  Total OneDrive sites: $($Sites.Count)" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to export file count report: $_"
@@ -1181,7 +1181,7 @@ try {
     
     $Links | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Shared links report exported to ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Shared links report exported to ${exportPath}" -ForegroundColor Green
     Write-Host "  Total sharing links found: $($Links.Count)" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to export shared links report: $_"
@@ -1244,7 +1244,7 @@ try {
     $Report = Get-MgReportOneDriveUsageStorage -Period "D${days}"
     $Report | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Storage trend report exported to ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage trend report exported to ${exportPath}" -ForegroundColor Green
     Write-Host "  Period analyzed: ${days} days" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to export storage trend report: $_"
@@ -1304,11 +1304,11 @@ try {
     # Configure tenant-wide OneDrive access request settings
     if (${enable ? '$true' : '$false'}) {
         Set-SPOTenant -ODBAccessRequests On
-        Write-Host "✓ Access requests enabled for all OneDrive sites" -ForegroundColor Green
+        Write-Host "[SUCCESS] Access requests enabled for all OneDrive sites" -ForegroundColor Green
         Write-Host "  Users can request access to shared OneDrive files" -ForegroundColor Gray
     } else {
         Set-SPOTenant -ODBAccessRequests Off
-        Write-Host "✓ Access requests disabled for all OneDrive sites" -ForegroundColor Green
+        Write-Host "[SUCCESS] Access requests disabled for all OneDrive sites" -ForegroundColor Green
         Write-Host "  Users cannot request access to OneDrive files" -ForegroundColor Gray
     }
 } catch {
@@ -1365,7 +1365,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -LegacyAuthProtocolsEnabled $${!block}
-    Write-Host "✓ Legacy authentication: ${block ? 'Blocked' : 'Allowed'}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Legacy authentication: ${block ? 'Blocked' : 'Allowed'}" -ForegroundColor Green
     Write-Host "  Security posture: ${block ? 'Enhanced (modern auth only)' : 'Reduced (legacy enabled)'}" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure legacy authentication: $_"
@@ -1423,7 +1423,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOBrowserIdleSignOut -Enabled $true -WarnAfter (New-TimeSpan -Minutes ${warnMinutes}) -SignOutAfter (New-TimeSpan -Minutes ${minutes})
-    Write-Host "✓ Idle timeout configured: ${minutes} minutes" -ForegroundColor Green
+    Write-Host "[SUCCESS] Idle timeout configured: ${minutes} minutes" -ForegroundColor Green
     Write-Host "  Warning displayed: ${warnMinutes} minutes" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure idle timeout: $_"
@@ -1489,7 +1489,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -ConditionalAccessPolicy ${action}
-    Write-Host "✓ Unmanaged device policy: ${action}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Unmanaged device policy: ${action}" -ForegroundColor Green
     Write-Host "  Devices not in Intune/MDM: ${action === 'BlockAccess' ? 'Blocked' : action === 'AllowLimitedAccess' ? 'Limited (web-only)' : 'Full access'}" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to configure unmanaged device policy: $_"
@@ -1561,7 +1561,7 @@ try {
         }
     }
     
-    Write-Host "✓ Deleted $($Sites.Count) OneDrive sites" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deleted $($Sites.Count) OneDrive sites" -ForegroundColor Green
     Write-Host "  Sites recoverable from recycle bin for 93 days" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to bulk delete sites: $_"
@@ -1639,7 +1639,7 @@ try {
         }
     }
     
-    Write-Host "✓ Set quotas for $SuccessCount of $($Users.Count) users" -ForegroundColor Green
+    Write-Host "[SUCCESS] Set quotas for $SuccessCount of $($Users.Count) users" -ForegroundColor Green
 } catch {
     Write-Error "Failed to bulk set quotas: $_"
 }`;
@@ -1696,7 +1696,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 try {
     $Site = Get-SPOSite -IncludePersonalSite $true -Filter "Owner -eq '${userEmail}'"
     
-    Write-Host "✓ OneDrive site located: $($Site.Url)" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive site located: $($Site.Url)" -ForegroundColor Green
     Write-Host "  To break permission inheritance, use:" -ForegroundColor Gray
     Write-Host "  Connect-PnPOnline -Url $($Site.Url) -Interactive" -ForegroundColor Gray
     Write-Host "  Set-PnPList -Identity 'Documents' -BreakRoleInheritance" -ForegroundColor Gray
@@ -1761,7 +1761,7 @@ try {
     $Report = Get-MgReportOneDriveActivityUserDetail -Period "D${days}"
     $Report | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Activity report exported to ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Activity report exported to ${exportPath}" -ForegroundColor Green
     Write-Host "  Period analyzed: ${days} days" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to export activity report: $_"
@@ -1820,7 +1820,7 @@ Connect-SPOService -Url https://tenant-admin.sharepoint.com
 
 try {
     Set-SPOTenant -ExcludedFileExtensionsForSyncApp "${extensions}"
-    Write-Host "✓ Blocked file types from sync: ${extensions}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Blocked file types from sync: ${extensions}" -ForegroundColor Green
     Write-Host "  These file types cannot be synced via OneDrive client" -ForegroundColor Gray
 } catch {
     Write-Error "Failed to block file types: $_"
@@ -1879,7 +1879,7 @@ try {
     Write-Host "Restoring OneDrive site..." -ForegroundColor Yellow
     Restore-SPODeletedSite -Identity "${siteUrl}"
     
-    Write-Host "✓ OneDrive site restored successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive site restored successfully" -ForegroundColor Green
     Write-Host "  Site URL: ${siteUrl}" -ForegroundColor Gray
     Write-Host "  All files, folders, and permissions restored" -ForegroundColor Gray
 } catch {
@@ -1980,14 +1980,14 @@ try {
     
     if (${blockPersonal}) {
         Set-SPOTenant -BlockPersonalOneDriveConsumerSync $true
-        Write-Host "✓ Personal account sync blocked" -ForegroundColor Green
+        Write-Host "[SUCCESS] Personal account sync blocked" -ForegroundColor Green
     }
     
-    Write-Host "✓ OneDrive sync restrictions configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive sync restrictions configured" -ForegroundColor Green
     ${allowedGuids ? `Write-Host "  Domain restrictions active" -ForegroundColor Yellow` : ''}
     Write-Host "  Block Personal Accounts: ${blockPersonal}" -ForegroundColor Yellow
     Write-Host "  Block macOS Sync: ${blockMac}" -ForegroundColor Yellow
-    Write-Host "⚠ Changes apply to new sync sessions" -ForegroundColor Cyan
+    Write-Host "[WARNING] Changes apply to new sync sessions" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Failed to configure sync restrictions: $_"
@@ -2078,11 +2078,11 @@ try {
     
     Set-SPOTenant -OneDriveStorageQuota $DefaultQuotaMB
     
-    Write-Host "✓ OneDrive storage quotas configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive storage quotas configured" -ForegroundColor Green
     Write-Host "  Default Quota: ${defaultQuota} GB ($DefaultQuotaMB MB)" -ForegroundColor Yellow
     Write-Host "  Minimum Quota: ${minQuota} GB ($MinQuotaMB MB)" -ForegroundColor Yellow
     Write-Host "  Maximum Quota: ${maxQuota} GB ($MaxQuotaMB MB)" -ForegroundColor Yellow
-    Write-Host "⚠ Applies to newly provisioned OneDrive sites" -ForegroundColor Cyan
+    Write-Host "[WARNING] Applies to newly provisioned OneDrive sites" -ForegroundColor Cyan
     Write-Host "  Use Set-SPOSite to modify existing OneDrive quotas" -ForegroundColor Gray
     
 } catch {
@@ -2176,10 +2176,10 @@ try {
     
     Restore-PnPFileVersion -All -RestoreToDateTime $RestoreDate
     
-    Write-Host "✓ OneDrive Files Restore initiated" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive Files Restore initiated" -ForegroundColor Green
     Write-Host "  All files being restored to $($RestoreDate.ToString('yyyy-MM-dd'))" -ForegroundColor Cyan
     Write-Host "  Restore may take several minutes to complete" -ForegroundColor Gray
-    Write-Host "⚠ Current versions will be overwritten with restored versions" -ForegroundColor Yellow
+    Write-Host "[WARNING] Current versions will be overwritten with restored versions" -ForegroundColor Yellow
     
 } catch {
     Write-Error "Failed to restore OneDrive files: $_"
@@ -2262,10 +2262,10 @@ try {
     
     Set-SPOTenant -OrphanedPersonalSitesRetentionPeriod ${orphanedRetention}
     
-    Write-Host "✓ OneDrive retention policies configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive retention policies configured" -ForegroundColor Green
     Write-Host "  Deleted Files Retention: ${deletedRetention} days" -ForegroundColor Yellow
     Write-Host "  Orphaned OneDrive Retention: ${orphanedRetention} days" -ForegroundColor Yellow
-    Write-Host "⚠ Applies to all OneDrive sites tenant-wide" -ForegroundColor Cyan
+    Write-Host "[WARNING] Applies to all OneDrive sites tenant-wide" -ForegroundColor Cyan
     Write-Host "  Users can restore deleted files within retention period" -ForegroundColor Gray
     Write-Host "  After retention expires, files are permanently deleted" -ForegroundColor Gray
     
@@ -2383,7 +2383,7 @@ try {
     $TotalStorageGB = ($UsageReport | Measure-Object -Property StorageUsedGB -Sum).Sum
     $ExternalShares = ($UsageReport | Measure-Object -Property SharedExternallyFileCount -Sum).Sum
     
-    Write-Host "✓ OneDrive usage report exported successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive usage report exported successfully" -ForegroundColor Green
     Write-Host "  Total Users: $TotalUsers" -ForegroundColor Yellow
     Write-Host "  Active Users: $ActiveUsers ($([math]::Round(($ActiveUsers/$TotalUsers)*100, 1))%)" -ForegroundColor Yellow
     Write-Host "  Total Storage Used: $([math]::Round($TotalStorageGB, 2)) GB" -ForegroundColor Yellow
@@ -2507,7 +2507,7 @@ try {
     
     $TotalSizeGB = ($LargeFiles | Measure-Object -Property SizeGB -Sum).Sum
     
-    Write-Host "✓ Large files report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Large files report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total large files found: $($LargeFiles.Count)" -ForegroundColor Yellow
     Write-Host "  Total storage consumed: $([math]::Round($TotalSizeGB, 2)) GB" -ForegroundColor Yellow
     
@@ -2622,7 +2622,7 @@ try {
     
     $TotalStorageGB = ($OrphanedSites | Measure-Object -Property StorageUsedGB -Sum).Sum
     
-    Write-Host "✓ Orphaned sites report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Orphaned sites report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Orphaned OneDrive sites found: $($OrphanedSites.Count)" -ForegroundColor Yellow
     Write-Host "  Total orphaned storage: $([math]::Round($TotalStorageGB, 2)) GB" -ForegroundColor Yellow
     
@@ -2712,7 +2712,7 @@ try {
                     Message = "Quota updated to $($User.QuotaGB)GB"
                 }
                 $SuccessCount++
-                Write-Host "  ✓ $($User.UserEmail): $($User.QuotaGB)GB" -ForegroundColor Green
+                Write-Host "  [OK] $($User.UserEmail): $($User.QuotaGB)GB" -ForegroundColor Green
             } else {
                 $Results += [PSCustomObject]@{
                     UserEmail = $User.UserEmail
@@ -2721,7 +2721,7 @@ try {
                     Message = "OneDrive not found"
                 }
                 $FailCount++
-                Write-Host "  ✗ $($User.UserEmail): OneDrive not found" -ForegroundColor Red
+                Write-Host "  [FAILED] $($User.UserEmail): OneDrive not found" -ForegroundColor Red
             }
         } catch {
             $Results += [PSCustomObject]@{
@@ -2731,14 +2731,14 @@ try {
                 Message = $_.Exception.Message
             }
             $FailCount++
-            Write-Host "  ✗ $($User.UserEmail): $_" -ForegroundColor Red
+            Write-Host "  [FAILED] $($User.UserEmail): $_" -ForegroundColor Red
         }
     }
     
     $ResultsPath = "${csvPath}".Replace(".csv", "_results.csv")
     $Results | Export-Csv -Path $ResultsPath -NoTypeInformation
     
-    Write-Host "✓ Bulk quota update complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Bulk quota update complete" -ForegroundColor Green
     Write-Host "  Successful updates: $SuccessCount" -ForegroundColor Yellow
     Write-Host "  Failed updates: $FailCount" -ForegroundColor $(if ($FailCount -gt 0) { "Red" } else { "Yellow" })
     Write-Host "  Results exported to: $ResultsPath" -ForegroundColor Cyan
@@ -2843,7 +2843,7 @@ try {
     
     $AnonymousLinks | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Anonymous links audit exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Anonymous links audit exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total anonymous links found: $($AnonymousLinks.Count)" -ForegroundColor $(if ($AnonymousLinks.Count -gt 0) { "Yellow" } else { "Green" })
     Write-Host "  Sites scanned: $TotalSites" -ForegroundColor Cyan
     
@@ -2940,10 +2940,10 @@ try {
     
     Disconnect-PnPOnline
     
-    Write-Host "✓ External sharing revoked for ${userEmail}" -ForegroundColor Green
+    Write-Host "[SUCCESS] External sharing revoked for ${userEmail}" -ForegroundColor Green
     Write-Host "  Sharing links revoked: $RevokedCount" -ForegroundColor Yellow
     Write-Host "  OneDrive external sharing disabled" -ForegroundColor Yellow
-    Write-Host "⚠ External users have lost access immediately" -ForegroundColor Cyan
+    Write-Host "[WARNING] External users have lost access immediately" -ForegroundColor Cyan
     
 } catch {
     Write-Error "Failed to revoke external sharing: $_"
@@ -3041,7 +3041,7 @@ try {
     
     $UniqueGuests = ($ExternalAccess | Select-Object -Property GuestEmail -Unique).Count
     
-    Write-Host "✓ External users report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] External users report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  External users with OneDrive access: $UniqueGuests" -ForegroundColor Yellow
     Write-Host "  Total shared items: $($ExternalAccess.Count)" -ForegroundColor Yellow
     
@@ -3149,11 +3149,11 @@ try {
         Set-CaseHoldPolicy -Identity $ExistingHold.Identity -AddOneDriveLocation "${userEmail}"
     }
     
-    Write-Host "✓ Legal hold applied successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Legal hold applied successfully" -ForegroundColor Green
     Write-Host "  Case: ${caseName}" -ForegroundColor Yellow
     Write-Host "  User: ${userEmail}" -ForegroundColor Yellow
     Write-Host "  Status: OneDrive content preserved" -ForegroundColor Cyan
-    Write-Host "⚠ Content cannot be permanently deleted while on hold" -ForegroundColor Yellow
+    Write-Host "[WARNING] Content cannot be permanently deleted while on hold" -ForegroundColor Yellow
     
 } catch {
     Write-Error "Failed to apply legal hold: $_"
@@ -3257,7 +3257,7 @@ try {
         Write-Host "  Creating export action..." -ForegroundColor Gray
         New-ComplianceSearchAction -SearchName $SearchName -Export -ExportType OriginalFormat -EnableDedupe $true
         
-        Write-Host "✓ eDiscovery export initiated" -ForegroundColor Green
+        Write-Host "[SUCCESS] eDiscovery export initiated" -ForegroundColor Green
         Write-Host "  Export Name: ${exportName}" -ForegroundColor Yellow
         Write-Host "  User: ${userEmail}" -ForegroundColor Yellow
         Write-Host "  Items: $($SearchStatus.Items)" -ForegroundColor Yellow
@@ -3268,7 +3268,7 @@ try {
         Write-Host "  2. Navigate to Content Search" -ForegroundColor White
         Write-Host "  3. Select export and download using eDiscovery Export Tool" -ForegroundColor White
     } else {
-        Write-Host "⚠ No items found matching search criteria" -ForegroundColor Yellow
+        Write-Host "[WARNING] No items found matching search criteria" -ForegroundColor Yellow
     }
     
 } catch {
@@ -3382,14 +3382,14 @@ try {
     
     $Results | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Sensitive content search complete" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sensitive content search complete" -ForegroundColor Green
     Write-Host "  Items with sensitive data: $($SearchStatus.Items)" -ForegroundColor $(if ($SearchStatus.Items -gt 0) { "Yellow" } else { "Green" })
     Write-Host "  Total size: $([math]::Round($SearchStatus.Size / 1GB, 2)) GB" -ForegroundColor Yellow
     Write-Host "  Results exported to: ${exportPath}" -ForegroundColor Cyan
     
     if ($SearchStatus.Items -gt 0) {
         Write-Host "" -ForegroundColor White
-        Write-Host "⚠ Sensitive data found! Review and take appropriate action:" -ForegroundColor Yellow
+        Write-Host "[WARNING] Sensitive data found! Review and take appropriate action:" -ForegroundColor Yellow
         Write-Host "  1. Review items in Purview compliance portal" -ForegroundColor White
         Write-Host "  2. Consider applying sensitivity labels" -ForegroundColor White
         Write-Host "  3. Implement DLP policies to prevent sharing" -ForegroundColor White
@@ -3493,7 +3493,7 @@ try {
     $ErrorUsers = $SyncErrors.Count
     $ErrorRate = if ($TotalUsers -gt 0) { [math]::Round(($ErrorUsers / $TotalUsers) * 100, 2) } else { 0 }
     
-    Write-Host "✓ Sync errors report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sync errors report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total OneDrive users: $TotalUsers" -ForegroundColor Yellow
     Write-Host "  Users with sync issues: $ErrorUsers ($ErrorRate%)" -ForegroundColor $(if ($ErrorRate -gt 5) { "Red" } else { "Yellow" })
     
@@ -3612,9 +3612,9 @@ Write-Host "Silent Move: ${silentMove ? 'Enabled' : 'Disabled'}" -ForegroundColo
 Write-Host ""
 
 Write-Host "Folders to Redirect:" -ForegroundColor Yellow
-${includeDesktop ? `Write-Host "  ✓ Desktop" -ForegroundColor Green` : `Write-Host "  ✗ Desktop (excluded)" -ForegroundColor Gray`}
-${includeDocuments ? `Write-Host "  ✓ Documents" -ForegroundColor Green` : `Write-Host "  ✗ Documents (excluded)" -ForegroundColor Gray`}
-${includePictures ? `Write-Host "  ✓ Pictures" -ForegroundColor Green` : `Write-Host "  ✗ Pictures (excluded)" -ForegroundColor Gray`}
+${includeDesktop ? `Write-Host "  [OK] Desktop" -ForegroundColor Green` : `Write-Host "  [FAILED] Desktop (excluded)" -ForegroundColor Gray`}
+${includeDocuments ? `Write-Host "  [OK] Documents" -ForegroundColor Green` : `Write-Host "  [FAILED] Documents (excluded)" -ForegroundColor Gray`}
+${includePictures ? `Write-Host "  [OK] Pictures" -ForegroundColor Green` : `Write-Host "  [FAILED] Pictures (excluded)" -ForegroundColor Gray`}
 
 Write-Host ""
 Write-Host "Registry Settings for Group Policy:" -ForegroundColor Cyan
@@ -3642,7 +3642,7 @@ Write-Host "  Tenant ID: $TenantId" -ForegroundColor Gray
 ${silentMove ? `Write-Host "  Show notification after folders redirected: Yes" -ForegroundColor Gray` : ''}
 
 Write-Host ""
-Write-Host "✓ Configuration details generated" -ForegroundColor Green
+Write-Host "[SUCCESS] Configuration details generated" -ForegroundColor Green
 Write-Host "  Apply via Group Policy or Intune" -ForegroundColor Yellow
 Write-Host "  Test with pilot group before broad deployment" -ForegroundColor Yellow`;
     }
@@ -3732,7 +3732,7 @@ try {
         }
     }
     
-    Write-Host "✓ OneDrive pre-provisioning requests submitted" -ForegroundColor Green
+    Write-Host "[SUCCESS] OneDrive pre-provisioning requests submitted" -ForegroundColor Green
     Write-Host "  Provisioning requested: $SuccessCount users" -ForegroundColor Yellow
     Write-Host "  Failed requests: $FailCount users" -ForegroundColor $(if ($FailCount -gt 0) { "Red" } else { "Yellow" })
     Write-Host "" -ForegroundColor White
@@ -3821,13 +3821,13 @@ try {
     
     $Admins = Get-SPOUser -Site $Site.Url | Where-Object { $_.IsSiteAdmin -eq $true }
     
-    Write-Host "✓ Site collection admin added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Site collection admin added successfully" -ForegroundColor Green
     Write-Host "  Admin now has full access to OneDrive content" -ForegroundColor Yellow
     Write-Host "" -ForegroundColor White
     Write-Host "Current Site Collection Admins:" -ForegroundColor Cyan
     $Admins | ForEach-Object { Write-Host "  - $($_.LoginName)" -ForegroundColor Gray }
     Write-Host "" -ForegroundColor White
-    Write-Host "⚠ Remember to remove admin access when no longer needed" -ForegroundColor Yellow
+    Write-Host "[WARNING] Remember to remove admin access when no longer needed" -ForegroundColor Yellow
     Write-Host "  Use: Set-SPOUser -Site <url> -LoginName <admin> -IsSiteCollectionAdmin \$false" -ForegroundColor Gray
     
 } catch {
@@ -3935,7 +3935,7 @@ try {
     
     $StatusReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Migration status report generated" -ForegroundColor Green
+    Write-Host "[SUCCESS] Migration status report generated" -ForegroundColor Green
     Write-Host "" -ForegroundColor White
     Write-Host "Migration Summary:" -ForegroundColor Cyan
     Write-Host "  Total jobs: $($StatusReport.Count)" -ForegroundColor Yellow
@@ -4045,7 +4045,7 @@ try {
     
     $UpdatedSite = Get-SPOSite -Identity $Site.Url
     
-    Write-Host "✓ Sensitivity label applied successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Sensitivity label applied successfully" -ForegroundColor Green
     Write-Host "  OneDrive URL: $($Site.Url)" -ForegroundColor Yellow
     Write-Host "  Applied Label: ${labelName}" -ForegroundColor Yellow
     Write-Host "  Label GUID: $($Label.Guid)" -ForegroundColor Gray

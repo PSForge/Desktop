@@ -59,7 +59,7 @@ ${volumes.map(v => {
             -Aggregate aggr1 \`
             -Size "$($Vol.SizeGB)g"
         
-        Write-Host "✓ Volume created: $($Vol.Name) ($($Vol.SizeGB) GB)" -ForegroundColor Green
+        Write-Host "[SUCCESS] Volume created: $($Vol.Name) ($($Vol.SizeGB) GB)" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -102,7 +102,7 @@ try {
         -Path "${volumePath}" \`
         -Vserver "${svm}"
     
-    Write-Host "✓ CIFS share '${shareName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] CIFS share '${shareName}' created successfully!" -ForegroundColor Green
     Write-Host "  Path: ${volumePath}" -ForegroundColor Cyan
     
 } catch {
@@ -142,7 +142,7 @@ try {
         -Snapshot "${snapshotName}_$(Get-Date -Format 'yyyyMMdd_HHmm')" \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Snapshot created for volume: ${volumeName}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Snapshot created for volume: ${volumeName}" -ForegroundColor Green
     
 } catch {
     Write-Error "Snapshot creation failed: $_"
@@ -182,7 +182,7 @@ ${diskCount ? `    # Create new aggregate
         -DiskCount ${diskCount} \`
         -RaidType ${raidType}
     
-    Write-Host "✓ Aggregate '${aggregateName}' created successfully!" -ForegroundColor Green` : `    # Get aggregate info
+    Write-Host "[SUCCESS] Aggregate '${aggregateName}' created successfully!" -ForegroundColor Green` : `    # Get aggregate info
     $Aggregate = Get-NcAggr -Name "${aggregateName}"
     
     Write-Host "Aggregate Information:" -ForegroundColor Green
@@ -239,7 +239,7 @@ try {
         -ExportPolicy $PolicyName \`
         -Vserver "${svm}"
     
-    Write-Host "✓ NFS export configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] NFS export configured successfully!" -ForegroundColor Green
     Write-Host "  Path: ${volumePath}" -ForegroundColor Cyan
     Write-Host "  Client: ${clientMatch}" -ForegroundColor Cyan
     
@@ -294,7 +294,7 @@ ${svm ? `    $Volumes = Get-NcVol -Vserver "${svm}"` : `    $Volumes = Get-NcVol
     
 ${exportPath ? `    
     $CapacityReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Capacity report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Capacity report exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Capacity monitoring failed: $_"
@@ -353,7 +353,7 @@ ${exportPath ? `
         AggregatePerformance = $AggrPerf
     }
     $Report | ConvertTo-Json -Depth 10 | Out-File -FilePath "${exportPath}"
-    Write-Host "✓ Performance metrics exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Performance metrics exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Performance monitoring failed: $_"
@@ -404,7 +404,7 @@ $ScriptBlock = {
         $SnapshotName = "auto_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
         New-NcSnapshot -Volume $Volume -Snapshot $SnapshotName -Vserver $SVM
         
-        Write-Host "✓ Snapshot created: $SnapshotName"
+        Write-Host "[SUCCESS] Snapshot created: $SnapshotName"
         
         # Clean up old snapshots
         $Snapshots = Get-NcSnapshot -Volume $Volume -Vserver $SVM | 
@@ -438,7 +438,7 @@ $ScriptBlock.ToString() | Out-File -FilePath $ScriptPath -Force
 
 Register-ScheduledTask -TaskName "NetApp-AutoBackup-$Volume" -Trigger $Trigger -Action $Action -Description "Automated NetApp snapshot backup for $Volume" -RunLevel Highest
 
-Write-Host "✓ Scheduled backup task created: $Schedule" -ForegroundColor Green
+Write-Host "[SUCCESS] Scheduled backup task created: $Schedule" -ForegroundColor Green
 Write-Host "  Script saved to: $ScriptPath" -ForegroundColor Cyan
 Write-Host "  Volume: $Volume" -ForegroundColor Cyan
 Write-Host "  Retention: $Retention snapshots" -ForegroundColor Cyan
@@ -510,7 +510,7 @@ try {
         -DestinationVolume "${destVolume}" \`
         -VserverContext $DestConnection
     
-    Write-Host "✓ SnapMirror replication configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SnapMirror replication configured successfully!" -ForegroundColor Green
     Write-Host "  Source: ${sourceCluster}:${sourceSVM}:${sourceVolume}" -ForegroundColor Cyan
     Write-Host "  Destination: ${destCluster}:${destSVM}:${destVolume}" -ForegroundColor Cyan
     
@@ -556,15 +556,15 @@ ${newSize ? `            Set-NcVolSize \`
                 -NewSize "${newSize}g" \`
                 -Vserver "${svm}"
             
-            Write-Host "✓ Volume resized to ${newSize} GB" -ForegroundColor Green` : `            Write-Host "Error: New size not specified" -ForegroundColor Red`}
+            Write-Host "[SUCCESS] Volume resized to ${newSize} GB" -ForegroundColor Green` : `            Write-Host "Error: New size not specified" -ForegroundColor Red`}
         }
         "Online" {
             Set-NcVol -Name "${volumeName}" -Online -Vserver "${svm}"
-            Write-Host "✓ Volume brought online" -ForegroundColor Green
+            Write-Host "[SUCCESS] Volume brought online" -ForegroundColor Green
         }
         "Offline" {
             Set-NcVol -Name "${volumeName}" -Offline -Vserver "${svm}"
-            Write-Host "✓ Volume taken offline" -ForegroundColor Yellow
+            Write-Host "[SUCCESS] Volume taken offline" -ForegroundColor Yellow
         }
         "Info" {
             Write-Host "Volume Information:" -ForegroundColor Green
@@ -618,18 +618,18 @@ try {
     
     # Configure space guarantee (thin provisioning)
 ${thinProvisioning ? `    Set-NcVol -Name "${volumeName}" -SpaceGuarantee none -Vserver "${svm}"
-    Write-Host "✓ Thin provisioning enabled" -ForegroundColor Green` : `    Set-NcVol -Name "${volumeName}" -SpaceGuarantee volume -Vserver "${svm}"
-    Write-Host "✓ Thick provisioning enabled" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Thin provisioning enabled" -ForegroundColor Green` : `    Set-NcVol -Name "${volumeName}" -SpaceGuarantee volume -Vserver "${svm}"
+    Write-Host "[SUCCESS] Thick provisioning enabled" -ForegroundColor Green`}
     
     # Enable/disable deduplication
 ${enableDedup ? `    Enable-NcSis -Path "/vol/${volumeName}" -Vserver "${svm}"
-    Write-Host "✓ Deduplication enabled" -ForegroundColor Green` : `    Disable-NcSis -Path "/vol/${volumeName}" -Vserver "${svm}"
-    Write-Host "✓ Deduplication disabled" -ForegroundColor Yellow`}
+    Write-Host "[SUCCESS] Deduplication enabled" -ForegroundColor Green` : `    Disable-NcSis -Path "/vol/${volumeName}" -Vserver "${svm}"
+    Write-Host "[SUCCESS] Deduplication disabled" -ForegroundColor Yellow`}
     
     # Enable/disable compression
 ${enableCompression ? `    Set-NcSis -Path "/vol/${volumeName}" -EnableCompression \$true -Vserver "${svm}"
-    Write-Host "✓ Compression enabled" -ForegroundColor Green` : `    Set-NcSis -Path "/vol/${volumeName}" -EnableCompression \$false -Vserver "${svm}"
-    Write-Host "✓ Compression disabled" -ForegroundColor Yellow`}
+    Write-Host "[SUCCESS] Compression enabled" -ForegroundColor Green` : `    Set-NcSis -Path "/vol/${volumeName}" -EnableCompression \$false -Vserver "${svm}"
+    Write-Host "[SUCCESS] Compression disabled" -ForegroundColor Yellow`}
     
     # Configure efficiency schedule
     $Schedule = switch ("${scheduleType}") {
@@ -640,7 +640,7 @@ ${enableCompression ? `    Set-NcSis -Path "/vol/${volumeName}" -EnableCompressi
     }
     
     Set-NcSis -Path "/vol/${volumeName}" -Schedule $Schedule -Vserver "${svm}"
-    Write-Host "✓ Efficiency schedule set to: ${scheduleType}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Efficiency schedule set to: ${scheduleType}" -ForegroundColor Green
     
     # Run storage efficiency scan
 ${enableDedup || enableCompression ? `    
@@ -662,7 +662,7 @@ ${enableDedup || enableCompression ? `
     Write-Host "  Space Saved: $([math]::Round($SisStatus.SpaceSaved / 1GB, 2)) GB" -ForegroundColor Cyan` : ''}
     
     Write-Host ""
-    Write-Host "✓ Storage efficiency configuration completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage efficiency configuration completed!" -ForegroundColor Green
     
 } catch {
     Write-Error "Storage efficiency configuration failed: $_"
@@ -720,7 +720,7 @@ try {
                     -Aggregate aggr1 \`
                     -Type DP \`
                     -VserverContext $DestConn -ErrorAction SilentlyContinue
-                Write-Host "  ✓ Destination volume created" -ForegroundColor Green
+                Write-Host "  [OK] Destination volume created" -ForegroundColor Green
             } catch {
                 Write-Host "  Destination volume already exists or creation skipped" -ForegroundColor Yellow
             }
@@ -736,7 +736,7 @@ try {
                 -Policy ${policyType} \`
                 -VserverContext $DestConn
             
-            Write-Host "  ✓ SnapMirror relationship created" -ForegroundColor Green
+            Write-Host "  [OK] SnapMirror relationship created" -ForegroundColor Green
             
             # Initialize transfer
             Write-Host "  Initializing baseline transfer..." -ForegroundColor Cyan
@@ -746,7 +746,7 @@ try {
                 -DestinationVolume "${destVolume}" \`
                 -VserverContext $DestConn
             
-            Write-Host "✓ SnapMirror relationship initialized successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] SnapMirror relationship initialized successfully!" -ForegroundColor Green
         }
         
         "Update" {
@@ -758,7 +758,7 @@ try {
                 -DestinationVolume "${destVolume}" \`
                 -VserverContext $DestConn
             
-            Write-Host "✓ SnapMirror update initiated successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] SnapMirror update initiated successfully!" -ForegroundColor Green
         }
         
         "Break" {
@@ -781,7 +781,7 @@ try {
                 -DestinationVolume "${destVolume}" \`
                 -VserverContext $DestConn -Confirm:\$false
             
-            Write-Host "✓ SnapMirror relationship broken - destination is now read-write" -ForegroundColor Green
+            Write-Host "[SUCCESS] SnapMirror relationship broken - destination is now read-write" -ForegroundColor Green
         }
         
         "Resume" {
@@ -793,7 +793,7 @@ try {
                 -DestinationVolume "${destVolume}" \`
                 -VserverContext $DestConn
             
-            Write-Host "✓ SnapMirror relationship resumed successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] SnapMirror relationship resumed successfully!" -ForegroundColor Green
         }
         
         "Delete" {
@@ -816,7 +816,7 @@ try {
                 -DestinationVolume "${destVolume}" \`
                 -VserverContext $DestConn -Confirm:\$false
             
-            Write-Host "✓ SnapMirror relationship deleted" -ForegroundColor Green
+            Write-Host "[SUCCESS] SnapMirror relationship deleted" -ForegroundColor Green
         }
         
         "Status" {
@@ -901,13 +901,13 @@ ${maxThroughputMBps ? `    $QoSParams.MaxThroughput = "${maxThroughputMBps}MB/s"
         
         # Modify existing policy
         Set-NcQosPolicyGroup @QoSParams
-        Write-Host "✓ QoS policy updated successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] QoS policy updated successfully!" -ForegroundColor Green
     } else {
         Write-Host "  Creating new QoS policy..." -ForegroundColor Cyan
         
         # Create new policy
         New-NcQosPolicyGroup @QoSParams
-        Write-Host "✓ QoS policy created successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] QoS policy created successfully!" -ForegroundColor Green
     }
     
 ${minIOPS ? `    
@@ -918,7 +918,7 @@ ${minIOPS ? `
             -PolicyGroup "${policyName}" \`
             -MinThroughput "${minIOPS}iops" \`
             -Vserver "${svm}" -ErrorAction SilentlyContinue
-        Write-Host "  ✓ Min IOPS set to: ${minIOPS}" -ForegroundColor Green
+        Write-Host "  [OK] Min IOPS set to: ${minIOPS}" -ForegroundColor Green
     } catch {
         Write-Host "  Note: Min IOPS not supported on this system" -ForegroundColor Yellow
     }` : ''}
@@ -933,7 +933,7 @@ ${volumeName ? `
         -QosPolicyGroup "${policyName}" \`
         -Vserver "${svm}"
     
-    Write-Host "✓ QoS policy applied to volume successfully!" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] QoS policy applied to volume successfully!" -ForegroundColor Green` : ''}
     
     # Display policy details
     Write-Host ""
@@ -960,7 +960,7 @@ ${volumeName ? `
     Write-Host "  State: $($VolumeStats.State)" -ForegroundColor Cyan` : ''}
     
     Write-Host ""
-    Write-Host "✓ QoS configuration completed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] QoS configuration completed successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Monitor QoS performance with:" -ForegroundColor Yellow
     Write-Host "  Get-NcQosStatistic -PolicyGroup '${policyName}'" -ForegroundColor Yellow
@@ -1091,7 +1091,7 @@ ${volumeName ? `    $Volumes = @(Get-NcVol -Name "${volumeName}"${svm ? ` -Vserv
     # Export volume performance data
     $PerformanceData | Export-Csv -Path "${exportPath}" -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Volume performance data exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume performance data exported to: ${exportPath}" -ForegroundColor Green
     
 ${includeAggregate ? `    
     # Generate aggregate performance report
@@ -1118,7 +1118,7 @@ ${includeAggregate ? `
     
     $AggrPath = "${exportPath}".Replace('.csv', '_Aggregates.csv')
     $AggrData | Export-Csv -Path $AggrPath -NoTypeInformation
-    Write-Host "✓ Aggregate performance data exported to: $AggrPath" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Aggregate performance data exported to: $AggrPath" -ForegroundColor Green` : ''}
     
     # Display summary
     Write-Host ""
@@ -1135,7 +1135,7 @@ ${includeAggregate ? `
     }
     
     Write-Host ""
-    Write-Host "✓ Performance report generation completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Performance report generation completed!" -ForegroundColor Green
     
 } catch {
     Write-Error "Performance report generation failed: $_"
@@ -1188,7 +1188,7 @@ try {
         -ExportPolicy "${exportPolicy}" \`
         -SpaceGuarantee none
     
-    Write-Host "✓ Volume '${volumeName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume '${volumeName}' created successfully!" -ForegroundColor Green
     Write-Host "  Size: ${sizeGB} GB" -ForegroundColor Cyan
     Write-Host "  Junction Path: ${junctionPath}" -ForegroundColor Cyan
     Write-Host "  Security Style: ${securityStyle}" -ForegroundColor Cyan
@@ -1254,7 +1254,7 @@ ${snapshotName ? `    # Clone from specific snapshot
         -JunctionPath "${junctionPath}" \`
         -Vserver "${svm}"`}
     
-    Write-Host "✓ FlexClone volume '${cloneName}' created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] FlexClone volume '${cloneName}' created successfully!" -ForegroundColor Green
     
 ${splitClone ? `    
     # Split the clone to make it independent
@@ -1269,7 +1269,7 @@ ${splitClone ? `
         Write-Host "  Split progress: \$(\$SplitStatus.VolumeDrAttributes.PercentageSizeUsed)%" -ForegroundColor Cyan
     } while (\$SplitStatus.VolumeDrAttributes.CloneSplitEstimate -gt 0)
     
-    Write-Host "✓ Clone split completed!" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Clone split completed!" -ForegroundColor Green` : ''}
     
     # Display clone information
     \$Clone = Get-NcVol -Name "${cloneName}" -Vserver "${svm}"
@@ -1359,7 +1359,7 @@ try {
         Write-Host "Volume move failed: \$(\$MoveStatus.Details)" -ForegroundColor Red
     } else {
         Write-Host ""
-        Write-Host "✓ Volume move completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Volume move completed successfully!" -ForegroundColor Green
         
         # Verify new location
         \$UpdatedVolume = Get-NcVol -Name "${volumeName}" -Vserver "${svm}"
@@ -1447,10 +1447,10 @@ ${snapshotPattern ? `    # Filter by pattern
                     -Vserver "${svm}" \`
                     -Confirm:\$false
                 
-                Write-Host "  ✓ Deleted: \$(\$Snap.Name)" -ForegroundColor Green
+                Write-Host "  [OK] Deleted: \$(\$Snap.Name)" -ForegroundColor Green
                 \$DeletedCount++
             } catch {
-                Write-Host "  ✗ Failed: \$(\$Snap.Name) - \$_" -ForegroundColor Red
+                Write-Host "  [FAILED] Failed: \$(\$Snap.Name) - \$_" -ForegroundColor Red
                 \$FailedCount++
             }
         }
@@ -1525,7 +1525,7 @@ ${createBackupSnapshot ? `    # Create backup snapshot of current state
         -Snapshot \$BackupSnapshotName \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Backup snapshot created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup snapshot created" -ForegroundColor Green
     Write-Host ""` : ''}
     
     # Restore volume to snapshot
@@ -1538,7 +1538,7 @@ ${createBackupSnapshot ? `    # Create backup snapshot of current state
         -Confirm:\$false
     
     Write-Host ""
-    Write-Host "✓ Volume restored successfully to snapshot '${snapshotName}'" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume restored successfully to snapshot '${snapshotName}'" -ForegroundColor Green
 ${createBackupSnapshot ? `    Write-Host "  Backup snapshot available: \$BackupSnapshotName" -ForegroundColor Cyan` : ''}
     
 } catch {
@@ -1624,7 +1624,7 @@ ${raidGroup ? `    Add-NcAggrDisk \`
     \$UpdatedAggregate = Get-NcAggr -Name "${aggregateName}"
     
     Write-Host ""
-    Write-Host "✓ Disks added successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disks added successfully!" -ForegroundColor Green
     Write-Host "  New Size: \$([math]::Round(\$UpdatedAggregate.TotalSize / 1TB, 2)) TB" -ForegroundColor Cyan
     Write-Host "  New Available: \$([math]::Round(\$UpdatedAggregate.Available / 1TB, 2)) TB" -ForegroundColor Cyan
     
@@ -1677,11 +1677,11 @@ ${aggregateName ? `    \$Aggregates = @(Get-NcAggr -Name "${aggregateName}")` : 
         # Check for issues
         if (\$Aggr.State -ne 'online') { \$HasIssues = \$true }
         if (\$Aggr.IsReconstruction) {
-            Write-Host "  ⚠ RAID Reconstruction in Progress" -ForegroundColor Yellow
+            Write-Host "  [WARNING] RAID Reconstruction in Progress" -ForegroundColor Yellow
             \$HasIssues = \$true
         }
         if (\$Aggr.IsDegraded) {
-            Write-Host "  ⚠ Aggregate is DEGRADED" -ForegroundColor Red
+            Write-Host "  [WARNING] Aggregate is DEGRADED" -ForegroundColor Red
             \$HasIssues = \$true
         }
         
@@ -1692,7 +1692,7 @@ ${aggregateName ? `    \$Aggregates = @(Get-NcAggr -Name "${aggregateName}")` : 
         Write-Host "  Total Disks: \$(\$AggrDisks.Count)" -ForegroundColor Cyan
         
         if (\$FailedDisks) {
-            Write-Host "  ⚠ Failed Disks: \$(\$FailedDisks.Count)" -ForegroundColor Red
+            Write-Host "  [WARNING] Failed Disks: \$(\$FailedDisks.Count)" -ForegroundColor Red
             \$HasIssues = \$true
             \$FailedDisks | ForEach-Object {
                 Write-Host "    - \$(\$_.Name)" -ForegroundColor Red
@@ -1717,13 +1717,13 @@ ${aggregateName ? `    \$Aggregates = @(Get-NcAggr -Name "${aggregateName}")` : 
     
 ${exportPath ? `    
     \$HealthReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-    Write-Host "✓ Health report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Health report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host ""` : ''}
     
     if (\$HasIssues) {
-        Write-Host "⚠ Issues detected - Review warnings above" -ForegroundColor Yellow
+        Write-Host "[WARNING] Issues detected - Review warnings above" -ForegroundColor Yellow
     } else {
-        Write-Host "✓ All aggregates healthy" -ForegroundColor Green
+        Write-Host "[SUCCESS] All aggregates healthy" -ForegroundColor Green
     }
     
 } catch {
@@ -1775,7 +1775,7 @@ try {
         -Language "${language}" \`
         -RootVolumeSecurityStyle ntfs
     
-    Write-Host "✓ SVM created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SVM created successfully!" -ForegroundColor Green
     
     # Configure protocols
     \$Protocols = "${protocols}".Split(',')
@@ -1785,7 +1785,7 @@ try {
             "nfs" {
                 Write-Host "Enabling NFS..." -ForegroundColor Cyan
                 Enable-NcNfs -Vserver "${svmName}"
-                Write-Host "  ✓ NFS enabled" -ForegroundColor Green
+                Write-Host "  [OK] NFS enabled" -ForegroundColor Green
             }
             "cifs" {
                 Write-Host "Enabling CIFS..." -ForegroundColor Cyan
@@ -1795,7 +1795,7 @@ try {
             "iscsi" {
                 Write-Host "Enabling iSCSI..." -ForegroundColor Cyan
                 Enable-NcIscsi -Vserver "${svmName}"
-                Write-Host "  ✓ iSCSI enabled" -ForegroundColor Green
+                Write-Host "  [OK] iSCSI enabled" -ForegroundColor Green
             }
         }
     }
@@ -1880,7 +1880,7 @@ try {
         -FirewallPolicy data \`
         -AutoRevert \$true
     
-    Write-Host "✓ LIF created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] LIF created successfully!" -ForegroundColor Green
     
 ${gateway ? `    
     # Configure default gateway
@@ -1890,7 +1890,7 @@ ${gateway ? `
         -Gateway "${gateway}" \`
         -Vserver "${svm}" -ErrorAction SilentlyContinue
     
-    Write-Host "  ✓ Gateway configured: ${gateway}" -ForegroundColor Green` : ''}
+    Write-Host "  [OK] Gateway configured: ${gateway}" -ForegroundColor Green` : ''}
     
     # Get LIF details
     \$LIF = Get-NcNetInterface -Name "${lifName}" -Vserver "${svm}"
@@ -1962,7 +1962,7 @@ try {
             -NameServers \$DnsServers
     }
     
-    Write-Host "✓ DNS configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS configured successfully!" -ForegroundColor Green
     
     # Verify DNS resolution
     Write-Host ""
@@ -1971,9 +1971,9 @@ try {
     foreach (\$Domain in \$DnsDomains) {
         try {
             \$Lookup = Resolve-DnsName -Name \$Domain -Server \$DnsServers[0] -ErrorAction Stop
-            Write-Host "  ✓ \$Domain resolves successfully" -ForegroundColor Green
+            Write-Host "  [OK] \$Domain resolves successfully" -ForegroundColor Green
         } catch {
-            Write-Host "  ✗ \$Domain resolution failed" -ForegroundColor Yellow
+            Write-Host "  [FAILED] \$Domain resolution failed" -ForegroundColor Yellow
         }
     }
     
@@ -2047,7 +2047,7 @@ try {
                 -Permission ${permission} \`
                 -Vserver "${svm}"
             
-            Write-Host "✓ Permission added successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Permission added successfully!" -ForegroundColor Green
         }
         "Remove" {
             Write-Host "Removing permission for: ${userOrGroup}" -ForegroundColor Yellow
@@ -2058,7 +2058,7 @@ try {
                 -Vserver "${svm}" \`
                 -Confirm:\$false
             
-            Write-Host "✓ Permission removed successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Permission removed successfully!" -ForegroundColor Green
         }
         "List" {
             Write-Host "Current Share Permissions:" -ForegroundColor Green
@@ -2121,7 +2121,7 @@ try {
         -Path "${searchPath}" \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Search path added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Search path added" -ForegroundColor Green
     
     # Create home directory share
     Write-Host "Creating home directory share..." -ForegroundColor Cyan
@@ -2132,7 +2132,7 @@ try {
         -Vserver "${svm}" \`
         -ShareProperties homedirectory,browsable
     
-    Write-Host "✓ Home directory share created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Home directory share created" -ForegroundColor Green
     
     # Configure share permissions
     Write-Host "Configuring share permissions..." -ForegroundColor Cyan
@@ -2151,7 +2151,7 @@ try {
         -Permission Change \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Permissions configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Permissions configured" -ForegroundColor Green
     
     # Display configuration
     Write-Host ""
@@ -2228,7 +2228,7 @@ ${enableABE ? `    # Add ABE property
             -ShareProperties \$NewProperties \`
             -Vserver "${svm}"
         
-        Write-Host "✓ Access-Based Enumeration enabled" -ForegroundColor Green
+        Write-Host "[SUCCESS] Access-Based Enumeration enabled" -ForegroundColor Green
     } else {
         Write-Host "ABE is already enabled on this share" -ForegroundColor Yellow
     }` : `    # Remove ABE property
@@ -2240,7 +2240,7 @@ ${enableABE ? `    # Add ABE property
             -ShareProperties \$NewProperties \`
             -Vserver "${svm}"
         
-        Write-Host "✓ Access-Based Enumeration disabled" -ForegroundColor Green
+        Write-Host "[SUCCESS] Access-Based Enumeration disabled" -ForegroundColor Green
     } else {
         Write-Host "ABE is already disabled on this share" -ForegroundColor Yellow
     }`}
@@ -2309,7 +2309,7 @@ try {
         if (\$Action -eq "Add") {
             Write-Host "Creating export policy: ${policyName}" -ForegroundColor Cyan
             New-NcExportPolicy -Name "${policyName}" -Vserver "${svm}"
-            Write-Host "✓ Export policy created" -ForegroundColor Green
+            Write-Host "[SUCCESS] Export policy created" -ForegroundColor Green
         } else {
             Write-Host "Error: Export policy '${policyName}' not found" -ForegroundColor Red
             exit
@@ -2333,7 +2333,7 @@ try {
                 -Anonymous ${anonId} \`
                 -Vserver "${svm}"
             
-            Write-Host "✓ Export rule added successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Export rule added successfully!" -ForegroundColor Green
         }
         "Remove" {
 ${ruleIndex ? `            Write-Host "Removing export rule index: ${ruleIndex}" -ForegroundColor Yellow
@@ -2344,7 +2344,7 @@ ${ruleIndex ? `            Write-Host "Removing export rule index: ${ruleIndex}"
                 -Vserver "${svm}" \`
                 -Confirm:\$false
             
-            Write-Host "✓ Export rule removed successfully!" -ForegroundColor Green` : `            Write-Host "Error: Rule index required for removal" -ForegroundColor Red`}
+            Write-Host "[SUCCESS] Export rule removed successfully!" -ForegroundColor Green` : `            Write-Host "Error: Rule index required for removal" -ForegroundColor Red`}
         }
         "List" {
             Write-Host "Export Policy Rules:" -ForegroundColor Green
@@ -2418,7 +2418,7 @@ ${svm ? `    \$NfsClients = Get-NcNfsConnectedClient -Vserver "${svm}"` : `    \
         
 ${exportPath ? `        
         \$ClientReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
-        Write-Host "✓ Client report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+        Write-Host "[SUCCESS] Client report exported to: ${exportPath}" -ForegroundColor Green` : ''}
         
         # Summary by client
         Write-Host ""
@@ -2500,7 +2500,7 @@ try {
         -SpaceReservation ${spaceReserved ? '$true' : '$false'} \`
         -Vserver "${svm}"
     
-    Write-Host "✓ LUN created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] LUN created successfully!" -ForegroundColor Green
     
     # Get LUN details
     \$Lun = Get-NcLun -Path \$LunPath -Vserver "${svm}"
@@ -2566,7 +2566,7 @@ try {
         -Type ${osType} \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Igroup created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Igroup created successfully!" -ForegroundColor Green
     
     # Add initiators
     \$Initiators = @(
@@ -2584,9 +2584,9 @@ ${initiators.map(i => `        "${i}"`).join(',\n')}
                     -Initiator \$Initiator.Trim() \`
                     -Vserver "${svm}"
                 
-                Write-Host "  ✓ Added: \$Initiator" -ForegroundColor Green
+                Write-Host "  [OK] Added: \$Initiator" -ForegroundColor Green
             } catch {
-                Write-Host "  ✗ Failed: \$Initiator - \$_" -ForegroundColor Red
+                Write-Host "  [FAILED] Failed: \$Initiator - \$_" -ForegroundColor Red
             }
         }
     }
@@ -2668,7 +2668,7 @@ ${lunId !== undefined && lunId !== '' ? `    Add-NcLunMap \`
         -InitiatorGroup "${igroupName}" \`
         -Vserver "${svm}"`}
     
-    Write-Host "✓ LUN mapped successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] LUN mapped successfully!" -ForegroundColor Green
     
     # Get mapping details
     \$Mapping = Get-NcLunMap -Path "${lunPath}" -Vserver "${svm}"
@@ -2730,7 +2730,7 @@ try {
         -Protocol ${protocol} \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Portset created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Portset created" -ForegroundColor Green
     
     # Add LIFs to portset
     \$Lifs = @(${lifs.map(l => `"${escapePowerShellString(l)}"`).join(', ')})
@@ -2745,9 +2745,9 @@ try {
                 -Port \$Lif \`
                 -Vserver "${svm}"
             
-            Write-Host "  ✓ Added: \$Lif" -ForegroundColor Green
+            Write-Host "  [OK] Added: \$Lif" -ForegroundColor Green
         } catch {
-            Write-Host "  ✗ Failed: \$Lif - \$_" -ForegroundColor Red
+            Write-Host "  [FAILED] Failed: \$Lif - \$_" -ForegroundColor Red
         }
     }
     
@@ -2761,7 +2761,7 @@ ${igroupName ? `
         -Portset "${portsetName}" \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Portset bound to igroup" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Portset bound to igroup" -ForegroundColor Green` : ''}
     
     # Get portset details
     \$Portset = Get-NcPortset -Name "${portsetName}" -Vserver "${svm}"
@@ -2844,7 +2844,7 @@ try {
             -Size "\$(\$SourceVol.TotalSize / 1GB)g" \`
             -VserverContext \$DestConn -ErrorAction SilentlyContinue
         
-        Write-Host "  ✓ Destination volume created" -ForegroundColor Green
+        Write-Host "  [OK] Destination volume created" -ForegroundColor Green
     } catch {
         Write-Host "  Destination volume may already exist" -ForegroundColor Yellow
     }
@@ -2864,7 +2864,7 @@ try {
         -Type XDP \`
         -VserverContext \$DestConn
     
-    Write-Host "  ✓ SnapVault relationship created" -ForegroundColor Green
+    Write-Host "  [OK] SnapVault relationship created" -ForegroundColor Green
     
     # Initialize the relationship
     Write-Host "Initializing baseline transfer..." -ForegroundColor Cyan
@@ -2875,7 +2875,7 @@ try {
         -DestinationVolume "${destVolume}" \`
         -VserverContext \$DestConn
     
-    Write-Host "  ✓ Initialization started" -ForegroundColor Green
+    Write-Host "  [OK] Initialization started" -ForegroundColor Green
     
     # Monitor initialization
     Write-Host ""
@@ -2893,7 +2893,7 @@ try {
     } while (\$Status.MirrorState -eq "uninitialized" -or \$Status.RelationshipStatus -eq "transferring")
     
     Write-Host ""
-    Write-Host "✓ SnapVault relationship configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SnapVault relationship configured successfully!" -ForegroundColor Green
     
 } catch {
     Write-Error "SnapVault configuration failed: \$_"
@@ -2967,7 +2967,7 @@ try {
                 -DestinationVolume "${destVolume}"
         } while (\$Status.RelationshipStatus -eq "transferring")
         
-        Write-Host "✓ Final sync completed" -ForegroundColor Green
+        Write-Host "[SUCCESS] Final sync completed" -ForegroundColor Green
     } else {
         Write-Host "UNPLANNED FAILOVER - Data loss may occur!" -ForegroundColor Red
         Write-Host "Last sync: \$(\$Relationship.LastTransferEndTimestamp)" -ForegroundColor Red
@@ -2991,7 +2991,7 @@ try {
         -DestinationVolume "${destVolume}" \`
         -Confirm:\$false
     
-    Write-Host "✓ Relationship broken - Volume is now read-write" -ForegroundColor Green
+    Write-Host "[SUCCESS] Relationship broken - Volume is now read-write" -ForegroundColor Green
     
 ${mountJunctionPath ? `    
     # Mount the volume
@@ -3003,7 +3003,7 @@ ${mountJunctionPath ? `
         -JunctionPath "${mountJunctionPath}" \`
         -Vserver "${destSVM}"
     
-    Write-Host "✓ Volume mounted" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Volume mounted" -ForegroundColor Green` : ''}
     
     # Display volume status
     \$Volume = Get-NcVol -Name "${destVolume}" -Vserver "${destSVM}"
@@ -3015,7 +3015,7 @@ ${mountJunctionPath ? `
     Write-Host "  Size: \$([math]::Round(\$Volume.TotalSize / 1GB, 2)) GB" -ForegroundColor Cyan
     
     Write-Host ""
-    Write-Host "✓ FAILOVER COMPLETE" -ForegroundColor Green
+    Write-Host "[SUCCESS] FAILOVER COMPLETE" -ForegroundColor Green
     Write-Host ""
     Write-Host "Next Steps:" -ForegroundColor Yellow
     Write-Host "  1. Update DNS or client configurations to point to DR site" -ForegroundColor Yellow
@@ -3101,14 +3101,14 @@ ${reverseResync ? `    # Reverse resync - make destination the new source
         -DestinationVserver "${destSVM}" \`
         -DestinationVolume "${destVolume}"
     
-    Write-Host "✓ Reverse resync initiated" -ForegroundColor Green` : `    # Standard resync - restore original relationship
+    Write-Host "[SUCCESS] Reverse resync initiated" -ForegroundColor Green` : `    # Standard resync - restore original relationship
     Write-Host "Performing RESYNC..." -ForegroundColor Cyan
     
     Invoke-NcSnapmirrorResync \`
         -DestinationVserver "${destSVM}" \`
         -DestinationVolume "${destVolume}"
     
-    Write-Host "✓ Resync initiated" -ForegroundColor Green`}
+    Write-Host "[SUCCESS] Resync initiated" -ForegroundColor Green`}
     
     # Monitor resync progress
     Write-Host ""
@@ -3124,7 +3124,7 @@ ${reverseResync ? `    # Reverse resync - make destination the new source
     } while (\$Status.RelationshipStatus -eq "transferring")
     
     Write-Host ""
-    Write-Host "✓ Resync completed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Resync completed successfully!" -ForegroundColor Green
     
     # Show updated relationship
     \$UpdatedRelationship = Get-NcSnapmirror \`
@@ -3305,7 +3305,7 @@ ${exportPath ? `
     
     \$HtmlReport | Out-File -FilePath "${exportPath}"
     Write-Host ""
-    Write-Host "✓ Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Report exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
 } catch {
     Write-Error "Health check failed: \$_"
@@ -3376,7 +3376,7 @@ try {
                 -Type all \`
                 -Message "${message}"
             
-            Write-Host "✓ AutoSupport triggered successfully!" -ForegroundColor Green
+            Write-Host "[SUCCESS] AutoSupport triggered successfully!" -ForegroundColor Green
             Write-Host "  Message: ${message}" -ForegroundColor Cyan
         }
         
@@ -3390,7 +3390,7 @@ ${mailHosts && recipients ? `            Write-Host "Configuring AutoSupport..."
                 -Transport smtp \`
                 -IsEnabled \$true
             
-            Write-Host "✓ AutoSupport configured successfully!" -ForegroundColor Green` : `            Write-Host "Error: Mail hosts and recipients required for configuration" -ForegroundColor Red`}
+            Write-Host "[SUCCESS] AutoSupport configured successfully!" -ForegroundColor Green` : `            Write-Host "Error: Mail hosts and recipients required for configuration" -ForegroundColor Red`}
         }
         
         "Test" {
@@ -3400,7 +3400,7 @@ ${mailHosts && recipients ? `            Write-Host "Configuring AutoSupport..."
                 -Node "${nodeName}" \`
                 -Type test
             
-            Write-Host "✓ Test AutoSupport sent!" -ForegroundColor Green
+            Write-Host "[SUCCESS] Test AutoSupport sent!" -ForegroundColor Green
             Write-Host "  Check your inbox to confirm delivery" -ForegroundColor Yellow
         }
     }
@@ -3514,17 +3514,17 @@ ${exportPath ? `
     # Export detailed report
     \$DiskStats | Export-Csv -Path "${exportPath}" -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Disk report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Disk report exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
     # Warnings
     Write-Host ""
     if (\$DiskSummary.Spare -lt 2) {
-        Write-Host "⚠ WARNING: Low spare disk count (\$(\$DiskSummary.Spare))" -ForegroundColor Yellow
+        Write-Host "[WARNING] WARNING: Low spare disk count (\$(\$DiskSummary.Spare))" -ForegroundColor Yellow
         Write-Host "  Recommend maintaining at least 2 spare disks per pool" -ForegroundColor Yellow
     }
     
     if (\$DiskSummary.Failed -gt 0) {
-        Write-Host "⚠ ALERT: \$(\$DiskSummary.Failed) failed disk(s) detected!" -ForegroundColor Red
+        Write-Host "[WARNING] ALERT: \$(\$DiskSummary.Failed) failed disk(s) detected!" -ForegroundColor Red
         Write-Host "  Replace failed disks as soon as possible" -ForegroundColor Red
     }
     
@@ -3604,7 +3604,7 @@ ${autosizeMode === 'grow_shrink' ? `    \$AutosizeParams.ShrinkThresholdPercent 
     
     Set-NcVolAutosize @AutosizeParams
     
-    Write-Host "✓ Volume autosize configured successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Volume autosize configured successfully!" -ForegroundColor Green
     
     # Verify configuration
     \$UpdatedVolume = Get-NcVol -Name "${volumeName}" -Vserver "${svm}"
@@ -3727,7 +3727,7 @@ ${monthlyCount > 0 ? `    \$Schedules += @{
         -Prefix4 "monthly" \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Snapshot policy created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Snapshot policy created successfully!" -ForegroundColor Green
     
 ${volumeName ? `    
     # Apply policy to volume
@@ -3739,7 +3739,7 @@ ${volumeName ? `
         -SnapshotPolicy "${policyName}" \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Policy applied to volume" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Policy applied to volume" -ForegroundColor Green` : ''}
     
     # Display policy details
     \$Policy = Get-NcSnapshotPolicy -Name "${policyName}" -Vserver "${svm}"
@@ -3826,7 +3826,7 @@ try {
             -Applications snapmirror \`
             -VserverContext \$SourceConn -ErrorAction SilentlyContinue
         
-        Write-Host "  ✓ SVM peer relationship initiated" -ForegroundColor Green
+        Write-Host "  [OK] SVM peer relationship initiated" -ForegroundColor Green
     } catch {
         Write-Host "  SVM peer may already exist: \$_" -ForegroundColor Yellow
     }
@@ -3840,7 +3840,7 @@ try {
             -State active \`
             -VserverContext \$DestConn -ErrorAction SilentlyContinue
         
-        Write-Host "  ✓ SVM peer relationship accepted" -ForegroundColor Green
+        Write-Host "  [OK] SVM peer relationship accepted" -ForegroundColor Green
     } catch {
         Write-Host "  Peer acceptance: \$_" -ForegroundColor Yellow
     }
@@ -3861,7 +3861,7 @@ try {
         -IdentityPreserve \$true \`
         -VserverContext \$DestConn
     
-    Write-Host "  ✓ SVM-DR relationship created" -ForegroundColor Green
+    Write-Host "  [OK] SVM-DR relationship created" -ForegroundColor Green
     
     # Initialize the relationship
     Write-Host ""
@@ -3873,7 +3873,7 @@ try {
         -DestinationVserver "${destSVM}" \`
         -VserverContext \$DestConn
     
-    Write-Host "  ✓ Initialization started" -ForegroundColor Green
+    Write-Host "  [OK] Initialization started" -ForegroundColor Green
     
     # Monitor progress
     Write-Host ""
@@ -3890,7 +3890,7 @@ try {
     } while (\$Status.MirrorState -eq "uninitialized" -or \$Status.RelationshipStatus -eq "transferring")
     
     Write-Host ""
-    Write-Host "✓ SVM-DR configuration completed!" -ForegroundColor Green
+    Write-Host "[SUCCESS] SVM-DR configuration completed!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Next Steps for Cutover:" -ForegroundColor Yellow
     Write-Host "  1. Quiesce the SVM-DR relationship" -ForegroundColor Yellow
@@ -3980,7 +3980,7 @@ ${ouPath ? `    \$CifsParams.OrganizationalUnit = "${ouPath}"` : ''}
     
     Add-NcCifsServer @CifsParams
     
-    Write-Host "✓ CIFS server joined to domain successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] CIFS server joined to domain successfully!" -ForegroundColor Green
     
     # Verify configuration
     \$CifsServer = Get-NcCifsServer -Vserver "${svm}"
@@ -4080,7 +4080,7 @@ try {
         if (\$AggrInfo.Available / 1GB -lt \$RequiredSpace) {
             Write-Host "  Warning: Aggregate '\$Aggr' may not have sufficient space" -ForegroundColor Yellow
         }
-        Write-Host "  ✓ \$Aggr - Available: \$([math]::Round(\$AggrInfo.Available / 1TB, 2)) TB" -ForegroundColor Green
+        Write-Host "  [OK] \$Aggr - Available: \$([math]::Round(\$AggrInfo.Available / 1TB, 2)) TB" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -4096,7 +4096,7 @@ try {
         -JunctionPath "${junctionPath}" \`
         -SecurityStyle ${securityStyle}
     
-    Write-Host "✓ FlexGroup volume created successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] FlexGroup volume created successfully!" -ForegroundColor Green
     
     # Get FlexGroup details
     \$FlexGroup = Get-NcVol -Name "${volumeName}" -Vserver "${svm}"
@@ -4210,7 +4210,7 @@ ${fileLimit ? `    \$QuotaParams.FileLimit = ${fileLimit}` : ''}
     # Add new rule
     Add-NcQuota @QuotaParams
     
-    Write-Host "✓ Quota rule added" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quota rule added" -ForegroundColor Green
     
     # Enable/reinitialize quotas on volume
     Write-Host ""
@@ -4233,7 +4233,7 @@ ${fileLimit ? `    \$QuotaParams.FileLimit = ${fileLimit}` : ''}
     } while (\$QuotaStatus.Status -eq "initializing")
     
     Write-Host ""
-    Write-Host "✓ Quotas enabled successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Quotas enabled successfully!" -ForegroundColor Green
     
     # Display quota rules
     Write-Host ""
@@ -4362,7 +4362,7 @@ try {
     # Export to CSV
     \$EventReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Events exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Events exported to: ${exportPath}" -ForegroundColor Green
     
     # Also export alerts
     \$AlertsPath = "${exportPath}".Replace('.csv', '_Alerts.csv')
@@ -4381,7 +4381,7 @@ try {
         }, Severity, Alerting-Resource, Probable-Cause, Possible-Effect |
             Export-Csv -Path \$AlertsPath -NoTypeInformation
         
-        Write-Host "✓ Alerts exported to: \$AlertsPath" -ForegroundColor Green
+        Write-Host "[SUCCESS] Alerts exported to: \$AlertsPath" -ForegroundColor Green
         
         # Display active alerts
         Write-Host ""
@@ -4461,7 +4461,7 @@ ${volumeNames.map(v => `        "${escapePowerShellString(v)}"`).join(',\n')}
         -Filters file-op-with-extension \`
         -Vserver "${svm}" -ErrorAction SilentlyContinue
     
-    Write-Host "✓ FPolicy event created" -ForegroundColor Green
+    Write-Host "[SUCCESS] FPolicy event created" -ForegroundColor Green
     
     # Create FPolicy engine (native)
     \$EngineName = "${policyName}_engine"
@@ -4472,7 +4472,7 @@ ${volumeNames.map(v => `        "${escapePowerShellString(v)}"`).join(',\n')}
         -Type native \`
         -Vserver "${svm}" -ErrorAction SilentlyContinue
     
-    Write-Host "✓ FPolicy engine created" -ForegroundColor Green
+    Write-Host "[SUCCESS] FPolicy engine created" -ForegroundColor Green
     
     # Create FPolicy policy
     Write-Host "Creating FPolicy policy: ${policyName}" -ForegroundColor Cyan
@@ -4484,7 +4484,7 @@ ${volumeNames.map(v => `        "${escapePowerShellString(v)}"`).join(',\n')}
         -IsPassthroughReadEnabled \$false \`
         -Vserver "${svm}" -ErrorAction SilentlyContinue
     
-    Write-Host "✓ FPolicy policy created" -ForegroundColor Green
+    Write-Host "[SUCCESS] FPolicy policy created" -ForegroundColor Green
     
     # Create FPolicy scope
     Write-Host "Creating FPolicy scope..." -ForegroundColor Cyan
@@ -4496,7 +4496,7 @@ ${volumeNames.map(v => `        "${escapePowerShellString(v)}"`).join(',\n')}
         -FileExtensionsToInclude \$Extensions \`
         -Vserver "${svm}" -ErrorAction SilentlyContinue
     
-    Write-Host "✓ FPolicy scope configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] FPolicy scope configured" -ForegroundColor Green
     
     # Enable FPolicy
     Write-Host "Enabling FPolicy..." -ForegroundColor Cyan
@@ -4506,7 +4506,7 @@ ${volumeNames.map(v => `        "${escapePowerShellString(v)}"`).join(',\n')}
         -SequenceNumber 1 \`
         -Vserver "${svm}"
     
-    Write-Host "✓ FPolicy enabled!" -ForegroundColor Green
+    Write-Host "[SUCCESS] FPolicy enabled!" -ForegroundColor Green
     
     # Display FPolicy status
     \$FpolicyStatus = Get-NcFpolicy -PolicyName "${policyName}" -Vserver "${svm}"
@@ -4579,14 +4579,14 @@ ${aluaEnabled ? `    Write-Host "Enabling ALUA..." -ForegroundColor Cyan
         -ALUA \$true \`
         -Vserver "${svm}"
     
-    Write-Host "✓ ALUA enabled for igroup '${igroupName}'" -ForegroundColor Green` : `    Write-Host "Disabling ALUA..." -ForegroundColor Yellow
+    Write-Host "[SUCCESS] ALUA enabled for igroup '${igroupName}'" -ForegroundColor Green` : `    Write-Host "Disabling ALUA..." -ForegroundColor Yellow
     
     Set-NcIgroup \`
         -Name "${igroupName}" \`
         -ALUA \$false \`
         -Vserver "${svm}"
     
-    Write-Host "✓ ALUA disabled for igroup '${igroupName}'" -ForegroundColor Yellow`}
+    Write-Host "[SUCCESS] ALUA disabled for igroup '${igroupName}'" -ForegroundColor Yellow`}
     
     # Get LUN mappings for this igroup
     Write-Host ""
@@ -4729,7 +4729,7 @@ ${exportPath ? `
     # Export report
     \$PortReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     Write-Host ""
-    Write-Host "✓ Port report exported to: ${exportPath}" -ForegroundColor Green` : ''}
+    Write-Host "[SUCCESS] Port report exported to: ${exportPath}" -ForegroundColor Green` : ''}
     
     # Summary
     Write-Host ""
@@ -4742,7 +4742,7 @@ ${exportPath ? `
     
     if (\$HasIssues) {
         Write-Host ""
-        Write-Host "⚠ Network issues detected - Review ports marked in red" -ForegroundColor Yellow
+        Write-Host "[WARNING] Network issues detected - Review ports marked in red" -ForegroundColor Yellow
     }
     
 } catch {
@@ -4819,7 +4819,7 @@ try {
         -TieringMinimumCoolingDays ${coolingDays} \`
         -Vserver "${svm}"
     
-    Write-Host "✓ Tiering policy configured!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tiering policy configured!" -ForegroundColor Green
     
     # Get updated volume info
     \$UpdatedVolume = Get-NcVol -Name "${volumeName}" -Vserver "${svm}"

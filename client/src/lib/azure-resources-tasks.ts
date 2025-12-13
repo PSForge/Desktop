@@ -124,7 +124,7 @@ try {
     ${tagsBlock ? '$RgParams.Tag = $Tags' : ''}
     
     $ResourceGroup = New-AzResourceGroup @RgParams
-    Write-Host "✓ Resource Group created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Resource Group created successfully" -ForegroundColor Green
     
     $ResourceGroup | Select-Object ResourceGroupName, Location, ProvisioningState
     
@@ -225,10 +225,10 @@ try {
             
             Set-AzResource -ResourceId $Resource.ResourceId -Tag $CurrentTags -Force | Out-Null
             
-            Write-Host "✓ Tagged: $($Resource.Name)" -ForegroundColor Green
+            Write-Host "[SUCCESS] Tagged: $($Resource.Name)" -ForegroundColor Green
             $SuccessCount++
         } catch {
-            Write-Warning "✗ Failed to tag $($Resource.Name): $_"
+            Write-Warning "[FAILED] Failed to tag $($Resource.Name): $_"
             $FailCount++
         }
     }
@@ -318,7 +318,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Inventory exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total resources: $($Inventory.Count)" -ForegroundColor Cyan
     
     Write-Host \"\`nResources by Type:" -ForegroundColor Yellow
@@ -447,10 +447,10 @@ ${vmNamesInput.split('\n').filter((line: string) => line.trim()).map((name: stri
             ${action === 'Stop' ? `Stop-AzVM -ResourceGroupName "${rgName}" -Name $VM.Name -Force -NoWait | Out-Null` : ''}
             ${action === 'Restart' ? `Restart-AzVM -ResourceGroupName "${rgName}" -Name $VM.Name -NoWait | Out-Null` : ''}
             
-            Write-Host "✓ $($VM.Name) ${action.toLowerCase()} initiated" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($VM.Name) ${action.toLowerCase()} initiated" -ForegroundColor Green
             $SuccessCount++
         } catch {
-            Write-Warning "✗ Failed: $($VM.Name) - $_"
+            Write-Warning "[FAILED] Failed: $($VM.Name) - $_"
             $FailCount++
         }
     }
@@ -561,7 +561,7 @@ try {
     
     $Inventory | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ VM inventory exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM inventory exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total VMs: $($Inventory.Count)" -ForegroundColor Cyan
     
     Write-Host \"\`nVMs by Status:" -ForegroundColor Yellow
@@ -662,7 +662,7 @@ try {
     Write-Host "Applying resize (VM will restart)..." -ForegroundColor Cyan
     Update-AzVM -VM $VM -ResourceGroupName "${rgName}"
     
-    Write-Host "✓ VM resized successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM resized successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to resize VM: $_"
@@ -787,7 +787,7 @@ ${subnetConfigs.map((subnet: any) => `        New-AzVirtualNetworkSubnetConfig -
     
     $VNet = New-AzVirtualNetwork @VNetParams
     
-    Write-Host "✓ Virtual Network created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual Network created successfully" -ForegroundColor Green
     
     Write-Host \"\`nVNet Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${vnetName}"
@@ -882,7 +882,7 @@ try {
     
     $NSG = New-AzNetworkSecurityGroup -Name "${nsgName}" -ResourceGroupName "${rgName}" -Location "${location}"
     
-    Write-Host "✓ NSG created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] NSG created successfully" -ForegroundColor Green
     
     Write-Host \"\`nNSG Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${nsgName}"
@@ -998,7 +998,7 @@ try {
     
     $StorageAccount = New-AzStorageAccount @StorageParams
     
-    Write-Host "✓ Storage Account created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Storage Account created successfully" -ForegroundColor Green
     
     Write-Host \"\`nStorage Account Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${storageName}"
@@ -1109,7 +1109,7 @@ try {
     
     $Assignment = New-AzRoleAssignment -ObjectId $Principal.Id -RoleDefinitionName "${roleName}" -Scope $Scope
     
-    Write-Host "✓ Role assigned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Role assigned successfully" -ForegroundColor Green
     
     Write-Host \"\`nAssignment Details:" -ForegroundColor Cyan
     Write-Host "  Principal: ${principalEmail}"
@@ -1194,7 +1194,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ RBAC assignments exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] RBAC assignments exported to: ${exportPath}" -ForegroundColor Green
     
     Write-Host \"\`nAssignments by Role:" -ForegroundColor Yellow
     $Report | Group-Object RoleDefinitionName | Sort-Object Count -Descending | Format-Table Name, Count
@@ -1292,7 +1292,7 @@ try {
     
     $CostsByRG | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Cost data exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cost data exported to: ${exportPath}" -ForegroundColor Green
     
     Write-Host \"\`nTop 10 Resource Groups by Cost:" -ForegroundColor Yellow
     $CostsByRG | Select-Object -First 10 | Format-Table ResourceGroup, TotalCost, Currency
@@ -1390,7 +1390,7 @@ try {
     
     $Assignment = New-AzPolicyAssignment -Name "${policyName}-assignment" -PolicyDefinition $PolicyDefinition -Scope $Scope
     
-    Write-Host "✓ Policy assigned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy assigned successfully" -ForegroundColor Green
     
     Write-Host \"\`nPolicy Assignment Details:" -ForegroundColor Cyan
     Write-Host "  Policy: ${policyName}"
@@ -1502,7 +1502,7 @@ try {
     
     New-AzDiagnosticSetting -Name "PSForge-Diagnostics" -ResourceId "${resourceId}" -WorkspaceId $Workspace.ResourceId -Log $Logs -Metric $Metrics
     
-    Write-Host "✓ Diagnostic settings enabled successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Diagnostic settings enabled successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to enable diagnostic settings: $_"
@@ -1590,7 +1590,7 @@ try {
     
     New-AzResourceLock -LockLevel ${lockType} -LockName "${lockName}" -ResourceGroupName "${rgName}" -Force
     
-    Write-Host "✓ Lock applied successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lock applied successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to apply resource lock: $_"
@@ -1687,7 +1687,7 @@ try {
     if ($ResourcesToMove.Count -gt 0) {
         Write-Host "Moving $($ResourcesToMove.Count) resources..." -ForegroundColor Yellow
         Move-AzResource -DestinationResourceGroupName "${targetRG}" -ResourceId $ResourcesToMove -Force
-        Write-Host "✓ Resources moved successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Resources moved successfully" -ForegroundColor Green
     }
     
 } catch {
@@ -1782,7 +1782,7 @@ try {
     
     New-AzVirtualNetworkGateway -Name "${gatewayName}" -ResourceGroupName "${rgName}" -Location $VNet.Location -IpConfigurations $IPConfig -GatewayType Vpn -VpnType RouteBased -GatewaySku VpnGw1
     
-    Write-Host "✓ VPN Gateway created (this may take 30-45 minutes)" -ForegroundColor Green
+    Write-Host "[SUCCESS] VPN Gateway created (this may take 30-45 minutes)" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create VPN gateway: $_"
@@ -1856,7 +1856,7 @@ try {
     
     $Zone = New-AzDnsZone -Name "${zoneName}" -ResourceGroupName "${rgName}"
     
-    Write-Host "✓ DNS zone created" -ForegroundColor Green
+    Write-Host "[SUCCESS] DNS zone created" -ForegroundColor Green
     Write-Host ${'\`n'}"Name servers for ${zoneName}:" -ForegroundColor Yellow
     $Zone.NameServers | ForEach-Object { Write-Host "  $_" }
     
@@ -1975,7 +1975,7 @@ try {
     
     New-AzConsumptionBudget @BudgetParams
     
-    Write-Host "✓ Budget created with alerts at 80% and 100%" -ForegroundColor Green
+    Write-Host "[SUCCESS] Budget created with alerts at 80% and 100%" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to create budget: $_"
@@ -2063,7 +2063,7 @@ try {
     $CostReport | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
     $TotalCost = ($CostReport | Measure-Object -Property Cost -Sum).Sum
-    Write-Host "✓ Cost report exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cost report exported: ${exportPath}" -ForegroundColor Green
     Write-Host "Total cost: \$" -NoNewline -ForegroundColor Yellow
     Write-Host ([math]::Round($TotalCost, 2))
     
@@ -2153,7 +2153,7 @@ try {
     
     New-AzPolicyAssignment -Name "PSForge-$($PolicyDef.Name)" -PolicyDefinition $PolicyDef -Scope $ScopeId
     
-    Write-Host "✓ Policy assigned successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Policy assigned successfully" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to assign policy: $_"
@@ -2239,7 +2239,7 @@ try {
     
     $Summary = $ComplianceReport | Group-Object ComplianceState | Select-Object Name, Count
     
-    Write-Host "✓ Compliance report exported" -ForegroundColor Green
+    Write-Host "[SUCCESS] Compliance report exported" -ForegroundColor Green
     Write-Host ${'\`n'}"Compliance Summary:" -ForegroundColor Yellow
     $Summary | Format-Table -AutoSize
     
@@ -2334,7 +2334,7 @@ try {
     
     Set-AzStorageAccountManagementPolicy -ResourceGroupName "${rgName}" -AccountName "${storageAccount}" -Rule $Rule
     
-    Write-Host "✓ Lifecycle policy configured" -ForegroundColor Green
+    Write-Host "[SUCCESS] Lifecycle policy configured" -ForegroundColor Green
     Write-Host "  - Archive after ${archiveDays} days" -ForegroundColor Yellow
     Write-Host "  - Delete after 365 days" -ForegroundColor Yellow
     
@@ -2424,7 +2424,7 @@ try {
     
     Update-AzStorageBlobServiceProperty -ResourceGroupName "${rgName}" -StorageAccountName "${storageAccount}" -IsVersioningEnabled \$true -EnableChangeFeed \$true
     
-    Write-Host "✓ Backup features configured:" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup features configured:" -ForegroundColor Green
     Write-Host "  - Soft delete: ${retentionDays} days" -ForegroundColor Yellow
     Write-Host "  - Versioning: Enabled" -ForegroundColor Yellow
     Write-Host "  - Change feed: Enabled" -ForegroundColor Yellow
@@ -2538,7 +2538,7 @@ try {
     Write-Host "Starting VM..." -ForegroundColor Cyan
     Start-AzVM -ResourceGroupName "${rgName}" -Name "${vmName}"
     
-    Write-Host "✓ VM resized successfully to ${newSize}" -ForegroundColor Green
+    Write-Host "[SUCCESS] VM resized successfully to ${newSize}" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to resize VM: $_"
@@ -2641,7 +2641,7 @@ try {
     
     Update-AzVM -ResourceGroupName "${rgName}" -VM $VM
     
-    Write-Host "✓ Disk attached successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Disk attached successfully" -ForegroundColor Green
     Write-Host "  Disk: ${diskName} (${diskSizeGB} GB)" -ForegroundColor Yellow
     
 } catch {
@@ -2724,10 +2724,10 @@ try {
             
             New-AzRoleAssignment -ObjectId $User.Id -RoleDefinitionName $Assignment.Role -Scope $Assignment.Scope -ErrorAction Stop
             
-            Write-Host "✓ $($Assignment.Email): $($Assignment.Role)" -ForegroundColor Green
+            Write-Host "[SUCCESS] $($Assignment.Email): $($Assignment.Role)" -ForegroundColor Green
             $SuccessCount++
         } catch {
-            Write-Warning "✗ Failed: $($Assignment.Email) - $_"
+            Write-Warning "[FAILED] Failed: $($Assignment.Email) - $_"
             $FailCount++
         }
     }
@@ -2816,7 +2816,7 @@ try {
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ RBAC audit exported: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] RBAC audit exported: ${exportPath}" -ForegroundColor Green
     Write-Host ${'\`n'}"Total assignments: $($Report.Count)" -ForegroundColor Yellow
     
     $RoleSummary = $Report | Group-Object RoleDefinitionName | Sort-Object Count -Descending | Select-Object -First 5
@@ -2908,7 +2908,7 @@ try {
     
     Set-AzActionGroup -ResourceGroupName "${rgName}" -Name "${actionGroupName}" -ShortName "ITAlerts" -Receiver $EmailReceiver
     
-    Write-Host "✓ Action group created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Action group created successfully" -ForegroundColor Green
     Write-Host "  Email notifications: ${email}" -ForegroundColor Yellow
     
 } catch {
@@ -2979,7 +2979,7 @@ try {
     
     $Resources | Export-Csv "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Tags exported: $($Resources.Count) resources" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tags exported: $($Resources.Count) resources" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to export tags: $_"
@@ -3056,7 +3056,7 @@ try {
     
     New-AzResourceLock -LockName "PreventDeletion" -LockLevel ${lockLevel} -ResourceGroupName "${rgName}" -Force
     
-    Write-Host "✓ Resource lock applied" -ForegroundColor Green
+    Write-Host "[SUCCESS] Resource lock applied" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to apply resource lock: $_"
@@ -3239,7 +3239,7 @@ try {
     Write-Host "Creating VMSS..." -ForegroundColor Cyan
     $Vmss = New-AzVmss -ResourceGroupName "${rgName}" -Name "${vmssName}" -VirtualMachineScaleSet $VmssConfig
     
-    Write-Host "✓ VMSS created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VMSS created successfully" -ForegroundColor Green
     
     # Configure autoscaling
     Write-Host "Configuring autoscaling rules..." -ForegroundColor Cyan
@@ -3252,7 +3252,7 @@ try {
     
     Add-AzAutoscaleSetting -Name "${vmssName}-autoscale" -ResourceGroupName "${rgName}" -Location "${location}" -TargetResourceId $Vmss.Id -AutoscaleProfile $Profile
     
-    Write-Host "✓ Autoscaling configured (Scale out at 75% CPU, scale in at 25% CPU)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Autoscaling configured (Scale out at 75% CPU, scale in at 25% CPU)" -ForegroundColor Green
     
     Write-Host "\`nVMSS Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${vmssName}"
@@ -3386,7 +3386,7 @@ This script manages Azure Key Vault secrets to securely store and manage applica
     
     $Vault = New-AzKeyVault @VaultParams
     
-    Write-Host "✓ Key Vault created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Key Vault created successfully" -ForegroundColor Green
     Write-Host "  Vault URI: $($Vault.VaultUri)" -ForegroundColor Cyan
     Write-Host "  Soft Delete Enabled: True" -ForegroundColor Yellow
     Write-Host "  Purge Protection: True" -ForegroundColor Yellow`;
@@ -3398,7 +3398,7 @@ This script manages Azure Key Vault secrets to securely store and manage applica
     
     $Secret = Set-AzKeyVaultSecret -VaultName "${vaultName}" -Name "${secretName}" -SecretValue $SecureSecretValue
     
-    Write-Host "✓ Secret added successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Secret added successfully" -ForegroundColor Green
     Write-Host "  Secret Name: ${secretName}" -ForegroundColor Cyan
     Write-Host "  Version: $($Secret.Version)" -ForegroundColor Cyan`;
       } else if (operation === 'GetSecret') {
@@ -3408,7 +3408,7 @@ This script manages Azure Key Vault secrets to securely store and manage applica
     $Secret = Get-AzKeyVaultSecret -VaultName "${vaultName}" -Name "${secretName}"
     $SecretValue = $Secret.SecretValue | ConvertFrom-SecureString -AsPlainText
     
-    Write-Host "✓ Secret retrieved successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Secret retrieved successfully" -ForegroundColor Green
     Write-Host "  Secret Name: ${secretName}" -ForegroundColor Cyan
     Write-Host "  Secret Value: $SecretValue" -ForegroundColor Yellow`;
       } else {
@@ -3417,7 +3417,7 @@ This script manages Azure Key Vault secrets to securely store and manage applica
     
     $Secrets = Get-AzKeyVaultSecret -VaultName "${vaultName}"
     
-    Write-Host "✓ Found $($Secrets.Count) secrets" -ForegroundColor Green
+    Write-Host "[SUCCESS] Found $($Secrets.Count) secrets" -ForegroundColor Green
     
     $Secrets | Select-Object Name, Enabled, Updated | Format-Table`;
       }
@@ -3557,7 +3557,7 @@ ${emailReceivers}
     
     $ActionGroup = Set-AzActionGroup -Name "${alertName}-ag" -ResourceGroupName "${rgName}" -ShortName "AlertAG" -Receiver $EmailReceivers
     
-    Write-Host "✓ Action Group created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Action Group created" -ForegroundColor Green
     
     Write-Host "Creating Alert Rule..." -ForegroundColor Cyan
     
@@ -3565,7 +3565,7 @@ ${emailReceivers}
     
     Add-AzMetricAlertRuleV2 -Name "${alertName}" -ResourceGroupName "${rgName}" -WindowSize 00:05:00 -Frequency 00:01:00 -TargetResourceId "${targetResourceId}" -Condition $Condition -ActionGroupId $ActionGroup.Id -Severity 2
     
-    Write-Host "✓ Alert rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Alert rule created successfully" -ForegroundColor Green
     Write-Host \"\`nAlert Configuration:" -ForegroundColor Cyan
     Write-Host "  Alert Name: ${alertName}"
     Write-Host "  Metric: ${metricName}"
@@ -3734,7 +3734,7 @@ This script manages Azure SQL Databases including creation, firewall configurati
     
     $Database = New-AzSqlDatabase @DbParams
     
-    Write-Host "✓ Database created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database created successfully" -ForegroundColor Green
     Write-Host "  Database: ${dbName}" -ForegroundColor Cyan
     Write-Host "  Edition: ${edition}" -ForegroundColor Cyan
     Write-Host "  Service Objective: ${serviceObjective}" -ForegroundColor Cyan
@@ -3745,7 +3745,7 @@ This script manages Azure SQL Databases including creation, firewall configurati
     
     $FirewallRule = New-AzSqlServerFirewallRule -ResourceGroupName "${rgName}" -ServerName "${serverName}" -FirewallRuleName "${firewallRuleName}" -StartIpAddress "${startIp}" -EndIpAddress "${endIp}"
     
-    Write-Host "✓ Firewall rule created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Firewall rule created successfully" -ForegroundColor Green
     Write-Host "  Rule Name: ${firewallRuleName}" -ForegroundColor Cyan
     Write-Host "  IP Range: ${startIp} - ${endIp}" -ForegroundColor Cyan`;
       } else {
@@ -3754,7 +3754,7 @@ This script manages Azure SQL Databases including creation, firewall configurati
     
     $Database = Set-AzSqlDatabase -ResourceGroupName "${rgName}" -ServerName "${serverName}" -DatabaseName "${dbName}" -Edition "${edition}" -RequestedServiceObjectiveName "${serviceObjective}"
     
-    Write-Host "✓ Database tier updated successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Database tier updated successfully" -ForegroundColor Green
     Write-Host "  New Edition: ${edition}" -ForegroundColor Cyan
     Write-Host "  New Service Objective: ${serviceObjective}" -ForegroundColor Cyan`;
       }
@@ -3912,7 +3912,7 @@ try {
         }
         
         $Plan = New-AzAppServicePlan @PlanParams
-        Write-Host "✓ App Service Plan created" -ForegroundColor Green
+        Write-Host "[SUCCESS] App Service Plan created" -ForegroundColor Green
     } else {
         Write-Host "ℹ Using existing App Service Plan" -ForegroundColor Yellow
     }
@@ -3934,7 +3934,7 @@ try {
     }
     Set-AzWebApp -ResourceGroupName "${rgName}" -Name "${appName}" -AppSettings $RuntimeSetting
     
-    Write-Host "✓ Web App created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Web App created successfully" -ForegroundColor Green
     Write-Host "  URL: https://$($WebApp.DefaultHostName)" -ForegroundColor Cyan
     
     ${createSlot ? `
@@ -3942,7 +3942,7 @@ try {
     
     $Slot = New-AzWebAppSlot -ResourceGroupName "${rgName}" -Name "${appName}" -Slot "staging" -AppServicePlan "${planName}"
     
-    Write-Host "✓ Staging slot created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Staging slot created" -ForegroundColor Green
     Write-Host "  Staging URL: https://$($Slot.DefaultHostName)" -ForegroundColor Cyan
     ` : ''}
     
@@ -4093,7 +4093,7 @@ try {
     
     if (-not $Vault) {
         $Vault = New-AzRecoveryServicesVault -Name "${vaultName}" -ResourceGroupName "${rgName}" -Location "${location}"
-        Write-Host "✓ Recovery Services Vault created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Recovery Services Vault created" -ForegroundColor Green
     } else {
         Write-Host "ℹ Using existing vault" -ForegroundColor Yellow
     }
@@ -4115,7 +4115,7 @@ try {
         
         $Policy = New-AzRecoveryServicesBackupProtectionPolicy -Name "${policyName}" -WorkloadType "AzureVM" -RetentionPolicy $RetentionPolicy -SchedulePolicy $SchedulePolicy -VaultId $Vault.ID
         
-        Write-Host "✓ Backup policy created" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backup policy created" -ForegroundColor Green
     } else {
         Write-Host "ℹ Using existing policy" -ForegroundColor Yellow
     }
@@ -4127,7 +4127,7 @@ try {
     
     Enable-AzRecoveryServicesBackupProtection -ResourceGroupName "${vmRg}" -Name "${vmName}" -Policy $Policy -VaultId $Vault.ID
     
-    Write-Host "✓ Backup enabled for VM" -ForegroundColor Green
+    Write-Host "[SUCCESS] Backup enabled for VM" -ForegroundColor Green
     ` : ''}
     
     Write-Host \"\`nBackup Configuration:" -ForegroundColor Cyan
@@ -4285,15 +4285,15 @@ ${mandatoryTagsBlock}
             
             if ($Updated) {
                 Set-AzResource -ResourceId $Resource.ResourceId -Tag $CurrentTags -Force | Out-Null
-                Write-Host "✓ Tagged: $($Resource.Name)" -ForegroundColor Green
+                Write-Host "[SUCCESS] Tagged: $($Resource.Name)" -ForegroundColor Green
                 $UpdatedCount++
             }
         } catch {
-            Write-Warning "✗ Failed: $($Resource.Name) - $_"
+            Write-Warning "[FAILED] Failed: $($Resource.Name) - $_"
         }
     }
     
-    Write-Host \"\`n✓ Updated $UpdatedCount resources with governance tags\" -ForegroundColor Green`;
+    Write-Host \"\`n[OK] Updated $UpdatedCount resources with governance tags\" -ForegroundColor Green`;
       } else if (operation === 'AuditTags') {
         scriptBody = `
     $RequiredTags = @(${mandatoryTagsArray})
@@ -4372,7 +4372,7 @@ ${mandatoryTagsBlock}
     
     $Report | Export-Csv -Path "${exportPath}" -NoTypeInformation
     
-    Write-Host "✓ Tag report exported to: ${exportPath}" -ForegroundColor Green
+    Write-Host "[SUCCESS] Tag report exported to: ${exportPath}" -ForegroundColor Green
     Write-Host "  Total resources: $($Report.Count)" -ForegroundColor Cyan
     
     Write-Host \"\`nTag Coverage:" -ForegroundColor Yellow
@@ -4534,7 +4534,7 @@ try {
     }
     
     $PublicIp = New-AzPublicIpAddress @PublicIpParams
-    Write-Host "✓ Public IP created: $($PublicIp.IpAddress)" -ForegroundColor Green
+    Write-Host "[SUCCESS] Public IP created: $($PublicIp.IpAddress)" -ForegroundColor Green
     
     Write-Host "Creating Load Balancer: ${lbName}" -ForegroundColor Cyan
     
@@ -4553,7 +4553,7 @@ try {
     # Create load balancer
     $LoadBalancer = New-AzLoadBalancer -ResourceGroupName "${rgName}" -Name "${lbName}" -Location "${location}" -Sku "${sku}" -FrontendIpConfiguration $FrontendIpConfig -BackendAddressPool $BackendPool -Probe $HealthProbe -LoadBalancingRule $LbRule
     
-    Write-Host "✓ Load Balancer created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Load Balancer created successfully" -ForegroundColor Green
     
     Write-Host \"\`nLoad Balancer Configuration:" -ForegroundColor Cyan
     Write-Host "  Name: ${lbName}"
@@ -4977,7 +4977,7 @@ This script manages Azure Virtual Networks with VNet peering to create hub-spoke
     
     $VNet = New-AzVirtualNetwork @VNetParams
     
-    Write-Host "✓ Virtual Network created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Virtual Network created successfully" -ForegroundColor Green
     
     Write-Host \"\`nVNet Details:" -ForegroundColor Cyan
     Write-Host "  Name: ${vnetName}"
@@ -5009,7 +5009,7 @@ This script manages Azure Virtual Networks with VNet peering to create hub-spoke
     
     $Peering = Add-AzVirtualNetworkPeering @PeeringParams
     
-    Write-Host "✓ VNet peering created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] VNet peering created successfully" -ForegroundColor Green
     
     Write-Host \"\`nPeering Configuration:" -ForegroundColor Cyan
     Write-Host "  Name: ${peeringName}"
@@ -5115,7 +5115,7 @@ try {
     # Set vault context
     Set-AzRecoveryServicesAsrVaultContext -Vault $Vault
     
-    Write-Host "✓ Recovery Services Vault created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Recovery Services Vault created successfully" -ForegroundColor Green
     Write-Host "  Vault: ${vaultName}" -ForegroundColor Cyan
     Write-Host "  Location: ${location}" -ForegroundColor Cyan
     
@@ -5190,7 +5190,7 @@ try {
         -MonitorPort 443 \`
         -MonitorPath "/"
     
-    Write-Host "✓ Traffic Manager profile created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Traffic Manager profile created successfully" -ForegroundColor Green
     Write-Host "  Profile: ${profileName}" -ForegroundColor Cyan
     Write-Host "  Routing Method: ${routingMethod}" -ForegroundColor Cyan
     Write-Host "  DNS: ${profileName}.trafficmanager.net" -ForegroundColor Cyan
@@ -5274,7 +5274,7 @@ try {
         -PeeringLocation "${location}" \`
         -BandwidthInMbps ${params.bandwidth}
     
-    Write-Host "✓ ExpressRoute circuit created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] ExpressRoute circuit created successfully" -ForegroundColor Green
     Write-Host "  Circuit: ${circuitName}" -ForegroundColor Cyan
     Write-Host "  Location: ${location}" -ForegroundColor Cyan
     Write-Host "  Bandwidth: ${params.bandwidth} Mbps" -ForegroundColor Cyan
@@ -5351,7 +5351,7 @@ try {
         -KubernetesVersion "1.28" \`
         -EnableManagedIdentity
     
-    Write-Host "✓ AKS cluster created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] AKS cluster created successfully" -ForegroundColor Green
     Write-Host "  Cluster: ${clusterName}" -ForegroundColor Cyan
     Write-Host "  Nodes: ${params.nodeCount}" -ForegroundColor Cyan
     Write-Host "  Location: ${location}" -ForegroundColor Cyan
@@ -5433,7 +5433,7 @@ try {
         -FrontendEndpointNames "frontend" \`
         -BackendPoolName "backend-pool"
     
-    Write-Host "✓ Azure Front Door configuration created" -ForegroundColor Green
+    Write-Host "[SUCCESS] Azure Front Door configuration created" -ForegroundColor Green
     Write-Host "  Front Door: ${frontDoorName}" -ForegroundColor Cyan
     Write-Host "  Backend: ${backendAddress}" -ForegroundColor Cyan
     
@@ -5512,7 +5512,7 @@ try {
         -PublicIpAddress $PublicIP \`
         -VirtualNetwork $VNet
     
-    Write-Host "✓ Azure Bastion created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Azure Bastion created successfully" -ForegroundColor Green
     Write-Host "  Bastion: ${bastionName}" -ForegroundColor Cyan
     Write-Host "  VNet: ${vnetName}" -ForegroundColor Cyan
     
@@ -5590,7 +5590,7 @@ try {
         -Policy $PolicyRule \`
         -Mode "Indexed"
     
-    Write-Host "✓ Azure Policy created successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Azure Policy created successfully" -ForegroundColor Green
     Write-Host "  Policy: ${policyName}" -ForegroundColor Cyan
     Write-Host "  Effect: ${policyType}" -ForegroundColor Cyan
     
@@ -5706,7 +5706,7 @@ try {
     
     Remove-AzResourceGroup -Name "${rgName}" -Force
     
-    Write-Host "✓ Resource Group deleted successfully" -ForegroundColor Green
+    Write-Host "[SUCCESS] Resource Group deleted successfully" -ForegroundColor Green
     Write-Host "  Deleted: ${rgName}" -ForegroundColor Cyan
     Write-Host "  Resources removed: $($Resources.Count)" -ForegroundColor Cyan
     
@@ -5898,7 +5898,7 @@ try {
         }
     }
     
-    Write-Host "\\n✓ Performance metrics collection complete" -ForegroundColor Green
+    Write-Host "\\n[OK] Performance metrics collection complete" -ForegroundColor Green
     
 } catch {
     Write-Error "Failed to collect VM metrics: $_"

@@ -280,14 +280,13 @@ ipconfig /renew $AdapterName`;
       { id: 'traceroute', label: 'Include Traceroute', type: 'boolean', required: false, defaultValue: false }
     ],
     scriptTemplate: (params) => {
-      const targets = params.targets.split(',').map((t: string) => t.trim());
       const count = Number(params.count || 4);
       const traceroute = toPowerShellBoolean(params.traceroute ?? false);
       
       return `# Test Network Connectivity
 # Generated: ${new Date().toISOString()}
 
-$Targets = ${buildPowerShellArray(targets)}
+$Targets = ${buildPowerShellArray(params.targets)}
 $Count = ${count}
 
 foreach ($Target in $Targets) {
@@ -420,12 +419,11 @@ Write-Host "  Count: $($After.Count)" -ForegroundColor Gray`;
     ],
     scriptTemplate: (params) => {
       const adapterName = params.adapterName ? escapePowerShellString(params.adapterName) : '';
-      const dnsServers = params.dnsServers.split(',').map((d: string) => d.trim());
       
       return `# Set DNS Servers
 # Generated: ${new Date().toISOString()}
 
-$DNSServers = ${buildPowerShellArray(dnsServers)}
+$DNSServers = ${buildPowerShellArray(params.dnsServers)}
 
 ${adapterName ? `$Adapters = Get-NetAdapter -Name "${adapterName}"` : `$Adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }`}
 
@@ -476,13 +474,12 @@ foreach ($Adapter in $Adapters) {
       { id: 'dnsServer', label: 'DNS Server (blank for default)', type: 'text', required: false, placeholder: '8.8.8.8' }
     ],
     scriptTemplate: (params) => {
-      const hostnames = params.hostnames.split(',').map((h: string) => h.trim());
       const dnsServer = params.dnsServer ? escapePowerShellString(params.dnsServer) : '';
       
       return `# Test DNS Resolution
 # Generated: ${new Date().toISOString()}
 
-$Hostnames = ${buildPowerShellArray(hostnames)}
+$Hostnames = ${buildPowerShellArray(params.hostnames)}
 ${dnsServer ? `$DNSServer = "${dnsServer}"` : ''}
 
 foreach ($Hostname in $Hostnames) {
@@ -818,13 +815,12 @@ Write-Host "⚠ REBOOT REQUIRED for changes to take effect" -ForegroundColor Yel
     ],
     scriptTemplate: (params) => {
       const target = escapePowerShellString(params.target);
-      const ports = params.ports.split(',').map((p: string) => p.trim());
       
       return `# Test Open Ports
 # Generated: ${new Date().toISOString()}
 
 $Target = "${target}"
-$Ports = ${buildPowerShellArray(ports)}
+$Ports = ${buildPowerShellArray(params.ports)}
 
 Write-Host "Scanning $Target..." -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Gray
@@ -2036,7 +2032,6 @@ Write-Host "✓ Exported to ${exportPath}" -ForegroundColor Green` : ''}`;
       { id: 'useRootHints', label: 'Use Root Hints if Unavailable', type: 'boolean', required: false, defaultValue: true }
     ],
     scriptTemplate: (params) => {
-      const forwarders = params.forwarders.split(',').map((f: string) => f.trim());
       const useRootHints = toPowerShellBoolean(params.useRootHints ?? true);
       
       return `# Configure DNS Forwarders
@@ -2049,7 +2044,7 @@ if (-not $DnsServer) {
     exit 1
 }
 
-$Forwarders = ${buildPowerShellArray(forwarders)}
+$Forwarders = ${buildPowerShellArray(params.forwarders)}
 $UseRootHints = ${useRootHints}
 
 Write-Host "Configuring DNS forwarders..." -ForegroundColor Gray

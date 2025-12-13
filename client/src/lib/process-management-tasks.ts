@@ -714,13 +714,12 @@ if ($Hung) {
     ],
     scriptTemplate: (params) => {
       const processName = escapePowerShellString(params.processName);
-      const cpuCores = params.cpuCores.split(',').map((c: string) => c.trim());
       
       return `# Set Process CPU Affinity
 # Generated: ${new Date().toISOString()}
 
 $ProcessName = "${processName}"
-$CPUCores = ${buildPowerShellArray(cpuCores)}
+$CPUCores = ${buildPowerShellArray(params.cpuCores)}
 
 # Calculate affinity mask
 $AffinityMask = 0
@@ -2369,7 +2368,7 @@ Write-Host "To see details for a specific service, provide the service name para
       { id: 'serviceFilter', label: 'Service Filter (comma-separated, blank for all)', type: 'text', required: false }
     ],
     scriptTemplate: (params) => {
-      const serviceFilter = params.serviceFilter ? params.serviceFilter.split(',').map((s: string) => s.trim()) : [];
+      const serviceFilter = params.serviceFilter || '';
       
       return `# Analyze Service Startup Order
 # Generated: ${new Date().toISOString()}
@@ -2395,7 +2394,7 @@ function Get-DependencyDepth {
 
 $AutoStartServices = Get-Service | Where-Object { $_.StartType -eq 'Automatic' }
 
-${serviceFilter.length > 0 ? `$ServiceNames = ${buildPowerShellArray(serviceFilter)}
+${serviceFilter ? `$ServiceNames = ${buildPowerShellArray(serviceFilter)}
 $AutoStartServices = $AutoStartServices | Where-Object { $_.Name -in $ServiceNames -or $_.DisplayName -in $ServiceNames }` : ''}
 
 $Analysis = $AutoStartServices | ForEach-Object {

@@ -102,9 +102,9 @@ export function ValidationPanel({ errors, isValidating }: ValidationPanelProps) 
         </div>
       </CardHeader>
       
-      <CardContent>
-        <ScrollArea className="max-h-64">
-          <div className="space-y-2">
+      <CardContent className="pt-0">
+        <ScrollArea className="h-64">
+          <div className="space-y-2 pr-4">
             {errors.map((error, index) => (
               <div
                 key={index}

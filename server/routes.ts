@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
 import { validatePowerShellScript as validateComprehensive } from "./script-validator";
 import { getAIHelperResponse } from "./ai-helper";
-import { generateScriptDocumentation, analyzeScriptOptimization } from "./ai-optimizer";
+import { generateScriptDocumentation, analyzeScriptOptimization, applyScriptOptimizations } from "./ai-optimizer";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
 import { sendPasswordResetEmail, sendSupportRequestEmail, sendWelcomeEmail } from "./email-service";
 import { 
@@ -1959,6 +1959,27 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     } catch (error) {
       console.error("Error optimizing script:", error);
       return res.status(500).json({ error: "Failed to analyze script" });
+    }
+  });
+
+  // Apply AI recommendations to script
+  app.post("/api/ai/apply-optimizations", requireAuth, requireSubscriber, async (req, res) => {
+    try {
+      const { code, recommendations } = req.body;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ error: "Code is required" });
+      }
+      
+      if (!recommendations || !Array.isArray(recommendations)) {
+        return res.status(400).json({ error: "Recommendations array is required" });
+      }
+      
+      const optimizedScript = await applyScriptOptimizations(code, recommendations);
+      return res.json({ optimizedScript });
+    } catch (error) {
+      console.error("Error applying optimizations:", error);
+      return res.status(500).json({ error: "Failed to apply optimizations" });
     }
   });
 

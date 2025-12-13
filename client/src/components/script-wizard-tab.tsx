@@ -241,6 +241,44 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     });
   };
 
+  // Apply AI optimizations mutation
+  const applyOptimizationsMutation = useMutation({
+    mutationFn: async ({ code, recommendations }: { code: string; recommendations: any[] }) => {
+      const response = await apiRequest('/api/ai/apply-optimizations', 'POST', { code, recommendations });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      if (data.optimizedScript) {
+        setGeneratedScript(data.optimizedScript);
+        setScript(data.optimizedScript);
+        setAiReviewResult(null); // Clear the review since we applied it
+        toast({
+          title: 'Script Optimized & Transferred',
+          description: 'AI recommendations have been applied and the script has been sent to the Script Builder.',
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Optimization Failed',
+        description: error.message || 'Unable to apply optimizations. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleAdjustAndTransfer = () => {
+    if (!aiReviewResult || aiReviewResult.recommendations.length === 0) {
+      // No recommendations, just transfer as-is
+      handleTransferToBuilder();
+      return;
+    }
+    applyOptimizationsMutation.mutate({
+      code: generatedScript,
+      recommendations: aiReviewResult.recommendations,
+    });
+  };
+
   // Filter platforms based on subscription
   const availablePlatforms = useMemo(() => {
     return platforms.filter(p => !p.isPremium || featureAccess?.hasPremiumCategories);
@@ -1483,15 +1521,25 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
 
                               <div className="pt-4 border-t">
                                 <Button 
-                                  onClick={handleTransferToBuilder}
+                                  onClick={handleAdjustAndTransfer}
                                   className="w-full"
-                                  data-testid="button-transfer-to-builder"
+                                  disabled={applyOptimizationsMutation.isPending}
+                                  data-testid="button-adjust-transfer-to-builder"
                                 >
-                                  <ArrowRight className="h-4 w-4 mr-2" />
-                                  Transfer to Script Builder
+                                  {applyOptimizationsMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Applying Changes...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="h-4 w-4 mr-2" />
+                                      Adjust & Transfer to Builder
+                                    </>
+                                  )}
                                 </Button>
                                 <p className="text-xs text-muted-foreground text-center mt-2">
-                                  Send this script to the Script Builder tab for editing and saving
+                                  Apply AI recommendations and send to Script Builder for saving
                                 </p>
                               </div>
                             </div>

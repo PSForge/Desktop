@@ -119,8 +119,8 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]" data-testid="dialog-export">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col" data-testid="dialog-export">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Save PowerShell Script
@@ -130,7 +130,7 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
           <div className="space-y-2">
             <Label htmlFor="filename">Script Name</Label>
             <Input
@@ -199,7 +199,7 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
           </Tabs>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex-col sm:flex-row gap-2 shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

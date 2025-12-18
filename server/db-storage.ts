@@ -302,7 +302,16 @@ export class DatabaseStorage implements IStorage {
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const { id: _, createdAt: __, ...updateData } = updates;
-    const result = await this.db.update(users).set(updateData).where(eq(users.id, id)).returning();
+    
+    // Convert date strings to Date objects for timestamp fields
+    const dbUpdates: any = { ...updateData };
+    if (updateData.lastLoginAt) {
+      dbUpdates.lastLoginAt = updateData.lastLoginAt instanceof Date 
+        ? updateData.lastLoginAt 
+        : new Date(updateData.lastLoginAt);
+    }
+    
+    const result = await this.db.update(users).set(dbUpdates).where(eq(users.id, id)).returning();
     return result[0] ? this.convertTimestamps(result[0]) : undefined;
   }
 

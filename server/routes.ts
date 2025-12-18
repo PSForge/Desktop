@@ -3105,8 +3105,22 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       const usersWithStripe = users.filter(u => u.stripeCustomerId);
       
       let updated = 0;
+      let downgraded = 0;
       let errors = 0;
       const details: Array<{ userId: string; email: string; status: string; message?: string }> = [];
+
+      // First, downgrade subscribers who have no Stripe customer ID
+      const subscribersWithoutStripe = users.filter(u => u.role === 'subscriber' && !u.stripeCustomerId);
+      for (const user of subscribersWithoutStripe) {
+        await storage.updateUser(user.id, { role: "free" });
+        downgraded++;
+        details.push({
+          userId: user.id,
+          email: user.email,
+          status: "downgraded",
+          message: "Downgraded to free (no Stripe customer ID)"
+        });
+      }
 
       for (const user of usersWithStripe) {
         try {
@@ -3158,13 +3172,24 @@ Sitemap: ${baseUrl}/sitemap.xml`;
               });
             }
           } else {
-            // No active subscription found
-            details.push({
-              userId: user.id,
-              email: user.email,
-              status: "no_subscription",
-              message: "No active Stripe subscription found"
-            });
+            // No active subscription found - downgrade if currently a subscriber
+            if (user.role === "subscriber") {
+              await storage.updateUser(user.id, { role: "free" });
+              updated++;
+              details.push({
+                userId: user.id,
+                email: user.email,
+                status: "downgraded",
+                message: "Downgraded to free (no active Stripe subscription)"
+              });
+            } else {
+              details.push({
+                userId: user.id,
+                email: user.email,
+                status: "no_subscription",
+                message: "No active Stripe subscription found"
+              });
+            }
           }
         } catch (userError: any) {
           console.error(`Error syncing user ${user.email}:`, userError);
@@ -3181,8 +3206,9 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       return res.json({
         success: true,
         summary: {
-          total: usersWithStripe.length,
-          updated,
+          total: usersWithStripe.length + subscribersWithoutStripe.length,
+          upgraded: updated,
+          downgraded,
           errors
         },
         details

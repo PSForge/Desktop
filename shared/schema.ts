@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
   referralSource: varchar("referral_source", { length: 255 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastLoginAt: timestamp("last_login_at"),
   // Pro Conversion Tracking Fields
   totalScriptsCreated: integer("total_scripts_created").notNull().default(0),
   totalTimeSavedMinutes: integer("total_time_saved_minutes").notNull().default(0),
@@ -697,6 +698,7 @@ export const userSchema = z.object({
   stripeCustomerId: z.string().nullable(),
   referralSource: z.string().nullable(),
   createdAt: z.string(),
+  lastLoginAt: z.string().nullable().optional(),
   stripeConnectAccountId: z.string().nullable().optional(),
   stripeConnectOnboardingComplete: z.boolean().optional(),
   sellerStatus: z.enum(sellerStatuses).nullable().optional(),

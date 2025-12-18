@@ -264,6 +264,9 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         req.ip
       );
 
+      // Update last login timestamp
+      await storage.updateUser(user.id, { lastLoginAt: new Date().toISOString() });
+
       res.cookie("sessionId", session.id, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

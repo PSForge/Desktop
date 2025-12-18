@@ -68,6 +68,7 @@ interface UserData {
   role: string;
   stripeCustomerId: string | null;
   createdAt: string;
+  lastLoginAt: string | null;
 }
 
 export default function AdminDashboard() {
@@ -799,9 +800,10 @@ export default function AdminDashboard() {
                       <p className="text-sm text-muted-foreground truncate" data-testid={`text-user-email-${userData.id}`}>
                         {userData.email || "No email"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Joined {formatDate(userData.createdAt)}
-                      </p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <span>Joined {formatDate(userData.createdAt)}</span>
+                        <span>Last login: {userData.lastLoginAt ? formatDate(userData.lastLoginAt) : "Never"}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {userData.stripeCustomerId && (

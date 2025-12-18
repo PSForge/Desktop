@@ -2201,13 +2201,33 @@ Sitemap: ${baseUrl}/sitemap.xml`;
           }
 
           if (userSub) {
+            const newStatus = statusMap[subscription.status] || 'canceled';
             await storage.updateUserSubscription(userSub.id, {
-              status: statusMap[subscription.status] || 'canceled',
+              status: newStatus,
               currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),
               currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
               cancelAt: (subscription as any).cancel_at ? new Date((subscription as any).cancel_at * 1000).toISOString() : null,
               canceledAt: (subscription as any).canceled_at ? new Date((subscription as any).canceled_at * 1000).toISOString() : null,
             });
+
+            // Sync user role based on subscription status
+            const user = await storage.getUserById(userSub.userId);
+            if (user && user.role !== "admin") {
+              const inactiveStatuses: SubscriptionStatus[] = ['canceled', 'past_due', 'unpaid', 'incomplete'];
+              if (inactiveStatuses.includes(newStatus)) {
+                // Downgrade to free if subscription is no longer active
+                if (user.role === "subscriber") {
+                  await storage.updateUser(userSub.userId, { role: "free" });
+                  console.log(`📉 User ${userSub.userId} downgraded to free (subscription ${newStatus})`);
+                }
+              } else if (newStatus === 'active' || newStatus === 'trialing') {
+                // Upgrade to subscriber if subscription is active
+                if (user.role === "free") {
+                  await storage.updateUser(userSub.userId, { role: "subscriber" });
+                  console.log(`📈 User ${userSub.userId} upgraded to subscriber (subscription ${newStatus})`);
+                }
+              }
+            }
 
             await storage.createSubscriptionEvent({
               userSubscriptionId: userSub.id,
@@ -2216,7 +2236,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
               occurredAt: new Date().toISOString(),
             });
 
-            console.log(`✅ Subscription updated: ${subscription.id}`);
+            console.log(`✅ Subscription updated: ${subscription.id} -> ${newStatus}`);
           }
           break;
         }
@@ -2281,6 +2301,13 @@ Sitemap: ${baseUrl}/sitemap.xml`;
               await storage.updateUserSubscription(userSub.id, {
                 status: "past_due",
               });
+
+              // Downgrade user role on payment failure
+              const user = await storage.getUserById(userSub.userId);
+              if (user && user.role === "subscriber") {
+                await storage.updateUser(userSub.userId, { role: "free" });
+                console.log(`📉 User ${userSub.userId} downgraded to free (payment failed)`);
+              }
 
               await storage.createSubscriptionEvent({
                 userSubscriptionId: userSub.id,

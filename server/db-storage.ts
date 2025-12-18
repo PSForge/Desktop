@@ -1132,7 +1132,11 @@ export class DatabaseStorage implements IStorage {
       roiMultiplier,
       daysActive: (user as any).daysActive || 0,
       communityBadge: ((user as any).communityBadge as CommunityBadge) || null,
-      firstScriptDate: (user as any).firstScriptDate?.toISOString() || null,
+      firstScriptDate: (user as any).firstScriptDate 
+        ? ((user as any).firstScriptDate instanceof Date 
+          ? (user as any).firstScriptDate.toISOString() 
+          : String((user as any).firstScriptDate)) 
+        : null,
       milestones: milestones.map(m => ({
         id: m.id,
         userId: m.userId,
@@ -1552,7 +1556,11 @@ export class DatabaseStorage implements IStorage {
       scriptsCreated: r.scriptsCreated,
       timeSaved: r.timeSaved,
       badge: r.badge,
-      firstScriptDate: r.firstScriptDate ? r.firstScriptDate.toISOString().split('T')[0] : null,
+      firstScriptDate: r.firstScriptDate 
+        ? (r.firstScriptDate instanceof Date 
+          ? r.firstScriptDate.toISOString().split('T')[0] 
+          : String(r.firstScriptDate).split('T')[0]) 
+        : null,
     }));
 
     return {

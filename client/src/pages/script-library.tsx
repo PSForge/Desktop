@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,8 @@ import {
   ChevronDown,
   DollarSign,
   Store,
-  Info
+  Info,
+  Pencil
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Script, Tag, TemplateCategory, InsertTemplate } from "@shared/schema";
@@ -54,6 +56,7 @@ import { insertTemplateSchema } from "@shared/schema";
 export default function ScriptLibrary() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -428,6 +431,11 @@ export default function ScriptLibrary() {
     }
   };
 
+  const handleEditScript = (script: Script) => {
+    localStorage.setItem('loadScript', JSON.stringify(script));
+    setLocation("/builder");
+  };
+
   const handlePublishTemplate = (data: InsertTemplate) => {
     const templateData = {
       ...data,
@@ -778,6 +786,14 @@ export default function ScriptLibrary() {
 
                   <CardFooter className="flex justify-between gap-2 flex-wrap">
                     <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        onClick={() => handleEditScript(script)}
+                        data-testid={`button-edit-${script.id}`}
+                      >
+                        <Pencil className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

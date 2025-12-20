@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, FileText, Save } from "lucide-react";
+import { Download, FileText, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,6 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,8 +27,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SecurityDashboard } from "@/components/security-dashboard";
 import { useAuth } from "@/lib/auth-context";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Script } from "@shared/schema";
 
 interface ExportDialogProps {
   open: boolean;
@@ -31,8 +42,16 @@ interface ExportDialogProps {
 export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName }: ExportDialogProps) {
   const [filename, setFilename] = useState("script.ps1");
   const [description, setDescription] = useState("");
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [existingScript, setExistingScript] = useState<Script | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Fetch user scripts to check for duplicates
+  const { data: userScripts = [] } = useQuery<Script[]>({
+    queryKey: ['/api/scripts/user/me'],
+    enabled: !!user,
+  });
 
   const trackScriptMutation = useMutation({
     mutationFn: async () => {
@@ -59,16 +78,51 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
     },
     onSuccess: () => {
       trackScriptMutation.mutate();
+      queryClient.invalidateQueries({ queryKey: ['/api/scripts/user/me'] });
       toast({
         title: "Script saved",
         description: "Your script has been saved to your profile",
       });
+      setShowOverwriteDialog(false);
       onOpenChange(false);
     },
     onError: (error: any) => {
       toast({
         title: "Save failed",
         description: error.message || "Could not save the script",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for updating an existing script
+  const updateMutation = useMutation({
+    mutationFn: async (scriptId: string) => {
+      const scriptName = filename.replace(/\.ps1$/, '');
+      const response = await apiRequest(`/api/scripts/${scriptId}`, "PUT", {
+        name: scriptName,
+        content: code,
+        description: description || undefined,
+        taskCategory: taskCategory || undefined,
+        taskName: taskName || undefined,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      trackScriptMutation.mutate();
+      queryClient.invalidateQueries({ queryKey: ['/api/scripts/user/me'] });
+      toast({
+        title: "Script updated",
+        description: "Your script has been overwritten",
+      });
+      setShowOverwriteDialog(false);
+      setExistingScript(null);
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update failed",
+        description: error.message || "Could not update the script",
         variant: "destructive",
       });
     },
@@ -114,10 +168,69 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
       });
       return;
     }
-    saveMutation.mutate();
+
+    // Check if a script with the same name already exists
+    const scriptName = filename.replace(/\.ps1$/, '');
+    const existing = userScripts.find(
+      s => s.name.toLowerCase() === scriptName.toLowerCase()
+    );
+
+    if (existing) {
+      setExistingScript(existing);
+      setShowOverwriteDialog(true);
+    } else {
+      saveMutation.mutate();
+    }
+  };
+
+  const handleOverwrite = () => {
+    if (existingScript?.id) {
+      updateMutation.mutate(existingScript.id);
+    }
+  };
+
+  const handleSaveAsNew = () => {
+    // Add a suffix to make the name unique and save immediately
+    const scriptName = filename.replace(/\.ps1$/, '');
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const newFilename = `${scriptName}-${timestamp}`;
+    setFilename(`${newFilename}.ps1`);
+    setShowOverwriteDialog(false);
+    setExistingScript(null);
+    
+    // Directly save with the new name using mutation
+    const saveWithNewName = async () => {
+      const response = await apiRequest("/api/scripts/save", "POST", {
+        name: newFilename,
+        content: code,
+        description: description || undefined,
+        taskCategory: taskCategory || undefined,
+        taskName: taskName || undefined,
+      });
+      return response.json();
+    };
+    
+    saveWithNewName()
+      .then(() => {
+        trackScriptMutation.mutate();
+        queryClient.invalidateQueries({ queryKey: ['/api/scripts/user/me'] });
+        toast({
+          title: "Script saved",
+          description: `Your script has been saved as "${newFilename}"`,
+        });
+        onOpenChange(false);
+      })
+      .catch((error: any) => {
+        toast({
+          title: "Save failed",
+          description: error.message || "Could not save the script",
+          variant: "destructive",
+        });
+      });
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col" data-testid="dialog-export">
         <DialogHeader className="shrink-0">
@@ -228,5 +341,48 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Overwrite Confirmation Dialog */}
+    <AlertDialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
+      <AlertDialogContent data-testid="dialog-overwrite">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            Script Already Exists
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            A script named "{existingScript?.name}" already exists in your library. 
+            What would you like to do?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogCancel 
+            onClick={() => {
+              setShowOverwriteDialog(false);
+              setExistingScript(null);
+            }}
+            data-testid="button-overwrite-cancel"
+          >
+            Cancel
+          </AlertDialogCancel>
+          <Button
+            variant="outline"
+            onClick={handleSaveAsNew}
+            data-testid="button-rename-script"
+          >
+            Rename Script
+          </Button>
+          <AlertDialogAction
+            onClick={handleOverwrite}
+            disabled={updateMutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            data-testid="button-overwrite-confirm"
+          >
+            {updateMutation.isPending ? "Overwriting..." : "Overwrite Existing"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

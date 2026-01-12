@@ -2984,6 +2984,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         role: u.role,
         stripeCustomerId: u.stripeCustomerId,
         createdAt: u.createdAt,
+        lastLoginAt: u.lastLoginAt,
       }));
 
       return res.json(sanitizedUsers);

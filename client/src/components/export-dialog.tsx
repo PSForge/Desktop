@@ -53,17 +53,6 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
     enabled: !!user,
   });
 
-  const trackScriptMutation = useMutation({
-    mutationFn: async () => {
-      const timeSavedMinutes = Math.max(30, Math.min(120, Math.round(code.length / 100) * 10));
-      await apiRequest("/api/user/track-script", "POST", { timeSavedMinutes });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/milestones/unshown"] });
-    },
-  });
-
   const saveMutation = useMutation({
     mutationFn: async () => {
       const scriptName = filename.replace(/\.ps1$/, '');
@@ -77,7 +66,6 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
       return response.json();
     },
     onSuccess: () => {
-      trackScriptMutation.mutate();
       queryClient.invalidateQueries({ queryKey: ['/api/scripts/user/me'] });
       toast({
         title: "Script saved",
@@ -109,7 +97,6 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
       return response.json();
     },
     onSuccess: () => {
-      trackScriptMutation.mutate();
       queryClient.invalidateQueries({ queryKey: ['/api/scripts/user/me'] });
       toast({
         title: "Script updated",
@@ -139,10 +126,6 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      if (user) {
-        trackScriptMutation.mutate();
-      }
 
       toast({
         title: "Script exported",
@@ -212,7 +195,6 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
     
     saveWithNewName()
       .then(() => {
-        trackScriptMutation.mutate();
         queryClient.invalidateQueries({ queryKey: ['/api/scripts/user/me'] });
         toast({
           title: "Script saved",

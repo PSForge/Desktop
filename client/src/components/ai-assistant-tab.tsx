@@ -44,6 +44,11 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
       console.debug("Script generation tracking skipped:", error.message);
     });
     
+    // Increment user's script count for pro conversion tracking
+    apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
+      // Silently fail - don't disrupt user experience
+    });
+    
     toast({
       title: "Script Generated!",
       description: "Switch to the Script tab to view and edit your generated script",
@@ -115,6 +120,11 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
       builderType: "ai_assistant",
     }).catch((error) => {
       console.debug("Script generation tracking skipped:", error.message);
+    });
+    
+    // Increment user's script count for pro conversion tracking
+    apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
+      // Silently fail - don't disrupt user experience
     });
     
     toast({

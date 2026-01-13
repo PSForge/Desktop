@@ -534,6 +534,11 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
       console.debug("Script generation tracking skipped:", error.message);
     });
     
+    // Increment user's script count for pro conversion tracking
+    apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
+      // Silently fail - don't disrupt user experience
+    });
+    
     setScriptDialogOpen(true);
   };
 

@@ -508,6 +508,11 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
       console.debug("Script generation tracking skipped:", error.message);
     });
     
+    // Increment user's script count for pro conversion tracking
+    apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
+      // Silently fail - don't disrupt user experience
+    });
+    
     setCurrentStep(5);
   };
 
@@ -690,6 +695,11 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     }).catch((error) => {
       // Silently fail tracking - don't disrupt user experience
       console.debug("Script generation tracking skipped:", error.message);
+    });
+    
+    // Increment user's script count for pro conversion tracking
+    apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
+      // Silently fail - don't disrupt user experience
     });
     
     setCurrentStep(5);

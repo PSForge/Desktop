@@ -339,6 +339,7 @@ export const parameterTypes = ["string", "int", "boolean", "switch", "array", "p
 export type ParameterType = typeof parameterTypes[number];
 
 export const commandCategories = [
+  // Windows Core (Free Tier)
   "File System",
   "Registry",
   "Network",
@@ -349,15 +350,54 @@ export const commandCategories = [
   "Event Logs",
   "Services",
   "Variables & Data",
+  // Microsoft Cloud
   "Azure",
-  "Exchange Online",
   "Azure AD",
-  "SharePoint",
-  "MECM",
+  "Azure Resources",
+  "Exchange Online",
   "Exchange Server",
+  "SharePoint",
+  "SharePoint On-Prem",
+  "Microsoft Teams",
+  "OneDrive",
+  "Office 365",
+  "Intune",
+  "MECM",
+  "Power Platform",
+  "Windows 365",
+  // Infrastructure
   "Hyper-V",
   "Windows Server",
   "SQL Server",
+  "VMware",
+  "Docker",
+  "Nutanix",
+  "Citrix",
+  "Veeam",
+  "NetApp",
+  // Cloud Providers
+  "AWS",
+  "Google Cloud",
+  // Security & Identity
+  "CrowdStrike",
+  "Sophos",
+  "Okta",
+  "Duo Security",
+  "Fortinet",
+  "Cisco",
+  // DevOps & Collaboration
+  "GitHub",
+  "Splunk",
+  "Jira",
+  "Slack",
+  "Zoom",
+  "ServiceNow",
+  "Salesforce",
+  "ConnectWise",
+  // Deployment & Management
+  "PDQ Deploy",
+  "Chocolatey",
+  "JAMF",
 ] as const;
 export type CommandCategory = typeof commandCategories[number];
 

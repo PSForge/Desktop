@@ -1,5 +1,11 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronDown, ChevronRight, Plus, FolderOpen, Terminal } from "lucide-react";
+import { 
+  Search, ChevronDown, ChevronRight, Plus, FolderOpen, Terminal,
+  Database, Network, Shield, Users, Settings, Clock, Cog, Server,
+  Cloud, Mail, Key, MonitorSmartphone, HardDrive, Globe,
+  GitBranch, MessageSquare, Video, Ticket, ShoppingCart,
+  Package, Apple, Layers, Container
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,8 +40,103 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
 
   const getCategoryIcon = (category: CommandCategory) => {
     switch (category) {
+      // Windows Core
       case "File System":
         return <FolderOpen className="h-4 w-4" />;
+      case "Registry":
+        return <Database className="h-4 w-4" />;
+      case "Network":
+        return <Network className="h-4 w-4" />;
+      case "Active Directory":
+        return <Users className="h-4 w-4" />;
+      case "System Administration":
+        return <Settings className="h-4 w-4" />;
+      case "Security":
+        return <Shield className="h-4 w-4" />;
+      case "Process Management":
+        return <Cog className="h-4 w-4" />;
+      case "Event Logs":
+        return <Clock className="h-4 w-4" />;
+      case "Services":
+        return <Server className="h-4 w-4" />;
+      case "Variables & Data":
+        return <Database className="h-4 w-4" />;
+      // Microsoft Cloud
+      case "Azure":
+      case "Azure AD":
+      case "Azure Resources":
+        return <Cloud className="h-4 w-4" />;
+      case "Exchange Online":
+      case "Exchange Server":
+        return <Mail className="h-4 w-4" />;
+      case "SharePoint":
+      case "SharePoint On-Prem":
+        return <Globe className="h-4 w-4" />;
+      case "Microsoft Teams":
+        return <MessageSquare className="h-4 w-4" />;
+      case "OneDrive":
+        return <HardDrive className="h-4 w-4" />;
+      case "Office 365":
+        return <Layers className="h-4 w-4" />;
+      case "Intune":
+      case "MECM":
+        return <MonitorSmartphone className="h-4 w-4" />;
+      case "Power Platform":
+        return <Layers className="h-4 w-4" />;
+      case "Windows 365":
+        return <MonitorSmartphone className="h-4 w-4" />;
+      // Infrastructure
+      case "Hyper-V":
+      case "VMware":
+      case "Nutanix":
+      case "Citrix":
+        return <Server className="h-4 w-4" />;
+      case "Windows Server":
+        return <Server className="h-4 w-4" />;
+      case "SQL Server":
+        return <Database className="h-4 w-4" />;
+      case "Docker":
+        return <Container className="h-4 w-4" />;
+      case "Veeam":
+        return <HardDrive className="h-4 w-4" />;
+      case "NetApp":
+        return <HardDrive className="h-4 w-4" />;
+      // Cloud Providers
+      case "AWS":
+      case "Google Cloud":
+        return <Cloud className="h-4 w-4" />;
+      // Security & Identity
+      case "CrowdStrike":
+      case "Sophos":
+      case "Fortinet":
+        return <Shield className="h-4 w-4" />;
+      case "Okta":
+      case "Duo Security":
+        return <Key className="h-4 w-4" />;
+      case "Cisco":
+        return <Network className="h-4 w-4" />;
+      // DevOps & Collaboration
+      case "GitHub":
+        return <GitBranch className="h-4 w-4" />;
+      case "Splunk":
+        return <Database className="h-4 w-4" />;
+      case "Jira":
+      case "ServiceNow":
+        return <Ticket className="h-4 w-4" />;
+      case "Slack":
+        return <MessageSquare className="h-4 w-4" />;
+      case "Zoom":
+        return <Video className="h-4 w-4" />;
+      case "Salesforce":
+        return <ShoppingCart className="h-4 w-4" />;
+      case "ConnectWise":
+        return <Ticket className="h-4 w-4" />;
+      // Deployment & Management
+      case "PDQ Deploy":
+      case "Chocolatey":
+        return <Package className="h-4 w-4" />;
+      case "JAMF":
+        return <Apple className="h-4 w-4" />;
       default:
         return <Terminal className="h-4 w-4" />;
     }

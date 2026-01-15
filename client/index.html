@@ -337,6 +337,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Microsoft Ads UET Tag -->
+    <script>
+      (function(w,d,t,r,u)
+      {
+        var f,n,i;
+        w[u]=w[u]||[],f=function()
+        {
+          var o={ti:"97218318", enableAutoSpaTracking: true};
+          o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")
+        },
+        n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function()
+        {
+          var s=this.readyState;
+          s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)
+        },
+        i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)
+      })
+      (window,document,"script","//bat.bing.com/bat.js","uetq");
+    </script>
+    <!-- Microsoft Ads UET Consent Mode - Default to denied for GDPR compliance -->
+    <script>
+      window.uetq = window.uetq || [];
+      window.uetq.push('consent', 'default', {
+        'ad_storage': 'denied'
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

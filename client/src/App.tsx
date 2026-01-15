@@ -27,6 +27,7 @@ import Security from "@/pages/security";
 import SellerDashboard from "@/pages/seller-dashboard";
 import NotFound from "@/pages/not-found";
 import { ProNudgeModal } from "@/components/pro-conversion/pro-nudge-modal";
+import { CookieConsent } from "@/components/cookie-consent";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -80,6 +81,7 @@ function App() {
             <Toaster />
             <Router />
             <ProNudgeModal />
+            <CookieConsent />
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>

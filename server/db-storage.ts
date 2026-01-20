@@ -1675,4 +1675,28 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return result[0] ? this.convertTimestamps(result[0]) : undefined;
   }
+  
+  // GitHub OAuth Connection
+  async updateUserGitHubConnection(userId: string, data: {
+    githubAccessToken: string | null;
+    githubUsername: string | null;
+    githubAvatarUrl: string | null;
+    githubConnectedAt: Date | null;
+  }): Promise<User | undefined> {
+    const result = await this.db.update(users)
+      .set({
+        githubAccessToken: data.githubAccessToken,
+        githubUsername: data.githubUsername,
+        githubAvatarUrl: data.githubAvatarUrl,
+        githubConnectedAt: data.githubConnectedAt,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+  
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
 }

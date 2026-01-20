@@ -1044,6 +1044,138 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  // ============================================
+  // GitHub OAuth Routes (User-Specific Integration)
+  // ============================================
+  
+  // Initiate GitHub OAuth flow
+  app.get("/api/auth/github", requireAuth, (req, res) => {
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ error: "GitHub OAuth not configured" });
+    }
+    
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers.host;
+    const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+    
+    // Store user ID in state for callback
+    const state = Buffer.from(JSON.stringify({ userId: req.user!.id })).toString('base64');
+    
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo&state=${state}`;
+    
+    return res.redirect(githubAuthUrl);
+  });
+  
+  // GitHub OAuth callback
+  app.get("/api/auth/github/callback", async (req, res) => {
+    const { code, state } = req.query;
+    
+    if (!code || !state) {
+      return res.redirect("/builder?github_error=missing_code");
+    }
+    
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.redirect("/builder?github_error=not_configured");
+    }
+    
+    try {
+      // Decode state to get userId
+      const stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
+      const userId = stateData.userId;
+      
+      if (!userId) {
+        return res.redirect("/builder?github_error=invalid_state");
+      }
+      
+      // Exchange code for access token
+      const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+        }),
+      });
+      
+      const tokenData = await tokenResponse.json();
+      
+      if (tokenData.error) {
+        console.error("GitHub OAuth error:", tokenData);
+        return res.redirect("/builder?github_error=token_exchange_failed");
+      }
+      
+      const accessToken = tokenData.access_token;
+      
+      // Get GitHub user info
+      const userResponse = await fetch("https://api.github.com/user", {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/vnd.github.v3+json",
+        },
+      });
+      
+      const githubUser = await userResponse.json();
+      
+      // Update user with GitHub credentials
+      await storage.updateUserGitHubConnection(userId, {
+        githubAccessToken: accessToken,
+        githubUsername: githubUser.login,
+        githubAvatarUrl: githubUser.avatar_url,
+        githubConnectedAt: new Date(),
+      });
+      
+      return res.redirect("/builder?github_connected=true");
+    } catch (error: any) {
+      console.error("GitHub OAuth callback error:", error);
+      return res.redirect("/builder?github_error=callback_failed");
+    }
+  });
+  
+  // Disconnect GitHub
+  app.post("/api/auth/github/disconnect", requireAuth, async (req, res) => {
+    try {
+      await storage.updateUserGitHubConnection(req.user!.id, {
+        githubAccessToken: null,
+        githubUsername: null,
+        githubAvatarUrl: null,
+        githubConnectedAt: null,
+      });
+      
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error disconnecting GitHub:", error);
+      return res.status(500).json({ error: "Failed to disconnect GitHub" });
+    }
+  });
+  
+  // Get current user's GitHub connection status
+  app.get("/api/auth/github/status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      return res.json({
+        connected: !!user.githubAccessToken,
+        username: user.githubUsername || null,
+        avatarUrl: user.githubAvatarUrl || null,
+        connectedAt: user.githubConnectedAt || null,
+      });
+    } catch (error: any) {
+      console.error("Error getting GitHub status:", error);
+      return res.status(500).json({ error: "Failed to get GitHub status" });
+    }
+  });
+
   // Git Integration Routes
   const { 
     getGitHubUser, 

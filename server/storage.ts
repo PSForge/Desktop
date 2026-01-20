@@ -173,6 +173,15 @@ export interface IStorage {
   dismissNudge(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<void>;
   isNudgeDismissed(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<boolean>;
   getUserDismissedNudges(userId: string): Promise<string[]>;
+  
+  // GitHub OAuth Connection
+  updateUserGitHubConnection(userId: string, data: {
+    githubAccessToken: string | null;
+    githubUsername: string | null;
+    githubAvatarUrl: string | null;
+    githubConnectedAt: Date | null;
+  }): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
 
   // Pro Conversion Analytics
   getProConversionAnalytics(): Promise<{
@@ -551,6 +560,30 @@ export class MemStorage implements IStorage {
   async dismissNudge(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<void> {}
   async isNudgeDismissed(userId: string, nudgeType: import("@shared/schema").NudgeType): Promise<boolean> { return false; }
   async getUserDismissedNudges(userId: string): Promise<string[]> { return []; }
+  
+  async updateUserGitHubConnection(userId: string, data: {
+    githubAccessToken: string | null;
+    githubUsername: string | null;
+    githubAvatarUrl: string | null;
+    githubConnectedAt: Date | null;
+  }): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    const updatedUser = {
+      ...user,
+      githubAccessToken: data.githubAccessToken,
+      githubUsername: data.githubUsername,
+      githubAvatarUrl: data.githubAvatarUrl,
+      githubConnectedAt: data.githubConnectedAt?.toISOString() || null,
+    };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+  
   async getProConversionAnalytics(): Promise<{
     badgeDistribution: Array<{ badge: string; count: number }>;
     milestoneStats: Array<{ milestone: string; usersAchieved: number; usersConverted: number }>;

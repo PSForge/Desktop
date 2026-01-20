@@ -29,6 +29,11 @@ export const users = pgTable("users", {
   sellerEnabledAt: timestamp("seller_enabled_at"),
   totalEarningsCents: integer("total_earnings_cents").notNull().default(0),
   pendingPayoutCents: integer("pending_payout_cents").notNull().default(0),
+  // GitHub OAuth Integration Fields
+  githubAccessToken: text("github_access_token"),
+  githubUsername: varchar("github_username", { length: 255 }),
+  githubAvatarUrl: text("github_avatar_url"),
+  githubConnectedAt: timestamp("github_connected_at"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -745,6 +750,11 @@ export const userSchema = z.object({
   sellerEnabledAt: z.string().nullable().optional(),
   totalEarningsCents: z.number().optional(),
   pendingPayoutCents: z.number().optional(),
+  // GitHub OAuth Integration
+  githubAccessToken: z.string().nullable().optional(),
+  githubUsername: z.string().nullable().optional(),
+  githubAvatarUrl: z.string().nullable().optional(),
+  githubConnectedAt: z.string().nullable().optional(),
 });
 
 export const sessionSchema = z.object({

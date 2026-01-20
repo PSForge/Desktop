@@ -175,6 +175,27 @@ export default function Account() {
       });
     },
   });
+  
+  const disconnectGitHubMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("/api/auth/github/disconnect", "POST");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/git/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/git/repositories"] });
+      toast({
+        title: "GitHub Disconnected",
+        description: "Your GitHub account has been disconnected successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Disconnect failed",
+        description: error.message || "Failed to disconnect GitHub account",
+        variant: "destructive",
+      });
+    },
+  });
 
   const deleteScriptMutation = useMutation({
     mutationFn: async (scriptId: string) => {
@@ -764,23 +785,21 @@ export default function Account() {
                   </div>
                   
                   <Button
-                    variant="outline"
-                    onClick={() => window.open('/__replit/integrations', '_blank')}
+                    onClick={() => window.location.href = '/api/auth/github'}
                     className="w-full"
                     data-testid="button-connect-github"
                   >
                     <Github className="h-4 w-4 mr-2" />
                     Connect GitHub Account
-                    <ExternalLink className="h-3.5 w-3.5 ml-2" />
                   </Button>
                   
                   <div className="text-xs text-muted-foreground space-y-1">
-                    <p className="font-medium">How to connect:</p>
+                    <p className="font-medium">What happens next:</p>
                     <ol className="list-decimal list-inside space-y-1 ml-2">
-                      <li>Click the button above to open the Integrations page</li>
-                      <li>Find "GitHub" in the list of integrations</li>
-                      <li>Click "Connect" and authorize PSForge</li>
-                      <li>Return here to see your connection status</li>
+                      <li>You'll be redirected to GitHub to authorize PSForge</li>
+                      <li>Grant access to your repositories</li>
+                      <li>You'll be redirected back here automatically</li>
+                      <li>Start managing your PowerShell scripts with Git!</li>
                     </ol>
                   </div>
                 </div>
@@ -804,18 +823,15 @@ export default function Account() {
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      To disconnect your GitHub account, click "Manage Connection" and revoke PSForge's access.
-                    </p>
                     <Button
                       variant="outline"
-                      onClick={() => window.open('/__replit/integrations', '_blank')}
+                      onClick={() => disconnectGitHubMutation.mutate()}
+                      disabled={disconnectGitHubMutation.isPending}
                       className="w-full"
-                      data-testid="button-manage-github-connection"
+                      data-testid="button-disconnect-github"
                     >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Manage Connection
-                      <ExternalLink className="h-3.5 w-3.5 ml-2" />
+                      <XCircle className="h-4 w-4 mr-2" />
+                      {disconnectGitHubMutation.isPending ? "Disconnecting..." : "Disconnect GitHub"}
                     </Button>
                   </div>
 

@@ -1132,10 +1132,10 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         githubConnectedAt: new Date(),
       });
       
-      return res.redirect("/builder?github_connected=true");
+      return res.redirect("/account?github_connected=true");
     } catch (error: any) {
       console.error("GitHub OAuth callback error:", error);
-      return res.redirect("/builder?github_error=callback_failed");
+      return res.redirect("/account?github_error=callback_failed");
     }
   });
   

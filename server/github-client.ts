@@ -1,49 +1,71 @@
 import { Octokit } from '@octokit/rest';
+import { storage } from './storage';
 
 /**
- * CRITICAL: This module must NEVER cache credentials globally.
- * Each request must fetch connector settings fresh to ensure per-user isolation.
+ * User-specific GitHub Integration
  * 
- * Multi-tenant security requirement:
+ * This module provides GitHub API access using per-user OAuth tokens
+ * stored in the database. Each user connects their own GitHub account
+ * through the OAuth flow (/api/auth/github).
+ * 
+ * Security model:
  * - Every function accepts userId
- * - Connector API is called per-request with user context
+ * - Token is fetched from database per-request
  * - NO module-level state is shared between users
  */
 
-async function getAccessToken(userId: string) {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+async function getAccessToken(userId: string): Promise<string> {
+  const user = await storage.getUser(userId);
+  
+  if (!user) {
+    throw new Error('User not found');
   }
-
-  // CRITICAL: Fetch connector settings per-request, NO caching
-  // This ensures each user gets their own GitHub credentials
-  const connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=github',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
-
-  if (!connectionSettings || !accessToken) {
-    throw new Error(`GitHub not connected for user ${userId}`);
+  
+  if (!user.githubAccessToken) {
+    throw new Error('GitHub not connected. Please connect your GitHub account first.');
   }
-  return accessToken;
+  
+  return user.githubAccessToken;
 }
 
 /**
- * SECURITY: Gets a fresh Octokit client for the specific user.
+ * Check if a user has GitHub connected
+ */
+export async function isGitHubConnected(userId: string): Promise<boolean> {
+  const user = await storage.getUser(userId);
+  return !!(user?.githubAccessToken);
+}
+
+/**
+ * Get GitHub connection status for a user
+ */
+export async function getGitHubConnectionStatus(userId: string): Promise<{
+  connected: boolean;
+  username: string | null;
+  avatarUrl: string | null;
+  connectedAt: string | null;
+}> {
+  const user = await storage.getUser(userId);
+  
+  if (!user) {
+    return {
+      connected: false,
+      username: null,
+      avatarUrl: null,
+      connectedAt: null
+    };
+  }
+  
+  return {
+    connected: !!user.githubAccessToken,
+    username: user.githubUsername || null,
+    avatarUrl: user.githubAvatarUrl || null,
+    connectedAt: user.githubConnectedAt || null
+  };
+}
+
+/**
+ * Gets a fresh Octokit client for the specific user.
  * NEVER cache this client - it MUST be per-request and per-user.
  * 
  * @param userId - The ID of the user making the request
@@ -54,8 +76,6 @@ export async function getUncachableGitHubClient(userId: string) {
   return new Octokit({ auth: accessToken });
 }
 
-// Helper functions for GitHub operations
-// SECURITY: All functions accept userId to ensure per-user isolation
 export async function getGitHubUser(userId: string) {
   const octokit = await getUncachableGitHubClient(userId);
   const { data } = await octokit.rest.users.getAuthenticated();
@@ -107,7 +127,7 @@ export async function getFileContent(userId: string, owner: string, repo: string
     throw new Error('Path is not a file');
   } catch (error: any) {
     if (error.status === 404) {
-      return null; // File doesn't exist
+      return null;
     }
     throw error;
   }
@@ -142,14 +162,12 @@ export async function createOrUpdateFile(
 export async function createBranch(userId: string, owner: string, repo: string, branchName: string, fromBranch: string = 'main') {
   const octokit = await getUncachableGitHubClient(userId);
   
-  // Get the SHA of the source branch
   const { data: refData } = await octokit.rest.git.getRef({
     owner,
     repo,
     ref: `heads/${fromBranch}`
   });
   
-  // Create new branch from that SHA
   const { data } = await octokit.rest.git.createRef({
     owner,
     repo,

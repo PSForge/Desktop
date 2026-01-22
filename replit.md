@@ -29,7 +29,16 @@ PSForge uses a React frontend with Vite, Tailwind CSS, and Shadcn UI, persisting
 - **Security:** Malicious code scanner detecting 15+ dangerous PowerShell patterns, SHA-256 hashing for script integrity, a visual Security Dashboard, PowerShell injection prevention, robust input validation, and comprehensive error handling.
 - **Admin & Monitoring:** Admin dashboard with analytics, user management, and real-time metrics.
 - **Notifications & Support:** Admin-controlled notification banner system and a user-facing support request system.
-- **Subscription Management:** Automatic Stripe webhook processing for Pro tier upgrades, manual sync tool, and promo code support.
+- **Subscription Management:** 
+    - **Stripe Integration:** Automatic Stripe webhook processing for Pro tier upgrades, manual sync tool, and promo code support.
+    - **Apple In-App Purchase (IAP):** Server-side integration for iOS app subscriptions:
+        - Receipt validation via Apple's verifyReceipt API
+        - Server-to-Server v2 notification handling at `/webhooks/apple`
+        - Transaction storage and user linking via `/api/apple/link-receipt`
+        - Subscription status checking via `/api/apple/subscription-status`
+        - Automatic user role sync based on subscription status (active/expired/revoked)
+        - Admin monitoring at `/api/admin/apple-notifications`
+        - Supports all v2 notification types: SUBSCRIBED, DID_RENEW, DID_RECOVER, EXPIRED, REFUND, REVOKE, DID_FAIL_TO_RENEW, GRACE_PERIOD_EXPIRED, etc.
 - **Git Integration:** GitHub OAuth for repository management, commit/push/pull, history, and diff viewing.
 - **Templates Marketplace:**
     - **Community-driven:** Users can publish, discover, and install PowerShell script templates with metadata, security scanning, and admin moderation.

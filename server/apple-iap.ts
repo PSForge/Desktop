@@ -99,13 +99,22 @@ export async function verifyReceipt(
   }
 }
 
+function base64urlDecode(input: string): string {
+  let base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = base64.length % 4;
+  if (padding) {
+    base64 += '='.repeat(4 - padding);
+  }
+  return Buffer.from(base64, 'base64').toString('utf-8');
+}
+
 export function decodeAppleJWT(signedPayload: string): any | null {
   try {
     const parts = signedPayload.split('.');
     if (parts.length !== 3) return null;
     
     const payload = parts[1];
-    const decoded = Buffer.from(payload, 'base64').toString('utf-8');
+    const decoded = base64urlDecode(payload);
     return JSON.parse(decoded);
   } catch (error) {
     console.error('Failed to decode Apple JWT:', error);
@@ -120,34 +129,57 @@ export function mapAppleNotificationToStatus(
   switch (notificationType) {
     case 'SUBSCRIBED':
     case 'DID_RENEW':
+    case 'DID_RECOVER':
     case 'OFFER_REDEEMED':
+    case 'RENEWAL_EXTENDED':
       return 'active';
     
     case 'EXPIRED':
+      if (subtype === 'VOLUNTARY') {
+        return 'canceled';
+      }
       return 'expired';
     
     case 'DID_CHANGE_RENEWAL_STATUS':
       if (subtype === 'AUTO_RENEW_DISABLED') {
         return 'active';
       }
+      if (subtype === 'AUTO_RENEW_ENABLED') {
+        return 'active';
+      }
       return 'active';
     
     case 'DID_FAIL_TO_RENEW':
+      if (subtype === 'GRACE_PERIOD') {
+        return 'grace_period';
+      }
       return 'billing_retry';
     
     case 'GRACE_PERIOD_EXPIRED':
       return 'expired';
     
     case 'REFUND':
+    case 'REFUND_DECLINED':
+      return 'revoked';
+      
     case 'REVOKE':
       return 'revoked';
     
+    case 'CONSUMPTION_REQUEST':
+      return 'active';
+    
     case 'DID_CHANGE_RENEWAL_PREF':
     case 'PRICE_INCREASE':
-    case 'RENEWAL_EXTENDED':
+      if (subtype === 'ACCEPTED') {
+        return 'active';
+      }
+      return 'active';
+    
+    case 'TEST':
       return 'active';
     
     default:
+      console.warn(`🍎 Unknown Apple notification type: ${notificationType}/${subtype}`);
       return 'active';
   }
 }

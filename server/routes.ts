@@ -2681,18 +2681,27 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     const startTime = Date.now();
     console.log("🍎 Apple notification received!");
     
+    let rawPayload: string | undefined;
+    
     try {
-      const { processAppleNotification } = await import("./apple-iap");
+      const { processAppleNotification, decodeAppleJWT } = await import("./apple-iap");
       
       // Apple sends signed JWTs for v2 notifications
       const signedPayload = req.body.signedPayload;
+      rawPayload = signedPayload;
       
       if (!signedPayload) {
         // Handle legacy v1 notification format
         const notificationType = req.body.notification_type;
         if (notificationType) {
           console.log(`🍎 Legacy v1 notification: ${notificationType}`);
-          // Log but don't process v1 notifications - they need different handling
+          // Log v1 notification for reference but don't process
+          await storage.createAppleNotificationEvent({
+            notificationType: notificationType,
+            status: 'skipped',
+            errorMessage: 'Legacy v1 notification format - not supported',
+            payload: req.body,
+          });
           return res.status(200).send();
         }
         
@@ -2700,14 +2709,19 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         return res.status(400).json({ error: "Invalid notification format" });
       }
       
-      // Decode the signed payload (simple base64 decode for payload extraction)
-      const parts = signedPayload.split('.');
-      if (parts.length !== 3) {
-        console.error("❌ Apple notification: Invalid JWT format");
+      // Use proper base64url decoding via shared utility
+      const payload = decodeAppleJWT(signedPayload);
+      
+      if (!payload) {
+        console.error("❌ Apple notification: Failed to decode JWT payload");
+        await storage.createAppleNotificationEvent({
+          notificationType: 'DECODE_ERROR',
+          status: 'failed',
+          errorMessage: 'Failed to decode JWT payload',
+          payload: { signedPayloadLength: signedPayload?.length },
+        });
         return res.status(400).json({ error: "Invalid JWT format" });
       }
-      
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
       
       const result = await processAppleNotification(payload);
       
@@ -2720,8 +2734,24 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       const processingTime = Date.now() - startTime;
       console.error("❌ Apple webhook handler error:", error);
       
+      // Log failed notification with raw payload info for debugging
+      try {
+        await storage.createAppleNotificationEvent({
+          notificationType: 'PROCESSING_ERROR',
+          status: 'failed',
+          errorMessage: error.message || 'Unknown error',
+          payload: { 
+            error: error.message, 
+            payloadLength: rawPayload?.length,
+            processingTimeMs: processingTime
+          },
+          processingTimeMs: processingTime,
+        });
+      } catch (logError) {
+        console.error("Failed to log Apple notification error:", logError);
+      }
+      
       // Still return 200 to prevent Apple from retrying
-      // Log the error for debugging
       return res.status(200).send();
     }
   });

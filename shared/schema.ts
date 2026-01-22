@@ -193,6 +193,39 @@ export const webhookEvents = pgTable("webhook_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Apple In-App Purchase Transactions
+export const appleTransactions = pgTable("apple_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  originalTransactionId: varchar("original_transaction_id", { length: 255 }).notNull(),
+  transactionId: varchar("transaction_id", { length: 255 }).notNull(),
+  productId: varchar("product_id", { length: 255 }).notNull(),
+  bundleId: varchar("bundle_id", { length: 255 }),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  expiresDate: timestamp("expires_date"),
+  isTrialPeriod: boolean("is_trial_period").notNull().default(false),
+  isInIntroOfferPeriod: boolean("is_in_intro_offer_period").notNull().default(false),
+  status: varchar("status", { length: 50 }).notNull().default("active"),
+  environment: varchar("environment", { length: 50 }).notNull().default("production"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Apple Server-to-Server Notification Events
+export const appleNotificationEvents = pgTable("apple_notification_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  notificationType: varchar("notification_type", { length: 100 }).notNull(),
+  subtype: varchar("subtype", { length: 100 }),
+  notificationUUID: varchar("notification_uuid", { length: 255 }),
+  originalTransactionId: varchar("original_transaction_id", { length: 255 }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 50 }).notNull(),
+  payload: json("payload").$type<Record<string, any>>(),
+  errorMessage: text("error_message"),
+  processingTimeMs: integer("processing_time_ms"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const templateCategories = pgTable("template_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull().unique(),
@@ -732,6 +765,72 @@ export type TemplatePurchase = z.infer<typeof templatePurchaseSchema>;
 export type InsertTemplatePurchase = z.infer<typeof insertTemplatePurchaseSchema>;
 export type SellerPayout = z.infer<typeof sellerPayoutSchema>;
 export type InsertSellerPayout = z.infer<typeof insertSellerPayoutSchema>;
+
+// Apple In-App Purchase Schemas
+export const appleTransactionStatusEnum = z.enum(["active", "expired", "canceled", "grace_period", "billing_retry", "revoked"]);
+export type AppleTransactionStatus = z.infer<typeof appleTransactionStatusEnum>;
+
+export const appleTransactionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  originalTransactionId: z.string(),
+  transactionId: z.string(),
+  productId: z.string(),
+  bundleId: z.string().nullable(),
+  purchaseDate: z.string(),
+  expiresDate: z.string().nullable(),
+  isTrialPeriod: z.boolean(),
+  isInIntroOfferPeriod: z.boolean(),
+  status: appleTransactionStatusEnum,
+  environment: z.enum(["sandbox", "production"]),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const insertAppleTransactionSchema = z.object({
+  userId: z.string(),
+  originalTransactionId: z.string(),
+  transactionId: z.string(),
+  productId: z.string(),
+  bundleId: z.string().optional(),
+  purchaseDate: z.string(),
+  expiresDate: z.string().optional(),
+  isTrialPeriod: z.boolean().default(false),
+  isInIntroOfferPeriod: z.boolean().default(false),
+  status: appleTransactionStatusEnum.default("active"),
+  environment: z.enum(["sandbox", "production"]).default("production"),
+});
+
+export const appleNotificationEventSchema = z.object({
+  id: z.string(),
+  notificationType: z.string(),
+  subtype: z.string().nullable(),
+  notificationUUID: z.string().nullable(),
+  originalTransactionId: z.string().nullable(),
+  userId: z.string().nullable(),
+  status: z.string(),
+  payload: z.record(z.any()).nullable(),
+  errorMessage: z.string().nullable(),
+  processingTimeMs: z.number().nullable(),
+  createdAt: z.string(),
+});
+
+export const insertAppleNotificationEventSchema = z.object({
+  notificationType: z.string(),
+  subtype: z.string().optional(),
+  notificationUUID: z.string().optional(),
+  originalTransactionId: z.string().optional(),
+  userId: z.string().optional(),
+  status: z.string(),
+  payload: z.record(z.any()).optional(),
+  errorMessage: z.string().optional(),
+  processingTimeMs: z.number().optional(),
+});
+
+export type AppleTransaction = z.infer<typeof appleTransactionSchema>;
+export type InsertAppleTransaction = z.infer<typeof insertAppleTransactionSchema>;
+export type AppleNotificationEvent = z.infer<typeof appleNotificationEventSchema>;
+export type InsertAppleNotificationEvent = z.infer<typeof insertAppleNotificationEventSchema>;
 
 // User & Authentication Schemas
 export const userSchema = z.object({

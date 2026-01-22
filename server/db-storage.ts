@@ -26,6 +26,8 @@ import {
   sellerPayouts,
   userMilestones,
   nudgeDismissals,
+  appleTransactions,
+  appleNotificationEvents,
   type User,
   type Session,
   type Script,
@@ -66,6 +68,10 @@ import {
   type UserStats,
   type NudgeType,
   type CommunityBadge,
+  type AppleTransaction,
+  type InsertAppleTransaction,
+  type AppleNotificationEvent,
+  type InsertAppleNotificationEvent,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -1698,5 +1704,74 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const result = await this.db.select().from(users).where(eq(users.id, id));
     return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+  
+  // Apple In-App Purchase Methods
+  async createAppleTransaction(transaction: InsertAppleTransaction): Promise<AppleTransaction> {
+    const result = await this.db.insert(appleTransactions).values({
+      userId: transaction.userId,
+      originalTransactionId: transaction.originalTransactionId,
+      transactionId: transaction.transactionId,
+      productId: transaction.productId,
+      bundleId: transaction.bundleId || null,
+      purchaseDate: new Date(transaction.purchaseDate),
+      expiresDate: transaction.expiresDate ? new Date(transaction.expiresDate) : null,
+      isTrialPeriod: transaction.isTrialPeriod || false,
+      isInIntroOfferPeriod: transaction.isInIntroOfferPeriod || false,
+      status: transaction.status || 'active',
+      environment: transaction.environment || 'production',
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+  
+  async getAppleTransactionByOriginalId(originalTransactionId: string): Promise<AppleTransaction | undefined> {
+    const result = await this.db.select().from(appleTransactions)
+      .where(eq(appleTransactions.originalTransactionId, originalTransactionId));
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+  
+  async getUserAppleTransactions(userId: string): Promise<AppleTransaction[]> {
+    const result = await this.db.select().from(appleTransactions)
+      .where(eq(appleTransactions.userId, userId))
+      .orderBy(desc(appleTransactions.createdAt));
+    return result.map(t => this.convertTimestamps(t));
+  }
+  
+  async updateAppleTransaction(id: string, updates: Partial<AppleTransaction>): Promise<AppleTransaction | undefined> {
+    const updateData: any = { ...updates, updatedAt: new Date() };
+    delete updateData.id;
+    delete updateData.createdAt;
+    
+    if (updateData.expiresDate && typeof updateData.expiresDate === 'string') {
+      updateData.expiresDate = new Date(updateData.expiresDate);
+    }
+    
+    const result = await this.db.update(appleTransactions)
+      .set(updateData)
+      .where(eq(appleTransactions.id, id))
+      .returning();
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+  
+  async createAppleNotificationEvent(event: InsertAppleNotificationEvent): Promise<AppleNotificationEvent> {
+    const result = await this.db.insert(appleNotificationEvents).values({
+      notificationType: event.notificationType,
+      subtype: event.subtype || null,
+      notificationUUID: event.notificationUUID || null,
+      originalTransactionId: event.originalTransactionId || null,
+      userId: event.userId || null,
+      status: event.status,
+      payload: event.payload || null,
+      errorMessage: event.errorMessage || null,
+      processingTimeMs: event.processingTimeMs || null,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+  
+  async getAppleNotificationEvents(limit: number = 100): Promise<AppleNotificationEvent[]> {
+    const result = await this.db.select().from(appleNotificationEvents)
+      .orderBy(desc(appleNotificationEvents.createdAt))
+      .limit(limit);
+    return result.map(e => this.convertTimestamps(e));
   }
 }

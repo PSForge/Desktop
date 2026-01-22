@@ -183,6 +183,14 @@ export interface IStorage {
   }): Promise<User | undefined>;
   getUser(id: string): Promise<User | undefined>;
 
+  // Apple In-App Purchase
+  createAppleTransaction(transaction: import("@shared/schema").InsertAppleTransaction): Promise<import("@shared/schema").AppleTransaction>;
+  getAppleTransactionByOriginalId(originalTransactionId: string): Promise<import("@shared/schema").AppleTransaction | undefined>;
+  getUserAppleTransactions(userId: string): Promise<import("@shared/schema").AppleTransaction[]>;
+  updateAppleTransaction(id: string, updates: Partial<import("@shared/schema").AppleTransaction>): Promise<import("@shared/schema").AppleTransaction | undefined>;
+  createAppleNotificationEvent(event: import("@shared/schema").InsertAppleNotificationEvent): Promise<import("@shared/schema").AppleNotificationEvent>;
+  getAppleNotificationEvents(limit?: number): Promise<import("@shared/schema").AppleNotificationEvent[]>;
+
   // Pro Conversion Analytics
   getProConversionAnalytics(): Promise<{
     badgeDistribution: Array<{ badge: string; count: number }>;
@@ -596,6 +604,26 @@ export class MemStorage implements IStorage {
       conversionFunnel: { totalFreeUsers: 0, usersWithMilestones: 0, usersConverted: 0, conversionRate: 0 },
       topScriptCreators: [],
     };
+  }
+  
+  // Apple In-App Purchase stubs (MemStorage)
+  async createAppleTransaction(transaction: import("@shared/schema").InsertAppleTransaction): Promise<import("@shared/schema").AppleTransaction> {
+    throw new Error("MemStorage does not support Apple transactions");
+  }
+  async getAppleTransactionByOriginalId(originalTransactionId: string): Promise<import("@shared/schema").AppleTransaction | undefined> {
+    return undefined;
+  }
+  async getUserAppleTransactions(userId: string): Promise<import("@shared/schema").AppleTransaction[]> {
+    return [];
+  }
+  async updateAppleTransaction(id: string, updates: Partial<import("@shared/schema").AppleTransaction>): Promise<import("@shared/schema").AppleTransaction | undefined> {
+    return undefined;
+  }
+  async createAppleNotificationEvent(event: import("@shared/schema").InsertAppleNotificationEvent): Promise<import("@shared/schema").AppleNotificationEvent> {
+    throw new Error("MemStorage does not support Apple notification events");
+  }
+  async getAppleNotificationEvents(limit?: number): Promise<import("@shared/schema").AppleNotificationEvent[]> {
+    return [];
   }
 }
 

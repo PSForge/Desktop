@@ -2676,6 +2676,116 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  // Apple In-App Purchase Server-to-Server Notifications (v2)
+  app.post("/webhooks/apple", async (req, res) => {
+    const startTime = Date.now();
+    console.log("🍎 Apple notification received!");
+    
+    try {
+      const { processAppleNotification } = await import("./apple-iap");
+      
+      // Apple sends signed JWTs for v2 notifications
+      const signedPayload = req.body.signedPayload;
+      
+      if (!signedPayload) {
+        // Handle legacy v1 notification format
+        const notificationType = req.body.notification_type;
+        if (notificationType) {
+          console.log(`🍎 Legacy v1 notification: ${notificationType}`);
+          // Log but don't process v1 notifications - they need different handling
+          return res.status(200).send();
+        }
+        
+        console.error("❌ Apple notification: No signedPayload found");
+        return res.status(400).json({ error: "Invalid notification format" });
+      }
+      
+      // Decode the signed payload (simple base64 decode for payload extraction)
+      const parts = signedPayload.split('.');
+      if (parts.length !== 3) {
+        console.error("❌ Apple notification: Invalid JWT format");
+        return res.status(400).json({ error: "Invalid JWT format" });
+      }
+      
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+      
+      const result = await processAppleNotification(payload);
+      
+      const processingTime = Date.now() - startTime;
+      console.log(`🍎 Apple notification processed in ${processingTime}ms: ${result.message}`);
+      
+      // Apple expects 200 response to acknowledge receipt
+      return res.status(200).send();
+    } catch (error: any) {
+      const processingTime = Date.now() - startTime;
+      console.error("❌ Apple webhook handler error:", error);
+      
+      // Still return 200 to prevent Apple from retrying
+      // Log the error for debugging
+      return res.status(200).send();
+    }
+  });
+  
+  // API endpoint to link Apple receipt to user (called from iOS app)
+  app.post("/api/apple/link-receipt", requireAuth, async (req, res) => {
+    try {
+      const { receiptData } = req.body;
+      
+      if (!receiptData) {
+        return res.status(400).json({ error: "Receipt data is required" });
+      }
+      
+      const { linkAppleTransactionToUser } = await import("./apple-iap");
+      const result = await linkAppleTransactionToUser(req.user!.id, receiptData);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      
+      return res.json({
+        success: true,
+        message: result.message,
+        transaction: result.transaction,
+      });
+    } catch (error: any) {
+      console.error("Error linking Apple receipt:", error);
+      return res.status(500).json({ error: "Failed to link receipt" });
+    }
+  });
+  
+  // Get user's Apple subscription status
+  app.get("/api/apple/subscription-status", requireAuth, async (req, res) => {
+    try {
+      const transactions = await storage.getUserAppleTransactions(req.user!.id);
+      
+      const activeTransaction = transactions.find(t => 
+        t.status === 'active' && 
+        (!t.expiresDate || new Date(t.expiresDate) > new Date())
+      );
+      
+      return res.json({
+        hasActiveSubscription: !!activeTransaction,
+        transaction: activeTransaction || null,
+        allTransactions: transactions,
+      });
+    } catch (error: any) {
+      console.error("Error getting Apple subscription status:", error);
+      return res.status(500).json({ error: "Failed to get subscription status" });
+    }
+  });
+  
+  // Admin endpoint to view Apple notification events
+  app.get("/api/admin/apple-notifications", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const events = await storage.getAppleNotificationEvents(limit);
+      return res.json({ events });
+    } catch (error: any) {
+      console.error("Error fetching Apple notification events:", error);
+      return res.status(500).json({ error: "Failed to fetch notification events" });
+    }
+  });
+
   // Webhook diagnostics endpoint
   app.get("/api/admin/webhooks", requireAdmin, async (req, res) => {
     try {

@@ -28,6 +28,7 @@ import SellerDashboard from "@/pages/seller-dashboard";
 import NotFound from "@/pages/not-found";
 import { ProNudgeModal } from "@/components/pro-conversion/pro-nudge-modal";
 import { CookieConsent } from "@/components/cookie-consent";
+import { LoginProPrompt } from "@/components/login-pro-prompt";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -80,6 +81,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <LoginProPrompt />
             <ProNudgeModal />
             <CookieConsent />
           </TooltipProvider>

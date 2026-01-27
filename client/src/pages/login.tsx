@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { Terminal } from "lucide-react";
 import logoImage from "@assets/Full Logo Transparent_1761559782392.png";
+import { triggerLoginProPrompt } from "@/components/login-pro-prompt";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -32,6 +33,7 @@ export default function Login() {
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
+      triggerLoginProPrompt();
       navigate("/builder");
     } catch (error: any) {
       toast({

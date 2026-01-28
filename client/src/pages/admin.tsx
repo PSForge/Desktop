@@ -79,7 +79,7 @@ export default function AdminDashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "date">("date");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "date" | "lastLogin">("date");
 
   const createUserForm = useForm<AdminCreateUserData>({
     resolver: zodResolver(adminCreateUserSchema),
@@ -230,6 +230,10 @@ export default function AdminDashboard() {
           return (a.role || "").localeCompare(b.role || "");
         case "date":
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "lastLogin":
+          const aLogin = a.lastLoginAt ? new Date(a.lastLoginAt).getTime() : 0;
+          const bLogin = b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0;
+          return bLogin - aLogin;
         default:
           return 0;
       }
@@ -751,6 +755,7 @@ export default function AdminDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="date">Sort by Join Date</SelectItem>
+                    <SelectItem value="lastLogin">Sort by Last Login</SelectItem>
                     <SelectItem value="name">Sort by Name</SelectItem>
                     <SelectItem value="email">Sort by Email</SelectItem>
                     <SelectItem value="role">Sort by Role</SelectItem>

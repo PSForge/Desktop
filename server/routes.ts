@@ -159,6 +159,42 @@ Sitemap: ${baseUrl}/sitemap.xml`;
 
   app.post("/auth/register", async (req, res) => {
     try {
+      // Verify reCAPTCHA if secret key is configured
+      const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
+      if (recaptchaSecretKey) {
+        const { recaptchaToken } = req.body;
+        
+        if (!recaptchaToken) {
+          return res.status(400).json({
+            error: "reCAPTCHA verification required"
+          });
+        }
+        
+        try {
+          const verifyResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `secret=${recaptchaSecretKey}&response=${recaptchaToken}`,
+          });
+          
+          const verifyData = await verifyResponse.json() as { success: boolean; 'error-codes'?: string[] };
+          
+          if (!verifyData.success) {
+            console.error('reCAPTCHA verification failed:', verifyData['error-codes']);
+            return res.status(400).json({
+              error: "reCAPTCHA verification failed. Please try again."
+            });
+          }
+        } catch (verifyError) {
+          console.error('reCAPTCHA verification error:', verifyError);
+          return res.status(500).json({
+            error: "Failed to verify reCAPTCHA"
+          });
+        }
+      }
+      
       const parsed = insertUserSchema.safeParse(req.body);
       
       if (!parsed.success) {

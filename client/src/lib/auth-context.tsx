@@ -14,7 +14,7 @@ interface AuthContextType {
     currentPeriodEnd: string;
   } | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, referralSource?: string | null) => Promise<void>;
+  register: (email: string, password: string, name: string, referralSource?: string | null, recaptchaToken?: string | null) => Promise<void>;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
 }
@@ -64,8 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async ({ email, password, name, referralSource }: { email: string; password: string; name: string; referralSource?: string | null }) => {
-      const response = await apiRequest("/auth/register", "POST", { email, password, name, referralSource });
+    mutationFn: async ({ email, password, name, referralSource, recaptchaToken }: { email: string; password: string; name: string; referralSource?: string | null; recaptchaToken?: string | null }) => {
+      const response = await apiRequest("/auth/register", "POST", { email, password, name, referralSource, recaptchaToken });
       return response.json();
     },
     onSuccess: () => {
@@ -87,8 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await loginMutation.mutateAsync({ email, password });
   };
 
-  const register = async (email: string, password: string, name: string, referralSource?: string | null) => {
-    await registerMutation.mutateAsync({ email, password, name, referralSource });
+  const register = async (email: string, password: string, name: string, referralSource?: string | null, recaptchaToken?: string | null) => {
+    await registerMutation.mutateAsync({ email, password, name, referralSource, recaptchaToken });
   };
 
   const logout = async () => {

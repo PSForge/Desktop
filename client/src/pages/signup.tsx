@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/Full Logo Transparent_1761559782392.png";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -15,7 +16,11 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [referralSource, setReferralSource] = useState<string | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { register, isAuthenticated } = useAuth();
+  
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -79,16 +84,27 @@ export default function Signup() {
       return;
     }
 
+    if (recaptchaSiteKey && !recaptchaToken) {
+      toast({
+        title: "Verification required",
+        description: "Please complete the reCAPTCHA verification",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await register(email, password, name, referralSource);
+      await register(email, password, name, referralSource, recaptchaToken);
       toast({
         title: "Account created!",
         description: "Welcome to PSForge. You now have access to basic features.",
       });
       navigate("/builder");
     } catch (error: any) {
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
       toast({
         title: "Signup failed",
         description: error.message || "Failed to create account. Please try again.",
@@ -172,6 +188,17 @@ export default function Signup() {
                   data-testid="input-confirm-password"
                 />
               </div>
+              {recaptchaSiteKey && (
+                <div className="flex justify-center" data-testid="recaptcha-container">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={recaptchaSiteKey}
+                    onChange={(token) => setRecaptchaToken(token)}
+                    onExpired={() => setRecaptchaToken(null)}
+                    theme="dark"
+                  />
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
               <Button 

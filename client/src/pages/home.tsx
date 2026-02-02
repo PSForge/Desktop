@@ -570,11 +570,11 @@ export default function Home() {
               <Link href={user ? "/builder" : "/signup"} className="block pt-4">
                 <Button className="w-full gap-2" data-testid="button-pro-tier">
                   <Sparkles className="h-4 w-4" />
-                  {user ? "Upgrade to Pro" : "Start 7-Day Pro Trial"}
+                  {user ? "Upgrade to Pro" : "Get Started with Pro"}
                 </Button>
               </Link>
               <p className="text-xs text-center text-muted-foreground pt-2">
-                No credit card required for trial. Cancel anytime.
+                Cancel anytime. No long-term commitment.
               </p>
             </CardContent>
           </Card>

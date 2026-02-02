@@ -677,95 +677,123 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
         </p>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {categories.map((category) => {
-            const Icon = category.icon;
-            const isSelected = selectedCategory === category.id;
-            const isLocked = category.isPremium && !featureAccess?.hasPremiumCategories;
+      <div className="flex-1 flex overflow-hidden">
+        {/* Categories Panel - Left Side */}
+        <div className="w-64 lg:w-72 border-r overflow-y-auto flex-shrink-0 bg-muted/30">
+          <div className="p-3">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Categories</h3>
+            <div className="space-y-1">
+              {categories.map((category) => {
+                const Icon = category.icon;
+                const isSelected = selectedCategory === category.id;
+                const isLocked = category.isPremium && !featureAccess?.hasPremiumCategories;
 
-            return (
-              <Card
-                key={category.id}
-                className={`cursor-pointer transition-all hover-elevate active-elevate-2 ${
-                  isSelected ? 'ring-2 ring-primary' : ''
-                } ${isLocked ? 'opacity-75' : ''}`}
-                onClick={() => handleCategoryClick(category.id, category)}
-                data-testid={`category-card-${category.id}`}
-              >
-                <CardHeader className="flex flex-col items-center text-center space-y-2 p-6">
-                  <div className="relative">
-                    <div className={`${category.color} mb-2`}>
-                      <Icon className="h-12 w-12" />
-                    </div>
-                    {isLocked && (
-                      <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-1">
-                        <Lock className="h-4 w-4" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base">{category.name}</CardTitle>
-                    {category.isPremium && (
-                      <Badge variant="secondary" className="text-xs">Pro</Badge>
-                    )}
-                  </div>
-                  <CardDescription className="text-xs">
-                    {category.description}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            );
-          })}
-        </div>
-
-        {selectedCategory && categoryTasks.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">
-              Available Tasks for {categories.find(c => c.id === selectedCategory)?.name}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {categoryTasks.map((task: any) => {
-                const taskName = task.name || task.title;
                 return (
-                  <Card
-                    key={task.id}
-                    className="cursor-pointer hover-elevate active-elevate-2"
-                    onClick={() => handleTaskSelect(task)}
-                    data-testid={`task-card-${task.id}`}
+                  <div
+                    key={category.id}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'bg-primary/10 text-primary border border-primary/30' 
+                        : 'hover:bg-muted'
+                    } ${isLocked ? 'opacity-75' : ''}`}
+                    onClick={() => handleCategoryClick(category.id, category)}
+                    data-testid={`category-card-${category.id}`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-base mb-1">{taskName}</CardTitle>
-                          <CardDescription className="text-sm">
-                            {task.description}
-                          </CardDescription>
-                          <div className="mt-2">
-                            <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
-                              {task.category}
-                            </span>
-                          </div>
+                    <div className="relative flex-shrink-0">
+                      <Icon className={`h-5 w-5 ${isSelected ? 'text-primary' : category.color}`} />
+                      {isLocked && (
+                        <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                          <Lock className="h-2.5 w-2.5" />
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                          {category.name}
+                        </span>
+                        {category.isPremium && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Pro</Badge>
+                        )}
                       </div>
-                    </CardHeader>
-                  </Card>
+                    </div>
+                    <ChevronRight className={`h-4 w-4 flex-shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                  </div>
                 );
               })}
             </div>
           </div>
-        )}
+        </div>
 
-        {selectedCategory && categoryTasks.length === 0 && (
-          <div className="mt-8 p-6 border rounded-lg bg-muted/50">
-            <p className="text-center text-muted-foreground">
-              Tasks for <span className="font-semibold text-foreground">
-                {categories.find(c => c.id === selectedCategory)?.name}
-              </span> will be added soon
-            </p>
-          </div>
-        )}
+        {/* Tasks Panel - Right Side */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {!selectedCategory && (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <ChevronRight className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Select a Category</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Choose a category from the list on the left to view available automation tasks
+              </p>
+            </div>
+          )}
+
+          {selectedCategory && categoryTasks.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">
+                {categories.find(c => c.id === selectedCategory)?.name} Tasks
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({categoryTasks.length} available)
+                </span>
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {categoryTasks.map((task: any) => {
+                  const taskName = task.name || task.title;
+                  return (
+                    <Card
+                      key={task.id}
+                      className="cursor-pointer hover-elevate active-elevate-2"
+                      onClick={() => handleTaskSelect(task)}
+                      data-testid={`task-card-${task.id}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-base mb-1">{taskName}</CardTitle>
+                            <CardDescription className="text-sm">
+                              {task.description}
+                            </CardDescription>
+                            <div className="mt-2">
+                              <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
+                                {task.category}
+                              </span>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {selectedCategory && categoryTasks.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Settings className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Tasks for <span className="font-semibold text-foreground">
+                  {categories.find(c => c.id === selectedCategory)?.name}
+                </span> will be added soon
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <UpgradeModal 

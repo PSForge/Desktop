@@ -156,7 +156,7 @@ export default function Home() {
             <div className="text-center space-y-6">
               <Badge variant="default" className="mb-4">
                 <Sparkles className="h-3 w-3 mr-1" />
-                Version 5.0 — New: AI Log Troubleshooter
+                Version 6.0 — New: AI Log Troubleshooter
               </Badge>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
@@ -206,7 +206,7 @@ export default function Home() {
           <div className="text-center mb-8">
             <Badge variant="default" className="mb-4 bg-orange-600 hover:bg-orange-600">
               <Sparkles className="h-3 w-3 mr-1" />
-              New in Version 5.0
+              New in Version 6.0
             </Badge>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
               AI Log Troubleshooter is Here

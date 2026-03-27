@@ -2171,11 +2171,99 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         return res.status(400).json({ error: "Log content is too short to analyze" });
       }
 
+      // Log content is processed entirely in memory by OpenAI and is NEVER written
+      // to the database. Only anonymised analytics metadata (platform + issue counts)
+      // are recorded once analysis is complete.
       const result = await analyzeLogFile(logContent, platform, context);
+
+      // Record anonymised analytics — no log content is stored
+      try {
+        const criticalCount = result.issues.filter(i => i.severity === "critical").length;
+        const errorCount    = result.issues.filter(i => i.severity === "error").length;
+        const warningCount  = result.issues.filter(i => i.severity === "warning").length;
+        const infoCount     = result.issues.filter(i => i.severity === "info").length;
+
+        await storage.createUsageMetric({
+          userId: req.user!.id,
+          metricType: "log_analysis",
+          value: result.issues.length,
+          metadata: {
+            platform,
+            totalIssues: result.issues.length,
+            criticalCount,
+            errorCount,
+            warningCount,
+            infoCount,
+          },
+          recordedAt: new Date().toISOString(),
+        });
+      } catch (trackErr) {
+        // Analytics failure must not surface to the user
+        console.error("Failed to record troubleshoot analytics:", trackErr);
+      }
+
       return res.json(result);
     } catch (error) {
       console.error("Error analyzing log file:", error);
       return res.status(500).json({ error: "Failed to analyze log file" });
+    }
+  });
+
+  // Admin: Log Troubleshooter Analytics
+  app.get("/api/admin/troubleshoot-analytics", requireAdmin, async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { usageMetrics } = await import("../shared/schema");
+      const { eq, sql, and } = await import("drizzle-orm");
+
+      // Total analyses count
+      const totalResult = await db.select({ count: sql<number>`count(*)::int` })
+        .from(usageMetrics)
+        .where(eq(usageMetrics.metricType, "log_analysis"));
+      const totalAnalyses = totalResult[0]?.count ?? 0;
+
+      // Aggregate severity counts
+      const severityResult = await db.select({
+        totalIssues:   sql<number>`COALESCE(SUM((${usageMetrics.metadata}->>'totalIssues')::int), 0)::int`,
+        criticalCount: sql<number>`COALESCE(SUM((${usageMetrics.metadata}->>'criticalCount')::int), 0)::int`,
+        errorCount:    sql<number>`COALESCE(SUM((${usageMetrics.metadata}->>'errorCount')::int), 0)::int`,
+        warningCount:  sql<number>`COALESCE(SUM((${usageMetrics.metadata}->>'warningCount')::int), 0)::int`,
+        infoCount:     sql<number>`COALESCE(SUM((${usageMetrics.metadata}->>'infoCount')::int), 0)::int`,
+      }).from(usageMetrics).where(eq(usageMetrics.metricType, "log_analysis"));
+
+      // Top platforms
+      const platformResult = await db.select({
+        platform: sql<string>`${usageMetrics.metadata}->>'platform'`,
+        count:    sql<number>`count(*)::int`,
+      }).from(usageMetrics)
+        .where(and(
+          eq(usageMetrics.metricType, "log_analysis"),
+          sql`${usageMetrics.metadata}->>'platform' IS NOT NULL`,
+        ))
+        .groupBy(sql`${usageMetrics.metadata}->>'platform'`)
+        .orderBy(sql`count(*) DESC`)
+        .limit(10);
+
+      // Analyses in the last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentResult = await db.select({ count: sql<number>`count(*)::int` })
+        .from(usageMetrics)
+        .where(and(
+          eq(usageMetrics.metricType, "log_analysis"),
+          sql`${usageMetrics.recordedAt} >= ${thirtyDaysAgo.toISOString()}`,
+        ));
+      const analysesLast30Days = recentResult[0]?.count ?? 0;
+
+      return res.json({
+        totalAnalyses,
+        analysesLast30Days,
+        severity: severityResult[0] ?? { totalIssues: 0, criticalCount: 0, errorCount: 0, warningCount: 0, infoCount: 0 },
+        topPlatforms: platformResult.map(p => ({ platform: p.platform ?? "Unknown", count: p.count })),
+      });
+    } catch (error) {
+      console.error("Troubleshoot analytics error:", error);
+      return res.status(500).json({ error: "Failed to fetch troubleshoot analytics" });
     }
   });
 

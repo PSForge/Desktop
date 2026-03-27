@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { adminCreateUserSchema, type AdminCreateUserData } from "@shared/schema";
-import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus, Trash2, FileText, Search, X, ArrowUpDown } from "lucide-react";
+import { Users, DollarSign, TrendingUp, UserCheck, UserX, Activity, Shield, ArrowLeft, UserPlus, Trash2, FileText, Search, X, ArrowUpDown, ScanSearch, AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState, useMemo } from "react";
 import { AdminNotificationsSection } from "@/components/admin-notifications-section";
@@ -59,6 +59,19 @@ interface AnalyticsData {
     signupsLast30Days: number;
     subscriptionsLast30Days: number;
   };
+}
+
+interface TroubleshootAnalytics {
+  totalAnalyses: number;
+  analysesLast30Days: number;
+  severity: {
+    totalIssues: number;
+    criticalCount: number;
+    errorCount: number;
+    warningCount: number;
+    infoCount: number;
+  };
+  topPlatforms: Array<{ platform: string; count: number }>;
 }
 
 interface UserData {
@@ -104,6 +117,11 @@ export default function AdminDashboard() {
 
   const { data: users, isLoading: usersLoading } = useQuery<UserData[]>({
     queryKey: ["/api/admin/users"],
+    enabled: user?.role === "admin",
+  });
+
+  const { data: troubleshootAnalytics, isLoading: troubleshootLoading } = useQuery<TroubleshootAnalytics>({
+    queryKey: ["/api/admin/troubleshoot-analytics"],
     enabled: user?.role === "admin",
   });
 
@@ -582,6 +600,110 @@ export default function AdminDashboard() {
             </div>
           </>
         ) : null}
+
+        {/* Log Troubleshooter Analytics */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <ScanSearch className="h-5 w-5 text-muted-foreground" />
+            Log Troubleshooter Analytics
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            Log content is processed in memory and never stored. Only anonymised metadata (platform and issue counts) is recorded.
+          </p>
+
+          {troubleshootLoading ? (
+            <div className="grid gap-4 md:grid-cols-4 mb-4">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i}><CardContent className="pt-6"><Skeleton className="h-8 w-24" /></CardContent></Card>
+              ))}
+            </div>
+          ) : troubleshootAnalytics ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-4 mb-4">
+                <Card data-testid="card-total-analyses">
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Analyses</CardTitle>
+                    <ScanSearch className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" data-testid="text-total-analyses">
+                      {troubleshootAnalytics.totalAnalyses}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {troubleshootAnalytics.analysesLast30Days} in the last 30 days
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card data-testid="card-critical-issues">
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Critical Issues Found</CardTitle>
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-destructive" data-testid="text-critical-count">
+                      {troubleshootAnalytics.severity.criticalCount}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      + {troubleshootAnalytics.severity.errorCount} errors detected
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card data-testid="card-warning-issues">
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Warnings Detected</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" data-testid="text-warning-count">
+                      {troubleshootAnalytics.severity.warningCount}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Across all log analyses
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card data-testid="card-info-issues">
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Issues Found</CardTitle>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" data-testid="text-total-issues">
+                      {troubleshootAnalytics.severity.totalIssues}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {troubleshootAnalytics.severity.infoCount} informational
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card data-testid="card-top-platforms">
+                <CardHeader>
+                  <CardTitle>Top Platforms Analysed</CardTitle>
+                  <CardDescription>Platforms most frequently submitted for log troubleshooting</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {troubleshootAnalytics.topPlatforms.length > 0 ? (
+                    <div className="space-y-3">
+                      {troubleshootAnalytics.topPlatforms.map((p, index) => (
+                        <div key={index} className="flex items-center justify-between gap-2 pb-3 border-b last:border-0">
+                          <p className="text-sm font-medium truncate" data-testid={`text-platform-${index}`}>{p.platform}</p>
+                          <Badge variant="secondary" data-testid={`badge-platform-count-${index}`}>{p.count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No log analyses recorded yet</p>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          ) : null}
+        </div>
 
         <Card>
           <CardHeader>

@@ -112,7 +112,7 @@ export default function Settings() {
 
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await apiRequest("POST", "/api/user/api-keys", { name });
+      const res = await apiRequest("/api/user/api-keys", "POST", { name });
       return await res.json() as CreatedKey;
     },
     onSuccess: (created) => {
@@ -128,7 +128,7 @@ export default function Settings() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/user/api-keys/${id}`);
+      await apiRequest(`/api/user/api-keys/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/api-keys"] });

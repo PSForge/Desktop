@@ -666,7 +666,8 @@ export class MemStorage implements IStorage {
   async deleteApiKey(id: string, userId: string): Promise<boolean> {
     const key = this.apiKeys.get(id);
     if (!key || key.userId !== userId) return false;
-    return this.apiKeys.delete(id);
+    this.apiKeys.set(id, { ...key, revokedAt: new Date().toISOString() });
+    return true;
   }
 
   async updateApiKeyLastUsed(id: string): Promise<void> {

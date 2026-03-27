@@ -46,11 +46,10 @@ PSForge uses a React frontend with Vite, Tailwind CSS, and Shadcn UI, persisting
     - Bearer token auth: `Authorization: Bearer <key>` accepted in `attachUser` middleware alongside session cookies
     - API key routes: `POST/GET /api/user/api-keys`, `DELETE /api/user/api-keys/:id`
     - CLI endpoints (all return `{ ok, data, error }` envelope):
-        - `GET /api/cli/scripts` — list user's scripts (requireAuth)
-        - `GET /api/cli/scripts/:id` — fetch script by ID (requireAuth)
-        - `POST /api/cli/validate` — validate PowerShell script (requireAuth)
-        - `POST /api/cli/diagnose` — AI log analysis (requireSubscriber)
-        - `POST /api/cli/explain` — AI script documentation (requireSubscriber)
+        - `GET /cli/scripts` — list user's scripts (requireAuth); returns `[{id, name, description, createdAt}]`
+        - `POST /cli/validate` — validate PowerShell script (requireAuth)
+        - `POST /cli/diagnose` — AI error/code root-cause diagnosis (requireSubscriber)
+        - `POST /cli/explain` — AI plain-English explanation of script/error/log (requireSubscriber)
     - Settings page at `/settings` with API key management UI and CLI quick-start guide
     - DB table: `api_keys` (id, userId, name, keyHash, prefix, lastUsedAt, createdAt, revokedAt)
 - **Git Integration:** GitHub OAuth for repository management, commit/push/pull, history, and diff viewing.

@@ -35,7 +35,15 @@ import {
   Star,
   DollarSign,
   TrendingUp,
-  BadgeDollarSign
+  BadgeDollarSign,
+  Wrench,
+  FileText,
+  AlertTriangle,
+  ShieldAlert,
+  Lightbulb,
+  Upload,
+  ScanSearch,
+  ClipboardList,
 } from "lucide-react";
 
 export default function Home() {
@@ -53,6 +61,7 @@ export default function Home() {
 
   const proTierFeatures = [
     "Everything in Free, plus:",
+    "AI Log Troubleshooter—upload any log file and get instant diagnosis, fix scripts & workarounds",
     "AI script assistant (describe tasks in plain English)",
     "48 enterprise platforms (Exchange, Azure, AWS, VMware, SharePoint, Microsoft 365, and 42 more)",
     "2,400+ automation tasks across all platforms",
@@ -146,8 +155,8 @@ export default function Home() {
 
             <div className="text-center space-y-6">
               <Badge variant="default" className="mb-4">
-                <Star className="h-3 w-3 mr-1" />
-                Version 4.0 - Now with Templates Marketplace
+                <Sparkles className="h-3 w-3 mr-1" />
+                Version 5.0 — New: AI Log Troubleshooter
               </Badge>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
@@ -191,45 +200,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What's New in Version 4 */}
-      <section className="border-y bg-gradient-to-br from-primary/5 via-purple-500/5 to-cyan-500/5">
+      {/* What's New in Version 5 */}
+      <section className="border-y bg-gradient-to-br from-orange-500/5 via-red-500/5 to-amber-500/5">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div className="text-center mb-8">
-            <Badge variant="default" className="mb-4">
-              <Star className="h-3 w-3 mr-1" />
-              What's New in Version 4.0
+            <Badge variant="default" className="mb-4 bg-orange-600 hover:bg-orange-600">
+              <Sparkles className="h-3 w-3 mr-1" />
+              New in Version 5.0
             </Badge>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-              Community-Powered Automation
+              AI Log Troubleshooter is Here
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              PSForge v4.0 introduces powerful new features that let you learn from the community and share your expertise
+              Stop spending hours hunting through log files. Upload any log and let AI diagnose the problem, explain the root cause, and hand you a PowerShell fix—ready to run.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <Card className="hover-elevate transition-all border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
+            <Card className="hover-elevate transition-all md:col-span-1 border-orange-500/40 bg-gradient-to-br from-orange-500/5 to-amber-500/5">
               <CardHeader>
-                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
-                  <BadgeDollarSign className="h-6 w-6 text-green-500" />
+                <div className="h-12 w-12 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
+                  <Wrench className="h-6 w-6 text-orange-500" />
                 </div>
                 <CardTitle className="flex items-center gap-2">
-                  Sell Your Scripts
-                  <Badge className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">Pro</Badge>
+                  AI Log Troubleshooter
+                  <Badge className="text-xs bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30">Pro</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-3">
-                  Turn your PowerShell expertise into income. Publish premium scripts to the Marketplace and <span className="font-semibold text-green-600 dark:text-green-400">keep 70% of every sale</span>. Price from $1-$50 per script.
+                  Upload any log file—Windows Event Logs, service logs, application logs—and get instant AI-powered diagnosis with severity-rated issues, root cause analysis, and ready-to-run PowerShell remediation scripts.
                 </p>
                 <div className="text-sm text-muted-foreground flex items-center gap-2 mt-2">
-                  <DollarSign className="h-4 w-4 text-green-500" />
-                  Direct payouts via Stripe
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Supports 50 enterprise platforms
                 </div>
                 <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                  Seller dashboard with analytics
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  PowerShell fix scripts included
                 </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  No file size limit
+                </div>
+                <Link href={user ? "/builder?tab=troubleshooter" : "/signup"} className="block mt-4">
+                  <Button size="sm" className="w-full gap-2 bg-orange-600 hover:bg-orange-700" data-testid="button-try-troubleshooter">
+                    <Wrench className="h-4 w-4" />
+                    {user ? "Try It Now" : "Get Pro Access"}
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
@@ -274,6 +293,192 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* AI Log Troubleshooter Deep Dive */}
+      <section className="py-16 sm:py-20 lg:py-28 bg-gradient-to-b from-background to-muted/20">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Announcement header */}
+          <div className="max-w-4xl mx-auto text-center mb-14">
+            <Badge className="mb-5 px-4 py-1.5 text-sm bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30">
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              Introducing AI Log Troubleshooter — Pro Feature
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
+              Stop Drowning in Log Files.
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">
+                Get Answers in Seconds.
+              </span>
+            </h2>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
+              Every IT pro has been there—a cryptic error, a wall of log output, and no idea where to start. AI Log Troubleshooter changes that. Upload the log, pick your platform, and get a full diagnosis with PowerShell fix scripts handed to you instantly.
+            </p>
+          </div>
+
+          {/* How it works — step flow */}
+          <div className="max-w-5xl mx-auto mb-16">
+            <h3 className="text-center text-lg font-semibold text-muted-foreground mb-8 uppercase tracking-wider">How it works</h3>
+            <div className="grid sm:grid-cols-3 gap-6">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
+                  <Upload className="h-7 w-7 text-orange-500" />
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground mb-1">1. Upload Your Log</div>
+                  <p className="text-sm text-muted-foreground">
+                    Drag and drop or paste any log file. Supports <span className="font-medium text-foreground">.log, .txt, .json, .xml, .csv, .evtx</span> from any source—Windows Event Viewer, service logs, application output, or cloud platform logs. No file size limit.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                  <ScanSearch className="h-7 w-7 text-amber-500" />
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground mb-1">2. AI Diagnoses the Problem</div>
+                  <p className="text-sm text-muted-foreground">
+                    Select your platform (Active Directory, Exchange, Azure, VMware, and 47 more). Add optional context—like "this started after a Windows update"—and the AI reads the entire log, identifies every error and anomaly, and pinpoints the root cause.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center">
+                  <ClipboardList className="h-7 w-7 text-green-500" />
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground mb-1">3. Run the Fix</div>
+                  <p className="text-sm text-muted-foreground">
+                    Get a structured report with every issue severity-rated, a plain-English explanation, a step-by-step fix, and a production-ready PowerShell remediation script. Send any script straight to the Script Editor with one click.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature breakdown grid */}
+          <div className="max-w-6xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
+            <Card className="hover-elevate transition-all border-red-500/20 bg-gradient-to-br from-red-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center mb-3">
+                  <ShieldAlert className="h-5 w-5 text-red-500" />
+                </div>
+                <CardTitle className="text-base">Severity Classification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Every issue found in the log is rated Critical, Error, Warning, or Info—so you know exactly what to fix first and what can wait.
+                </p>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center gap-2 text-red-500 font-medium"><ShieldAlert className="h-3.5 w-3.5" /> Critical — system down or data loss risk</div>
+                  <div className="flex items-center gap-2 text-orange-500 font-medium"><AlertTriangle className="h-3.5 w-3.5" /> Error — functionality broken</div>
+                  <div className="flex items-center gap-2 text-yellow-500 font-medium"><AlertTriangle className="h-3.5 w-3.5" /> Warning — degraded performance</div>
+                  <div className="flex items-center gap-2 text-blue-500 font-medium"><CheckCircle2 className="h-3.5 w-3.5" /> Info — noteworthy but not harmful</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
+                  <ScanSearch className="h-5 w-5 text-amber-500" />
+                </div>
+                <CardTitle className="text-base">Root Cause Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  The AI doesn't just list errors—it reads the full log in context and identifies the single underlying cause driving all the symptoms. No more chasing cascading failures down a rabbit hole.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3">
+                  <Terminal className="h-5 w-5 text-green-500" />
+                </div>
+                <CardTitle className="text-base">PowerShell Fix Scripts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  For every fixable issue, the AI generates a production-ready PowerShell script with full error handling. Click <span className="font-medium text-foreground">"Send to Editor"</span> to push it straight into your Script tab—ready to review and run.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3">
+                  <Wrench className="h-5 w-5 text-blue-500" />
+                </div>
+                <CardTitle className="text-base">Step-by-Step Workarounds</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Sometimes you need to keep systems running while a permanent fix is applied. The Troubleshooter provides immediate workarounds with numbered steps and PowerShell scripts to restore service fast.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3">
+                  <Lightbulb className="h-5 w-5 text-purple-500" />
+                </div>
+                <CardTitle className="text-base">Prevention Tips</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  After fixing the immediate issue, the AI explains what caused it and gives concrete, platform-specific prevention tips to stop it from happening again.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-3">
+                  <Server className="h-5 w-5 text-cyan-500" />
+                </div>
+                <CardTitle className="text-base">50 Platforms Supported</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Understands logs from every platform in the PSForge library—Microsoft, cloud, security, virtualization, and more.
+                </p>
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  Active Directory · Exchange Online · Azure AD · VMware · Intune · CrowdStrike · ServiceNow · AWS · Hyper-V · SQL Server · and 40 more
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CTA banner */}
+          <div className="max-w-3xl mx-auto">
+            <div className="rounded-xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-transparent p-8 text-center">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
+                Ready to stop guessing and start fixing?
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                AI Log Troubleshooter is included with every Pro subscription at $5/month. Cancel anytime.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href={user ? "/builder?tab=troubleshooter" : "/signup"}>
+                  <Button size="lg" className="gap-2 bg-orange-600 hover:bg-orange-700 w-full sm:w-auto" data-testid="button-troubleshooter-cta">
+                    <Wrench className="h-5 w-5" />
+                    {user ? "Open Troubleshooter" : "Get Pro — $5/month"}
+                  </Button>
+                </Link>
+                <a href="#pricing">
+                  <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
+                    See All Pro Features
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>

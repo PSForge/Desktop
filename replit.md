@@ -47,6 +47,7 @@ PSForge uses a React frontend with Vite, Tailwind CSS, and Shadcn UI, persisting
     - API key routes: `POST/GET /api/user/api-keys`, `DELETE /api/user/api-keys/:id`
     - CLI endpoints (all return `{ ok, data, error }` envelope):
         - Phase 1 (requireAuth unless noted):
+            - `GET /cli/me` — flat UserProfile for CLI login/whoami: `{id, email, name, role, totalScriptsCreated, proSinceDate}`
             - `GET /cli/scripts` — list user's scripts; returns `[{id, name, description, createdAt}]`
             - `GET /cli/scripts/:id` — fetch full script content for a specific script
             - `POST /cli/validate` — validate PowerShell script

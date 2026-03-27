@@ -61,6 +61,15 @@ function cliRequireSubscriber(req: Request, res: Response, next: NextFunction): 
 
 // ── Response types ────────────────────────────────────────────────────────────
 
+interface CliUserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  totalScriptsCreated: number;
+  proSinceDate: string | null;
+}
+
 interface CliScriptItem {
   id: string;
   name: string;
@@ -107,6 +116,25 @@ interface CliExplainResult {
 // ── Route registration ────────────────────────────────────────────────────────
 
 export function registerCliRoutes(app: Express): void {
+  // GET /cli/me — flat UserProfile for CLI login/whoami commands
+  app.get("/cli/me", cliRequireAuth, async (req, res) => {
+    try {
+      const u = req.user!;
+      const profile: CliUserProfile = {
+        id: u.id,
+        email: u.email,
+        name: u.name ?? u.email,
+        role: u.role,
+        totalScriptsCreated: u.totalScriptsCreated,
+        proSinceDate: u.proSinceDate ? u.proSinceDate.toISOString() : null,
+      };
+      res.json(okResponse(profile));
+    } catch (err) {
+      console.error("CLI /cli/me error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
   // GET /cli/scripts — minimal list of user's saved scripts
   app.get("/cli/scripts", cliRequireAuth, async (req, res) => {
     try {

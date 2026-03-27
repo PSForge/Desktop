@@ -31,7 +31,12 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        // Redact sensitive fields (e.g. plaintext API keys) before logging
+        const safeResponse = { ...capturedJsonResponse };
+        if (safeResponse.key && typeof safeResponse.key === "string" && safeResponse.key.startsWith("psf_")) {
+          safeResponse.key = "[REDACTED]";
+        }
+        logLine += ` :: ${JSON.stringify(safeResponse)}`;
       }
 
       if (logLine.length > 80) {

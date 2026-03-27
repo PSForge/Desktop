@@ -28,6 +28,7 @@ import {
   nudgeDismissals,
   appleTransactions,
   appleNotificationEvents,
+  apiKeys,
   type User,
   type Session,
   type Script,
@@ -1773,5 +1774,44 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(appleNotificationEvents.createdAt))
       .limit(limit);
     return result.map(e => this.convertTimestamps(e));
+  }
+
+  // API Key Methods
+  async createApiKey(userId: string, name: string, keyHash: string, prefix: string): Promise<import("@shared/schema").ApiKey> {
+    const result = await this.db.insert(apiKeys).values({
+      userId,
+      name,
+      keyHash,
+      prefix,
+    }).returning();
+    return this.convertTimestamps(result[0]);
+  }
+
+  async getUserApiKeys(userId: string): Promise<import("@shared/schema").ApiKey[]> {
+    const result = await this.db.select().from(apiKeys)
+      .where(and(eq(apiKeys.userId, userId), sql`${apiKeys.revokedAt} IS NULL`))
+      .orderBy(desc(apiKeys.createdAt));
+    return result.map(k => this.convertTimestamps(k));
+  }
+
+  async getApiKeyByHash(keyHash: string): Promise<import("@shared/schema").ApiKey | undefined> {
+    const result = await this.db.select().from(apiKeys)
+      .where(and(eq(apiKeys.keyHash, keyHash), sql`${apiKeys.revokedAt} IS NULL`))
+      .limit(1);
+    return result[0] ? this.convertTimestamps(result[0]) : undefined;
+  }
+
+  async deleteApiKey(id: string, userId: string): Promise<boolean> {
+    const result = await this.db.update(apiKeys)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async updateApiKeyLastUsed(id: string): Promise<void> {
+    await this.db.update(apiKeys)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(apiKeys.id, id));
   }
 }

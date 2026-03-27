@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
+import { registerCliRoutes } from "./cli-routes";
 import { validatePowerShellScript } from "./validation";
 import { validatePowerShellScript as validateComprehensive } from "./script-validator";
 import { getAIHelperResponse } from "./ai-helper";
@@ -34,7 +35,7 @@ import {
   type SubscriptionStatus,
   type User
 } from "@shared/schema";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { attachUser, requireAuth, requireSubscriber, requireAdmin } from "./middleware/auth";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -3809,6 +3810,74 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       return res.status(500).json({ error: "Failed to delete email template" });
     }
   });
+
+  // ── API Key Management ────────────────────────────────────────────────────
+  // POST /api/user/api-keys  — create a new API key (returns full key once)
+  app.post("/api/user/api-keys", requireAuth, async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name || typeof name !== "string" || name.trim().length === 0) {
+        return res.status(400).json({ error: "name is required" });
+      }
+      if (name.trim().length > 100) {
+        return res.status(400).json({ error: "name must be 100 characters or fewer" });
+      }
+
+      // Generate key: psf_ + 32 random bytes hex
+      const rawKey = "psf_" + randomBytes(32).toString("hex");
+      const keyHash = createHash("sha256").update(rawKey).digest("hex");
+      const prefix = rawKey.slice(0, 12); // "psf_" + 8 chars for display
+
+      const apiKey = await storage.createApiKey(req.user!.id, name.trim(), keyHash, prefix);
+
+      // Return the full raw key ONCE — never returned again
+      return res.status(201).json({
+        id: apiKey.id,
+        name: apiKey.name,
+        prefix: apiKey.prefix,
+        createdAt: apiKey.createdAt,
+        key: rawKey,
+      });
+    } catch (error) {
+      console.error("Create API key error:", error);
+      return res.status(500).json({ error: "Failed to create API key" });
+    }
+  });
+
+  // GET /api/user/api-keys  — list user's API keys (no key hashes)
+  app.get("/api/user/api-keys", requireAuth, async (req, res) => {
+    try {
+      const keys = await storage.getUserApiKeys(req.user!.id);
+      const safe = keys.map(k => ({
+        id: k.id,
+        name: k.name,
+        prefix: k.prefix,
+        lastUsedAt: k.lastUsedAt,
+        createdAt: k.createdAt,
+      }));
+      return res.json(safe);
+    } catch (error) {
+      console.error("List API keys error:", error);
+      return res.status(500).json({ error: "Failed to list API keys" });
+    }
+  });
+
+  // DELETE /api/user/api-keys/:id  — revoke an API key
+  app.delete("/api/user/api-keys/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteApiKey(req.params.id, req.user!.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "API key not found" });
+      }
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Delete API key error:", error);
+      return res.status(500).json({ error: "Failed to revoke API key" });
+    }
+  });
+
+  // Register CLI Companion routes
+  registerCliRoutes(app);
 
   const httpServer = createServer(app);
 

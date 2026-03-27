@@ -40,6 +40,19 @@ PSForge uses a React frontend with Vite, Tailwind CSS, and Shadcn UI, persisting
         - Automatic user role sync based on subscription status (active/expired/revoked)
         - Admin monitoring at `/api/admin/apple-notifications`
         - Supports all v2 notification types: SUBSCRIBED, DID_RENEW, DID_RECOVER, EXPIRED, REFUND, REVOKE, DID_FAIL_TO_RENEW, GRACE_PERIOD_EXPIRED, etc.
+- **CLI Companion Backend:**
+    - API key management: users generate `psf_`-prefixed keys via Settings page (`/settings`)
+    - Keys are SHA-256 hashed; only prefix stored for display; full key returned once on creation
+    - Bearer token auth: `Authorization: Bearer <key>` accepted in `attachUser` middleware alongside session cookies
+    - API key routes: `POST/GET /api/user/api-keys`, `DELETE /api/user/api-keys/:id`
+    - CLI endpoints (all return `{ ok, data, error }` envelope):
+        - `GET /api/cli/scripts` — list user's scripts (requireAuth)
+        - `GET /api/cli/scripts/:id` — fetch script by ID (requireAuth)
+        - `POST /api/cli/validate` — validate PowerShell script (requireAuth)
+        - `POST /api/cli/diagnose` — AI log analysis (requireSubscriber)
+        - `POST /api/cli/explain` — AI script documentation (requireSubscriber)
+    - Settings page at `/settings` with API key management UI and CLI quick-start guide
+    - DB table: `api_keys` (id, userId, name, keyHash, prefix, lastUsedAt, createdAt, revokedAt)
 - **Git Integration:** GitHub OAuth for repository management, commit/push/pull, history, and diff viewing.
 - **Templates Marketplace:**
     - **Community-driven:** Users can publish, discover, and install PowerShell script templates with metadata, security scanning, and admin moderation.

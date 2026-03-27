@@ -326,6 +326,18 @@ export const userMilestones = pgTable("user_milestones", {
   dismissed: boolean("dismissed").notNull().default(false),
 });
 
+// CLI Companion API Keys
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 100 }).notNull(),
+  keyHash: text("key_hash").notNull().unique(),
+  prefix: varchar("prefix", { length: 16 }).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  revokedAt: timestamp("revoked_at"),
+});
+
 // Nudge Dismissals for Power User Nudge System
 export const nudgeDismissals = pgTable("nudge_dismissals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1037,6 +1049,24 @@ export const supportRequestSchema = z.object({
   message: z.string().min(10, "Message must be at least 10 characters").max(5000, "Message is too long"),
 });
 
+// API Key Schemas
+export const apiKeySchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  keyHash: z.string(),
+  prefix: z.string(),
+  lastUsedAt: z.string().nullable(),
+  createdAt: z.string(),
+  revokedAt: z.string().nullable(),
+});
+
+export const insertApiKeySchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name is too long"),
+});
+
+export const apiKeyPublicSchema = apiKeySchema.omit({ keyHash: true });
+
 // Type exports
 export type User = z.infer<typeof userSchema>;
 export type Session = z.infer<typeof sessionSchema>;
@@ -1072,6 +1102,10 @@ export type InsertTemplateCategory = z.infer<typeof insertTemplateCategorySchema
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type InsertTemplateRating = z.infer<typeof insertTemplateRatingSchema>;
 export type InsertTemplateInstall = z.infer<typeof insertTemplateInstallSchema>;
+
+export type ApiKey = z.infer<typeof apiKeySchema>;
+export type ApiKeyPublic = z.infer<typeof apiKeyPublicSchema>;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 
 // Basic categories accessible to free users
 export const freeTierCategories = [

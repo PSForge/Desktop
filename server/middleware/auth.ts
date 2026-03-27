@@ -3,6 +3,7 @@ import { getUserFromSession } from "../auth";
 import type { User, FeatureAccess, UserRole } from "@shared/schema";
 import { freeTierCategories } from "@shared/schema";
 import { storage } from "../storage";
+import { createHash } from "crypto";
 
 declare global {
   namespace Express {
@@ -15,8 +16,33 @@ declare global {
 }
 
 export async function attachUser(req: Request, res: Response, next: NextFunction) {
+  // Try Bearer token first (for CLI Companion API key auth)
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const rawKey = authHeader.slice(7).trim();
+    if (rawKey) {
+      try {
+        const keyHash = createHash("sha256").update(rawKey).digest("hex");
+        const apiKey = await storage.getApiKeyByHash(keyHash);
+        if (apiKey) {
+          const user = await storage.getUserById(apiKey.userId);
+          if (user) {
+            req.user = user;
+            const featureAccess = await getFeatureAccess(user);
+            req.featureAccess = featureAccess;
+            // Update last used async — don't block request
+            storage.updateApiKeyLastUsed(apiKey.id).catch(() => {});
+            return next();
+          }
+        }
+      } catch {
+        // fall through to session auth
+      }
+    }
+  }
+
+  // Fall back to session cookie auth
   const sessionId = req.cookies?.sessionId;
-  
   if (sessionId) {
     const user = await getUserFromSession(sessionId);
     if (user) {

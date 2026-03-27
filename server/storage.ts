@@ -17,6 +17,7 @@ import {
   type WelcomeEmailTemplate,
   type InsertWelcomeEmailTemplate,
   type UpdateWelcomeEmailTemplate,
+  type ApiKey,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -190,6 +191,13 @@ export interface IStorage {
   updateAppleTransaction(id: string, updates: Partial<import("@shared/schema").AppleTransaction>): Promise<import("@shared/schema").AppleTransaction | undefined>;
   createAppleNotificationEvent(event: import("@shared/schema").InsertAppleNotificationEvent): Promise<import("@shared/schema").AppleNotificationEvent>;
   getAppleNotificationEvents(limit?: number): Promise<import("@shared/schema").AppleNotificationEvent[]>;
+
+  // API Keys
+  createApiKey(userId: string, name: string, keyHash: string, prefix: string): Promise<ApiKey>;
+  getUserApiKeys(userId: string): Promise<ApiKey[]>;
+  getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
+  deleteApiKey(id: string, userId: string): Promise<boolean>;
+  updateApiKeyLastUsed(id: string): Promise<void>;
 
   // Pro Conversion Analytics
   getProConversionAnalytics(): Promise<{
@@ -624,6 +632,48 @@ export class MemStorage implements IStorage {
   }
   async getAppleNotificationEvents(limit?: number): Promise<import("@shared/schema").AppleNotificationEvent[]> {
     return [];
+  }
+
+  // API Key stubs (MemStorage)
+  private apiKeys: Map<string, ApiKey> = new Map();
+
+  async createApiKey(userId: string, name: string, keyHash: string, prefix: string): Promise<ApiKey> {
+    const id = randomUUID();
+    const key: ApiKey = {
+      id,
+      userId,
+      name,
+      keyHash,
+      prefix,
+      lastUsedAt: null,
+      createdAt: new Date().toISOString(),
+      revokedAt: null,
+    };
+    this.apiKeys.set(id, key);
+    return key;
+  }
+
+  async getUserApiKeys(userId: string): Promise<ApiKey[]> {
+    return Array.from(this.apiKeys.values())
+      .filter(k => k.userId === userId && !k.revokedAt)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
+    return Array.from(this.apiKeys.values()).find(k => k.keyHash === keyHash && !k.revokedAt);
+  }
+
+  async deleteApiKey(id: string, userId: string): Promise<boolean> {
+    const key = this.apiKeys.get(id);
+    if (!key || key.userId !== userId) return false;
+    return this.apiKeys.delete(id);
+  }
+
+  async updateApiKeyLastUsed(id: string): Promise<void> {
+    const key = this.apiKeys.get(id);
+    if (key) {
+      this.apiKeys.set(id, { ...key, lastUsedAt: new Date().toISOString() });
+    }
   }
 }
 

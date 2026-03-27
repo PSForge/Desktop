@@ -3,6 +3,7 @@ import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
 import type { ValidationResult } from "@shared/schema";
 import OpenAI from "openai";
+import { searchTasks, getTaskById, getPlatforms, type TaskSummary, type TaskParameter } from "./task-registry";
 
 // ── OpenAI ───────────────────────────────────────────────────────────────────
 
@@ -268,6 +269,303 @@ Keep explanations practical and concise. Focus on what IT admins need to know to
       res.json(okResponse(result));
     } catch (err) {
       console.error("CLI /cli/explain error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // ── Phase 2: Script fetch ─────────────────────────────────────────────────
+
+  // GET /cli/scripts/:id — fetch full script content for `psforge run`
+  app.get("/cli/scripts/:id", cliRequireAuth, async (req, res) => {
+    try {
+      const script = await storage.getScript(req.params.id);
+      if (!script || script.userId !== req.user!.id) {
+        res.status(404).json(errResponse("Script not found"));
+        return;
+      }
+      res.json(okResponse({
+        id: script.id,
+        name: script.name,
+        description: script.description ?? null,
+        content: script.content,
+        createdAt: script.createdAt ?? null,
+      }));
+    } catch (err) {
+      console.error("CLI /cli/scripts/:id error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // ── Phase 2: GUI Builder tasks ────────────────────────────────────────────
+
+  // GET /cli/tasks/platforms — list all platforms with task counts (public)
+  app.get("/cli/tasks/platforms", (req, res) => {
+    try {
+      const platforms = getPlatforms();
+      res.json(okResponse(platforms));
+    } catch (err) {
+      console.error("CLI /cli/tasks/platforms error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // GET /cli/tasks — search GUI Builder tasks (public)
+  // Query: ?search=&platformId=&category=&freeOnly=true&limit=20&offset=0
+  app.get("/cli/tasks", (req, res) => {
+    try {
+      const {
+        search,
+        platformId,
+        category,
+        freeOnly,
+        limit: limitStr,
+        offset: offsetStr,
+      } = req.query as Record<string, string | undefined>;
+
+      const limit = limitStr ? Math.min(parseInt(limitStr, 10) || 20, 100) : 20;
+      const offset = offsetStr ? Math.max(parseInt(offsetStr, 10) || 0, 0) : 0;
+
+      const { tasks, total } = searchTasks({
+        search: search ?? undefined,
+        platformId: platformId ?? undefined,
+        category: category ?? undefined,
+        freeOnly: freeOnly === "true",
+        limit,
+        offset,
+      });
+
+      res.json(okResponse({ tasks, total, limit, offset }));
+    } catch (err) {
+      console.error("CLI /cli/tasks error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // GET /cli/tasks/:id — get task details + parameter definitions (public)
+  app.get("/cli/tasks/:id", (req, res) => {
+    try {
+      const task = getTaskById(req.params.id);
+      if (!task) {
+        res.status(404).json(errResponse("Task not found"));
+        return;
+      }
+      const { generate: _generate, ...summary } = task;
+      res.json(okResponse(summary));
+    } catch (err) {
+      console.error("CLI /cli/tasks/:id error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // POST /cli/tasks/generate — generate a PowerShell script from a task (requireAuth)
+  // Premium tasks additionally require subscriber role.
+  // Request: { taskId: string, parameters: Record<string, string>, saveToLibrary?: boolean, scriptName?: string }
+  // Response: { taskId, taskName, platform, script, saved?: { id, name } }
+  app.post("/cli/tasks/generate", cliRequireAuth, async (req, res) => {
+    try {
+      const {
+        taskId,
+        parameters,
+        saveToLibrary,
+        scriptName,
+      } = req.body as {
+        taskId?: string;
+        parameters?: Record<string, string>;
+        saveToLibrary?: boolean;
+        scriptName?: string;
+      };
+
+      if (!taskId || typeof taskId !== "string") {
+        res.status(400).json(errResponse("taskId (string) is required"));
+        return;
+      }
+
+      const task = getTaskById(taskId);
+      if (!task) {
+        res.status(404).json(errResponse("Task not found"));
+        return;
+      }
+
+      // Premium tasks require Pro subscription
+      if (task.isPremium) {
+        const role = req.user!.role;
+        if (role !== "subscriber" && role !== "admin") {
+          res.status(403).json(errResponse("This task requires a Pro subscription"));
+          return;
+        }
+      }
+
+      const params = parameters ?? {};
+      let script: string;
+      try {
+        script = task.generate(params);
+      } catch {
+        res.status(422).json(errResponse("Failed to generate script — check your parameters"));
+        return;
+      }
+
+      interface GenerateResult {
+        taskId: string;
+        taskName: string;
+        platform: string;
+        script: string;
+        saved?: { id: string; name: string };
+      }
+
+      const result: GenerateResult = {
+        taskId: task.id,
+        taskName: task.name,
+        platform: task.platform,
+        script,
+      };
+
+      // Optionally save to the user's script library
+      if (saveToLibrary) {
+        const name = scriptName?.trim() || task.name;
+        const saved = await storage.createScript({
+          userId: req.user!.id,
+          name,
+          content: script,
+          description: task.description,
+          taskCategory: task.platform,
+          taskName: task.name,
+          isFavorite: false,
+        });
+        result.saved = { id: saved.id as string, name: saved.name };
+      }
+
+      res.json(okResponse(result));
+    } catch (err) {
+      console.error("CLI /cli/tasks/generate error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // ── Phase 2: Marketplace templates ───────────────────────────────────────
+
+  // GET /cli/templates — search approved marketplace templates (public)
+  // Query: ?search=&categoryId=&sort=popular|recent|az&limit=20&offset=0
+  app.get("/cli/templates", async (req, res) => {
+    try {
+      const {
+        search,
+        categoryId,
+        sort,
+        limit: limitStr,
+        offset: offsetStr,
+      } = req.query as Record<string, string | undefined>;
+
+      const filters: { status: string; categoryId?: string } = { status: "approved" };
+      if (categoryId) filters.categoryId = categoryId;
+
+      let templates = await storage.getAllTemplates(filters);
+
+      // Text search
+      if (search) {
+        const q = search.toLowerCase();
+        templates = templates.filter(
+          t =>
+            t.title.toLowerCase().includes(q) ||
+            t.description.toLowerCase().includes(q),
+        );
+      }
+
+      // Sort
+      if (sort === "popular") {
+        templates = templates.sort((a, b) => (b.downloadCount ?? 0) - (a.downloadCount ?? 0));
+      } else if (sort === "recent") {
+        templates = templates.sort(
+          (a, b) =>
+            new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
+        );
+      } else {
+        // default: alphabetical
+        templates = templates.sort((a, b) => a.title.localeCompare(b.title));
+      }
+
+      const total = templates.length;
+      const limit = limitStr ? Math.min(parseInt(limitStr, 10) || 20, 100) : 20;
+      const offset = offsetStr ? Math.max(parseInt(offsetStr, 10) || 0, 0) : 0;
+      const page = templates.slice(offset, offset + limit);
+
+      const data = page.map(t => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        categoryId: t.categoryId ?? null,
+        downloads: t.downloadCount ?? 0,
+        rating: t.averageRating ?? null,
+        isPaid: t.isPaid ?? false,
+        priceCents: t.priceCents ?? null,
+        createdAt: t.createdAt ?? null,
+      }));
+
+      res.json(okResponse({ templates: data, total, limit, offset }));
+    } catch (err) {
+      console.error("CLI /cli/templates error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // GET /cli/templates/:id — get template details + content (public)
+  app.get("/cli/templates/:id", async (req, res) => {
+    try {
+      const template = await storage.getTemplate(req.params.id);
+      if (!template || template.status !== "approved") {
+        res.status(404).json(errResponse("Template not found"));
+        return;
+      }
+      res.json(okResponse({
+        id: template.id,
+        title: template.title,
+        description: template.description,
+        content: template.content,
+        categoryId: template.categoryId ?? null,
+        downloads: template.downloadCount ?? 0,
+        rating: template.averageRating ?? null,
+        isPaid: template.isPaid ?? false,
+        priceCents: template.priceCents ?? null,
+        createdAt: template.createdAt ?? null,
+      }));
+    } catch (err) {
+      console.error("CLI /cli/templates/:id error:", err);
+      res.status(500).json(errResponse("Internal server error"));
+    }
+  });
+
+  // POST /cli/templates/:id/install — install a template into user's script library (requireAuth)
+  // Paid templates are blocked unless user has purchased them.
+  // Response: { installed: { id, name } }
+  app.post("/cli/templates/:id/install", cliRequireAuth, async (req, res) => {
+    try {
+      const template = await storage.getTemplate(req.params.id);
+      if (!template || template.status !== "approved") {
+        res.status(404).json(errResponse("Template not found"));
+        return;
+      }
+
+      // Block paid templates without purchase
+      if (template.isPaid && template.priceCents && template.priceCents > 0) {
+        const purchase = await storage.getTemplatePurchase(req.user!.id, template.id as string);
+        if (!purchase) {
+          res.status(403).json(errResponse("This is a paid template — purchase it first on the PSForge marketplace"));
+          return;
+        }
+      }
+
+      const script = await storage.createScript({
+        userId: req.user!.id,
+        name: template.title,
+        content: template.content,
+        description: template.description,
+        taskCategory: "Template",
+        taskName: template.title,
+        isFavorite: false,
+      });
+
+      res.json(okResponse({ installed: { id: script.id as string, name: script.name } }));
+    } catch (err) {
+      console.error("CLI /cli/templates/:id/install error:", err);
       res.status(500).json(errResponse("Internal server error"));
     }
   });

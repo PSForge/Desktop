@@ -46,10 +46,22 @@ PSForge uses a React frontend with Vite, Tailwind CSS, and Shadcn UI, persisting
     - Bearer token auth: `Authorization: Bearer <key>` accepted in `attachUser` middleware alongside session cookies
     - API key routes: `POST/GET /api/user/api-keys`, `DELETE /api/user/api-keys/:id`
     - CLI endpoints (all return `{ ok, data, error }` envelope):
-        - `GET /cli/scripts` — list user's scripts (requireAuth); returns `[{id, name, description, createdAt}]`
-        - `POST /cli/validate` — validate PowerShell script (requireAuth)
-        - `POST /cli/diagnose` — AI error/code root-cause diagnosis (requireSubscriber)
-        - `POST /cli/explain` — AI plain-English explanation of script/error/log (requireSubscriber)
+        - Phase 1 (requireAuth unless noted):
+            - `GET /cli/scripts` — list user's scripts; returns `[{id, name, description, createdAt}]`
+            - `GET /cli/scripts/:id` — fetch full script content for a specific script
+            - `POST /cli/validate` — validate PowerShell script
+            - `POST /cli/diagnose` — AI error/code root-cause diagnosis (requireSubscriber)
+            - `POST /cli/explain` — AI plain-English explanation of script/error/log (requireSubscriber)
+        - Phase 2 – GUI Builder task access (public unless noted):
+            - `GET /cli/tasks/platforms` — list all 49 platforms with task counts
+            - `GET /cli/tasks` — search tasks (?search, ?platformId, ?category, ?freeOnly, ?limit, ?offset)
+            - `GET /cli/tasks/:id` — task detail + parameters (without generate function)
+            - `POST /cli/tasks/generate` — generate PowerShell from a task (requireAuth; premium tasks require subscriber)
+        - Phase 2 – Marketplace templates (public unless noted):
+            - `GET /cli/templates` — search approved templates (?search, ?categoryId, ?sort, ?limit, ?offset)
+            - `GET /cli/templates/:id` — template detail + content
+            - `POST /cli/templates/:id/install` — install template into script library (requireAuth; paid templates check purchase)
+    - Task registry: `server/task-registry.ts` — imports all 49 platform task files, exports `searchTasks()`, `getTaskById()`, `getPlatforms()`
     - Settings page at `/settings` with API key management UI and CLI quick-start guide
     - DB table: `api_keys` (id, userId, name, keyHash, prefix, lastUsedAt, createdAt, revokedAt)
 - **Git Integration:** GitHub OAuth for repository management, commit/push/pull, history, and diff viewing.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
@@ -94,17 +94,18 @@ function NewKeyReveal({ data, onDismiss }: { data: CreatedKey; onDismiss: () => 
 }
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [createName, setCreateName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newlyCreated, setNewlyCreated] = useState<CreatedKey | null>(null);
 
-  if (!user) {
-    navigate("/login");
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/login");
+    }
+  }, [isLoading, user, navigate]);
 
   const keysQuery = useQuery<ApiKeyPublic[]>({
     queryKey: ["/api/user/api-keys"],
@@ -148,6 +149,8 @@ export default function Settings() {
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+  if (isLoading || !user) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

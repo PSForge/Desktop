@@ -44,6 +44,9 @@ import {
   Upload,
   ScanSearch,
   ClipboardList,
+  Download,
+  Key,
+  Monitor,
 } from "lucide-react";
 
 export default function Home() {
@@ -61,6 +64,7 @@ export default function Home() {
 
   const proTierFeatures = [
     "Everything in Free, plus:",
+    "CLI Companion—run psforge diagnose, explain, analyze-log & validate directly from your terminal",
     "AI Log Troubleshooter—upload any log file and get instant diagnosis, fix scripts & workarounds",
     "AI script assistant (describe tasks in plain English)",
     "48 enterprise platforms (Exchange, Azure, AWS, VMware, SharePoint, Microsoft 365, and 42 more)",
@@ -156,7 +160,7 @@ export default function Home() {
             <div className="text-center space-y-6">
               <Badge variant="default" className="mb-4">
                 <Sparkles className="h-3 w-3 mr-1" />
-                Version 6.0 — New: AI Log Troubleshooter
+                Version 6.0 — New: CLI Companion + AI Log Troubleshooter
               </Badge>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">

@@ -10,9 +10,9 @@ const app = express();
 // Stripe webhook needs raw body for signature verification
 app.use("/webhooks/stripe", express.raw({ type: 'application/json' }));
 
-// All other routes use JSON parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// All other routes use JSON parsing — 50MB limit to support large log file uploads
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 app.use(cookieParser());
 
 app.use((req, res, next) => {
@@ -55,8 +55,10 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
+    console.error(err);
   });
 
   // importantly only setup vite in development and after

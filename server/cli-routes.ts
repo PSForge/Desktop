@@ -110,12 +110,14 @@ export function registerCliRoutes(app: Express): void {
   app.get("/cli/scripts", cliRequireAuth, async (req, res) => {
     try {
       const scripts = await storage.getUserScripts(req.user!.id);
-      const data: CliScriptItem[] = scripts.map(s => ({
-        id: s.id,
-        name: s.name,
-        description: s.description ?? null,
-        createdAt: s.createdAt ?? null,
-      }));
+      const data: CliScriptItem[] = scripts
+        .filter((s): s is typeof s & { id: string } => typeof s.id === "string")
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          description: s.description ?? null,
+          createdAt: s.createdAt ?? null,
+        }));
       res.json(okResponse(data));
     } catch (err) {
       console.error("CLI /cli/scripts error:", err);

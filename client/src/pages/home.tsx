@@ -204,24 +204,61 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What's New in Version 5 */}
-      <section className="border-y bg-gradient-to-br from-orange-500/5 via-red-500/5 to-amber-500/5">
+      {/* What's New in Version 6.0 */}
+      <section className="border-y bg-gradient-to-br from-orange-500/5 via-cyan-500/5 to-blue-500/5">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <div className="text-center mb-8">
-            <Badge variant="default" className="mb-4 bg-orange-600 hover:bg-orange-600">
+          <div className="text-center mb-10">
+            <Badge variant="default" className="mb-4 bg-primary">
               <Sparkles className="h-3 w-3 mr-1" />
               New in Version 6.0
             </Badge>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-              AI Log Troubleshooter is Here
+              Two Major Pro Features. One Subscription.
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Stop spending hours hunting through log files. Upload any log and let AI diagnose the problem, explain the root cause, and hand you a PowerShell fix—ready to run.
+              Version 6.0 ships the CLI Companion and AI Log Troubleshooter—bringing PSForge intelligence to your terminal and your log files.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <Card className="hover-elevate transition-all md:col-span-1 border-orange-500/40 bg-gradient-to-br from-orange-500/5 to-amber-500/5">
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-6">
+            {/* CLI Companion featured card */}
+            <Card className="hover-elevate transition-all border-cyan-500/40 bg-gradient-to-br from-cyan-500/5 to-blue-500/5">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4">
+                  <Terminal className="h-6 w-6 text-cyan-500" />
+                </div>
+                <CardTitle className="flex items-center gap-2">
+                  CLI Companion
+                  <Badge className="text-xs bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">Pro</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-3">
+                  PSForge intelligence directly in your terminal. Diagnose error codes, analyze log files, explain scripts, and validate PowerShell—without opening a browser. Works on Windows, macOS, and Linux.
+                </p>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Available via npm or standalone .exe
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  AI-powered diagnose, explain & analyze-log
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Free commands: validate, scripts list/get
+                </div>
+                <Link href="/cli" className="block mt-4">
+                  <Button size="sm" className="w-full gap-2 bg-cyan-600 hover:bg-cyan-700" data-testid="button-get-cli">
+                    <Terminal className="h-4 w-4" />
+                    Get the CLI
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* AI Log Troubleshooter featured card */}
+            <Card className="hover-elevate transition-all border-orange-500/40 bg-gradient-to-br from-orange-500/5 to-amber-500/5">
               <CardHeader>
                 <div className="h-12 w-12 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
                   <Wrench className="h-6 w-6 text-orange-500" />
@@ -255,7 +292,9 @@ export default function Home() {
                 </Link>
               </CardContent>
             </Card>
+          </div>
 
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             <Card className="hover-elevate transition-all border-primary/30">
               <CardHeader>
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
@@ -473,6 +512,236 @@ export default function Home() {
                   <Button size="lg" className="gap-2 bg-orange-600 hover:bg-orange-700 w-full sm:w-auto" data-testid="button-troubleshooter-cta">
                     <Wrench className="h-5 w-5" />
                     {user ? "Open Troubleshooter" : "Get Pro — $5/month"}
+                  </Button>
+                </Link>
+                <a href="#pricing">
+                  <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
+                    See All Pro Features
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CLI Companion Deep Dive */}
+      <section className="py-16 sm:py-20 lg:py-28 bg-gradient-to-b from-muted/20 to-background">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Announcement header */}
+          <div className="max-w-4xl mx-auto text-center mb-14">
+            <Badge className="mb-5 px-4 py-1.5 text-sm bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">
+              <Terminal className="h-3.5 w-3.5 mr-1.5" />
+              Introducing CLI Companion — Pro Feature
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
+              PSForge Intelligence.
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500">
+                Directly in Your Terminal.
+              </span>
+            </h2>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
+              Diagnose error codes, analyze log files, explain any script, and validate PowerShell—without ever opening a browser. Install once, use everywhere: Windows, macOS, and Linux.
+            </p>
+          </div>
+
+          {/* Terminal preview block */}
+          <div className="max-w-3xl mx-auto mb-16">
+            <div className="rounded-xl border border-cyan-500/20 bg-zinc-950 overflow-hidden shadow-xl shadow-cyan-500/5">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-zinc-900">
+                <div className="h-3 w-3 rounded-full bg-red-500/70" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/70" />
+                <div className="h-3 w-3 rounded-full bg-green-500/70" />
+                <span className="ml-2 text-xs text-zinc-400 font-mono">PowerShell</span>
+              </div>
+              <div className="p-5 font-mono text-sm space-y-2 text-left">
+                <div><span className="text-cyan-400">PS&gt;</span> <span className="text-white">psforge diagnose 0x80070005</span></div>
+                <div className="text-zinc-400 pl-4">Diagnosing error code... <span className="text-green-400">done</span></div>
+                <div className="text-zinc-300 pl-4">Root cause: Access denied — insufficient permissions for registry write</div>
+                <div className="text-zinc-400 pl-4">Fix script generated. Run with: <span className="text-yellow-400">psforge diagnose 0x80070005 --copy</span></div>
+                <div className="mt-3"><span className="text-cyan-400">PS&gt;</span> <span className="text-white">psforge analyze-log .\setup.log --platform intune</span></div>
+                <div className="text-zinc-400 pl-4">Analyzing 847 lines... <span className="text-green-400">3 issues found</span></div>
+                <div className="pl-4"><span className="text-red-400">[CRITICAL]</span> <span className="text-zinc-300">MDM enrollment failed — certificate chain incomplete</span></div>
+                <div className="pl-4"><span className="text-yellow-400">[WARNING] </span> <span className="text-zinc-300">Policy sync delay detected — sync interval exceeded</span></div>
+                <div className="mt-3"><span className="text-cyan-400">PS&gt;</span> <span className="text-white">psforge validate .\deploy.ps1</span></div>
+                <div className="text-zinc-400 pl-4">Validating... <span className="text-green-400">passed — 0 errors, 2 warnings</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* How it works — step flow */}
+          <div className="max-w-5xl mx-auto mb-16">
+            <h3 className="text-center text-lg font-semibold text-muted-foreground mb-8 uppercase tracking-wider">How it works</h3>
+            <div className="grid sm:grid-cols-3 gap-6">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+                  <Download className="h-7 w-7 text-cyan-500" />
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground mb-1">1. Install in Seconds</div>
+                  <p className="text-sm text-muted-foreground">
+                    Run <span className="font-medium text-foreground">npm install -g psforge-cli</span> or download the standalone <span className="font-medium text-foreground">psforge.exe</span> from GitHub—no Node.js required. Works on Windows, macOS, and Linux.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+                  <Key className="h-7 w-7 text-blue-500" />
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground mb-1">2. Authenticate Once</div>
+                  <p className="text-sm text-muted-foreground">
+                    Generate an API key in your PSForge Settings, then run <span className="font-medium text-foreground">psforge login</span>. Your credentials are saved securely — you never authenticate again.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center">
+                  <Zap className="h-7 w-7 text-green-500" />
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground mb-1">3. Run Any Command</div>
+                  <p className="text-sm text-muted-foreground">
+                    Type <span className="font-medium text-foreground">psforge diagnose</span>, <span className="font-medium text-foreground">analyze-log</span>, <span className="font-medium text-foreground">explain</span>, or <span className="font-medium text-foreground">validate</span>. Every command supports <span className="font-medium text-foreground">--json</span> output for automation pipelines.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature breakdown grid */}
+          <div className="max-w-6xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
+            <Card className="hover-elevate transition-all border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-3">
+                  <ShieldAlert className="h-5 w-5 text-cyan-500" />
+                </div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Error Code Diagnosis
+                  <Badge className="text-xs bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">Pro</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Paste any Windows error code, HRESULT, event ID, or error message. The AI identifies the root cause, explains it in plain English, and generates a ready-to-run PowerShell fix.
+                </p>
+                <div className="font-mono text-xs bg-muted/50 rounded p-2 text-muted-foreground">
+                  psforge diagnose 0x80070005
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3">
+                  <ScanSearch className="h-5 w-5 text-blue-500" />
+                </div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Log File Analysis
+                  <Badge className="text-xs bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">Pro</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  The same AI engine behind the web Troubleshooter, now at your command line. Point it at any log file and get severity-rated issues, root cause analysis, and PowerShell fix scripts—right in your terminal.
+                </p>
+                <div className="font-mono text-xs bg-muted/50 rounded p-2 text-muted-foreground">
+                  psforge analyze-log .\setup.log
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3">
+                  <Lightbulb className="h-5 w-5 text-purple-500" />
+                </div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Script Explanation
+                  <Badge className="text-xs bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">Pro</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Inherited a script with no documentation? Run psforge explain and get a plain-English breakdown of what it does, what each section means, and any potential risks—instantly.
+                </p>
+                <div className="font-mono text-xs bg-muted/50 rounded p-2 text-muted-foreground">
+                  psforge explain .\migrate.ps1
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                </div>
+                <CardTitle className="text-base">
+                  Script Validation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Syntax checking and best-practices validation without a Pro subscription. Run psforge validate on any .ps1 file and catch errors before they reach production. Free for all users.
+                </p>
+                <div className="font-mono text-xs bg-muted/50 rounded p-2 text-muted-foreground">
+                  psforge validate .\deploy.ps1
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
+                  <FileText className="h-5 w-5 text-amber-500" />
+                </div>
+                <CardTitle className="text-base">Script Library Access</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  List, search, and retrieve your saved PSForge scripts directly from the terminal. Pull a script by ID and pipe it straight into PowerShell or save it to disk. Free for all users.
+                </p>
+                <div className="font-mono text-xs bg-muted/50 rounded p-2 text-muted-foreground">
+                  psforge scripts list
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate transition-all border-zinc-500/20 bg-gradient-to-br from-zinc-500/5 to-transparent">
+              <CardHeader>
+                <div className="h-10 w-10 rounded-lg bg-zinc-500/10 flex items-center justify-center mb-3">
+                  <Monitor className="h-5 w-5 text-zinc-500" />
+                </div>
+                <CardTitle className="text-base">Pipe-Friendly JSON Output</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Every command supports <span className="font-medium text-foreground">--json</span> for clean machine-readable output. Pipe psforge into your monitoring scripts, CI/CD pipelines, or log aggregation tools without any parsing.
+                </p>
+                <div className="font-mono text-xs bg-muted/50 rounded p-2 text-muted-foreground">
+                  psforge validate script.ps1 --json
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CTA banner */}
+          <div className="max-w-3xl mx-auto">
+            <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent p-8 text-center">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
+                Ready to bring PSForge to your terminal?
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                CLI Companion is included with every Pro subscription at $5/month. Install in 60 seconds. Cancel anytime.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/cli">
+                  <Button size="lg" className="gap-2 bg-cyan-600 hover:bg-cyan-700 w-full sm:w-auto" data-testid="button-cli-cta-download">
+                    <Download className="h-5 w-5" />
+                    Download CLI
                   </Button>
                 </Link>
                 <a href="#pricing">
@@ -1236,6 +1505,7 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-foreground mb-4">Resources</h3>
               <ul className="space-y-3">
+                <li><Link href="/cli" className="text-sm text-muted-foreground hover:text-foreground transition-colors">CLI Companion</Link></li>
                 <li><Link href="/case-studies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Case Studies</Link></li>
                 <li><Link href="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Security</Link></li>
               </ul>

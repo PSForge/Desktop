@@ -24,8 +24,8 @@ import {
 import { SiNpm } from "react-icons/si";
 
 const NPM_PACKAGE = "psforge-cli";
-const GITHUB_RELEASES_URL = "https://github.com/psforge/psforge-cli/releases/latest";
-const GITHUB_URL = "https://github.com/psforge/psforge-cli";
+const GITHUB_RELEASES_URL = "https://github.com/PSForge/CLI/releases/latest";
+const GITHUB_URL = "https://github.com/PSForge/CLI";
 
 interface Command {
   cmd: string;

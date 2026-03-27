@@ -6,6 +6,7 @@ import { validatePowerShellScript } from "./validation";
 import { validatePowerShellScript as validateComprehensive } from "./script-validator";
 import { getAIHelperResponse } from "./ai-helper";
 import { generateScriptDocumentation, analyzeScriptOptimization, applyScriptOptimizations } from "./ai-optimizer";
+import { analyzeLogFile } from "./ai-troubleshooter";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
 import { sendPasswordResetEmail, sendSupportRequestEmail, sendWelcomeEmail } from "./email-service";
 import { 
@@ -2151,6 +2152,30 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     } catch (error) {
       console.error("Error applying optimizations:", error);
       return res.status(500).json({ error: "Failed to apply optimizations" });
+    }
+  });
+
+  app.post("/api/ai/troubleshoot", requireAuth, requireSubscriber, async (req, res) => {
+    try {
+      const { logContent, platform, context } = req.body;
+
+      if (!logContent || typeof logContent !== "string") {
+        return res.status(400).json({ error: "Log content is required" });
+      }
+
+      if (!platform || typeof platform !== "string") {
+        return res.status(400).json({ error: "Platform is required" });
+      }
+
+      if (logContent.trim().length < 20) {
+        return res.status(400).json({ error: "Log content is too short to analyze" });
+      }
+
+      const result = await analyzeLogFile(logContent, platform, context);
+      return res.json(result);
+    } catch (error) {
+      console.error("Error analyzing log file:", error);
+      return res.status(500).json({ error: "Failed to analyze log file" });
     }
   });
 

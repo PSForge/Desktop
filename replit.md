@@ -26,6 +26,7 @@ PSForge uses a React frontend with Vite, Tailwind CSS, and Shadcn UI, persisting
     - **Script Management:** A comprehensive library with tagging, favorites, recent scripts, and advanced search.
     - **AI Script Optimization (Pro):** AI-powered analysis for performance, security, and best practices.
     - **AI Documentation:** Auto-generates comment-based help documentation.
+    - **AI Log Troubleshooter (Pro):** Upload log files (.log, .txt, .json, .xml, .csv) from any of the 50 supported platforms for AI-powered diagnosis. Returns identified issues with severity ratings (critical/error/warning/info), root cause analysis, plain-English fix descriptions, ready-to-run PowerShell remediation scripts, step-by-step workarounds, and prevention tips. Scripts can be sent directly to the Script Editor. Backend route: POST /api/ai/troubleshoot (requireSubscriber).
 - **Security:** Malicious code scanner detecting 15+ dangerous PowerShell patterns, SHA-256 hashing for script integrity, a visual Security Dashboard, PowerShell injection prevention, robust input validation, and comprehensive error handling.
 - **Admin & Monitoring:** Admin dashboard with analytics, user management, and real-time metrics.
 - **Notifications & Support:** Admin-controlled notification banner system and a user-facing support request system.

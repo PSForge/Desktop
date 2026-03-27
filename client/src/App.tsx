@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/lib/auth-context";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 import Home from "@/pages/home";
 import ScriptBuilder from "@/pages/script-builder";
 import ScriptLibrary from "@/pages/script-library";
@@ -34,6 +34,67 @@ import { LoginProPrompt } from "@/components/login-pro-prompt";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
+import { Package, Clock, Bell } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+
+function MarketplaceComingSoon() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="max-w-lg w-full text-center space-y-6">
+        <div className="flex justify-center">
+          <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+            <Package className="h-10 w-10 text-primary" />
+          </div>
+        </div>
+        <Badge variant="secondary" className="px-4 py-1.5 text-sm">
+          <Clock className="h-3.5 w-3.5 mr-1.5" />
+          Coming Soon
+        </Badge>
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+          Templates Marketplace
+        </h1>
+        <p className="text-lg text-muted-foreground">
+          The PSForge Marketplace is currently in development. Browse and install community PowerShell script templates, sell your own scripts, and discover proven automation solutions.
+        </p>
+        <Card className="text-left">
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex items-start gap-3">
+              <Bell className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <div className="font-medium text-foreground">What's coming</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Community-shared script templates, one-click installs, ratings & reviews, and a seller marketplace with 70% revenue share for script creators.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/library">
+            <Button size="lg" className="gap-2 w-full sm:w-auto" data-testid="button-coming-soon-library">
+              Go to Script Library
+            </Button>
+          </Link>
+          <Link href="/builder">
+            <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto" data-testid="button-coming-soon-builder">
+              Open Script Builder
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminOnly({ component: Component }: { component: React.ComponentType<any> }) {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (user?.role === "admin") return <Component />;
+  return <MarketplaceComingSoon />;
+}
 
 function Router() {
   // Track page views when routes change - Google Analytics
@@ -48,10 +109,10 @@ function Router() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/builder" component={ScriptBuilder} />
       <Route path="/library" component={ScriptLibrary} />
-      <Route path="/marketplace/:id" component={MarketplaceDetail} />
-      <Route path="/marketplace" component={TemplatesMarketplace} />
+      <Route path="/marketplace/:id" component={() => <AdminOnly component={MarketplaceDetail} />} />
+      <Route path="/marketplace" component={() => <AdminOnly component={TemplatesMarketplace} />} />
       <Route path="/account" component={Account} />
-      <Route path="/seller-dashboard" component={SellerDashboard} />
+      <Route path="/seller-dashboard" component={() => <AdminOnly component={SellerDashboard} />} />
       <Route path="/settings" component={Settings} />
       <Route path="/cli" component={CliPage} />
       <Route path="/admin" component={AdminDashboard} />

@@ -52,11 +52,12 @@ import {
 export default function Home() {
   const { user } = useAuth();
   
+  const isAdmin = user?.role === "admin";
+
   const freeTierFeatures = [
     "8 core platforms (File System, Network, Services, Process Management, Event Logs, Active Directory, Registry, Security)",
     "400+ automation tasks",
     "Visual builder + direct coding modes",
-    "Templates Marketplace access (browse & install community templates)",
     "Download unlimited .ps1 scripts",
     "Automatic saving",
     "Security validation built-in",
@@ -69,7 +70,7 @@ export default function Home() {
     "AI script assistant (describe tasks in plain English)",
     "48 enterprise platforms (Exchange, Azure, AWS, VMware, SharePoint, Microsoft 365, and 42 more)",
     "2,400+ automation tasks across all platforms",
-    "SELL your scripts on the Marketplace—keep 70% of every sale",
+    "Marketplace access (coming soon)—sell scripts & keep 70% of every sale",
     "GitHub integration (sync scripts to repositories)",
     "Priority support (email response within 24 hours)",
     "Early access to new platforms and features",
@@ -300,18 +301,27 @@ export default function Home() {
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   <Package className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle>Templates Marketplace</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Templates Marketplace
+                  {!isAdmin && <Badge variant="secondary" className="text-xs">Coming Soon</Badge>}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-3">
                   Browse and install PowerShell script templates shared by the community. Discover proven solutions, rate templates, and buy premium scripts from expert creators.
                 </p>
-                <Link href={user ? "/marketplace" : "/signup"}>
-                  <Button variant="outline" size="sm" className="w-full gap-2" data-testid="button-explore-marketplace">
-                    {user ? "Explore Marketplace" : "Sign Up to Access Marketplace"}
-                    <ArrowRight className="h-4 w-4" />
+                {isAdmin ? (
+                  <Link href="/marketplace">
+                    <Button variant="outline" size="sm" className="w-full gap-2" data-testid="button-explore-marketplace">
+                      Explore Marketplace
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button variant="outline" size="sm" className="w-full gap-2" disabled data-testid="button-explore-marketplace">
+                    Coming Soon
                   </Button>
-                </Link>
+                )}
               </CardContent>
             </Card>
 
@@ -954,22 +964,31 @@ export default function Home() {
                 Already have scripts that could help others?
               </h3>
               <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                That Exchange migration script you perfected? The AD cleanup tool you built? The security audit script you run monthly? Other IT pros would pay for those. Start selling today.
+                That Exchange migration script you perfected? The AD cleanup tool you built? The security audit script you run monthly? Other IT pros would pay for those. The seller marketplace is coming soon.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link href={user ? "/seller-dashboard" : "/signup"}>
-                  <Button size="lg" className="gap-2 bg-green-600 hover:bg-green-700 w-full sm:w-auto" data-testid="button-start-selling">
+              {isAdmin ? (
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link href="/seller-dashboard">
+                    <Button size="lg" className="gap-2 bg-green-600 hover:bg-green-700 w-full sm:w-auto" data-testid="button-start-selling">
+                      <BadgeDollarSign className="h-5 w-5" />
+                      Go to Seller Dashboard
+                    </Button>
+                  </Link>
+                  <Link href="/marketplace">
+                    <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
+                      See What's Selling
+                      <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button size="lg" className="gap-2 bg-green-600/50 w-full sm:w-auto" disabled data-testid="button-start-selling">
                     <BadgeDollarSign className="h-5 w-5" />
-                    {user ? "Go to Seller Dashboard" : "Start Selling Scripts"}
+                    Seller Marketplace — Coming Soon
                   </Button>
-                </Link>
-                <Link href={user ? "/marketplace" : "/signup"}>
-                  <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
-                    {user ? "See What's Selling" : "Sign Up to See Marketplace"}
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1141,12 +1160,12 @@ export default function Home() {
               </div>
               <CardTitle className="flex items-center gap-2">
                 Templates Marketplace
-                <Badge variant="secondary" className="text-xs">New</Badge>
+                <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Browse community-shared templates, install proven solutions with one click, and publish your own scripts to help other IT professionals.
+                Browse community-shared templates, install proven solutions with one click, and publish your own scripts to help other IT professionals. Coming soon.
               </p>
             </CardContent>
           </Card>

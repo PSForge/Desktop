@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { Link } from "wouter";
 import logoUrl from "@assets/Full Logo Transparent_1761567685412.png";
+import { useAuth } from "@/lib/auth-context";
 
 interface HeaderProps {
   onExport?: () => void;
@@ -11,6 +12,8 @@ interface HeaderProps {
 
 export function Header({ onExport, hasCommands = false }: HeaderProps) {
   const showSaveButton = onExport !== undefined;
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   
   return (
     <header className="h-14 sm:h-16 border-b bg-background flex items-center justify-between px-3 sm:px-6 sticky top-0 z-50" data-testid="header-main">
@@ -50,18 +53,20 @@ export function Header({ onExport, hasCommands = false }: HeaderProps) {
             <span className="hidden sm:inline">Library</span>
           </Button>
         </Link>
-        
-        <Link href="/marketplace">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            data-testid="button-marketplace"
-          >
-            <Package className="h-4 w-4" />
-            <span className="hidden sm:inline">Marketplace</span>
-          </Button>
-        </Link>
+
+        {isAdmin && (
+          <Link href="/marketplace">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              data-testid="button-marketplace"
+            >
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">Marketplace</span>
+            </Button>
+          </Link>
+        )}
         
         <Link href="/account">
           <Button

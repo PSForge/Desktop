@@ -109,6 +109,7 @@ export default function Settings() {
 
   const keysQuery = useQuery<ApiKeyPublic[]>({
     queryKey: ["/api/user/api-keys"],
+    enabled: !!user,
   });
 
   const createMutation = useMutation({

@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "k_9a3L-wFO1qH7Evg4k4v"
+uri = "file://.local/tasks/PSForge_CLI_Companion_Handoff.md"
+type = "text"
+title = "PSForge CLI Companion — New Project Handoff Document"

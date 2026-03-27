@@ -340,11 +340,6 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Please upload a log file under 5MB.", variant: "destructive" });
-      return;
-    }
-
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -359,10 +354,6 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Please upload a log file under 5MB.", variant: "destructive" });
-      return;
-    }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -497,7 +488,6 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
                 <p className="text-sm font-medium">Drop log file here</p>
                 <p className="text-xs text-muted-foreground mt-0.5">or click to browse (.log, .txt, .json, .xml, .csv)</p>
               </div>
-              <p className="text-xs text-muted-foreground">Max 5MB</p>
             </div>
           ) : (
             <div className="rounded-md border bg-muted/30 p-3 flex items-start gap-3">

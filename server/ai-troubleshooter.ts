@@ -92,7 +92,7 @@ Guidelines:
 ${context ? `Additional Context: ${context}\n` : ""}
 Log File Content:
 \`\`\`
-${logContent.slice(0, 15000)}
+${logContent.slice(0, 80000)}
 \`\`\`
 
 Analyze this log file and provide comprehensive troubleshooting recommendations.`;

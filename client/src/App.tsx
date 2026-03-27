@@ -26,6 +26,7 @@ import Terms from "@/pages/terms";
 import Security from "@/pages/security";
 import SellerDashboard from "@/pages/seller-dashboard";
 import Settings from "@/pages/settings";
+import CliPage from "@/pages/cli";
 import NotFound from "@/pages/not-found";
 import { ProNudgeModal } from "@/components/pro-conversion/pro-nudge-modal";
 import { CookieConsent } from "@/components/cookie-consent";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/account" component={Account} />
       <Route path="/seller-dashboard" component={SellerDashboard} />
       <Route path="/settings" component={Settings} />
+      <Route path="/cli" component={CliPage} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/case-studies/techcorp-onboarding-automation" component={CaseStudyTechCorp} />
       <Route path="/case-studies/midwest-healthcare-compliance" component={CaseStudyMidwest} />

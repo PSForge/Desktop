@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Key, Copy, Check, Terminal, Shield, BookOpen } from "lucide-react";
+import { Trash2, Plus, Key, Copy, Check, Terminal, Shield, BookOpen, Download, Sparkles, Activity } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 interface ApiKeyPublic {
   id: string;
@@ -151,6 +151,19 @@ export default function Settings() {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
+  const formatRelative = (d: string) => {
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return formatDate(d);
+  };
+
+  const activeCliKey = keys.find(k => !!k.lastUsedAt);
+
   if (isLoading || !user) return null;
 
   return (
@@ -168,16 +181,60 @@ export default function Settings() {
 
         {/* CLI Companion Info */}
         <Card>
-          <CardHeader className="flex flex-row items-center gap-3 flex-wrap pb-3">
-            <Terminal className="h-5 w-5 text-primary shrink-0" />
-            <div>
-              <CardTitle className="text-base">CLI Companion</CardTitle>
-              <CardDescription>
-                Use PSForge's AI directly from your terminal.
-              </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap pb-3">
+            <div className="flex items-center gap-3">
+              <Terminal className="h-5 w-5 text-primary shrink-0" />
+              <div>
+                <CardTitle className="text-base">CLI Companion</CardTitle>
+                <CardDescription>
+                  Use PSForge's AI directly from your terminal.
+                </CardDescription>
+              </div>
             </div>
+            <Link href="/cli">
+              <Button size="sm" variant="outline" data-testid="button-get-cli">
+                <Download className="h-4 w-4 mr-1.5" />
+                Get CLI
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
+
+            {/* CLI active tip */}
+            {activeCliKey && (
+              <div
+                className="flex items-start gap-3 rounded-md bg-green-500/10 border border-green-500/20 px-4 py-3"
+                data-testid="banner-cli-active"
+              >
+                <Activity className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                    CLI active — last used {formatRelative(activeCliKey.lastUsedAt!)} via &ldquo;{activeCliKey.name}&rdquo;
+                  </p>
+                  <p className="text-xs text-green-700/70 dark:text-green-400/70">
+                    Try <code className="font-mono">psforge analyze-log ./system.log</code> to surface issues in any log file.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* No keys yet — discovery nudge */}
+            {!keysQuery.isLoading && keys.length === 0 && (
+              <div
+                className="flex items-start gap-3 rounded-md bg-primary/5 border border-primary/20 px-4 py-3"
+                data-testid="banner-cli-discovery"
+              >
+                <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-sm text-foreground">
+                  Create an API key below, then{" "}
+                  <Link href="/cli" className="text-primary hover:underline font-medium">
+                    download the CLI
+                  </Link>{" "}
+                  to validate scripts and diagnose errors straight from your terminal.
+                </p>
+              </div>
+            )}
+
             <p>
               The PSForge CLI Companion lets IT admins access AI log diagnosis, script
               validation, and script management without leaving the command line. Authenticate
@@ -194,14 +251,16 @@ export PSFORGE_API_KEY="psf_your_key_here"
 psforge validate ./MyScript.ps1
 
 # Diagnose a log file (Pro)
-psforge diagnose ./system.log --platform "Windows Server"
+psforge analyze-log ./system.log --platform "Windows Server"
 
 # List your saved scripts
 psforge scripts list`}</pre>
             </div>
             <p className="text-xs">
-              The CLI Companion is a separate open-source project. API keys authenticate all
-              CLI requests as Bearer tokens.
+              The CLI Companion is open source.{" "}
+              <Link href="/cli" className="text-primary hover:underline">
+                View full documentation and download options →
+              </Link>
             </p>
           </CardContent>
         </Card>
@@ -296,8 +355,12 @@ psforge scripts list`}</pre>
                       Created {formatDate(key.createdAt)}
                     </Badge>
                     {key.lastUsedAt && (
-                      <span className="text-xs text-muted-foreground">
-                        Last used {formatDate(key.lastUsedAt)}
+                      <span
+                        className="text-xs text-muted-foreground flex items-center gap-1"
+                        data-testid={`text-last-used-${key.id}`}
+                      >
+                        <Activity className="h-3 w-3" />
+                        Last used {formatRelative(key.lastUsedAt)}
                       </span>
                     )}
                   </div>

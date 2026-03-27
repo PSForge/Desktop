@@ -64,6 +64,12 @@ PSForge uses a React frontend with Vite, Tailwind CSS, and Shadcn UI, persisting
     - Task registry: `server/task-registry.ts` — imports all 49 platform task files, exports `searchTasks()`, `getTaskById()`, `getPlatforms()`
     - Settings page at `/settings` with API key management UI and CLI quick-start guide
     - DB table: `api_keys` (id, userId, name, keyHash, prefix, lastUsedAt, createdAt, revokedAt)
+    - Phase 4 – PSForge website updates:
+        - `/cli` page (`client/src/pages/cli.tsx`) — full CLI download/docs page: hero, Windows .exe download, npm install, quick-start steps, command reference (8 commands with aliases + Pro badge), feature highlights, GitHub link
+        - Settings page updated with "Get CLI" button in CLI Companion card linking to `/cli`
+        - Auto-detecting CLI activity: green "CLI active" banner with `lastUsedAt` relative time when any API key has been used
+        - Discovery nudge: blue info banner when user has no API keys yet, linking to `/cli`
+        - `lastUsedAt` in key list now shows relative time (e.g., "3h ago") with Activity icon
 - **Git Integration:** GitHub OAuth for repository management, commit/push/pull, history, and diff viewing.
 - **Templates Marketplace:**
     - **Community-driven:** Users can publish, discover, and install PowerShell script templates with metadata, security scanning, and admin moderation.

@@ -20,6 +20,7 @@ import {
   Wrench,
   List,
   Monitor,
+  AlertTriangle,
 } from "lucide-react";
 import { SiNpm } from "react-icons/si";
 
@@ -161,6 +162,22 @@ export default function CliPage() {
                 <p className="text-xs text-muted-foreground">
                   Add to <code className="font-mono bg-muted px-1 rounded-sm">C:\Windows\System32</code> or any folder on your PATH.
                 </p>
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 space-y-1.5" data-testid="notice-smartscreen">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    Windows SmartScreen warning
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Windows may flag this file as unrecognized. This is a false positive — the binary is open source and safe to use. To run it:
+                  </p>
+                  <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
+                    <li>Click <span className="font-medium text-foreground">More info</span> on the SmartScreen popup</li>
+                    <li>Click <span className="font-medium text-foreground">Run anyway</span></li>
+                  </ol>
+                  <p className="text-xs text-muted-foreground">
+                    Or right-click the file → <span className="font-medium text-foreground">Properties</span> → check <span className="font-medium text-foreground">Unblock</span> → OK.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

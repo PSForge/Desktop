@@ -65,7 +65,7 @@ For Azure login and Artifact Signing:
 - `AZURE_TRUSTED_SIGNING_CERT_PROFILE`
 - `AZURE_TRUSTED_SIGNING_PUBLISHER_NAME`
 
-The workflow uses the GitHub environment named `production`. The release job still logs in to Azure with OIDC, but `electron-builder`'s Trusted Signing integration also needs an EnvironmentCredential-compatible secret, so `AZURE_CLIENT_SECRET` must be created on the `psforge-desktop-github-actions` app registration and stored as a GitHub Actions secret.
+The workflow uses the GitHub environment named `production`. The release job still logs in to Azure with OIDC, but `electron-builder`'s Trusted Signing integration also needs an EnvironmentCredential-compatible secret, so `AZURE_CLIENT_SECRET` must be created on the `psforge-desktop-github-actions` app registration and stored as a GitHub Actions secret. The signing command excludes other runner-provided credentials so the Trusted Signing client uses the intended app registration rather than an Azure CLI or workload identity fallback.
 
 `WINDOWS_CERT_BASE64` and `WINDOWS_CERT_PASSWORD` are not required when using Azure Artifact Signing.
 

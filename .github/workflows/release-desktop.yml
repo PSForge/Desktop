@@ -75,6 +75,7 @@ jobs:
             --config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT `
             --config.win.azureSignOptions.certificateProfileName=$env:AZURE_TRUSTED_SIGNING_CERT_PROFILE `
             --config.win.azureSignOptions.publisherName=$env:AZURE_TRUSTED_SIGNING_PUBLISHER_NAME `
+            --config.win.azureSignOptions.ExcludeCredentials=ManagedIdentityCredential,WorkloadIdentityCredential,SharedTokenCacheCredential,VisualStudioCredential,VisualStudioCodeCredential,AzureCliCredential,AzurePowerShellCredential,AzureDeveloperCliCredential,InteractiveBrowserCredential `
             --config.win.azureSignOptions.fileDigest=SHA256 `
             --config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com `
             --config.win.azureSignOptions.timestampDigest=SHA256

@@ -56,6 +56,7 @@ jobs:
           AZURE_TRUSTED_SIGNING_CERT_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
         run: |
           $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
 
           $requiredSecrets = @(
             "AZURE_TRUSTED_SIGNING_RESOURCE_GROUP",
@@ -68,6 +69,11 @@ jobs:
             if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($secretName))) {
               throw "Missing $secretName secret."
             }
+          }
+
+          $accountNamePattern = "^(?=.{3,24}$)[^0-9][A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$"
+          if ($env:AZURE_TRUSTED_SIGNING_ACCOUNT -notmatch $accountNamePattern) {
+            throw "AZURE_TRUSTED_SIGNING_ACCOUNT must be the Artifact Signing account resource name, 3-24 characters, starting with a letter, using only letters, numbers, and hyphens. Do not use the endpoint URL, certificate profile name, resource group, display name with spaces, or an underscore-separated value."
           }
 
           az config set extension.use_dynamic_install=yes_without_prompt

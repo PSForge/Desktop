@@ -20,6 +20,7 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TRUSTED_SIGNING_RESOURCE_GROUP: ${{ secrets.AZURE_TRUSTED_SIGNING_RESOURCE_GROUP }}
 
     steps:
       - name: Check out repository
@@ -46,6 +47,76 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Artifact Signing configuration
+        shell: pwsh
+        env:
+          AZURE_TRUSTED_SIGNING_ENDPOINT: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          AZURE_TRUSTED_SIGNING_ACCOUNT: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          AZURE_TRUSTED_SIGNING_CERT_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $requiredSecrets = @(
+            "AZURE_TRUSTED_SIGNING_RESOURCE_GROUP",
+            "AZURE_TRUSTED_SIGNING_ENDPOINT",
+            "AZURE_TRUSTED_SIGNING_ACCOUNT",
+            "AZURE_TRUSTED_SIGNING_CERT_PROFILE"
+          )
+
+          foreach ($secretName in $requiredSecrets) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($secretName))) {
+              throw "Missing $secretName secret."
+            }
+          }
+
+          az config set extension.use_dynamic_install=yes_without_prompt
+          az extension add --name artifact-signing --yes
+
+          $account = az artifact-signing show `
+            --resource-group $env:AZURE_TRUSTED_SIGNING_RESOURCE_GROUP `
+            --name $env:AZURE_TRUSTED_SIGNING_ACCOUNT `
+            --output json | ConvertFrom-Json
+
+          $profile = az artifact-signing certificate-profile show `
+            --resource-group $env:AZURE_TRUSTED_SIGNING_RESOURCE_GROUP `
+            --account-name $env:AZURE_TRUSTED_SIGNING_ACCOUNT `
+            --name $env:AZURE_TRUSTED_SIGNING_CERT_PROFILE `
+            --output json | ConvertFrom-Json
+
+          $endpointByLocation = @{
+            "brazilsouth" = "https://brs.codesigning.azure.net"
+            "centralus" = "https://cus.codesigning.azure.net"
+            "eastus" = "https://eus.codesigning.azure.net"
+            "japaneast" = "https://jpe.codesigning.azure.net"
+            "koreacentral" = "https://krc.codesigning.azure.net"
+            "northcentralus" = "https://ncus.codesigning.azure.net"
+            "northeurope" = "https://neu.codesigning.azure.net"
+            "polandcentral" = "https://plc.codesigning.azure.net"
+            "southcentralus" = "https://scus.codesigning.azure.net"
+            "switzerlandnorth" = "https://swn.codesigning.azure.net"
+            "westcentralus" = "https://wcus.codesigning.azure.net"
+            "westeurope" = "https://weu.codesigning.azure.net"
+            "westus" = "https://wus.codesigning.azure.net"
+            "westus2" = "https://wus2.codesigning.azure.net"
+            "westus3" = "https://wus3.codesigning.azure.net"
+          }
+
+          $locationKey = ($account.location -replace "\s", "").ToLowerInvariant()
+          $expectedEndpoint = $endpointByLocation[$locationKey]
+
+          Write-Host "Artifact Signing account location: $($account.location)"
+          Write-Host "Artifact Signing account provisioning state: $($account.properties.provisioningState)"
+          Write-Host "Certificate profile provisioning state: $($profile.properties.provisioningState)"
+          Write-Host "Certificate profile type: $($profile.properties.profileType)"
+
+          if (!$expectedEndpoint) {
+            throw "No expected Artifact Signing endpoint mapping is configured for account location '$($account.location)'."
+          }
+
+          if ($env:AZURE_TRUSTED_SIGNING_ENDPOINT.TrimEnd("/") -ne $expectedEndpoint) {
+            throw "AZURE_TRUSTED_SIGNING_ENDPOINT does not match the Artifact Signing account location '$($account.location)'. Expected: $expectedEndpoint"
+          }
 
       - name: Build signed Windows release
         shell: pwsh

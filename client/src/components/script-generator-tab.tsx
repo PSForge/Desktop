@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Command, ValidationResult, ComprehensiveValidationResult } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -8,10 +8,9 @@ import { CodePreview } from "@/components/code-preview";
 import { ValidationPanel } from "@/components/validation-panel";
 import { ComprehensiveValidationPanel } from "@/components/comprehensive-validation-panel";
 import { ExportDialog } from "@/components/export-dialog";
-import { powershellCommands } from "@/lib/powershell-commands";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileCheck, List } from "lucide-react";
+import { Eye, FileCheck, List, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ScriptGeneratorTabProps {
@@ -19,13 +18,17 @@ interface ScriptGeneratorTabProps {
   setScript: (script: string) => void;
   exportDialogOpen: boolean;
   setExportDialogOpen: (open: boolean) => void;
+  currentFileName?: string;
+  setCurrentFileName?: (fileName: string) => void;
 }
 
 export function ScriptGeneratorTab({
   script,
   setScript,
   exportDialogOpen,
-  setExportDialogOpen
+  setExportDialogOpen,
+  currentFileName,
+  setCurrentFileName,
 }: ScriptGeneratorTabProps) {
   const { toast } = useToast();
   const [validationResult, setValidationResult] = useState<ValidationResult>({
@@ -37,6 +40,7 @@ export function ScriptGeneratorTab({
   const [lastComprehensiveCode, setLastComprehensiveCode] = useState<string>('');
   const [cursorPosition, setCursorPosition] = useState<number>(0);
   const [validationMode, setValidationMode] = useState<'basic' | 'comprehensive'>('basic');
+  const [isCommandLibraryVisible, setIsCommandLibraryVisible] = useState(true);
 
   const validationMutation = useMutation({
     mutationFn: async (code: string) => {
@@ -157,77 +161,120 @@ export function ScriptGeneratorTab({
 
   return (
     <>
-      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden min-h-0">
-        <CommandSidebar onAddCommand={handleAddCommand} />
-
-        <div className="flex-1 flex flex-col md:overflow-hidden min-w-0 min-h-0">
-          <div className="md:flex-1 md:flex md:flex-col border-b md:overflow-auto md:min-h-0">
-            <ScriptEditor
-              script={script}
-              onScriptChange={setScript}
-              onCursorPositionChange={setCursorPosition}
-            />
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="border-b px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-muted-foreground">
+              Build scripts visually, edit directly, and validate in place.
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCommandLibraryVisible((current) => !current)}
+              data-testid="button-toggle-command-library"
+            >
+              {isCommandLibraryVisible ? (
+                <PanelLeftClose className="mr-2 h-4 w-4" />
+              ) : (
+                <PanelLeftOpen className="mr-2 h-4 w-4" />
+              )}
+              {isCommandLibraryVisible ? "Hide Command Library" : "Show Command Library"}
+            </Button>
           </div>
+        </div>
 
-          <div className="h-48 sm:h-64 md:flex-1 border-b overflow-hidden md:min-h-0">
-            <CodePreview code={script} validationErrors={validationResult.errors || []} />
-          </div>
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {isCommandLibraryVisible && (
+            <CommandSidebar onAddCommand={handleAddCommand} />
+          )}
 
-          <div className="p-4 md:shrink-0">
-            <Tabs value={validationMode} onValueChange={(val) => setValidationMode(val as 'basic' | 'comprehensive')}>
-              <div className="flex items-center justify-between mb-2">
-                <TabsList className="grid w-auto grid-cols-2">
-                  <TabsTrigger value="basic" className="flex items-center gap-1" data-testid="tab-basic-validation">
-                    <List className="h-4 w-4" />
-                    <span>Basic</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="comprehensive" className="flex items-center gap-1" data-testid="tab-comprehensive-validation">
-                    <FileCheck className="h-4 w-4" />
-                    <span>Comprehensive</span>
-                  </TabsTrigger>
-                </TabsList>
-                
-                {validationMode === 'comprehensive' && !comprehensiveValidation && (
-                  <Button
-                    size="sm"
-                    onClick={runComprehensiveValidation}
-                    disabled={!script.trim() || comprehensiveValidationMutation.isPending}
-                    data-testid="button-run-comprehensive-validation"
-                  >
-                    {comprehensiveValidationMutation.isPending ? 'Analyzing...' : 'Run Analysis'}
-                  </Button>
-                )}
-              </div>
-              
-              <TabsContent value="basic" className="mt-0">
-                <ValidationPanel 
-                  errors={validationResult.errors || []} 
-                  isValidating={validationMutation.isPending}
-                />
-              </TabsContent>
-              
-              <TabsContent value="comprehensive" className="mt-0">
-                {comprehensiveValidation ? (
-                  <ComprehensiveValidationPanel result={comprehensiveValidation} />
-                ) : (
-                  <div className="text-center text-muted-foreground py-8 border rounded-md">
-                    <FileCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium mb-1">Comprehensive Validation</p>
-                    <p className="text-sm">
-                      Run comprehensive validation for detailed analysis including dependencies, impact analysis, best practices, and compliance checks.
-                    </p>
-                    <Button
-                      className="mt-4"
-                      onClick={runComprehensiveValidation}
-                      disabled={!script.trim() || comprehensiveValidationMutation.isPending}
-                      data-testid="button-run-comprehensive-validation-empty"
-                    >
-                      {comprehensiveValidationMutation.isPending ? 'Analyzing...' : 'Run Comprehensive Validation'}
-                    </Button>
+          <div
+            className="grid min-w-0 flex-1 min-h-0 overflow-hidden"
+            style={{ gridTemplateRows: "minmax(0, 1fr) clamp(220px, 28vh, 340px)" }}
+          >
+            <div className="min-h-0 overflow-hidden border-b">
+              <ScriptEditor
+                script={script}
+                onScriptChange={setScript}
+                onCursorPositionChange={setCursorPosition}
+              />
+            </div>
+
+            <div className="min-h-0 overflow-hidden">
+              <Tabs defaultValue="preview" className="flex h-full min-h-0 flex-col overflow-hidden">
+                <div className="flex items-center justify-between border-b px-4 py-3">
+                  <TabsList className="grid w-auto grid-cols-3">
+                    <TabsTrigger value="preview" className="flex items-center gap-1" data-testid="tab-script-preview">
+                      <Eye className="h-4 w-4" />
+                      <span>Preview</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="basic-validation" className="flex items-center gap-1" data-testid="tab-basic-validation">
+                      <List className="h-4 w-4" />
+                      <span>Basic</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="comprehensive-validation" className="flex items-center gap-1" data-testid="tab-comprehensive-validation">
+                      <FileCheck className="h-4 w-4" />
+                      <span>Comprehensive</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {!comprehensiveValidation && (
+                    <div className="flex items-center gap-2">
+                      {validationMode === 'comprehensive' && (
+                        <Button
+                          size="sm"
+                          onClick={runComprehensiveValidation}
+                          disabled={!script.trim() || comprehensiveValidationMutation.isPending}
+                          data-testid="button-run-comprehensive-validation"
+                        >
+                          {comprehensiveValidationMutation.isPending ? 'Analyzing...' : 'Run Analysis'}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <TabsContent value="preview" className="mt-0 min-h-0 flex-1 overflow-hidden">
+                  <CodePreview code={script} validationErrors={validationResult.errors || []} />
+                </TabsContent>
+
+                <TabsContent value="basic-validation" className="mt-0 min-h-0 flex-1 overflow-auto p-4">
+                  <div className="h-full overflow-auto">
+                    <ValidationPanel 
+                      errors={validationResult.errors || []} 
+                      isValidating={validationMutation.isPending}
+                    />
                   </div>
-                )}
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+
+                <TabsContent value="comprehensive-validation" className="mt-0 min-h-0 flex-1 overflow-auto p-4">
+                  <div className="h-full overflow-auto">
+                    {comprehensiveValidation ? (
+                      <ComprehensiveValidationPanel result={comprehensiveValidation} />
+                    ) : (
+                      <div className="rounded-md border py-8 text-center text-muted-foreground">
+                        <FileCheck className="mx-auto mb-3 h-12 w-12 opacity-50" />
+                        <p className="mb-1 font-medium">Comprehensive Validation</p>
+                        <p className="text-sm">
+                          Run comprehensive validation for detailed analysis including dependencies, impact analysis, best practices, and compliance checks.
+                        </p>
+                        <Button
+                          className="mt-4"
+                          onClick={() => {
+                            setValidationMode('comprehensive');
+                            runComprehensiveValidation();
+                          }}
+                          disabled={!script.trim() || comprehensiveValidationMutation.isPending}
+                          data-testid="button-run-comprehensive-validation-empty"
+                        >
+                          {comprehensiveValidationMutation.isPending ? 'Analyzing...' : 'Run Comprehensive Validation'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         </div>
       </div>
@@ -236,6 +283,8 @@ export function ScriptGeneratorTab({
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         code={script}
+        initialFilename={currentFileName}
+        onDesktopSaved={(fileName) => setCurrentFileName?.(fileName)}
       />
     </>
   );

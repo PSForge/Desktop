@@ -27,6 +27,7 @@ import Security from "@/pages/security";
 import SellerDashboard from "@/pages/seller-dashboard";
 import Settings from "@/pages/settings";
 import CliPage from "@/pages/cli";
+import DesktopConnect from "@/pages/desktop-connect";
 import NotFound from "@/pages/not-found";
 import { ProNudgeModal } from "@/components/pro-conversion/pro-nudge-modal";
 import { CookieConsent } from "@/components/cookie-consent";
@@ -34,11 +35,13 @@ import { LoginProPrompt } from "@/components/login-pro-prompt";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
+import { isDesktopApp } from "@/lib/desktop";
 import { Package, Clock, Bell } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import DesktopWorkspace from "@/pages/desktop-workspace";
 
 function MarketplaceComingSoon() {
   return (
@@ -115,6 +118,7 @@ function Router() {
       <Route path="/seller-dashboard" component={() => <AdminOnly component={SellerDashboard} />} />
       <Route path="/settings" component={Settings} />
       <Route path="/cli" component={CliPage} />
+      <Route path="/desktop-connect" component={DesktopConnect} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/case-studies/techcorp-onboarding-automation" component={CaseStudyTechCorp} />
       <Route path="/case-studies/midwest-healthcare-compliance" component={CaseStudyMidwest} />
@@ -130,14 +134,20 @@ function Router() {
 }
 
 function App() {
+  const desktopMode = isDesktopApp();
+
   // Initialize Google Analytics when app loads
   useEffect(() => {
+    if (desktopMode) {
+      return;
+    }
+
     if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
       console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
     } else {
       initGA();
     }
-  }, []);
+  }, [desktopMode]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -145,10 +155,10 @@ function App() {
         <ThemeProvider defaultTheme="dark" storageKey="powershell-generator-theme">
           <TooltipProvider>
             <Toaster />
-            <Router />
-            <LoginProPrompt />
-            <ProNudgeModal />
-            <CookieConsent />
+            {desktopMode ? <DesktopWorkspace /> : <Router />}
+            {!desktopMode && <LoginProPrompt />}
+            {!desktopMode && <ProNudgeModal />}
+            {!desktopMode && <CookieConsent />}
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>

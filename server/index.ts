@@ -4,8 +4,34 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedAdminAccount } from "./seed-admin";
 import { verifyEmailConfig } from "./email-service";
+import { fileURLToPath } from "node:url";
 
 const app = express();
+let serverStartupPromise: Promise<void> | null = null;
+const desktopCorsOrigins = new Set([
+  "http://127.0.0.1:5000",
+  "http://localhost:5000",
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+]);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (origin && desktopCorsOrigins.has(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+    res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Credentials", "true");
+
+    if (req.method === "OPTIONS") {
+      return res.status(204).end();
+    }
+  }
+
+  next();
+});
 
 // Stripe webhook needs raw body for signature verification
 app.use("/webhooks/stripe", express.raw({ type: 'application/json' }));
@@ -50,7 +76,12 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+export async function startServer() {
+  if (serverStartupPromise) {
+    return serverStartupPromise;
+  }
+
+  serverStartupPromise = (async () => {
   await seedAdminAccount();
   await verifyEmailConfig();
   
@@ -87,4 +118,13 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
-})();
+  })();
+
+  return serverStartupPromise;
+}
+
+const isDirectRun = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  startServer();
+}

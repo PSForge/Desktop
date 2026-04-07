@@ -681,5 +681,9 @@ export class MemStorage implements IStorage {
 // Import DatabaseStorage
 import { DatabaseStorage } from "./db-storage";
 
-// Use DatabaseStorage for persistent PostgreSQL storage
-export const storage = new DatabaseStorage();
+const shouldUseMemStorage =
+  process.env.DESKTOP_MODE === "true" ||
+  !process.env.DATABASE_URL;
+
+// Desktop builds can boot without cloud infrastructure; production web should use PostgreSQL.
+export const storage = shouldUseMemStorage ? new MemStorage() : new DatabaseStorage();

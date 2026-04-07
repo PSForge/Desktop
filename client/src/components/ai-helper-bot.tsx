@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Send, Loader2, Plus, ChevronRight, Sparkles, Code2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Message {
   id: string;
@@ -94,14 +95,10 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/ai-helper", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input.trim(), conversationHistory: messages }),
+      const response = await apiRequest("/api/ai-helper", "POST", {
+        message: input.trim(),
+        conversationHistory: messages,
       });
-
-      if (!response.ok) throw new Error("Failed to get AI response");
-
       const data = await response.json();
 
       const assistantMessage: Message = {
@@ -118,7 +115,9 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Sorry, I encountered an error. Please try again.",
+        content: error instanceof Error && error.message
+          ? `I hit an error: ${error.message}`
+          : "Sorry, I encountered an error. Please try again.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);

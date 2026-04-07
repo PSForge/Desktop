@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, FileText, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Script } from "@shared/schema";
+import { isDesktopApp, saveDesktopScript } from "@/lib/desktop";
 
 interface ExportDialogProps {
   open: boolean;
@@ -37,15 +38,24 @@ interface ExportDialogProps {
   code: string;
   taskCategory?: string;
   taskName?: string;
+  initialFilename?: string;
+  onDesktopSaved?: (fileName: string) => void;
 }
 
-export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName }: ExportDialogProps) {
+export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName, initialFilename, onDesktopSaved }: ExportDialogProps) {
   const [filename, setFilename] = useState("script.ps1");
   const [description, setDescription] = useState("");
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   const [existingScript, setExistingScript] = useState<Script | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const desktopMode = isDesktopApp();
+
+  useEffect(() => {
+    if (open && initialFilename) {
+      setFilename(initialFilename);
+    }
+  }, [open, initialFilename]);
 
   // Fetch user scripts to check for duplicates
   const { data: userScripts = [] } = useQuery<Script[]>({
@@ -117,6 +127,29 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
 
   const handleExport = () => {
     try {
+      if (desktopMode) {
+        saveDesktopScript(code, filename).then((result) => {
+          if (!result || result.canceled) {
+            return;
+          }
+
+          const savedFileName = result.fileName || filename;
+          onDesktopSaved?.(savedFileName);
+          toast({
+            title: "Script saved",
+            description: `${savedFileName} was saved to your desktop workspace`,
+          });
+          onOpenChange(false);
+        }).catch(() => {
+          toast({
+            title: "Save failed",
+            description: "Could not save the script file",
+            variant: "destructive",
+          });
+        });
+        return;
+      }
+
       const blob = new Blob([code], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -318,7 +351,7 @@ export function ExportDialog({ open, onOpenChange, code, taskCategory, taskName 
             data-testid="button-export-confirm"
           >
             <Download className="h-4 w-4 mr-2" />
-            Download .ps1
+            {desktopMode ? "Save to Desktop (.ps1)" : "Download .ps1"}
           </Button>
         </DialogFooter>
       </DialogContent>

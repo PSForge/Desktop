@@ -1,16 +1,18 @@
-import { Save, User, Library, Package, Settings } from "lucide-react";
+import { FolderOpen, Save, User, Library, Package, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { Link } from "wouter";
-import logoUrl from "@assets/Full Logo Transparent_1761567685412.png";
+import logoUrl from "@assets/psforge-full-logo-transparent.png";
 import { useAuth } from "@/lib/auth-context";
 
 interface HeaderProps {
   onExport?: () => void;
+  onOpenScript?: () => void;
   hasCommands?: boolean;
+  isDesktop?: boolean;
 }
 
-export function Header({ onExport, hasCommands = false }: HeaderProps) {
+export function Header({ onExport, onOpenScript, hasCommands = false, isDesktop = false }: HeaderProps) {
   const showSaveButton = onExport !== undefined;
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -26,6 +28,18 @@ export function Header({ onExport, hasCommands = false }: HeaderProps) {
       <div className="flex items-center gap-1 sm:gap-2">
         {showSaveButton && (
           <>
+            {isDesktop && onOpenScript && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenScript}
+                data-testid="button-open-script"
+                className="hover-elevate active-elevate-2"
+              >
+                <FolderOpen className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Open</span>
+              </Button>
+            )}
             <Button
               variant="default"
               size="sm"
@@ -35,7 +49,7 @@ export function Header({ onExport, hasCommands = false }: HeaderProps) {
               className="hover-elevate active-elevate-2"
             >
               <Save className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Save</span>
+              <span className="hidden sm:inline">{isDesktop ? "Save As" : "Save"}</span>
             </Button>
             
             <div className="w-px h-6 bg-border mx-1 sm:mx-2 hidden sm:block" />

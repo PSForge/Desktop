@@ -1,6 +1,16 @@
 node_modules
 dist
+dist-electron
 .DS_Store
 server/public
 vite.config.ts.*
 *.tar.gz
+.config
+.local
+release
+release-*
+release-desktop-*
+build
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml

@@ -1,14 +1,104 @@
 {
   "name": "rest-express",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "PSForge Desktop is a Windows PowerShell scripting workspace connected to PSForge web services.",
   "type": "module",
+  "main": "desktop/main.mjs",
   "license": "MIT",
+  "author": "IsaiahBlacknall LLC",
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-    "start": "NODE_ENV=production node dist/index.js",
+    "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild desktop/preload.ts --platform=node --format=cjs --bundle --external:electron --outfile=dist-electron/preload.cjs",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
+    "desktop:dev": "concurrently -k \"npm:desktop:renderer\" \"npm:desktop:electron\"",
+    "desktop:renderer": "vite",
+    "desktop:preload": "esbuild desktop/preload.ts --platform=node --format=cjs --bundle --external:electron --outfile=dist-electron/preload.cjs",
+    "desktop:electron": "npm run desktop:preload && wait-on http://127.0.0.1:5173 && cross-env NODE_ENV=development PSFORGE_DESKTOP_URL=http://127.0.0.1:5173 electron ./desktop/main.mjs",
+    "desktop:build": "npm run build",
+    "desktop:start": "cross-env NODE_ENV=production electron ./desktop/main.mjs",
+    "desktop:icons": "node ./scripts/generate-icons.mjs",
+    "desktop:dist": "npm run desktop:icons && npm run build && electron-builder --win nsis zip -c.win.verifyUpdateCodeSignature=false",
+    "desktop:dist:dir": "npm run desktop:icons && npm run build && electron-builder --win dir -c.win.verifyUpdateCodeSignature=false",
+    "desktop:dist:publish": "npm run desktop:icons && npm run build && electron-builder --win nsis zip --publish never -c.win.verifyUpdateCodeSignature=false",
     "check": "tsc",
     "db:push": "drizzle-kit push"
+  },
+  "build": {
+    "appId": "com.psforge.desktop",
+    "productName": "PSForge Desktop",
+    "artifactName": "PSForge-Desktop-${version}-${arch}.${ext}",
+    "asar": true,
+    "asarUnpack": [
+      "dist-electron/**/*"
+    ],
+    "npmRebuild": false,
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "desktop/main.mjs",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://www.psforge.app/api/desktop/updates",
+        "channel": "latest"
+      }
+    ],
+    "generateUpdatesFilesForAllChannels": true,
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "branding/icon.png"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "branding/icon.ico"
+      },
+      {
+        "from": "build/loading-screen.jpg",
+        "to": "branding/loading-screen.jpg"
+      }
+    ],
+    "extraMetadata": {
+      "main": "desktop/main.mjs"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true,
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PSForge Desktop",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "artifactName": "PSForge-Desktop-Setup-${version}-${arch}.${ext}"
+    }
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -59,6 +149,7 @@
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
+    "electron-updater": "^6.8.3",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
@@ -110,13 +201,19 @@
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
     "drizzle-kit": "^0.31.4",
+    "electron": "^35.1.4",
+    "electron-builder": "^26.0.12",
     "esbuild": "^0.25.0",
+    "png-to-ico": "^2.1.8",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
-    "vite": "^5.4.20"
+    "vite": "^5.4.20",
+    "wait-on": "^8.0.3"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

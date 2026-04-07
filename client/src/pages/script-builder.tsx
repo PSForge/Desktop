@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileCode, Sparkles, LayoutGrid, Wand2, GitBranch, Wrench } from "lucide-react";
 import { generatePowerShellScript } from "@/lib/script-generator";
 import { useToast } from "@/hooks/use-toast";
+import { isDesktopApp, openDesktopScript } from "@/lib/desktop";
 
 export default function ScriptBuilder() {
   const [location] = useLocation();
@@ -20,6 +21,8 @@ export default function ScriptBuilder() {
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [selectedGuiCategory, setSelectedGuiCategory] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [currentFileName, setCurrentFileName] = useState<string>("script.ps1");
   const { toast } = useToast();
 
   // Get tab from URL query parameter
@@ -37,13 +40,43 @@ export default function ScriptBuilder() {
     setExportDialogOpen(true);
   };
 
+  const handleOpenScript = async () => {
+    try {
+      const file = await openDesktopScript();
+      if (!file || file.canceled) {
+        return;
+      }
+
+      setScript(file.content || "");
+      setCurrentFileName(file.fileName || "script.ps1");
+      localStorage.setItem("powershell-script", JSON.stringify({ script: file.content || "" }));
+
+      toast({
+        title: "Script opened",
+        description: `${file.fileName || "Script"} is ready to edit`,
+      });
+    } catch (error) {
+      console.error("Failed to open script:", error);
+      toast({
+        title: "Open failed",
+        description: "Could not open the selected script file",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
+    setIsDesktop(isDesktopApp());
+
     // Check if loading a specific script from account page
     const loadScript = localStorage.getItem('loadScript');
     if (loadScript) {
       try {
         const scriptData = JSON.parse(loadScript);
         setScript(scriptData.content);
+        if (scriptData.name) {
+          setCurrentFileName(scriptData.name.endsWith(".ps1") ? scriptData.name : `${scriptData.name}.ps1`);
+        }
         localStorage.removeItem('loadScript'); // Clear after loading
         return;
       } catch (err) {
@@ -59,6 +92,9 @@ export default function ScriptBuilder() {
         if (data.script) {
           // New format: use script directly
           setScript(data.script);
+          if (data.fileName) {
+            setCurrentFileName(data.fileName);
+          }
         } else if (data.commands && Array.isArray(data.commands)) {
           // Legacy support: convert old command-based format to script
           const convertedScript = generatePowerShellScript(data.commands);
@@ -71,11 +107,21 @@ export default function ScriptBuilder() {
     }
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem("powershell-script", JSON.stringify({
+      script,
+      fileName: currentFileName,
+      updatedAt: new Date().toISOString(),
+    }));
+  }, [script, currentFileName]);
+
   return (
     <div className="min-h-screen md:h-screen flex flex-col bg-background">
       <Header
         onExport={handleExport}
+        onOpenScript={handleOpenScript}
         hasCommands={script.trim().length > 0}
+        isDesktop={isDesktop}
       />
 
       <Tabs defaultValue={defaultTab} className="flex-1 flex flex-col md:overflow-hidden min-h-0">
@@ -116,6 +162,8 @@ export default function ScriptBuilder() {
             setScript={setScript}
             exportDialogOpen={exportDialogOpen}
             setExportDialogOpen={setExportDialogOpen}
+            currentFileName={currentFileName}
+            setCurrentFileName={setCurrentFileName}
           />
         </TabsContent>
 

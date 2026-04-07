@@ -39,6 +39,7 @@ export async function seedAdminAccount() {
     name: "PSForge Administrator",
     role: "admin",
     stripeCustomerId: null,
+    referralSource: null,
   });
 
   console.log("✓ Admin account created");

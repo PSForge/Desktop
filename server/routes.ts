@@ -37,17 +37,32 @@ import {
 } from "@shared/schema";
 import { randomBytes, createHash } from "crypto";
 import { attachUser, requireAuth, requireSubscriber, requireAdmin } from "./middleware/auth";
+import { approveDesktopDeviceSession, consumeDesktopDeviceSession, createDesktopDeviceSession } from "./desktop-auth";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "sk_test_desktop_placeholder";
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2025-09-30.clover",
 });
+const stripeEnabled = !!process.env.STRIPE_SECRET_KEY;
+
+function requireStripeConfigured(res: any) {
+  if (stripeEnabled) {
+    return true;
+  }
+
+  res.status(503).json({
+    error: "Stripe is not configured for this environment",
+  });
+  return false;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(attachUser);
+
+  const getBaseUrl = (req: any) => {
+    const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+    return `${protocol}://${req.headers.host}`;
+  };
 
   // SEO routes - dynamic sitemap and robots.txt
   app.get("/sitemap.xml", (req, res) => {
@@ -157,6 +172,67 @@ Sitemap: ${baseUrl}/sitemap.xml`;
 
     res.type("text/plain");
     res.send(robotsTxt);
+  });
+
+  app.post("/api/desktop-auth/start", async (req, res) => {
+    const session = createDesktopDeviceSession();
+    const baseUrl = process.env.DESKTOP_PUBLIC_BASE_URL || getBaseUrl(req);
+
+    return res.json({
+      deviceCode: session.deviceCode,
+      userCode: session.userCode,
+      expiresAt: session.expiresAt,
+      verificationUrl: `${baseUrl}/desktop-connect?user_code=${encodeURIComponent(session.userCode)}`,
+    });
+  });
+
+  app.post("/api/desktop-auth/poll", async (req, res) => {
+    const deviceCode = typeof req.body?.deviceCode === "string" ? req.body.deviceCode : "";
+    if (!deviceCode) {
+      return res.status(400).json({ error: "deviceCode is required" });
+    }
+
+    const result = consumeDesktopDeviceSession(deviceCode);
+    if (result.status === "not_found") {
+      return res.status(404).json({ error: "Desktop sign-in session not found" });
+    }
+
+    if (result.status === "expired") {
+      return res.status(410).json({ error: "Desktop sign-in session expired" });
+    }
+
+    if (result.status === "consumed") {
+      return res.status(409).json({ error: "Desktop sign-in session already used" });
+    }
+
+    if (result.status === "pending") {
+      return res.status(202).json({
+        status: "pending",
+        expiresAt: result.expiresAt,
+      });
+    }
+
+    return res.json({
+      status: "approved",
+      token: result.token,
+    });
+  });
+
+  app.post("/api/desktop-auth/approve", requireAuth, async (req, res) => {
+    const userCode = typeof req.body?.userCode === "string" ? req.body.userCode : "";
+    if (!userCode) {
+      return res.status(400).json({ error: "userCode is required" });
+    }
+
+    const session = approveDesktopDeviceSession(userCode, req.user!.id);
+    if (!session) {
+      return res.status(404).json({ error: "Desktop sign-in session not found or expired" });
+    }
+
+    return res.json({
+      status: "approved",
+      userCode: session.userCode,
+    });
   });
 
   app.post("/auth/register", async (req, res) => {

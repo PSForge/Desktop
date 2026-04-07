@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { Terminal } from "lucide-react";
-import logoImage from "@assets/Full Logo Transparent_1761559782392.png";
+import { MonitorSmartphone } from "lucide-react";
+import logoImage from "@assets/psforge-full-logo-transparent.png";
 import { triggerLoginProPrompt } from "@/components/login-pro-prompt";
+import { isDesktopApp } from "@/lib/desktop";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,9 +18,11 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const redirectPath = new URLSearchParams(window.location.search).get("redirect") || "/builder";
+  const desktopMode = isDesktopApp();
 
   if (isAuthenticated) {
-    navigate("/builder");
+    navigate(redirectPath);
     return null;
   }
 
@@ -34,7 +37,7 @@ export default function Login() {
         description: "You have successfully logged in.",
       });
       triggerLoginProPrompt();
-      navigate("/builder");
+      navigate(redirectPath);
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -67,6 +70,21 @@ export default function Login() {
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
+          {desktopMode && (
+            <div className="px-6 pb-2">
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <MonitorSmartphone className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <div className="font-medium">Desktop sign-in moved into the workspace</div>
+                    <p className="text-sm text-muted-foreground">
+                      Open the desktop workspace and use the License card there to connect your account.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">

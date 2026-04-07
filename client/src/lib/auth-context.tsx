@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { User, FeatureAccess } from "@shared/schema";
+import { deauthorizeDesktopLicense, hasStoredDesktopSession, isDesktopRemoteAuthEnabled } from "@/lib/desktop-auth";
+import { isDesktopApp } from "@/lib/desktop";
 
 interface AuthContextType {
   user: User | null;
@@ -47,6 +49,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading]);
 
+  useEffect(() => {
+    if (!isDesktopApp() || !hasStoredDesktopSession()) {
+      return;
+    }
+
+    refetch();
+  }, [refetch]);
+
   // Handle 401 errors gracefully - treat as anonymous/not authenticated
   const isUnauthenticated = error && (error as any)?.message?.includes('401');
   const user = isUnauthenticated ? null : (data?.user || null);
@@ -75,6 +85,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
+      if (isDesktopRemoteAuthEnabled()) {
+        await deauthorizeDesktopLicense();
+        return;
+      }
+
       await apiRequest("/auth/logout", "POST", {});
     },
     onSuccess: () => {

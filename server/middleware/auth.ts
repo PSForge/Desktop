@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { getUserFromSession } from "../auth";
+import { verifyDesktopAccessToken } from "../desktop-auth";
 import type { User, FeatureAccess, UserRole } from "@shared/schema";
 import { freeTierCategories } from "@shared/schema";
 import { storage } from "../storage";
@@ -22,6 +23,16 @@ export async function attachUser(req: Request, res: Response, next: NextFunction
     const rawKey = authHeader.slice(7).trim();
     if (rawKey) {
       try {
+        const desktopToken = verifyDesktopAccessToken(rawKey);
+        if (desktopToken) {
+          const user = await storage.getUserById(desktopToken.userId);
+          if (user) {
+            req.user = user;
+            req.featureAccess = await getFeatureAccess(user);
+            return next();
+          }
+        }
+
         const keyHash = createHash("sha256").update(rawKey).digest("hex");
         const apiKey = await storage.getApiKeyByHash(keyHash);
         if (apiKey) {

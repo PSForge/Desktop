@@ -1,0 +1,114 @@
+name: Release PSForge Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    environment: production
+    permissions:
+      contents: write
+      id-token: write
+
+    env:
+      DESKTOP_OUTPUT_DIR: release-publish
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate desktop assets
+        run: npm run desktop:icons
+
+      - name: Build desktop app
+        run: npm run build
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build signed Windows release
+        shell: pwsh
+        env:
+          AZURE_TRUSTED_SIGNING_ENDPOINT: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          AZURE_TRUSTED_SIGNING_ACCOUNT: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          AZURE_TRUSTED_SIGNING_CERT_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
+          AZURE_TRUSTED_SIGNING_PUBLISHER_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_PUBLISHER_NAME }}
+        run: |
+          $requiredSecrets = @(
+            "AZURE_TRUSTED_SIGNING_ENDPOINT",
+            "AZURE_TRUSTED_SIGNING_ACCOUNT",
+            "AZURE_TRUSTED_SIGNING_CERT_PROFILE",
+            "AZURE_TRUSTED_SIGNING_PUBLISHER_NAME"
+          )
+
+          foreach ($secretName in $requiredSecrets) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($secretName))) {
+              throw "Missing $secretName secret."
+            }
+          }
+
+          npx electron-builder --win nsis zip --publish never `
+            --config.directories.output=$env:DESKTOP_OUTPUT_DIR `
+            --config.win.azureSignOptions.endpoint=$env:AZURE_TRUSTED_SIGNING_ENDPOINT `
+            --config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT `
+            --config.win.azureSignOptions.certificateProfileName=$env:AZURE_TRUSTED_SIGNING_CERT_PROFILE `
+            --config.win.azureSignOptions.publisherName=$env:AZURE_TRUSTED_SIGNING_PUBLISHER_NAME `
+            --config.win.azureSignOptions.fileDigest=SHA256 `
+            --config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com `
+            --config.win.azureSignOptions.timestampDigest=SHA256
+
+      - name: Verify update metadata
+        shell: pwsh
+        run: |
+          $requiredPatterns = @(
+            "latest.yml",
+            "PSForge-Desktop-Setup-*-x64.exe",
+            "PSForge-Desktop-Setup-*-x64.exe.blockmap"
+          )
+
+          foreach ($pattern in $requiredPatterns) {
+            $match = Get-ChildItem -Path $env:DESKTOP_OUTPUT_DIR -Filter $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (!$match) {
+              throw "Missing expected release artifact matching pattern: $pattern"
+            }
+          }
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: psforge-desktop-windows-release
+          path: |
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.exe
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.zip
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.yml
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.blockmap
+
+      - name: Publish GitHub release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.exe
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.zip
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.yml
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.blockmap

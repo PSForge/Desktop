@@ -46,7 +46,7 @@ What it does:
 - checks out the repo on `windows-latest`
 - installs dependencies with `npm ci`
 - generates branding/icon assets
-- signs through Azure Artifact Signing using GitHub OIDC
+- signs through Azure Artifact Signing using the Entra app registration
 - builds the signed installer and ZIP
 - verifies update metadata exists
 - uploads the artifacts to the workflow run
@@ -59,12 +59,13 @@ For Azure login and Artifact Signing:
 - `AZURE_CLIENT_ID`
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
+- `AZURE_CLIENT_SECRET`
 - `AZURE_TRUSTED_SIGNING_ENDPOINT`
 - `AZURE_TRUSTED_SIGNING_ACCOUNT`
 - `AZURE_TRUSTED_SIGNING_CERT_PROFILE`
 - `AZURE_TRUSTED_SIGNING_PUBLISHER_NAME`
 
-The workflow uses the GitHub environment named `production`, so the Azure federated credential should target that same GitHub environment.
+The workflow uses the GitHub environment named `production`. The release job still logs in to Azure with OIDC, but `electron-builder`'s Trusted Signing integration also needs an EnvironmentCredential-compatible secret, so `AZURE_CLIENT_SECRET` must be created on the `psforge-desktop-github-actions` app registration and stored as a GitHub Actions secret.
 
 `WINDOWS_CERT_BASE64` and `WINDOWS_CERT_PASSWORD` are not required when using Azure Artifact Signing.
 

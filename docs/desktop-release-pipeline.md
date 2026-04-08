@@ -3,6 +3,7 @@
 PSForge Desktop is now set up for a production-style Windows release flow with:
 
 - signed `NSIS` installer output
+- signed `MSI` installer output
 - `ZIP` portable output
 - `electron-updater` auto-update support
 - a GitHub Actions Windows release workflow
@@ -28,6 +29,7 @@ After building a desktop release, copy these files into the web app's `downloads
 - `PSForge-Desktop-Setup-<version>-x64.exe`
 - `PSForge-Desktop-Setup-<version>-x64.exe.blockmap`
 - `PSForge-Desktop-<version>-x64.zip`
+- `PSForge-Desktop-Store-<version>-x64.msi`
 
 Once deployed, `electron-updater` will poll:
 
@@ -47,7 +49,7 @@ What it does:
 - installs dependencies with `npm ci`
 - generates branding/icon assets
 - signs through Azure Artifact Signing using the Entra app registration
-- builds the signed installer and ZIP
+- builds the signed installers and ZIP
 - verifies update metadata exists
 - uploads the artifacts to the workflow run
 - uploads tagged builds to GitHub Releases
@@ -79,6 +81,7 @@ No AWS secrets are required now that updates are served by `www.psforge.app`.
 3. Let GitHub Actions build and sign the Windows release.
 4. Download the workflow or GitHub Release artifacts.
 5. Copy the four release files into the web app's `downloads/` directory.
+   If you are also hosting the MSI for Microsoft Store ingestion or direct enterprise deployment, copy the MSI as well.
 6. Redeploy `www.psforge.app`.
 7. Test `/api/desktop/version`, `/api/desktop/download`, and in-app `Check Updates`.
 8. Test updating from the prior installed version before public rollout.

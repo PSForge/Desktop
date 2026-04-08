@@ -146,7 +146,7 @@ jobs:
             }
           }
 
-          npx electron-builder --win nsis zip --publish never `
+          npx electron-builder --win nsis zip msi --publish never `
             --config.directories.output=$env:DESKTOP_OUTPUT_DIR `
             --config.win.azureSignOptions.endpoint=$env:AZURE_TRUSTED_SIGNING_ENDPOINT `
             --config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT `
@@ -163,7 +163,8 @@ jobs:
           $requiredPatterns = @(
             "latest.yml",
             "PSForge-Desktop-Setup-*-x64.exe",
-            "PSForge-Desktop-Setup-*-x64.exe.blockmap"
+            "PSForge-Desktop-Setup-*-x64.exe.blockmap",
+            "PSForge-Desktop-Store-*-x64.msi"
           )
 
           foreach ($pattern in $requiredPatterns) {
@@ -179,6 +180,7 @@ jobs:
           name: psforge-desktop-windows-release
           path: |
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.exe
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.msi
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.zip
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.yml
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.blockmap
@@ -189,6 +191,7 @@ jobs:
         with:
           files: |
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.exe
+            ${{ env.DESKTOP_OUTPUT_DIR }}/*.msi
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.zip
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.yml
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.blockmap

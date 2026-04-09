@@ -49,6 +49,15 @@ function signPayload(payload: DesktopTokenPayload) {
   return `psfd_${encodedPayload}.${base64UrlEncode(signature)}`;
 }
 
+export function createDesktopAccessToken(userId: string) {
+  return signPayload({
+    userId,
+    iat: Date.now(),
+    exp: Date.now() + TOKEN_TTL_MS,
+    typ: "desktop",
+  });
+}
+
 function cleanupExpiredSessions() {
   const now = Date.now();
 
@@ -139,12 +148,7 @@ export function consumeDesktopDeviceSession(deviceCode: string) {
 
   return {
     status: "approved" as const,
-    token: signPayload({
-      userId: session.userId,
-      iat: Date.now(),
-      exp: Date.now() + TOKEN_TTL_MS,
-      typ: "desktop",
-    }),
+    token: createDesktopAccessToken(session.userId),
   };
 }
 

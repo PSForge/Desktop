@@ -485,6 +485,14 @@ function createWindow() {
     mainWindow = null;
   });
 
+  mainWindow.on("query-session-end", () => {
+    isQuitting = true;
+  });
+
+  mainWindow.on("session-end", () => {
+    isQuitting = true;
+  });
+
   mainWindow.once("ready-to-show", () => {
     if (splashWindow && !splashWindow.isDestroyed()) {
       splashWindow.close();
@@ -1034,6 +1042,10 @@ app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  if (appTray) {
+    appTray.destroy();
+    appTray = null;
+  }
 });
 
 app.on("window-all-closed", () => {

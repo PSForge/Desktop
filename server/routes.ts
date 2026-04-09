@@ -37,7 +37,7 @@ import {
 } from "@shared/schema";
 import { randomBytes, createHash } from "crypto";
 import { attachUser, requireAuth, requireSubscriber, requireAdmin } from "./middleware/auth";
-import { approveDesktopDeviceSession, consumeDesktopDeviceSession, createDesktopDeviceSession } from "./desktop-auth";
+import { approveDesktopDeviceSession, consumeDesktopDeviceSession, createDesktopAccessToken, createDesktopDeviceSession } from "./desktop-auth";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "sk_test_desktop_placeholder";
 const stripe = new Stripe(stripeSecretKey, {
@@ -63,6 +63,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const protocol = req.headers["x-forwarded-proto"] || req.protocol;
     return `${protocol}://${req.headers.host}`;
   };
+
+  const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
+
+  const getDesktopPublicBaseUrl = (req: any) => {
+    return normalizeBaseUrl(process.env.DESKTOP_PUBLIC_BASE_URL || getBaseUrl(req));
+  };
+
+  const getDesktopLicensePayload = async (user: User) => {
+    const subscription = await storage.getUserSubscription(user.id);
+    const plan = subscription ? await storage.getSubscriptionPlan(subscription.planId) : undefined;
+    const isPro = user.role === "admin" || !!(subscription && (subscription.status === "active" || subscription.status === "trialing"));
+
+    return {
+      isPro,
+      plan: user.role === "admin"
+        ? "PSForge Admin"
+        : plan?.name || (isPro ? "PSForge Pro" : "PSForge Free"),
+      status: user.role === "admin" ? "active" : subscription?.status || (isPro ? "active" : "inactive"),
+      validUntil: subscription?.currentPeriodEnd || null,
+    };
+  };
+
+  const getPublicDesktopUser = (user: User) => ({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  });
+
+  const buildDesktopAuthResponse = async (user: User) => ({
+    token: createDesktopAccessToken(user.id),
+    user: getPublicDesktopUser(user),
+    license: await getDesktopLicensePayload(user),
+  });
 
   // SEO routes - dynamic sitemap and robots.txt
   app.get("/sitemap.xml", (req, res) => {
@@ -341,6 +375,56 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       console.error("Registration error:", error);
       return res.status(500).json({
         error: "Internal server error during registration"
+      });
+    }
+  });
+
+  app.post("/api/desktop/register", async (req, res) => {
+    try {
+      const parsed = insertUserSchema.safeParse(req.body);
+
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid registration data",
+          details: parsed.error.errors,
+        });
+      }
+
+      const { email, password, name } = parsed.data;
+      const existingUser = await storage.getUserByEmail(email);
+
+      if (existingUser) {
+        return res.status(409).json({
+          error: "Email already registered",
+        });
+      }
+
+      const passwordHash = await hashPassword(password);
+      const user = await storage.createUser({
+        email,
+        passwordHash,
+        name,
+        role: "free",
+        stripeCustomerId: null,
+        referralSource: "desktop-app",
+      });
+
+      (async () => {
+        try {
+          const template = await storage.getWelcomeEmailTemplate("free_signup");
+          if (template && template.enabled) {
+            await sendWelcomeEmail(user.email, user.name, template.htmlContent, template.subject);
+          }
+        } catch (emailError) {
+          console.error("Desktop welcome email error:", emailError);
+        }
+      })();
+
+      return res.status(201).json(await buildDesktopAuthResponse(user));
+    } catch (error) {
+      console.error("Desktop registration error:", error);
+      return res.status(500).json({
+        error: "Internal server error during desktop registration",
       });
     }
   });
@@ -2458,6 +2542,117 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       return res.status(500).json({
         error: "Failed to create portal session",
         details: error.message
+      });
+    }
+  });
+
+  app.post("/api/desktop/billing/checkout", requireAuth, async (req, res) => {
+    try {
+      if (!requireStripeConfigured(res)) {
+        return;
+      }
+
+      const user = req.user!;
+      const { promoCode } = req.body || {};
+
+      if (!process.env.STRIPE_PRICE_ID) {
+        return res.status(500).json({
+          error: "Stripe Price ID not configured. Please set STRIPE_PRICE_ID.",
+        });
+      }
+
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.name || undefined,
+          metadata: {
+            userId: user.id,
+            source: "desktop-app",
+          },
+        });
+        customerId = customer.id;
+        await storage.updateUser(user.id, { stripeCustomerId: customerId });
+      }
+
+      const publicBaseUrl = getDesktopPublicBaseUrl(req);
+      const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+        customer: customerId,
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: process.env.STRIPE_PRICE_ID,
+            quantity: 1,
+          },
+        ],
+        success_url: `${publicBaseUrl}/desktop?checkout=success`,
+        cancel_url: `${publicBaseUrl}/desktop?checkout=cancelled`,
+        metadata: {
+          userId: user.id,
+          source: "desktop-app",
+        },
+        payment_method_collection: "always",
+      };
+
+      if (promoCode && typeof promoCode === "string" && promoCode.trim()) {
+        const promotionCodes = await stripe.promotionCodes.list({
+          code: promoCode.trim().toUpperCase(),
+          active: true,
+          limit: 1,
+        });
+
+        if (promotionCodes.data.length === 0) {
+          return res.status(400).json({
+            error: "Invalid promo code",
+            details: "The promo code you entered is not valid or has expired.",
+          });
+        }
+
+        sessionConfig.discounts = [{ promotion_code: promotionCodes.data[0].id }];
+      } else {
+        sessionConfig.allow_promotion_codes = true;
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
+      return res.json({
+        url: session.url,
+        checkoutType: "subscription",
+      });
+    } catch (error: any) {
+      console.error("Desktop checkout error:", error);
+      return res.status(500).json({
+        error: "Failed to create desktop checkout session",
+        details: error.message,
+      });
+    }
+  });
+
+  app.post("/api/desktop/billing/portal", requireAuth, async (req, res) => {
+    try {
+      if (!requireStripeConfigured(res)) {
+        return;
+      }
+
+      const user = req.user!;
+      if (!user.stripeCustomerId) {
+        return res.status(400).json({
+          error: "No subscription account found yet. Start a PSForge Pro subscription first.",
+        });
+      }
+
+      const publicBaseUrl = getDesktopPublicBaseUrl(req);
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${publicBaseUrl}/desktop?billing=return`,
+      });
+
+      return res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Desktop portal error:", error);
+      return res.status(500).json({
+        error: "Failed to create desktop billing portal session",
+        details: error.message,
       });
     }
   });

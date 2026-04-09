@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, ExternalLink, FileCode, FolderOpen, GitBranch, HardDriveDownload, History, LayoutGrid, Plus, RefreshCcw, ShieldCheck, Sparkles, Wand2, Wrench, X } from "lucide-react";
+import { CreditCard, Download, ExternalLink, FileCode, FolderOpen, GitBranch, HardDriveDownload, History, LayoutGrid, Plus, RefreshCcw, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,17 @@ import {
   subscribeToDesktopUpdates,
   writeDesktopScriptFile,
 } from "@/lib/desktop";
-import { desktopSignInWithPassword, fetchDesktopLicense, getDesktopApiBaseUrl, getDesktopAuthState, getDesktopCachedLicense, hasStoredDesktopSession } from "@/lib/desktop-auth";
+import {
+  createDesktopBillingCheckout,
+  createDesktopBillingPortal,
+  desktopRegisterAccount,
+  desktopSignInWithPassword,
+  fetchDesktopLicense,
+  getDesktopApiBaseUrl,
+  getDesktopAuthState,
+  getDesktopCachedLicense,
+  hasStoredDesktopSession,
+} from "@/lib/desktop-auth";
 import { queryClient } from "@/lib/queryClient";
 import type { ScriptCommand } from "@shared/schema";
 import { ScriptGeneratorTab } from "@/components/script-generator-tab";
@@ -88,6 +98,14 @@ export default function DesktopWorkspace() {
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
   const [desktopSignInLoading, setDesktopSignInLoading] = useState(false);
   const [desktopSignOutLoading, setDesktopSignOutLoading] = useState(false);
+  const [desktopRegisterLoading, setDesktopRegisterLoading] = useState(false);
+  const [billingActionLoading, setBillingActionLoading] = useState<null | "checkout" | "portal">(null);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState("");
+  const [checkoutPromoCode, setCheckoutPromoCode] = useState("");
   const [licenseEmail, setLicenseEmail] = useState("");
   const [licensePassword, setLicensePassword] = useState("");
   const [licenseStatusMessage, setLicenseStatusMessage] = useState<string | null>(null);
@@ -99,6 +117,7 @@ export default function DesktopWorkspace() {
   const [updateState, setUpdateState] = useState<{ state: string; version?: string; percent?: number; message?: string }>({ state: "idle" });
   const [manualUpdateChecking, setManualUpdateChecking] = useState(false);
   const pollTimerRef = useRef<number | null>(null);
+  const checkoutRefreshTimerRef = useRef<number | null>(null);
   const cachedLicense = desktopSession.license || getDesktopCachedLicense();
   const cachedUser = desktopSession.user || null;
   const visibleUser = user || cachedUser;
@@ -155,6 +174,9 @@ export default function DesktopWorkspace() {
     return () => {
       if (pollTimerRef.current) {
         window.clearTimeout(pollTimerRef.current);
+      }
+      if (checkoutRefreshTimerRef.current) {
+        window.clearTimeout(checkoutRefreshTimerRef.current);
       }
     };
   }, []);
@@ -504,9 +526,105 @@ export default function DesktopWorkspace() {
     setDesktopSignInLoading(false);
   };
 
+  const resetDesktopRegistrationForm = () => {
+    setRegisterName("");
+    setRegisterEmail("");
+    setRegisterPassword("");
+    setRegisterPasswordConfirm("");
+  };
+
+  const scheduleProAccessRefresh = (attempt = 0) => {
+    if (checkoutRefreshTimerRef.current) {
+      window.clearTimeout(checkoutRefreshTimerRef.current);
+      checkoutRefreshTimerRef.current = null;
+    }
+
+    checkoutRefreshTimerRef.current = window.setTimeout(async () => {
+      try {
+        const result = await fetchDesktopLicense();
+        setDesktopSession(getDesktopAuthState());
+        await refetch();
+
+        if (result.license.isPro) {
+          setLicenseStatusTone("default");
+          setLicenseStatusMessage(`PSForge Pro is active on this desktop app via ${result.license.plan || "your subscription"}.`);
+          toast({
+            title: "PSForge Pro activated",
+            description: "Your subscription checkout completed and Pro features are now enabled.",
+          });
+          return;
+        }
+      } catch {
+        // Ignore transient polling errors and allow the next attempt.
+      }
+
+      if (attempt < 7) {
+        scheduleProAccessRefresh(attempt + 1);
+      }
+    }, 15_000);
+  };
+
+  const handleDesktopRegister = async () => {
+    const trimmedName = registerName.trim();
+    const trimmedEmail = registerEmail.trim();
+
+    if (!trimmedName || !trimmedEmail || !registerPassword.trim()) {
+      setLicenseStatusTone("destructive");
+      setLicenseStatusMessage("Name, email, and password are required to create your PSForge account.");
+      return;
+    }
+
+    if (registerPassword !== registerPasswordConfirm) {
+      setLicenseStatusTone("destructive");
+      setLicenseStatusMessage("The confirmation password does not match.");
+      return;
+    }
+
+    setDesktopRegisterLoading(true);
+    setLicenseStatusMessage(null);
+    setLicenseStatusTone("default");
+
+    try {
+      const result = await desktopRegisterAccount(trimmedName, trimmedEmail, registerPassword);
+      setDesktopSession(getDesktopAuthState());
+      await queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+      await refetch();
+      setLicenseEmail(result.user.email);
+      setLicensePassword("");
+      setAccountDialogOpen(false);
+      resetDesktopRegistrationForm();
+      setLicenseStatusMessage(
+        result.license.isPro
+          ? `Account created and connected to ${result.license.plan || "PSForge Pro"}.`
+          : "Account created. You’re signed in with free access and can upgrade to PSForge Pro any time.",
+      );
+      setLicenseStatusTone("default");
+      toast({
+        title: "Account created",
+        description: result.license.isPro
+          ? "Your new PSForge account is connected and Pro access is ready."
+          : "Your new PSForge account is connected. Upgrade securely to PSForge Pro when you’re ready.",
+      });
+    } catch (error: any) {
+      setLicenseStatusTone("destructive");
+      setLicenseStatusMessage(error?.message || "Could not create the PSForge account.");
+      toast({
+        title: "Account creation failed",
+        description: error?.message || "Could not create the PSForge account.",
+        variant: "destructive",
+      });
+    } finally {
+      setDesktopRegisterLoading(false);
+    }
+  };
+
   const handleDesktopSignOut = async () => {
     setDesktopSignOutLoading(true);
     try {
+      if (checkoutRefreshTimerRef.current) {
+        window.clearTimeout(checkoutRefreshTimerRef.current);
+        checkoutRefreshTimerRef.current = null;
+      }
       await logout();
       setDesktopSession(getDesktopAuthState());
       setLicenseEmail("");
@@ -527,6 +645,65 @@ export default function DesktopWorkspace() {
       });
     } finally {
       setDesktopSignOutLoading(false);
+    }
+  };
+
+  const handleUpgradeToPro = async () => {
+    if (!visibleUser) {
+      setLicenseStatusTone("destructive");
+      setLicenseStatusMessage("Sign in first, then start the secure PSForge Pro checkout.");
+      return;
+    }
+
+    setBillingActionLoading("checkout");
+    try {
+      const { url } = await createDesktopBillingCheckout(checkoutPromoCode);
+      await openExternalUrl(url);
+      setLicenseStatusTone("default");
+      setLicenseStatusMessage("Secure Stripe checkout opened in your browser. Complete the subscription there, then PSForge Desktop will refresh your access automatically.");
+      toast({
+        title: "Secure checkout opened",
+        description: "Finish the recurring PSForge Pro subscription in your browser. We’ll keep checking for the updated license.",
+      });
+      scheduleProAccessRefresh();
+    } catch (error: any) {
+      setLicenseStatusTone("destructive");
+      setLicenseStatusMessage(error?.message || "Could not start the secure checkout.");
+      toast({
+        title: "Checkout unavailable",
+        description: error?.message || "Could not start the secure checkout.",
+        variant: "destructive",
+      });
+    } finally {
+      setBillingActionLoading(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    if (!visibleUser) {
+      setLicenseStatusTone("destructive");
+      setLicenseStatusMessage("Sign in first to manage your PSForge subscription.");
+      return;
+    }
+
+    setBillingActionLoading("portal");
+    try {
+      const { url } = await createDesktopBillingPortal();
+      await openExternalUrl(url);
+      toast({
+        title: "Subscription portal opened",
+        description: "Your secure Stripe billing portal is open in your browser.",
+      });
+    } catch (error: any) {
+      setLicenseStatusTone("destructive");
+      setLicenseStatusMessage(error?.message || "Could not open the subscription portal.");
+      toast({
+        title: "Subscription portal unavailable",
+        description: error?.message || "Could not open the subscription portal.",
+        variant: "destructive",
+      });
+    } finally {
+      setBillingActionLoading(null);
     }
   };
 
@@ -625,17 +802,30 @@ export default function DesktopWorkspace() {
                     <div className="rounded-lg border bg-background/60 p-3">Keeps desktop access in sync if your subscription changes on the website.</div>
                   </div>
                 </div>
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+                  <div className="flex items-center gap-2 text-base font-semibold">
+                    <CreditCard className="h-4 w-4 text-primary" />
+                    PSForge Pro subscription
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    PSForge Pro is a paid recurring subscription. Purchases and renewals are processed securely through Stripe-hosted checkout tied to your PSForge account.
+                  </div>
+                  <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                    <div className="rounded-lg border bg-background/60 p-3">Free tier: local editor, script tabs, file saves, recovery, and core desktop workflow.</div>
+                    <div className="rounded-lg border bg-background/60 p-3">Pro tier: AI tools, premium automation features, and advanced PSForge workflows.</div>
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-3">
-                  <Button variant="outline" onClick={() => openExternalUrl(`${getDesktopApiBaseUrl()}/signup`)}>
-                    Create Account on PSForge
-                    <ExternalLink className="ml-2 h-4 w-4" />
+                  <Button variant="outline" onClick={() => setAccountDialogOpen(true)}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Create Account in App
                   </Button>
                   <Button variant="ghost" onClick={() => openExternalUrl(getDesktopApiBaseUrl())}>
                     Visit PSForge Website
                   </Button>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Account creation and subscription management happen on the PSForge website. After creating an account there, sign in here to continue.
+                  You can create a new PSForge account here, or visit the website for plan details and support resources.
                 </div>
               </div>
 
@@ -698,14 +888,15 @@ export default function DesktopWorkspace() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => openExternalUrl(`${getDesktopApiBaseUrl()}/signup`)}
+                    onClick={() => setAccountDialogOpen(true)}
                   >
-                    Create Account on PSForge
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Create Account
                   </Button>
                 </div>
 
                 <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  Signing in here links this Windows app to your PSForge account. Desktop access and Pro features will follow the license state from the website.
+                  Signing in here links this Windows app to your PSForge account. Free desktop access is available after sign-in, and PSForge Pro can be purchased securely through Stripe when you want premium features.
                 </div>
               </div>
             </CardContent>
@@ -866,7 +1057,76 @@ export default function DesktopWorkspace() {
                     {desktopSignOutLoading ? "Disconnecting..." : "Disconnect License"}
                   </Button>
                 )}
+                {!visibleUser && (
+                  <Button
+                    className="w-full"
+                    variant="ghost"
+                    onClick={() => setAccountDialogOpen(true)}
+                  >
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Create Account
+                  </Button>
+                )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription</CardTitle>
+              <CardDescription>PSForge Pro is a paid recurring subscription processed securely by Stripe.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                Free tier includes the local editor, script tabs, save/open, recovery cache, and core desktop scripting workflow.
+              </div>
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                Pro adds AI-assisted scripting, premium automation features, and advanced PSForge workflows. Billing and renewals happen in secure Stripe-hosted pages opened in your browser.
+              </div>
+              {visibleUser ? (
+                <>
+                  <div className="text-sm text-muted-foreground">
+                    {hasProAccess
+                      ? `Current plan: ${cachedLicense?.plan || "PSForge Pro"}`
+                      : "Current plan: Free tier"}
+                  </div>
+                  {!hasProAccess && (
+                    <div className="space-y-2">
+                      <Label htmlFor="desktop-promo-code">Promo Code</Label>
+                      <Input
+                        id="desktop-promo-code"
+                        value={checkoutPromoCode}
+                        onChange={(event) => setCheckoutPromoCode(event.target.value.toUpperCase())}
+                        placeholder="Optional promo code"
+                      />
+                    </div>
+                  )}
+                  <div className="grid gap-2">
+                    {!hasProAccess && (
+                      <Button
+                        className="w-full"
+                        onClick={handleUpgradeToPro}
+                        disabled={billingActionLoading !== null}
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        {billingActionLoading === "checkout" ? "Opening Secure Checkout..." : "Upgrade to Pro with Secure Stripe Checkout"}
+                      </Button>
+                    )}
+                    <Button
+                      className="w-full"
+                      variant={hasProAccess ? "outline" : "ghost"}
+                      onClick={handleManageSubscription}
+                      disabled={billingActionLoading !== null || !visibleUser}
+                    >
+                      {billingActionLoading === "portal" ? "Opening Subscription Portal..." : "Manage Subscription"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
+                  Sign in or create an account first. Once connected, you can upgrade securely to PSForge Pro from this desktop app.
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1072,6 +1332,78 @@ export default function DesktopWorkspace() {
                 Save and Close
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={accountDialogOpen}
+        onOpenChange={(open) => {
+          setAccountDialogOpen(open);
+          if (!open) {
+            resetDesktopRegistrationForm();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create your PSForge account</DialogTitle>
+            <DialogDescription>
+              Create a free PSForge account here, then upgrade securely to PSForge Pro with Stripe whenever you want premium desktop features.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="desktop-register-name">Name</Label>
+              <Input
+                id="desktop-register-name"
+                value={registerName}
+                onChange={(event) => setRegisterName(event.target.value)}
+                placeholder="Your name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desktop-register-email">Email</Label>
+              <Input
+                id="desktop-register-email"
+                type="email"
+                value={registerEmail}
+                onChange={(event) => setRegisterEmail(event.target.value)}
+                placeholder="you@company.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desktop-register-password">Password</Label>
+              <Input
+                id="desktop-register-password"
+                type="password"
+                value={registerPassword}
+                onChange={(event) => setRegisterPassword(event.target.value)}
+                placeholder="At least 8 characters"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desktop-register-password-confirm">Confirm Password</Label>
+              <Input
+                id="desktop-register-password-confirm"
+                type="password"
+                value={registerPasswordConfirm}
+                onChange={(event) => setRegisterPasswordConfirm(event.target.value)}
+                placeholder="Re-enter your password"
+              />
+            </div>
+            <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+              Your account is stored and licensed through the PSForge web platform. This desktop app will connect to it immediately after creation.
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAccountDialogOpen(false)} disabled={desktopRegisterLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleDesktopRegister} disabled={desktopRegisterLoading}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              {desktopRegisterLoading ? "Creating Account..." : "Create Account"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

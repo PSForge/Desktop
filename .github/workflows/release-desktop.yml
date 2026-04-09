@@ -16,6 +16,9 @@ jobs:
 
     env:
       DESKTOP_OUTPUT_DIR: release-publish
+      AZURE_STORE_STORAGE_ACCOUNT: psforgedownloads01
+      AZURE_STORE_STORAGE_CONTAINER: store-packages
+      AZURE_STORE_STORAGE_PREFIX: psforge
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -40,6 +43,9 @@ jobs:
 
       - name: Build desktop app
         run: npm run build
+
+      - name: Patch MSI cleanup template
+        run: npm run desktop:patch-msi
 
       - name: Azure login
         uses: azure/login@v2
@@ -156,6 +162,44 @@ jobs:
             --config.win.azureSignOptions.fileDigest=SHA256 `
             --config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com `
             --config.win.azureSignOptions.timestampDigest=SHA256
+
+      - name: Resolve release metadata
+        id: release_meta
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $msi = Get-ChildItem -Path $env:DESKTOP_OUTPUT_DIR -Filter "PSForge-Desktop-Store-$version-x64.msi" | Select-Object -First 1
+          if (!$msi) {
+            throw "Could not find MSI artifact for version $version."
+          }
+
+          $blobName = "$($env:AZURE_STORE_STORAGE_PREFIX.Trim('/'))/$version/$($msi.Name)"
+          $blobUrl = "https://$($env:AZURE_STORE_STORAGE_ACCOUNT).blob.core.windows.net/$($env:AZURE_STORE_STORAGE_CONTAINER)/$blobName"
+
+          "release_version=$version" >> $env:GITHUB_OUTPUT
+          "msi_name=$($msi.Name)" >> $env:GITHUB_OUTPUT
+          "msi_path=$($msi.FullName)" >> $env:GITHUB_OUTPUT
+          "msi_blob_name=$blobName" >> $env:GITHUB_OUTPUT
+          "msi_blob_url=$blobUrl" >> $env:GITHUB_OUTPUT
+
+      - name: Upload MSI to Azure Blob Storage
+        shell: pwsh
+        run: |
+          az storage blob upload `
+            --auth-mode login `
+            --account-name $env:AZURE_STORE_STORAGE_ACCOUNT `
+            --container-name $env:AZURE_STORE_STORAGE_CONTAINER `
+            --name "${{ steps.release_meta.outputs.msi_blob_name }}" `
+            --file "${{ steps.release_meta.outputs.msi_path }}" `
+            --overwrite true
+
+      - name: Publish Azure MSI URL
+        shell: pwsh
+        run: |
+          @"
+          MSI uploaded to Azure Blob Storage:
+          ${{ steps.release_meta.outputs.msi_blob_url }}
+          "@ | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
       - name: Verify update metadata
         shell: pwsh

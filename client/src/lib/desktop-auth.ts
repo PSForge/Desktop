@@ -27,6 +27,10 @@ type DesktopAuthResponse = {
   license: DesktopLicense;
 };
 
+type DesktopBillingResponse = {
+  url: string;
+};
+
 const STORAGE_KEY = "psforge-desktop-auth";
 const DEFAULT_WEB_URL = "https://www.psforge.app";
 
@@ -278,6 +282,28 @@ export async function desktopSignInWithPassword(email: string, password: string)
   return data;
 }
 
+export async function desktopRegisterAccount(name: string, email: string, password: string) {
+  let response: Awaited<ReturnType<typeof desktopAwareRequest>>;
+  try {
+    response = await desktopAwareRequest(getDesktopRequestUrl("/api/desktop/register"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+  } catch {
+    throw new Error("Desktop account creation could not reach the PSForge service.");
+  }
+
+  const data = await readJsonResponse<DesktopAuthResponse>(response, "Desktop account creation failed.");
+  saveDesktopAuthState({
+    apiBaseUrl: getDefaultDesktopApiBaseUrl(),
+    token: data.token,
+    user: data.user,
+    license: data.license,
+  });
+  return data;
+}
+
 export async function fetchDesktopLicense() {
   const headers = {
     "Content-Type": "application/json",
@@ -326,6 +352,44 @@ export async function deauthorizeDesktopLicense() {
   } finally {
     clearDesktopAuthState();
   }
+}
+
+export async function createDesktopBillingCheckout(promoCode?: string) {
+  let response: Awaited<ReturnType<typeof desktopAwareRequest>>;
+  try {
+    response = await desktopAwareRequest(getDesktopRequestUrl("/api/desktop/billing/checkout"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getDesktopAuthHeader(),
+      },
+      body: JSON.stringify({
+        promoCode: promoCode?.trim() || undefined,
+      }),
+    });
+  } catch {
+    throw new Error("Secure Stripe checkout could not reach the PSForge billing service.");
+  }
+
+  return readJsonResponse<DesktopBillingResponse>(response, "Could not start the PSForge Pro checkout.");
+}
+
+export async function createDesktopBillingPortal() {
+  let response: Awaited<ReturnType<typeof desktopAwareRequest>>;
+  try {
+    response = await desktopAwareRequest(getDesktopRequestUrl("/api/desktop/billing/portal"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getDesktopAuthHeader(),
+      },
+      body: JSON.stringify({}),
+    });
+  } catch {
+    throw new Error("Subscription management could not reach the PSForge billing service.");
+  }
+
+  return readJsonResponse<DesktopBillingResponse>(response, "Could not open subscription management.");
 }
 
 export function mapDesktopLicenseToAuthPayload() {

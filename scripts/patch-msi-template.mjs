@@ -33,7 +33,7 @@ async function patchMsiTemplate() {
     </ComponentGroup>
 
     <ComponentGroup Id="CleanupApplicationFolder" Directory="APPLICATIONFOLDER">
-      <Component>
+      <Component Id="CleanupApplicationFolderComponent" Guid="*">
         <CreateFolder/>
         <RemoveFolder Id="RemoveApplicationFolder" Directory="APPLICATIONFOLDER" On="uninstall"/>
       </Component>

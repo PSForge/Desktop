@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CreditCard, Download, ExternalLink, FileCode, FolderOpen, GitBranch, HardDriveDownload, History, LayoutGrid, Plus, RefreshCcw, Settings2, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
+import { CreditCard, ExternalLink, FileCode, GitBranch, History, LayoutGrid, Plus, RefreshCcw, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -27,6 +20,7 @@ import {
   removeDesktopStorageItem,
   saveDesktopScript,
   setDesktopStorageItem,
+  subscribeToDesktopMenuActions,
   subscribeToDesktopUpdates,
   writeDesktopScriptFile,
 } from "@/lib/desktop";
@@ -126,7 +120,6 @@ export default function DesktopWorkspace() {
   const [desktopSession, setDesktopSession] = useState(() => getDesktopAuthState());
   const [desktopVersion, setDesktopVersion] = useState("1.0.0");
   const [updateState, setUpdateState] = useState<{ state: string; version?: string; percent?: number; message?: string }>({ state: "idle" });
-  const [manualUpdateChecking, setManualUpdateChecking] = useState(false);
   const pollTimerRef = useRef<number | null>(null);
   const checkoutRefreshTimerRef = useRef<number | null>(null);
   const cachedLicense = desktopSession.license || getDesktopCachedLicense();
@@ -223,7 +216,6 @@ export default function DesktopWorkspace() {
     const unsubscribe = subscribeToDesktopUpdates((payload) => {
       if (mounted) {
         setUpdateState(payload);
-        setManualUpdateChecking(false);
       }
     });
 
@@ -719,49 +711,56 @@ export default function DesktopWorkspace() {
   };
 
   const handleCheckForUpdates = async () => {
-    setManualUpdateChecking(true);
-    try {
-      const nextState = await checkForDesktopUpdates();
-      if (nextState) {
-        setUpdateState(nextState);
-      }
-    } finally {
-      setManualUpdateChecking(false);
-    }
-  };
-
-  const renderUpdateControl = () => {
     if (updateState.state === "downloaded") {
-      return (
-        <Button variant="outline" onClick={() => installDesktopUpdate()}>
-          <Download className="mr-2 h-4 w-4" />
-          Restart to Update
-        </Button>
-      );
+      await installDesktopUpdate();
+      return;
     }
 
-    if (updateState.state === "downloading") {
-      return <Badge variant="secondary">Downloading update {Math.round(updateState.percent || 0)}%</Badge>;
+    const nextState = await checkForDesktopUpdates();
+    if (nextState) {
+      setUpdateState(nextState);
     }
-
-    if (updateState.state === "checking" || manualUpdateChecking) {
-      return <Badge variant="secondary">Checking for updates</Badge>;
-    }
-
-    if (updateState.state === "error") {
-      return (
-        <Button variant="outline" onClick={handleCheckForUpdates}>
-          Retry Updates
-        </Button>
-      );
-    }
-
-    return (
-      <Button variant="ghost" onClick={handleCheckForUpdates}>
-        Check Updates
-      </Button>
-    );
   };
+
+  useEffect(() => {
+    const unsubscribe = subscribeToDesktopMenuActions((action) => {
+      switch (action) {
+        case "file:new":
+          createNewScriptTab();
+          break;
+        case "file:open":
+          void handleOpenScript();
+          break;
+        case "file:save":
+          void handleSaveScript();
+          break;
+        case "file:save-as":
+          void handleSaveAs();
+          break;
+        case "file:recent":
+          setAppSettingsView("recent");
+          break;
+        case "settings:license":
+          setAppSettingsView("license");
+          break;
+        case "settings:subscription":
+          setAppSettingsView("subscription");
+          break;
+        case "settings:recovery":
+          setAppSettingsView("recovery");
+          break;
+        case "settings:check-updates":
+          void handleCheckForUpdates();
+          break;
+        default:
+          break;
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [createNewScriptTab, handleOpenScript, handleSaveAs, handleSaveScript]);
 
   const pendingCloseTab = pendingTabCloseId
     ? scriptTabs.find((tab) => tab.id === pendingTabCloseId) || null
@@ -1070,7 +1069,6 @@ export default function DesktopWorkspace() {
                   <Badge variant="outline">v{desktopVersion}</Badge>
                 </div>
               </div>
-              {renderUpdateControl()}
             </div>
           </div>
 
@@ -1248,66 +1246,10 @@ export default function DesktopWorkspace() {
           </div>
 
           <div className="flex items-center gap-2">
-            {renderUpdateControl()}
             <Badge variant={hasProAccess ? "default" : "secondary"}>
               <ShieldCheck className="mr-1 h-3.5 w-3.5" />
               {accessLabel}
             </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">File</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={createNewScriptTab}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Script
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleOpenScript}>
-                  <FolderOpen className="mr-2 h-4 w-4" />
-                  Open
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSaveScript} disabled={!activeScriptTab}>
-                  <HardDriveDownload className="mr-2 h-4 w-4" />
-                  Save Local
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSaveAs} disabled={!activeScriptTab}>
-                  <HardDriveDownload className="mr-2 h-4 w-4" />
-                  Save As
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setAppSettingsView("recent")}>
-                  <History className="mr-2 h-4 w-4" />
-                  Recent Files
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Settings2 className="mr-2 h-4 w-4" />
-                  App Settings
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuItem onClick={() => setAppSettingsView("license")}>
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  Account & License
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setAppSettingsView("subscription")}>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Subscription & Billing
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setAppSettingsView("recovery")}>
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Workspace Recovery
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => openExternalUrl(getDesktopApiBaseUrl())}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open PSForge Website
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </div>

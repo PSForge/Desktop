@@ -28,6 +28,12 @@ let isQuitting = false;
 let updateCheckInterval = null;
 let latestUpdateStatus = { state: "idle" };
 
+function sendMenuAction(action) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("desktop:menu-action", action);
+  }
+}
+
 function getDesktopStoragePath() {
   return path.join(app.getPath("userData"), "desktop-storage.json");
 }
@@ -519,6 +525,132 @@ function showMainWindow() {
   }
   mainWindow.show();
   mainWindow.focus();
+}
+
+function createApplicationMenu() {
+  const isMac = process.platform === "darwin";
+  const template = [
+    ...(isMac
+      ? [{
+          label: app.name,
+          submenu: [
+            { role: "about" },
+            { type: "separator" },
+            { role: "services" },
+            { type: "separator" },
+            { role: "hide" },
+            { role: "hideOthers" },
+            { role: "unhide" },
+            { type: "separator" },
+            {
+              label: "Quit PSForge",
+              accelerator: "CmdOrCtrl+Q",
+              click: () => {
+                isQuitting = true;
+                app.quit();
+              },
+            },
+          ],
+        }]
+      : []),
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "New Script",
+          accelerator: "CmdOrCtrl+N",
+          click: () => sendMenuAction("file:new"),
+        },
+        {
+          label: "Open",
+          accelerator: "CmdOrCtrl+O",
+          click: () => sendMenuAction("file:open"),
+        },
+        {
+          label: "Save Local",
+          accelerator: "CmdOrCtrl+S",
+          click: () => sendMenuAction("file:save"),
+        },
+        {
+          label: "Save As",
+          accelerator: "CmdOrCtrl+Shift+S",
+          click: () => sendMenuAction("file:save-as"),
+        },
+        { type: "separator" },
+        {
+          label: "Recent Files",
+          click: () => sendMenuAction("file:recent"),
+        },
+        ...(isMac ? [] : [{ type: "separator" }, { role: "quit", label: "Exit" }]),
+      ],
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+      ],
+    },
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+        ...(isDev ? [{ type: "separator" }, { role: "toggleDevTools" }] : []),
+      ],
+    },
+    {
+      label: "Window",
+      submenu: [
+        { role: "minimize" },
+        { role: "close" },
+      ],
+    },
+    {
+      label: "App Settings",
+      submenu: [
+        {
+          label: "Account & License",
+          click: () => sendMenuAction("settings:license"),
+        },
+        {
+          label: "Subscription & Billing",
+          click: () => sendMenuAction("settings:subscription"),
+        },
+        {
+          label: "Workspace Recovery",
+          click: () => sendMenuAction("settings:recovery"),
+        },
+        { type: "separator" },
+        {
+          label: "Check for Updates",
+          click: () => sendMenuAction("settings:check-updates"),
+        },
+      ],
+    },
+    {
+      label: "Help",
+      submenu: [
+        {
+          label: "PSForge Website",
+          click: () => shell.openExternal("https://www.psforge.app"),
+        },
+      ],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 function createTray() {
@@ -1013,10 +1145,11 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
   }
 });
 
-app.whenReady().then(async () => {
+  app.whenReady().then(async () => {
   app.setAppUserModelId("com.psforge.desktop");
   createSplashWindow();
   await startLocalFrontendServer();
+  createApplicationMenu();
   createWindow();
   createTray();
   configureAutoUpdater();

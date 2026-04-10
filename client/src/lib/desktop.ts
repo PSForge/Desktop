@@ -59,6 +59,17 @@ export interface DesktopUpdateState {
   timestamp?: string;
 }
 
+export type DesktopMenuAction =
+  | "file:new"
+  | "file:open"
+  | "file:save"
+  | "file:save-as"
+  | "file:recent"
+  | "settings:license"
+  | "settings:subscription"
+  | "settings:recovery"
+  | "settings:check-updates";
+
 const desktopApi = () => window.psforgeDesktop;
 
 export function isDesktopApp(): boolean {
@@ -108,6 +119,14 @@ export function subscribeToDesktopUpdates(callback: (payload: DesktopUpdateState
   }
 
   return desktopApi()!.onUpdateStatus(callback);
+}
+
+export function subscribeToDesktopMenuActions(callback: (action: DesktopMenuAction) => void) {
+  if (!isDesktopApp() || typeof desktopApi()?.onMenuAction !== "function") {
+    return () => undefined;
+  }
+
+  return desktopApi()!.onMenuAction(callback);
 }
 
 export async function openDesktopScript(): Promise<DesktopScriptFile | null> {

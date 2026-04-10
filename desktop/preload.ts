@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld("psforgeDesktop", {
       ipcRenderer.removeListener("desktop:update-status", listener);
     };
   },
+  onMenuAction: (callback: (action: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, action: string) => callback(action);
+    ipcRenderer.on("desktop:menu-action", listener);
+    return () => {
+      ipcRenderer.removeListener("desktop:menu-action", listener);
+    };
+  },
   openScript: () => ipcRenderer.invoke("desktop:open-script"),
   saveScript: (payload: { content: string; defaultFileName?: string }) =>
     ipcRenderer.invoke("desktop:save-script", payload),

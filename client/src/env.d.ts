@@ -70,6 +70,20 @@ interface Window {
     checkForUpdates: () => Promise<DesktopUpdateState>;
     installUpdate: () => Promise<{ ok: boolean }>;
     onUpdateStatus: (callback: (payload: DesktopUpdateState) => void) => () => void;
+    onMenuAction: (
+      callback: (
+        action:
+          | "file:new"
+          | "file:open"
+          | "file:save"
+          | "file:save-as"
+          | "file:recent"
+          | "settings:license"
+          | "settings:subscription"
+          | "settings:recovery"
+          | "settings:check-updates",
+      ) => void,
+    ) => () => void;
     openScript: () => Promise<DesktopScriptFileResult>;
     saveScript: (payload: { content: string; defaultFileName?: string }) => Promise<DesktopScriptFileResult>;
     writeScriptFile: (payload: { filePath: string; content: string }) => Promise<DesktopScriptFileResult>;

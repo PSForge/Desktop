@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CreditCard, Download, ExternalLink, FileCode, FolderOpen, GitBranch, HardDriveDownload, History, LayoutGrid, Plus, RefreshCcw, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
+import { CreditCard, Download, ExternalLink, FileCode, FolderOpen, GitBranch, HardDriveDownload, History, LayoutGrid, Plus, RefreshCcw, Settings2, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -15,6 +22,7 @@ import {
   getDesktopStorageItem,
   installDesktopUpdate,
   openExternalUrl,
+  openDesktopPath,
   openDesktopScript,
   removeDesktopStorageItem,
   saveDesktopScript,
@@ -58,6 +66,8 @@ type ScriptWorkspaceTab = {
   lastSavedContent: string;
   openedAt: string;
 };
+
+type AppSettingsView = "license" | "subscription" | "recovery" | "recent" | null;
 
 const RECOVERY_KEY = "psforge-desktop-recovery";
 const RECENTS_KEY = "psforge-desktop-recent-files";
@@ -112,6 +122,7 @@ export default function DesktopWorkspace() {
   const [licenseStatusTone, setLicenseStatusTone] = useState<"default" | "destructive">("default");
   const [recoveryFound, setRecoveryFound] = useState(false);
   const [pendingTabCloseId, setPendingTabCloseId] = useState<string | null>(null);
+  const [appSettingsView, setAppSettingsView] = useState<AppSettingsView>(null);
   const [desktopSession, setDesktopSession] = useState(() => getDesktopAuthState());
   const [desktopVersion, setDesktopVersion] = useState("1.0.0");
   const [updateState, setUpdateState] = useState<{ state: string; version?: string; percent?: number; message?: string }>({ state: "idle" });
@@ -830,6 +841,218 @@ export default function DesktopWorkspace() {
     </Dialog>
   );
 
+  const handleOpenRecentFileLocation = async (filePath?: string) => {
+    if (!filePath) {
+      return;
+    }
+
+    await openDesktopPath(filePath);
+  };
+
+  const appSettingsDialogMeta: Record<Exclude<AppSettingsView, null>, { title: string; description: string }> = {
+    license: {
+      title: "Account & License",
+      description: "Connect this Windows app to your PSForge account and refresh desktop access.",
+    },
+    subscription: {
+      title: "Subscription & Billing",
+      description: "Manage PSForge Pro access and secure Stripe-hosted billing actions.",
+    },
+    recovery: {
+      title: "Workspace Recovery",
+      description: "Review the local recovery cache that protects unsaved desktop work.",
+    },
+    recent: {
+      title: "Recent Files",
+      description: "Review the PowerShell files this desktop workspace has opened recently.",
+    },
+  };
+
+  const renderAppSettingsContent = () => {
+    switch (appSettingsView) {
+      case "license":
+        return (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              {visibleUser ? `Signed in as ${visibleUser.email}` : "Not signed in yet."}
+            </div>
+            {cachedLicense?.validUntil && (
+              <div className="text-xs text-muted-foreground">
+                License valid until {new Date(cachedLicense.validUntil).toLocaleString()}
+              </div>
+            )}
+            {visibleUser && !hasProAccess && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                This account is connected, but it does not currently have an active Pro desktop license.
+              </div>
+            )}
+            {!user && visibleUser && (
+              <div className="rounded-md border bg-primary/5 p-3 text-xs text-muted-foreground">
+                Saved desktop license found. Revalidating it with PSForge now.
+              </div>
+            )}
+            {!visibleUser && (
+              <>
+                <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  License activation is handled by your PSForge web account at {getDesktopApiBaseUrl()}.
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="desktop-license-email">Email</Label>
+                  <Input
+                    id="desktop-license-email"
+                    type="email"
+                    value={licenseEmail}
+                    onChange={(e) => setLicenseEmail(e.target.value)}
+                    placeholder="you@psforge.app"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="desktop-license-password">Password</Label>
+                  <Input
+                    id="desktop-license-password"
+                    type="password"
+                    value={licensePassword}
+                    onChange={(e) => setLicensePassword(e.target.value)}
+                    placeholder="Enter your PSForge password"
+                  />
+                </div>
+              </>
+            )}
+            {licenseStatusMessage && (
+              <div className={`rounded-md border p-3 text-sm ${
+                licenseStatusTone === "destructive"
+                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                  : "border-primary/20 bg-primary/10 text-foreground"
+              }`}>
+                {licenseStatusMessage}
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDesktopSignIn}
+                disabled={desktopSignInLoading || desktopSignOutLoading || (!visibleUser && (!licenseEmail.trim() || !licensePassword.trim()))}
+              >
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                {desktopSignInLoading ? "Connecting..." : visibleUser ? "Refresh License" : "Connect License"}
+              </Button>
+              {visibleUser ? (
+                <Button
+                  variant="ghost"
+                  onClick={handleDesktopSignOut}
+                  disabled={desktopSignInLoading || desktopSignOutLoading}
+                >
+                  {desktopSignOutLoading ? "Disconnecting..." : "Disconnect License"}
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={() => setAccountDialogOpen(true)}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create Account
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => openExternalUrl(getDesktopApiBaseUrl())}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Visit PSForge Website
+              </Button>
+            </div>
+          </div>
+        );
+      case "subscription":
+        return (
+          <div className="space-y-4">
+            <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+              Free tier includes the local editor, script tabs, save/open, recovery cache, and core desktop scripting workflow.
+            </div>
+            <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+              Pro adds AI-assisted scripting, premium automation features, and advanced PSForge workflows. Billing and renewals happen in secure Stripe-hosted pages opened in your browser.
+            </div>
+            {visibleUser ? (
+              <>
+                <div className="text-sm text-muted-foreground">
+                  {hasProAccess ? `Current plan: ${cachedLicense?.plan || "PSForge Pro"}` : "Current plan: Free tier"}
+                </div>
+                {!hasProAccess && (
+                  <div className="space-y-2">
+                    <Label htmlFor="desktop-promo-code">Promo Code</Label>
+                    <Input
+                      id="desktop-promo-code"
+                      value={checkoutPromoCode}
+                      onChange={(event) => setCheckoutPromoCode(event.target.value.toUpperCase())}
+                      placeholder="Optional promo code"
+                    />
+                  </div>
+                )}
+                <div className="grid gap-2">
+                  {!hasProAccess && (
+                    <Button onClick={handleUpgradeToPro} disabled={billingActionLoading !== null}>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      {billingActionLoading === "checkout" ? "Opening Secure Checkout..." : "Upgrade to Pro with Secure Stripe Checkout"}
+                    </Button>
+                  )}
+                  <Button
+                    variant={hasProAccess ? "outline" : "ghost"}
+                    onClick={handleManageSubscription}
+                    disabled={billingActionLoading !== null || !visibleUser}
+                  >
+                    {billingActionLoading === "portal" ? "Opening Subscription Portal..." : "Manage Subscription"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
+                Sign in or create an account first. Once connected, you can upgrade securely to PSForge Pro from this desktop app.
+              </div>
+            )}
+          </div>
+        );
+      case "recovery":
+        return (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              {recoveryFound ? "A recovery draft is currently loaded." : "No unsaved recovery draft is active."}
+            </div>
+            <Button variant="ghost" onClick={clearRecovery} disabled={!recoveryFound}>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Clear Recovery Cache
+            </Button>
+          </div>
+        );
+      case "recent":
+        return (
+          <div className="space-y-3">
+            {recentFiles.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No recent files yet.</div>
+            ) : (
+              recentFiles.map((entry) => (
+                <div key={`${entry.fileName}-${entry.openedAt}`} className="rounded-lg border p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate">{entry.fileName}</span>
+                  </div>
+                  {entry.filePath && (
+                    <div className="mt-1 break-all text-xs text-muted-foreground">{entry.filePath}</div>
+                  )}
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Last opened {new Date(entry.openedAt).toLocaleString()}
+                  </div>
+                  {entry.filePath && (
+                    <div className="mt-3">
+                      <Button variant="ghost" size="sm" onClick={() => handleOpenRecentFileLocation(entry.filePath)}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Open in Windows
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (!visibleUser) {
     return (
       <>
@@ -1030,225 +1253,67 @@ export default function DesktopWorkspace() {
               <ShieldCheck className="mr-1 h-3.5 w-3.5" />
               {accessLabel}
             </Badge>
-            <Button variant="outline" onClick={createNewScriptTab}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Script
-            </Button>
-            <Button variant="outline" onClick={handleOpenScript}>
-              <FolderOpen className="mr-2 h-4 w-4" />
-              Open
-            </Button>
-            <Button variant="outline" onClick={handleSaveAs} disabled={!activeScriptTab}>
-              <HardDriveDownload className="mr-2 h-4 w-4" />
-              Save As
-            </Button>
-            <Button onClick={handleSaveScript} disabled={!activeScriptTab}>
-              <HardDriveDownload className="mr-2 h-4 w-4" />
-              Save Local
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">File</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={createNewScriptTab}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Script
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOpenScript}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSaveScript} disabled={!activeScriptTab}>
+                  <HardDriveDownload className="mr-2 h-4 w-4" />
+                  Save Local
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSaveAs} disabled={!activeScriptTab}>
+                  <HardDriveDownload className="mr-2 h-4 w-4" />
+                  Save As
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setAppSettingsView("recent")}>
+                  <History className="mr-2 h-4 w-4" />
+                  Recent Files
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  App Settings
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem onClick={() => setAppSettingsView("license")}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Account & License
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAppSettingsView("subscription")}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Subscription & Billing
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAppSettingsView("recovery")}>
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  Workspace Recovery
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openExternalUrl(getDesktopApiBaseUrl())}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Open PSForge Website
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
 
-      <div className="grid w-full flex-1 min-h-0 gap-4 overflow-hidden p-4 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[360px_minmax(0,1fr)] xl:gap-6 xl:p-6">
-        <div className="min-w-0 space-y-4 overflow-y-auto overflow-x-hidden pr-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>License</CardTitle>
-              <CardDescription>Use your PSForge web account as the license source for desktop access.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-sm text-muted-foreground">
-                {visibleUser ? `Signed in as ${visibleUser.email}` : "Not signed in yet."}
-              </div>
-              {cachedLicense?.validUntil && (
-                <div className="text-xs text-muted-foreground">
-                  License valid until {new Date(cachedLicense.validUntil).toLocaleString()}
-                </div>
-              )}
-              {visibleUser && !hasProAccess && (
-                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-                  This account is connected, but it does not currently have an active Pro desktop license.
-                </div>
-              )}
-              {!user && visibleUser && (
-                <div className="rounded-md border bg-primary/5 p-3 text-xs text-muted-foreground">
-                  Saved desktop license found. Revalidating it with PSForge now.
-                </div>
-              )}
-              {!visibleUser && (
-                <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
-                  License activation is handled by your PSForge web account at {getDesktopApiBaseUrl()}.
-                </div>
-              )}
-              {!visibleUser && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="desktop-license-email">Email</Label>
-                    <Input
-                      id="desktop-license-email"
-                      type="email"
-                      value={licenseEmail}
-                      onChange={(e) => setLicenseEmail(e.target.value)}
-                      placeholder="you@psforge.app"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="desktop-license-password">Password</Label>
-                    <Input
-                      id="desktop-license-password"
-                      type="password"
-                      value={licensePassword}
-                      onChange={(e) => setLicensePassword(e.target.value)}
-                      placeholder="Enter your PSForge password"
-                    />
-                  </div>
-                </>
-              )}
-              {licenseStatusMessage && (
-                <div className={`rounded-md border p-3 text-sm ${
-                  licenseStatusTone === "destructive"
-                    ? "border-destructive/30 bg-destructive/10 text-destructive"
-                    : "border-primary/20 bg-primary/10 text-foreground"
-                }`}>
-                  {licenseStatusMessage}
-                </div>
-              )}
-              <div className="grid gap-2">
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={handleDesktopSignIn}
-                  disabled={desktopSignInLoading || desktopSignOutLoading || (!visibleUser && (!licenseEmail.trim() || !licensePassword.trim()))}
-                >
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  {desktopSignInLoading ? "Connecting..." : visibleUser ? "Refresh License" : "Connect License"}
-                </Button>
-                {visibleUser && (
-                  <Button
-                    className="w-full"
-                    variant="ghost"
-                    onClick={handleDesktopSignOut}
-                    disabled={desktopSignInLoading || desktopSignOutLoading}
-                  >
-                    {desktopSignOutLoading ? "Disconnecting..." : "Disconnect License"}
-                  </Button>
-                )}
-                {!visibleUser && (
-                  <Button
-                    className="w-full"
-                    variant="ghost"
-                    onClick={() => setAccountDialogOpen(true)}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Create Account
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription</CardTitle>
-              <CardDescription>PSForge Pro is a paid recurring subscription processed securely by Stripe.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-                Free tier includes the local editor, script tabs, save/open, recovery cache, and core desktop scripting workflow.
-              </div>
-              <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-                Pro adds AI-assisted scripting, premium automation features, and advanced PSForge workflows. Billing and renewals happen in secure Stripe-hosted pages opened in your browser.
-              </div>
-              {visibleUser ? (
-                <>
-                  <div className="text-sm text-muted-foreground">
-                    {hasProAccess
-                      ? `Current plan: ${cachedLicense?.plan || "PSForge Pro"}`
-                      : "Current plan: Free tier"}
-                  </div>
-                  {!hasProAccess && (
-                    <div className="space-y-2">
-                      <Label htmlFor="desktop-promo-code">Promo Code</Label>
-                      <Input
-                        id="desktop-promo-code"
-                        value={checkoutPromoCode}
-                        onChange={(event) => setCheckoutPromoCode(event.target.value.toUpperCase())}
-                        placeholder="Optional promo code"
-                      />
-                    </div>
-                  )}
-                  <div className="grid gap-2">
-                    {!hasProAccess && (
-                      <Button
-                        className="w-full"
-                        onClick={handleUpgradeToPro}
-                        disabled={billingActionLoading !== null}
-                      >
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        {billingActionLoading === "checkout" ? "Opening Secure Checkout..." : "Upgrade to Pro with Secure Stripe Checkout"}
-                      </Button>
-                    )}
-                    <Button
-                      className="w-full"
-                      variant={hasProAccess ? "outline" : "ghost"}
-                      onClick={handleManageSubscription}
-                      disabled={billingActionLoading !== null || !visibleUser}
-                    >
-                      {billingActionLoading === "portal" ? "Opening Subscription Portal..." : "Manage Subscription"}
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
-                  Sign in or create an account first. Once connected, you can upgrade securely to PSForge Pro from this desktop app.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Workspace Recovery</CardTitle>
-              <CardDescription>Desktop cache protects your work if the app closes unexpectedly.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-sm text-muted-foreground">
-                {recoveryFound ? "A recovery draft is currently loaded." : "No unsaved recovery draft is active."}
-              </div>
-              <Button className="w-full" variant="ghost" onClick={clearRecovery} disabled={!recoveryFound}>
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Clear Recovery Cache
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Files</CardTitle>
-              <CardDescription>Quick reference for the scripts you’ve been working on.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {recentFiles.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No recent files yet.</div>
-              ) : (
-                recentFiles.map((entry) => (
-                  <div key={`${entry.fileName}-${entry.openedAt}`} className="rounded-lg border p-3">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <History className="h-4 w-4 text-muted-foreground" />
-                      {entry.fileName}
-                    </div>
-                    {entry.filePath && (
-                      <div className="mt-1 text-xs text-muted-foreground break-all">{entry.filePath}</div>
-                    )}
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="min-h-0 overflow-hidden">
+      <div className="flex w-full flex-1 min-h-0 overflow-hidden p-4 xl:p-6">
+        <Card className="min-h-0 w-full overflow-hidden">
           <Tabs defaultValue="script" className="flex h-full min-h-0 flex-col">
             <div className="border-b px-4 py-3">
               <div className="flex flex-wrap items-center gap-3">
@@ -1388,6 +1453,18 @@ export default function DesktopWorkspace() {
           </Tabs>
         </Card>
       </div>
+
+      <Dialog open={appSettingsView !== null} onOpenChange={(open) => !open && setAppSettingsView(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{appSettingsView ? appSettingsDialogMeta[appSettingsView].title : "App Settings"}</DialogTitle>
+            <DialogDescription>
+              {appSettingsView ? appSettingsDialogMeta[appSettingsView].description : "Manage desktop settings."}
+            </DialogDescription>
+          </DialogHeader>
+          {renderAppSettingsContent()}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!pendingCloseTab} onOpenChange={(open) => !open && setPendingTabCloseId(null)}>
         <DialogContent>

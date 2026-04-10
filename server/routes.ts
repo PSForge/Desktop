@@ -429,6 +429,63 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
+  app.post("/api/desktop/auth", async (req, res) => {
+    try {
+      const parsed = loginSchema.safeParse(req.body);
+
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid login data",
+          details: parsed.error.errors,
+        });
+      }
+
+      const { email, password } = parsed.data;
+      const user = await storage.getUserByEmail(email);
+
+      if (!user || !user.passwordHash) {
+        return res.status(401).json({
+          error: "Invalid email or password",
+        });
+      }
+
+      const isValid = await verifyPassword(password, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({
+          error: "Invalid email or password",
+        });
+      }
+
+      await storage.updateUser(user.id, { lastLoginAt: new Date().toISOString() });
+
+      return res.json(await buildDesktopAuthResponse(user));
+    } catch (error) {
+      console.error("Desktop sign-in error:", error);
+      return res.status(500).json({
+        error: "Internal server error during desktop sign-in",
+      });
+    }
+  });
+
+  app.get("/api/desktop/license", requireAuth, async (req, res) => {
+    try {
+      return res.json({
+        valid: true,
+        user: getPublicDesktopUser(req.user!),
+        license: await getDesktopLicensePayload(req.user!),
+      });
+    } catch (error) {
+      console.error("Desktop license lookup error:", error);
+      return res.status(500).json({
+        error: "Internal server error during desktop license lookup",
+      });
+    }
+  });
+
+  app.post("/api/desktop/deauth", requireAuth, async (_req, res) => {
+    return res.status(204).send();
+  });
+
   app.post("/auth/login", async (req, res) => {
     try {
       const parsed = loginSchema.safeParse(req.body);

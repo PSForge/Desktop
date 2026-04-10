@@ -756,153 +756,230 @@ export default function DesktopWorkspace() {
     ? scriptTabs.find((tab) => tab.id === pendingTabCloseId) || null
     : null;
 
-  if (!visibleUser) {
-    return (
-      <div className="flex min-h-screen flex-col bg-background text-foreground">
-        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 xl:px-8">
-            <div className="min-w-0">
-              <img
-                src={logoImage}
-                alt="PSForge"
-                className="h-20 w-auto max-w-[360px] object-contain object-left sm:h-24 sm:max-w-[440px] 2xl:h-28 2xl:max-w-[560px]"
-              />
-              <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-                <span>PowerShell Automation Workspace for Windows</span>
-                <Badge variant="outline">v{desktopVersion}</Badge>
-              </div>
-            </div>
-            {renderUpdateControl()}
+  const accountDialog = (
+    <Dialog
+      open={accountDialogOpen}
+      onOpenChange={(open) => {
+        setAccountDialogOpen(open);
+        if (!open) {
+          resetDesktopRegistrationForm();
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create your PSForge account</DialogTitle>
+          <DialogDescription>
+            Create a free PSForge account here, then upgrade securely to PSForge Pro with Stripe whenever you want premium desktop features.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="desktop-register-name">Name</Label>
+            <Input
+              id="desktop-register-name"
+              value={registerName}
+              onChange={(event) => setRegisterName(event.target.value)}
+              placeholder="Your name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="desktop-register-email">Email</Label>
+            <Input
+              id="desktop-register-email"
+              type="email"
+              value={registerEmail}
+              onChange={(event) => setRegisterEmail(event.target.value)}
+              placeholder="you@company.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="desktop-register-password">Password</Label>
+            <Input
+              id="desktop-register-password"
+              type="password"
+              value={registerPassword}
+              onChange={(event) => setRegisterPassword(event.target.value)}
+              placeholder="At least 8 characters"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="desktop-register-password-confirm">Confirm Password</Label>
+            <Input
+              id="desktop-register-password-confirm"
+              type="password"
+              value={registerPasswordConfirm}
+              onChange={(event) => setRegisterPasswordConfirm(event.target.value)}
+              placeholder="Re-enter your password"
+            />
+          </div>
+          <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+            Your account is stored and licensed through the PSForge web platform. This desktop app will connect to it immediately after creation.
           </div>
         </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setAccountDialogOpen(false)} disabled={desktopRegisterLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleDesktopRegister} disabled={desktopRegisterLoading}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            {desktopRegisterLoading ? "Creating Account..." : "Create Account"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
-        <div className="flex flex-1 items-center justify-center p-6">
-          <Card className="w-full max-w-3xl overflow-hidden">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <CardTitle className="text-2xl">Sign in to use PSForge Desktop</CardTitle>
-                  <CardDescription>
-                    A PSForge account is required to open the desktop workspace. Your web account also controls Pro feature access.
-                  </CardDescription>
-                </div>
-                <Badge variant="secondary">Account required</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="space-y-4">
-                <div className="rounded-xl border bg-muted/30 p-5">
-                  <div className="text-base font-semibold">What this sign-in does</div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    PSForge Desktop uses your PSForge account as the identity and license source for this Windows installation.
-                  </div>
-                  <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-                    <div className="rounded-lg border bg-background/60 p-3">Connects the desktop app to your PSForge account.</div>
-                    <div className="rounded-lg border bg-background/60 p-3">Unlocks Pro features automatically when your web subscription is active.</div>
-                    <div className="rounded-lg border bg-background/60 p-3">Keeps desktop access in sync if your subscription changes on the website.</div>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-                  <div className="flex items-center gap-2 text-base font-semibold">
-                    <CreditCard className="h-4 w-4 text-primary" />
-                    PSForge Pro subscription
-                  </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    PSForge Pro is a paid recurring subscription. Purchases and renewals are processed securely through Stripe-hosted checkout tied to your PSForge account.
-                  </div>
-                  <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-                    <div className="rounded-lg border bg-background/60 p-3">Free tier: local editor, script tabs, file saves, recovery, and core desktop workflow.</div>
-                    <div className="rounded-lg border bg-background/60 p-3">Pro tier: AI tools, premium automation features, and advanced PSForge workflows.</div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="outline" onClick={() => setAccountDialogOpen(true)}>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Create Account in App
-                  </Button>
-                  <Button variant="ghost" onClick={() => openExternalUrl(getDesktopApiBaseUrl())}>
-                    Visit PSForge Website
-                  </Button>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  You can create a new PSForge account here, or visit the website for plan details and support resources.
+  if (!visibleUser) {
+    return (
+      <>
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
+          <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 xl:px-8">
+              <div className="min-w-0">
+                <img
+                  src={logoImage}
+                  alt="PSForge"
+                  className="h-20 w-auto max-w-[360px] object-contain object-left sm:h-24 sm:max-w-[440px] 2xl:h-28 2xl:max-w-[560px]"
+                />
+                <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
+                  <span>PowerShell Automation Workspace for Windows</span>
+                  <Badge variant="outline">v{desktopVersion}</Badge>
                 </div>
               </div>
+              {renderUpdateControl()}
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                {isRevalidatingStoredSession ? (
-                  <div className="rounded-md border bg-primary/5 p-4 text-sm text-muted-foreground">
-                    Checking your saved desktop session with PSForge.
+          <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-3xl overflow-hidden">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-2xl">Sign in to use PSForge Desktop</CardTitle>
+                    <CardDescription>
+                      A PSForge account is required to open the desktop workspace. Your web account also controls Pro feature access.
+                    </CardDescription>
                   </div>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="desktop-auth-email">Email</Label>
-                      <Input
-                        id="desktop-auth-email"
-                        type="email"
-                        value={licenseEmail}
-                        onChange={(e) => setLicenseEmail(e.target.value)}
-                        placeholder="you@psforge.app"
-                      />
+                  <Badge variant="secondary">Account required</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+                <div className="space-y-4">
+                  <div className="rounded-xl border bg-muted/30 p-5">
+                    <div className="text-base font-semibold">What this sign-in does</div>
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      PSForge Desktop uses your PSForge account as the identity and license source for this Windows installation.
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="desktop-auth-password">Password</Label>
-                        <button
-                          type="button"
-                          className="text-sm text-primary hover:underline"
-                          onClick={() => openExternalUrl(`${getDesktopApiBaseUrl()}/forgot-password`)}
-                        >
-                          Forgot password?
-                        </button>
+                    <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+                      <div className="rounded-lg border bg-background/60 p-3">Connects the desktop app to your PSForge account.</div>
+                      <div className="rounded-lg border bg-background/60 p-3">Unlocks Pro features automatically when your web subscription is active.</div>
+                      <div className="rounded-lg border bg-background/60 p-3">Keeps desktop access in sync if your subscription changes on the website.</div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+                    <div className="flex items-center gap-2 text-base font-semibold">
+                      <CreditCard className="h-4 w-4 text-primary" />
+                      PSForge Pro subscription
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      PSForge Pro is a paid recurring subscription. Purchases and renewals are processed securely through Stripe-hosted checkout tied to your PSForge account.
+                    </div>
+                    <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                      <div className="rounded-lg border bg-background/60 p-3">Free tier: local editor, script tabs, file saves, recovery, and core desktop workflow.</div>
+                      <div className="rounded-lg border bg-background/60 p-3">Pro tier: AI tools, premium automation features, and advanced PSForge workflows.</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => setAccountDialogOpen(true)}>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create Account in App
+                    </Button>
+                    <Button variant="ghost" onClick={() => openExternalUrl(getDesktopApiBaseUrl())}>
+                      Visit PSForge Website
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    You can create a new PSForge account here, or visit the website for plan details and support resources.
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {isRevalidatingStoredSession ? (
+                    <div className="rounded-md border bg-primary/5 p-4 text-sm text-muted-foreground">
+                      Checking your saved desktop session with PSForge.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="desktop-auth-email">Email</Label>
+                        <Input
+                          id="desktop-auth-email"
+                          type="email"
+                          value={licenseEmail}
+                          onChange={(e) => setLicenseEmail(e.target.value)}
+                          placeholder="you@psforge.app"
+                        />
                       </div>
-                      <Input
-                        id="desktop-auth-password"
-                        type="password"
-                        value={licensePassword}
-                        onChange={(e) => setLicensePassword(e.target.value)}
-                        placeholder="Enter your PSForge password"
-                      />
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="desktop-auth-password">Password</Label>
+                          <button
+                            type="button"
+                            className="text-sm text-primary hover:underline"
+                            onClick={() => openExternalUrl(`${getDesktopApiBaseUrl()}/forgot-password`)}
+                          >
+                            Forgot password?
+                          </button>
+                        </div>
+                        <Input
+                          id="desktop-auth-password"
+                          type="password"
+                          value={licensePassword}
+                          onChange={(e) => setLicensePassword(e.target.value)}
+                          placeholder="Enter your PSForge password"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {licenseStatusMessage && (
+                    <div className={`rounded-md border p-3 text-sm ${
+                      licenseStatusTone === "destructive"
+                        ? "border-destructive/30 bg-destructive/10 text-destructive"
+                        : "border-primary/20 bg-primary/10 text-foreground"
+                    }`}>
+                      {licenseStatusMessage}
                     </div>
-                  </>
-                )}
+                  )}
 
-                {licenseStatusMessage && (
-                  <div className={`rounded-md border p-3 text-sm ${
-                    licenseStatusTone === "destructive"
-                      ? "border-destructive/30 bg-destructive/10 text-destructive"
-                      : "border-primary/20 bg-primary/10 text-foreground"
-                  }`}>
-                    {licenseStatusMessage}
+                  <div className="grid gap-3">
+                    <Button
+                      onClick={handleDesktopSignIn}
+                      disabled={desktopSignInLoading || isRevalidatingStoredSession || !licenseEmail.trim() || !licensePassword.trim()}
+                    >
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      {desktopSignInLoading ? "Signing In..." : "Sign In"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setAccountDialogOpen(true)}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create Account
+                    </Button>
                   </div>
-                )}
 
-                <div className="grid gap-3">
-                  <Button
-                    onClick={handleDesktopSignIn}
-                    disabled={desktopSignInLoading || isRevalidatingStoredSession || !licenseEmail.trim() || !licensePassword.trim()}
-                  >
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                    {desktopSignInLoading ? "Signing In..." : "Sign In"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setAccountDialogOpen(true)}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Create Account
-                  </Button>
+                  <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
+                    Signing in here links this Windows app to your PSForge account. Free desktop access is available after sign-in, and PSForge Pro can be purchased securely through Stripe when you want premium features.
+                  </div>
                 </div>
-
-                <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  Signing in here links this Windows app to your PSForge account. Free desktop access is available after sign-in, and PSForge Pro can be purchased securely through Stripe when you want premium features.
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+        {accountDialog}
+      </>
     );
   }
 
@@ -1336,77 +1413,7 @@ export default function DesktopWorkspace() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={accountDialogOpen}
-        onOpenChange={(open) => {
-          setAccountDialogOpen(open);
-          if (!open) {
-            resetDesktopRegistrationForm();
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create your PSForge account</DialogTitle>
-            <DialogDescription>
-              Create a free PSForge account here, then upgrade securely to PSForge Pro with Stripe whenever you want premium desktop features.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="desktop-register-name">Name</Label>
-              <Input
-                id="desktop-register-name"
-                value={registerName}
-                onChange={(event) => setRegisterName(event.target.value)}
-                placeholder="Your name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="desktop-register-email">Email</Label>
-              <Input
-                id="desktop-register-email"
-                type="email"
-                value={registerEmail}
-                onChange={(event) => setRegisterEmail(event.target.value)}
-                placeholder="you@company.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="desktop-register-password">Password</Label>
-              <Input
-                id="desktop-register-password"
-                type="password"
-                value={registerPassword}
-                onChange={(event) => setRegisterPassword(event.target.value)}
-                placeholder="At least 8 characters"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="desktop-register-password-confirm">Confirm Password</Label>
-              <Input
-                id="desktop-register-password-confirm"
-                type="password"
-                value={registerPasswordConfirm}
-                onChange={(event) => setRegisterPasswordConfirm(event.target.value)}
-                placeholder="Re-enter your password"
-              />
-            </div>
-            <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-              Your account is stored and licensed through the PSForge web platform. This desktop app will connect to it immediately after creation.
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setAccountDialogOpen(false)} disabled={desktopRegisterLoading}>
-              Cancel
-            </Button>
-            <Button onClick={handleDesktopRegister} disabled={desktopRegisterLoading}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              {desktopRegisterLoading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {accountDialog}
     </div>
   );
 }

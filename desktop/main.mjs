@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import { execFile } from "node:child_process";
 import electronUpdater from "electron-updater";
 import fs from "node:fs/promises";
@@ -23,7 +23,6 @@ let splashWindow = null;
 let localServer = null;
 let localServerUrl = null;
 let gitExecutablePath = null;
-let appTray = null;
 let isQuitting = false;
 let updateCheckInterval = null;
 let latestUpdateStatus = { state: "idle" };
@@ -98,14 +97,6 @@ function getWindowIconPath() {
   }
 
   return path.join(process.resourcesPath, "branding", "icon.ico");
-}
-
-function getTrayIconPath() {
-  if (isDev) {
-    return path.join(appRoot, "build", "icon.png");
-  }
-
-  return path.join(process.resourcesPath, "branding", "icon.png");
 }
 
 function getSplashImagePath() {
@@ -477,16 +468,6 @@ function createWindow() {
     return { action: "deny" };
   });
 
-  mainWindow.on("close", (event) => {
-    if (isQuitting) {
-      return;
-    }
-
-    event.preventDefault();
-    mainWindow?.hide();
-    mainWindow?.setSkipTaskbar(true);
-  });
-
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -519,7 +500,6 @@ function showMainWindow() {
     return;
   }
 
-  mainWindow.setSkipTaskbar(false);
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
   }
@@ -651,53 +631,6 @@ function createApplicationMenu() {
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-}
-
-function createTray() {
-  if (appTray) {
-    return;
-  }
-
-  const trayImage = nativeImage.createFromPath(getTrayIconPath()).resize({
-    width: 18,
-    height: 18,
-  });
-
-  appTray = new Tray(trayImage);
-  appTray.setToolTip("PSForge Desktop");
-  appTray.setContextMenu(Menu.buildFromTemplate([
-    {
-      label: "Check for Updates",
-      click: () => checkForUpdates(true),
-    },
-    {
-      type: "separator",
-    },
-    {
-      label: "Open PSForge Desktop",
-      click: () => showMainWindow(),
-    },
-    {
-      type: "separator",
-    },
-    {
-      label: "Exit",
-      click: () => {
-        isQuitting = true;
-        app.quit();
-      },
-    },
-  ]));
-
-  appTray.on("click", () => {
-    if (mainWindow?.isVisible()) {
-      mainWindow.hide();
-      mainWindow.setSkipTaskbar(true);
-      return;
-    }
-
-    showMainWindow();
-  });
 }
 
 async function checkForUpdates(manual = false) {
@@ -1151,7 +1084,6 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
   await startLocalFrontendServer();
   createApplicationMenu();
   createWindow();
-  createTray();
   configureAutoUpdater();
 
   if (!isDev && app.isPackaged) {
@@ -1175,10 +1107,6 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
 
 app.on("before-quit", () => {
   isQuitting = true;
-  if (appTray) {
-    appTray.destroy();
-    appTray = null;
-  }
 });
 
 app.on("window-all-closed", () => {

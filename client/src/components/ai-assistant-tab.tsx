@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sparkles, Lock, CheckCircle, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
 
 interface AIAssistantTabProps {
   scriptCommands: ScriptCommand[];
@@ -48,6 +49,7 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
     apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
       // Silently fail - don't disrupt user experience
     });
+    void trackDesktopAnalyticsEvent("desktop_script_generated");
     
     toast({
       title: "Script Generated!",
@@ -126,6 +128,7 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
     apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
       // Silently fail - don't disrupt user experience
     });
+    void trackDesktopAnalyticsEvent("desktop_script_generated");
     
     toast({
       title: "Custom Script Added!",
@@ -211,7 +214,7 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="p-4 sm:p-6 border-b flex items-center justify-between">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground">AI Assistant</h2>
@@ -230,8 +233,8 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
           </Button>
         )}
       </div>
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1">
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="h-full min-h-0">
           <AIHelperBot
             onAddCommand={handleAddCommandFromBot}
             onUseCustomScript={handleUseCustomScript}

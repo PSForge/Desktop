@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Bot, Send, Loader2, Plus, ChevronRight, Sparkles, Code2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { getDesktopStorageItem, setDesktopStorageItem, writeDesktopDebugLog } from "@/lib/desktop";
+import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
 
 interface Message {
   id: string;
@@ -31,47 +32,124 @@ interface AIHelperBotProps {
   onToggle: () => void;
 }
 
+const AI_CHAT_HISTORY_KEY = "psforge-desktop-ai-chat-history";
+const DEFAULT_WELCOME_MESSAGE: Message = {
+  id: "welcome",
+  role: "assistant",
+  content: "Hi! I'm your PowerShell assistant. Ask me anything about building scripts, and I'll suggest the right commands for your task.",
+  timestamp: new Date(),
+};
+
 export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle }: AIHelperBotProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = localStorage.getItem('ai-bot-messages');
+    const saved = getDesktopStorageItem(AI_CHAT_HISTORY_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.map((msg: any) => ({
+        const restoredMessages = parsed.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         }));
+
+        if (restoredMessages.length > 0) {
+          return restoredMessages;
+        }
       } catch (err) {
         console.error('Failed to load AI messages:', err);
       }
     }
-    return [
-      {
-        id: "welcome",
-        role: "assistant",
-        content: "Hi! I'm your PowerShell assistant. Ask me anything about building scripts, and I'll suggest the right commands for your task.",
-        timestamp: new Date(),
-      },
-    ];
+    return [DEFAULT_WELCOME_MESSAGE];
   });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('ai-bot-messages', JSON.stringify(messages));
+    setDesktopStorageItem(AI_CHAT_HISTORY_KEY, JSON.stringify(messages));
   }, [messages]);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector("[data-radix-scroll-area-viewport]");
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const container = messageListRef.current;
+    if (!container) {
+      return;
+    }
+
+    let lastScrollLog = 0;
+    let lastWheelLog = 0;
+
+    const describeElement = (element: Element | null) => {
+      if (!(element instanceof HTMLElement)) {
+        return "unknown";
+      }
+
+      const className = typeof element.className === "string" ? element.className.replace(/\s+/g, ".").slice(0, 120) : "";
+      return `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${className ? `.${className}` : ""}`;
+    };
+
+    const logMetrics = async (label: string) => {
+      const style = window.getComputedStyle(container);
+      await writeDesktopDebugLog(
+        [
+          `AI_SCROLL ${label}`,
+          `clientHeight=${container.clientHeight}`,
+          `scrollHeight=${container.scrollHeight}`,
+          `scrollTop=${container.scrollTop}`,
+          `offsetHeight=${container.offsetHeight}`,
+          `overflowY=${style.overflowY}`,
+          `maxHeight=${style.maxHeight}`,
+          `messages=${messages.length}`,
+        ].join(" "),
+      );
+    };
+
+    const handleScroll = () => {
+      const now = Date.now();
+      if (now - lastScrollLog < 250) {
+        return;
+      }
+      lastScrollLog = now;
+      void logMetrics("scroll");
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      const now = Date.now();
+      if (now - lastWheelLog < 250) {
+        return;
+      }
+      lastWheelLog = now;
+      void writeDesktopDebugLog(
+        [
+          "AI_SCROLL wheel",
+          `deltaY=${event.deltaY}`,
+          `target=${describeElement(event.target as Element | null)}`,
+          `currentTarget=${describeElement(event.currentTarget as Element | null)}`,
+          `clientHeight=${container.clientHeight}`,
+          `scrollHeight=${container.scrollHeight}`,
+          `scrollTop=${container.scrollTop}`,
+        ].join(" "),
+      );
+    };
+
+    void logMetrics("mount");
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    container.addEventListener("wheel", handleWheel, { passive: true });
+    window.addEventListener("resize", handleScroll);
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [messages.length]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -79,25 +157,33 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (!isLoading && isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isLoading, isOpen]);
+
+  const sendCurrentMessage = async () => {
     if (!input.trim() || isLoading) return;
 
+    const messageContent = input.trim();
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: messageContent,
       timestamp: new Date(),
     };
+    const conversationHistory = [...messages, userMessage];
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(conversationHistory);
     setInput("");
     setIsLoading(true);
+    void trackDesktopAnalyticsEvent("desktop_ai_prompt_sent");
 
     try {
       const response = await apiRequest("/api/ai-helper", "POST", {
-        message: input.trim(),
-        conversationHistory: messages,
+        message: messageContent,
+        conversationHistory,
       });
       const data = await response.json();
 
@@ -111,6 +197,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      void trackDesktopAnalyticsEvent("desktop_ai_response_received");
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -124,6 +211,11 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendCurrentMessage();
   };
 
   const handleAddSuggestion = (suggestion: CommandSuggestion) => {
@@ -160,8 +252,8 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
   }
 
   return (
-    <div className="flex flex-col h-full border-l bg-background">
-      <div className="flex items-center justify-between px-4 py-3 border-b">
+    <div className="flex h-full min-h-0 flex-col border-l bg-background">
+      <div className="flex items-center justify-between border-b bg-background px-4 py-3">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" />
           <h2 className="font-semibold text-sm">AI Assistant</h2>
@@ -176,8 +268,12 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4">
+      <div
+        ref={messageListRef}
+        className="min-h-0 flex-1 overflow-y-auto"
+        style={{ maxHeight: "calc(100vh - 24rem)" }}
+      >
+        <div className="space-y-4 p-4">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -193,7 +289,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
               )}
               <div
                 className={cn(
-                  "flex flex-col gap-2 max-w-[80%]",
+                  "flex max-w-[80%] min-w-0 flex-col gap-2",
                   message.role === "user" && "items-end"
                 )}
               >
@@ -237,7 +333,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
                   </div>
                 )}
                 {message.customScript && (
-                  <div className="space-y-2 w-full">
+                  <div className="w-full space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Code2 className="h-3 w-3" />
@@ -256,8 +352,8 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
                         )}
                       </Button>
                     </div>
-                    <Card className="p-3 bg-muted/50">
-                      <pre className="text-xs font-mono overflow-x-auto whitespace-pre-wrap break-words">
+                    <Card className="bg-muted/50 p-3">
+                      <pre className="overflow-x-auto text-xs font-mono whitespace-pre-wrap break-words">
                         {message.customScript}
                       </pre>
                     </Card>
@@ -293,17 +389,24 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t">
+      <form onSubmit={handleSubmit} className="border-t bg-background p-4">
         <div className="flex gap-2">
-          <Input
+          <Textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about PowerShell commands..."
             disabled={isLoading}
-            className="flex-1"
+            rows={3}
+            className="min-h-[72px] flex-1 resize-none"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void sendCurrentMessage();
+              }
+            }}
             data-testid="input-ai-message"
           />
           <Button

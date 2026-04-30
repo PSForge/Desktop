@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_GA_MEASUREMENT_ID: string;
+  readonly VITE_PSFORGE_DESKTOP_ANALYTICS_KEY?: string;
 }
 
 interface ImportMeta {
@@ -65,7 +66,7 @@ interface DesktopGitCommitResult {
 
 interface Window {
   psforgeDesktop?: {
-    getContext: () => Promise<{ isDesktop: boolean; platform: string; version: string }>;
+    getContext: () => Promise<{ isDesktop: boolean; platform: string; version: string; osVersion?: string }>;
     getUpdateState: () => Promise<DesktopUpdateState>;
     checkForUpdates: () => Promise<DesktopUpdateState>;
     installUpdate: () => Promise<{ ok: boolean }>;
@@ -96,6 +97,7 @@ interface Window {
       headers: Record<string, string>;
       text: string;
     }>;
+    debugLog: (message: string) => Promise<{ ok: boolean }>;
     gitStatus: (payload: { repoPath: string }) => Promise<DesktopGitRepoState>;
     gitInit: (payload: { repoPath: string; branchName?: string }) => Promise<DesktopGitRepoState>;
     gitCreateBranch: (payload: { repoPath: string; branchName: string; fromBranch?: string }) => Promise<DesktopGitRepoState>;

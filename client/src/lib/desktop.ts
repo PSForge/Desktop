@@ -2,6 +2,7 @@ export interface DesktopContext {
   isDesktop: boolean;
   platform: string;
   version: string;
+  osVersion?: string;
 }
 
 export interface DesktopScriptFile {
@@ -176,6 +177,14 @@ export async function openExternalUrl(url: string) {
   }
 
   await desktopApi()!.openExternal(url);
+}
+
+export async function writeDesktopDebugLog(message: string) {
+  if (!isDesktopApp() || typeof desktopApi()?.debugLog !== "function") {
+    return;
+  }
+
+  await desktopApi()!.debugLog(message);
 }
 
 export function getDesktopStorageItem(key: string): string | null {

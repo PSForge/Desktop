@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import http from "node:http";
 import https from "node:https";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -748,6 +749,7 @@ ipcMain.handle("desktop:get-context", async () => ({
   isDesktop: true,
   platform: process.platform,
   version: app.getVersion(),
+  osVersion: os.release(),
 }));
 
 ipcMain.handle("desktop:updates-get-state", async () => latestUpdateStatus);
@@ -1076,6 +1078,14 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
       text: error instanceof Error ? error.message : String(error),
     };
   }
+});
+
+ipcMain.handle("desktop:debug-log", async (_event, message) => {
+  if (typeof message === "string" && message.trim()) {
+    await writeDesktopLog(`[renderer] ${message.trim()}`);
+  }
+
+  return { ok: true };
 });
 
   app.whenReady().then(async () => {

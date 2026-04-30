@@ -5,6 +5,7 @@ import { TaskDetailForm } from "@/components/task-detail-form";
 import { ExportDialog } from "@/components/export-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { useAuth } from "@/lib/auth-context";
+import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
 import { apiRequest } from "@/lib/queryClient";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
 import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
@@ -538,6 +539,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
     apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
       // Silently fail - don't disrupt user experience
     });
+    void trackDesktopAnalyticsEvent("desktop_script_generated");
     
     setScriptDialogOpen(true);
   };

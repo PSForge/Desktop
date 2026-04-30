@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { flushDesktopAnalytics, trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
 import {
   checkForDesktopUpdates,
   getDesktopContext,
@@ -122,6 +123,8 @@ export default function DesktopWorkspace() {
   const [updateState, setUpdateState] = useState<{ state: string; version?: string; percent?: number; message?: string }>({ state: "idle" });
   const pollTimerRef = useRef<number | null>(null);
   const checkoutRefreshTimerRef = useRef<number | null>(null);
+  const analyticsHeartbeatRef = useRef<number | null>(null);
+  const appOpenedTrackedRef = useRef(false);
   const cachedLicense = desktopSession.license || getDesktopCachedLicense();
   const cachedUser = desktopSession.user || null;
   const visibleUser = user || cachedUser;
@@ -182,6 +185,9 @@ export default function DesktopWorkspace() {
       if (checkoutRefreshTimerRef.current) {
         window.clearTimeout(checkoutRefreshTimerRef.current);
       }
+      if (analyticsHeartbeatRef.current) {
+        window.clearInterval(analyticsHeartbeatRef.current);
+      }
     };
   }, []);
 
@@ -197,6 +203,34 @@ export default function DesktopWorkspace() {
   useEffect(() => {
     setDesktopSession(getDesktopAuthState());
   }, [user, isAuthenticated]);
+
+  useEffect(() => {
+    if (!appOpenedTrackedRef.current) {
+      appOpenedTrackedRef.current = true;
+      void trackDesktopAnalyticsEvent("desktop_app_opened");
+    }
+
+    if (analyticsHeartbeatRef.current) {
+      window.clearInterval(analyticsHeartbeatRef.current);
+    }
+
+    analyticsHeartbeatRef.current = window.setInterval(() => {
+      void trackDesktopAnalyticsEvent("desktop_session_heartbeat");
+    }, 5 * 60 * 1000);
+
+    return () => {
+      if (analyticsHeartbeatRef.current) {
+        window.clearInterval(analyticsHeartbeatRef.current);
+        analyticsHeartbeatRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (desktopSession.token) {
+      void flushDesktopAnalytics();
+    }
+  }, [desktopSession.token]);
 
   useEffect(() => {
     let mounted = true;
@@ -424,6 +458,7 @@ export default function DesktopWorkspace() {
       title: forceSaveAs || !tab.filePath ? "Saved locally" : "Saved",
       description: `${savedFileName} was saved to your computer.`,
     });
+    void trackDesktopAnalyticsEvent("desktop_script_saved_local");
 
     return true;
   };
@@ -515,6 +550,7 @@ export default function DesktopWorkspace() {
           ? "Your desktop app is now linked to your PSForge Pro account."
           : "This account is signed in, but a Pro subscription is required for full desktop features.",
       });
+      void flushDesktopAnalytics();
     } catch (error: any) {
       setDesktopSignInLoading(false);
       setLicenseStatusMessage(error.message || "Please try again.");
@@ -595,6 +631,7 @@ export default function DesktopWorkspace() {
       setLicenseEmail(result.user.email);
       setLicensePassword("");
       setAccountDialogOpen(false);
+      void flushDesktopAnalytics();
       resetDesktopRegistrationForm();
       setLicenseStatusMessage(
         result.license.isPro
@@ -713,10 +750,12 @@ export default function DesktopWorkspace() {
   const handleCheckForUpdates = async () => {
     if (updateState.state === "downloaded") {
       await installDesktopUpdate();
+      void trackDesktopAnalyticsEvent("desktop_update_installed");
       return;
     }
 
     const nextState = await checkForDesktopUpdates();
+    void trackDesktopAnalyticsEvent("desktop_update_checked");
     if (nextState) {
       setUpdateState(nextState);
     }
@@ -1349,8 +1388,8 @@ export default function DesktopWorkspace() {
               </div>
             </TabsContent>
 
-            <TabsContent value="ai" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
-              <div className="h-full overflow-hidden">
+            <TabsContent value="ai" className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden">
+              <div className="h-full min-h-0">
                 <AIAssistantTab
                   scriptCommands={scriptCommands}
                   setScriptCommands={setScriptCommands}

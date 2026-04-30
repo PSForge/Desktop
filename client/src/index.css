@@ -233,12 +233,18 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply overflow-hidden font-sans antialiased bg-background text-foreground;
   }
 }
 

@@ -14,6 +14,7 @@ import { useAuth } from '@/lib/auth-context';
 import { SecurityDashboard } from '@/components/security-dashboard';
 import { parseCSV, validateCSVData, generateCSVTemplate, downloadCSV, readCSVFile, ParsedCSV } from '@/lib/csv-utils';
 import { generateBulkScript, BulkTaskConfig } from '@/lib/bulk-script-generator';
+import { trackDesktopAnalyticsEvent } from '@/lib/desktop-analytics';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -512,6 +513,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
       // Silently fail - don't disrupt user experience
     });
+    void trackDesktopAnalyticsEvent("desktop_script_generated");
     
     setCurrentStep(5);
   };
@@ -701,6 +703,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     apiRequest("/api/user/track-script", "POST", { timeSavedMinutes: 60 }).catch(() => {
       // Silently fail - don't disrupt user experience
     });
+    void trackDesktopAnalyticsEvent("desktop_script_generated");
     
     setCurrentStep(5);
   };

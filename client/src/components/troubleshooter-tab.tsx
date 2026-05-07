@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UpgradeModal } from "@/components/upgrade-modal";
+import { DesktopUpgradeDialog } from "@/components/desktop-upgrade-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -412,6 +412,14 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
               <p className="text-xs text-muted-foreground">Supports all PSForge platforms from Active Directory to VMware</p>
             </div>
           </div>
+          <div className="max-w-2xl w-full rounded-md border border-primary/20 bg-primary/5 p-4 text-left">
+            <div className="text-sm font-semibold mb-2">Preview the Pro result</div>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div>Root cause summary with severity and likely issue area</div>
+              <div>Step-by-step remediation guidance and prevention tips</div>
+              <div>Ready-to-send PowerShell fix scripts you can push straight into the editor</div>
+            </div>
+          </div>
           <Button
             size="lg"
             onClick={() => setShowUpgradeModal(true)}
@@ -421,7 +429,20 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
             Upgrade to Pro
           </Button>
         </div>
-        <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+        <DesktopUpgradeDialog
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          feature="AI log troubleshooting"
+          title="Troubleshoot logs with AI"
+          description="Upload a log, get the likely root cause, and move straight into PowerShell remediation without manual trial-and-error."
+          previewTitle="What Pro adds to your troubleshooting flow"
+          previewItems={[
+            "Severity-ranked findings with likely causes and affected areas.",
+            "PowerShell remediation snippets you can send directly to the editor.",
+            "Prevention tips that help turn one-off fixes into repeatable automation.",
+          ]}
+          contextLabel="Log Troubleshooter"
+        />
       </>
     );
   }

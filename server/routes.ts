@@ -44,7 +44,6 @@ const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2025-09-30.clover",
 });
 const stripeEnabled = !!process.env.STRIPE_SECRET_KEY;
-
 function requireStripeConfigured(res: any) {
   if (stripeEnabled) {
     return true;
@@ -68,6 +67,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const getDesktopPublicBaseUrl = (req: any) => {
     return normalizeBaseUrl(process.env.DESKTOP_PUBLIC_BASE_URL || getBaseUrl(req));
+  };
+
+  const configureCheckoutPromotionCode = async ({
+    sessionConfig,
+    requestedPromoCode,
+    userId,
+    source,
+    allowManualFallback = true,
+  }: {
+    sessionConfig: Stripe.Checkout.SessionCreateParams;
+    requestedPromoCode?: unknown;
+    userId: string;
+    source: string;
+    allowManualFallback?: boolean;
+  }) => {
+    const explicitPromoCode = typeof requestedPromoCode === "string" && requestedPromoCode.trim()
+      ? requestedPromoCode.trim().toUpperCase()
+      : null;
+    if (!explicitPromoCode) {
+      if (allowManualFallback) {
+        sessionConfig.allow_promotion_codes = true;
+      }
+
+      return {
+        appliedPromoCode: null,
+        usedFallbackPromo: false,
+      };
+    }
+
+    try {
+      const promotionCodes = await stripe.promotionCodes.list({
+        code: explicitPromoCode,
+        active: true,
+        limit: 1,
+      });
+
+      if (promotionCodes.data.length > 0) {
+        sessionConfig.discounts = [{ promotion_code: promotionCodes.data[0].id }];
+        return {
+          appliedPromoCode: explicitPromoCode,
+          usedFallbackPromo: false,
+        };
+      }
+      return {
+        error: {
+          error: "Invalid promo code",
+          details: "The promo code you entered is not valid or has expired.",
+        },
+      };
+    } catch (promoError: any) {
+      console.error(`${source} promo code lookup error:`, promoError);
+      return {
+        error: {
+          error: "Promo code validation failed",
+          details: "Unable to validate the promo code. Please try again or proceed without it.",
+        },
+      };
+    }
   };
 
   const getDesktopLicensePayload = async (user: User) => {
@@ -2530,45 +2587,23 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         payment_method_collection: 'always',
       };
 
-      // Handle promo code if provided
-      if (promoCode && typeof promoCode === 'string' && promoCode.trim()) {
-        try {
-          // Look up the promotion code in Stripe
-          const promotionCodes = await stripe.promotionCodes.list({
-            code: promoCode.trim().toUpperCase(),
-            active: true,
-            limit: 1,
-          });
+      const promoResult = await configureCheckoutPromotionCode({
+        sessionConfig,
+        requestedPromoCode: promoCode,
+        userId: user.id,
+        source: "web",
+      });
 
-          if (promotionCodes.data.length > 0) {
-            // Valid promo code found - apply it to the session
-            sessionConfig.discounts = [{
-              promotion_code: promotionCodes.data[0].id,
-            }];
-            console.log(`Applied promo code: ${promoCode} for user ${user.id}`);
-          } else {
-            // Promo code not found, but don't fail - just log and continue
-            console.log(`Promo code not found: ${promoCode} for user ${user.id}`);
-            return res.status(400).json({
-              error: "Invalid promo code",
-              details: "The promo code you entered is not valid or has expired."
-            });
-          }
-        } catch (promoError: any) {
-          console.error("Promo code lookup error:", promoError);
-          return res.status(400).json({
-            error: "Promo code validation failed",
-            details: "Unable to validate the promo code. Please try again or proceed without it."
-          });
-        }
-      } else {
-        // No promo code provided - enable manual promo code entry at checkout
-        sessionConfig.allow_promotion_codes = true;
+      if (promoResult.error) {
+        return res.status(400).json(promoResult.error);
       }
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
 
-      return res.json({ url: session.url });
+      return res.json({
+        url: session.url,
+        appliedPromoCode: promoResult.appliedPromoCode,
+      });
     } catch (error: any) {
       console.error("Checkout error:", error);
       return res.status(500).json({
@@ -2652,29 +2687,22 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         payment_method_collection: "always",
       };
 
-      if (promoCode && typeof promoCode === "string" && promoCode.trim()) {
-        const promotionCodes = await stripe.promotionCodes.list({
-          code: promoCode.trim().toUpperCase(),
-          active: true,
-          limit: 1,
-        });
+      const promoResult = await configureCheckoutPromotionCode({
+        sessionConfig,
+        requestedPromoCode: promoCode,
+        userId: user.id,
+        source: "desktop",
+      });
 
-        if (promotionCodes.data.length === 0) {
-          return res.status(400).json({
-            error: "Invalid promo code",
-            details: "The promo code you entered is not valid or has expired.",
-          });
-        }
-
-        sessionConfig.discounts = [{ promotion_code: promotionCodes.data[0].id }];
-      } else {
-        sessionConfig.allow_promotion_codes = true;
+      if (promoResult.error) {
+        return res.status(400).json(promoResult.error);
       }
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
       return res.json({
         url: session.url,
         checkoutType: "subscription",
+        appliedPromoCode: promoResult.appliedPromoCode,
       });
     } catch (error: any) {
       console.error("Desktop checkout error:", error);

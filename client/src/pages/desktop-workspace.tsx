@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CreditCard, ExternalLink, FileCode, GitBranch, History, LayoutGrid, Plus, RefreshCcw, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
+import { Copy, CreditCard, ExternalLink, FileCode, GitBranch, History, LayoutGrid, Plus, RefreshCcw, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,14 +38,29 @@ import {
 } from "@/lib/desktop-auth";
 import { queryClient } from "@/lib/queryClient";
 import type { ScriptCommand } from "@shared/schema";
-import { ScriptGeneratorTab } from "@/components/script-generator-tab";
+import { DesktopScriptWorkbench } from "@/components/desktop-script-workbench";
 import { AIAssistantTab } from "@/components/ai-assistant-tab";
+import {
+  DESKTOP_GUIDED_FOCUSES,
+  DesktopFocusPanel,
+  DesktopGuidedOnboardingDialog,
+  getDesktopGuidedFocus,
+  getDesktopGuidedWorkflow,
+  type DesktopGuidedProfile,
+  type DesktopWorkspaceTab,
+} from "@/components/desktop-guided-onboarding";
+import {
+  DESKTOP_FREE_TRIAL_PROMO_CODE,
+  DESKTOP_POST_UPGRADE_CONTEXT_KEY,
+  DesktopUpgradeDialog,
+} from "@/components/desktop-upgrade-dialog";
 import { GUIBuilderTab } from "@/components/gui-builder-tab";
 import { ScriptWizardTab } from "@/components/script-wizard-tab";
 import { DesktopGitPanel } from "@/components/desktop-git-panel";
 import { TroubleshooterTab } from "@/components/troubleshooter-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import logoImage from "@assets/psforge-full-logo-wide.png";
+import { analyzeScriptWorkbench } from "@/lib/script-workbench-utils";
 
 type RecentFile = {
   fileName: string;
@@ -64,8 +79,14 @@ type ScriptWorkspaceTab = {
 
 type AppSettingsView = "license" | "subscription" | "recovery" | "recent" | null;
 
+type DesktopConversionState = {
+  appLaunches: number;
+  starterWorkflowRuns: number;
+};
+
 const RECOVERY_KEY = "psforge-desktop-recovery";
 const RECENTS_KEY = "psforge-desktop-recent-files";
+const CONVERSION_STATE_KEY = "psforge-desktop-conversion-state";
 
 function createWorkspaceTab(partial?: Partial<ScriptWorkspaceTab>): ScriptWorkspaceTab {
   return {
@@ -93,11 +114,35 @@ function getNextUntitledName(tabs: ScriptWorkspaceTab[]) {
   return `Untitled ${index}.ps1`;
 }
 
+function readDesktopConversionState(): DesktopConversionState {
+  const savedState = getDesktopStorageItem(CONVERSION_STATE_KEY);
+  if (!savedState) {
+    return {
+      appLaunches: 0,
+      starterWorkflowRuns: 0,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(savedState) as Partial<DesktopConversionState>;
+    return {
+      appLaunches: typeof parsed.appLaunches === "number" ? parsed.appLaunches : 0,
+      starterWorkflowRuns: typeof parsed.starterWorkflowRuns === "number" ? parsed.starterWorkflowRuns : 0,
+    };
+  } catch {
+    return {
+      appLaunches: 0,
+      starterWorkflowRuns: 0,
+    };
+  }
+}
+
 export default function DesktopWorkspace() {
   const { toast } = useToast();
   const { user, isAuthenticated, featureAccess, logout, refetch } = useAuth();
   const [scriptTabs, setScriptTabs] = useState<ScriptWorkspaceTab[]>(() => [createWorkspaceTab()]);
   const [activeScriptTabId, setActiveScriptTabId] = useState("");
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<DesktopWorkspaceTab>("script");
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [selectedGuiCategory, setSelectedGuiCategory] = useState<string | null>(null);
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
@@ -110,7 +155,7 @@ export default function DesktopWorkspace() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState("");
-  const [checkoutPromoCode, setCheckoutPromoCode] = useState("");
+  const [generalUpgradeDialogOpen, setGeneralUpgradeDialogOpen] = useState(false);
   const [licenseEmail, setLicenseEmail] = useState("");
   const [licensePassword, setLicensePassword] = useState("");
   const [licenseStatusMessage, setLicenseStatusMessage] = useState<string | null>(null);
@@ -118,6 +163,15 @@ export default function DesktopWorkspace() {
   const [recoveryFound, setRecoveryFound] = useState(false);
   const [pendingTabCloseId, setPendingTabCloseId] = useState<string | null>(null);
   const [appSettingsView, setAppSettingsView] = useState<AppSettingsView>(null);
+  const [guidedProfile, setGuidedProfile] = useState<DesktopGuidedProfile | null>(null);
+  const [guidedOnboardingOpen, setGuidedOnboardingOpen] = useState(false);
+  const [guidedOnboardingDismissed, setGuidedOnboardingDismissed] = useState(false);
+  const [guidedUpgradeWorkflowId, setGuidedUpgradeWorkflowId] = useState<string | null>(null);
+  const [guidedFocusDraftId, setGuidedFocusDraftId] = useState(() => DESKTOP_GUIDED_FOCUSES[0].id);
+  const [guidedWorkflowDraftId, setGuidedWorkflowDraftId] = useState(() => DESKTOP_GUIDED_FOCUSES[0].workflows[0].id);
+  const [conversionState, setConversionState] = useState<DesktopConversionState>(() => readDesktopConversionState());
+  const [conversionBannerDismissed, setConversionBannerDismissed] = useState(false);
+  const [trialCodeCopied, setTrialCodeCopied] = useState(false);
   const [desktopSession, setDesktopSession] = useState(() => getDesktopAuthState());
   const [desktopVersion, setDesktopVersion] = useState("1.0.0");
   const [updateState, setUpdateState] = useState<{ state: string; version?: string; percent?: number; message?: string }>({ state: "idle" });
@@ -137,6 +191,16 @@ export default function DesktopWorkspace() {
   const activeTabDirty = activeScriptTab ? activeScriptTab.script !== activeScriptTab.lastSavedContent : false;
   const hasProAccess = user?.role === "admin" || !!featureAccess?.hasPremiumCategories || !!cachedLicense?.isPro;
   const isRevalidatingStoredSession = !!desktopSession.token && !visibleUser;
+  const currentGuidedProfile = guidedProfile ? guidedProfile : null;
+  const currentGuidedFocus = currentGuidedProfile ? getDesktopGuidedFocus(currentGuidedProfile.focusId) : null;
+  const currentGuidedWorkflow = currentGuidedProfile
+    ? getDesktopGuidedWorkflow(currentGuidedProfile.focusId, currentGuidedProfile.workflowId)
+    : null;
+  const guidedDraftFocus = getDesktopGuidedFocus(guidedFocusDraftId);
+  const guidedDraftWorkflow = getDesktopGuidedWorkflow(guidedDraftFocus.id, guidedWorkflowDraftId);
+  const guidedUpgradeWorkflow = currentGuidedFocus && guidedUpgradeWorkflowId
+    ? currentGuidedFocus.workflows.find((workflow) => workflow.id === guidedUpgradeWorkflowId) || null
+    : null;
 
   const accessLabel = useMemo(() => {
     if (hasProAccess) {
@@ -147,6 +211,34 @@ export default function DesktopWorkspace() {
     }
     return "License not connected";
   }, [hasProAccess, isAuthenticated, visibleUser]);
+
+  const desktopConversionBanner = useMemo(() => {
+    if (hasProAccess || !visibleUser || conversionBannerDismissed) {
+      return null;
+    }
+
+    if (conversionState.starterWorkflowRuns >= 3) {
+      return {
+        title: `You've already started ${conversionState.starterWorkflowRuns} workflows. Let Pro finish them much faster.`,
+        description: "Use AI generation, guided troubleshooting, and premium workflow packs without bouncing back to the manual path.",
+        cta: "Start 30-day Pro trial",
+      };
+    }
+
+    if (conversionState.starterWorkflowRuns >= 1) {
+      return {
+        title: "Nice start. PSForge Pro turns starter scripts into finished automation much faster.",
+        description: "Keep the editor free path whenever you want, then unlock AI generation and premium workflows when you're ready to speed things up.",
+        cta: "Try Pro free for 30 days",
+      };
+    }
+
+      return {
+        title: "Start your 30-day PSForge Pro trial when you're ready to move faster.",
+        description: "Use promo code FREE30 at checkout to test AI, troubleshooting, and premium workflow packs from inside the app.",
+        cta: "Start 30-day Pro trial",
+      };
+  }, [conversionBannerDismissed, conversionState.starterWorkflowRuns, hasProAccess, visibleUser]);
 
   useEffect(() => {
     if (!activeScriptTabId && scriptTabs[0]) {
@@ -178,6 +270,18 @@ export default function DesktopWorkspace() {
       }
     }
 
+    removeDesktopStorageItem("psforge-desktop-guided-onboarding");
+    removeDesktopStorageItem("psforge-desktop-guided-profile");
+    setConversionState((current) => {
+      const next = {
+        ...current,
+        appLaunches: current.appLaunches + 1,
+      };
+      setDesktopStorageItem(CONVERSION_STATE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setConversionBannerDismissed(false);
+
     return () => {
       if (pollTimerRef.current) {
         window.clearTimeout(pollTimerRef.current);
@@ -203,6 +307,40 @@ export default function DesktopWorkspace() {
   useEffect(() => {
     setDesktopSession(getDesktopAuthState());
   }, [user, isAuthenticated]);
+
+  useEffect(() => {
+    const workflowStillExists = guidedDraftFocus.workflows.some((workflow) => workflow.id === guidedWorkflowDraftId);
+    if (!workflowStillExists) {
+      setGuidedWorkflowDraftId(guidedDraftFocus.workflows[0].id);
+    }
+  }, [guidedDraftFocus, guidedWorkflowDraftId]);
+
+  useEffect(() => {
+    if (!visibleUser) {
+      setGuidedOnboardingOpen(false);
+      return;
+    }
+
+    if (guidedProfile) {
+      setGuidedFocusDraftId(guidedProfile.focusId);
+      setGuidedWorkflowDraftId(guidedProfile.workflowId);
+      return;
+    }
+
+    if (!guidedOnboardingDismissed) {
+      setGuidedOnboardingOpen(true);
+    }
+  }, [guidedOnboardingDismissed, guidedProfile, visibleUser]);
+
+  useEffect(() => {
+    if (!hasProAccess || !guidedUpgradeWorkflowId || !currentGuidedFocus) {
+      return;
+    }
+
+    const workflowId = guidedUpgradeWorkflowId;
+    setGuidedUpgradeWorkflowId(null);
+    startGuidedWorkflow(workflowId, currentGuidedFocus.id);
+  }, [currentGuidedFocus, guidedUpgradeWorkflowId, hasProAccess]);
 
   useEffect(() => {
     if (!appOpenedTrackedRef.current) {
@@ -394,6 +532,111 @@ export default function DesktopWorkspace() {
 
     setScriptTabs((currentTabs) => [...currentTabs, nextTab]);
     setActiveScriptTabId(nextTab.id);
+    setActiveWorkspaceTab("script");
+  };
+
+  const persistGuidedProfile = (nextProfile: DesktopGuidedProfile) => {
+    setGuidedProfile(nextProfile);
+  };
+
+  const incrementConversionState = (updates: Partial<DesktopConversionState>) => {
+    setConversionState((current) => {
+      const next = {
+        appLaunches: current.appLaunches + (updates.appLaunches || 0),
+        starterWorkflowRuns: current.starterWorkflowRuns + (updates.starterWorkflowRuns || 0),
+      };
+      setDesktopStorageItem(CONVERSION_STATE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const openGuidedOnboarding = () => {
+    const startingFocus = currentGuidedProfile?.focusId || guidedFocusDraftId || DESKTOP_GUIDED_FOCUSES[0].id;
+    const startingWorkflow = currentGuidedProfile?.workflowId || getDesktopGuidedFocus(startingFocus).workflows[0].id;
+    setGuidedFocusDraftId(startingFocus);
+    setGuidedWorkflowDraftId(startingWorkflow);
+    setGuidedOnboardingDismissed(false);
+    setGuidedOnboardingOpen(true);
+  };
+
+  const seedScriptForWorkflow = (workflowTitle: string, seedScript?: string) => {
+    if (!seedScript) {
+      return;
+    }
+
+    if (activeScriptTab && activeScriptTab.script.trim().length === 0 && !activeScriptTab.filePath) {
+      updateScriptTab(activeScriptTab.id, (tab) => ({
+        ...tab,
+        script: seedScript,
+      }));
+      return;
+    }
+
+    const nextTab = createWorkspaceTab({
+      fileName: getNextUntitledName(scriptTabs),
+      script: seedScript,
+      lastSavedContent: "",
+    });
+
+    setScriptTabs((currentTabs) => [...currentTabs, nextTab]);
+    setActiveScriptTabId(nextTab.id);
+    toast({
+      title: `${workflowTitle} starter loaded`,
+      description: "A fresh starter script was opened in a new tab.",
+    });
+  };
+
+  const startGuidedWorkflow = (workflowId: string, focusId = currentGuidedProfile?.focusId || guidedFocusDraftId) => {
+    const workflow = getDesktopGuidedWorkflow(focusId, workflowId);
+    const nextProfile: DesktopGuidedProfile = {
+      focusId,
+      workflowId: workflow.id,
+      completedAt: currentGuidedProfile?.completedAt || new Date().toISOString(),
+      lastUsedAt: new Date().toISOString(),
+    };
+
+    persistGuidedProfile(nextProfile);
+    setGuidedOnboardingDismissed(false);
+    setGuidedOnboardingOpen(false);
+
+    if (workflow.premium && !hasProAccess) {
+      setGuidedUpgradeWorkflowId(workflow.id);
+      return;
+    }
+
+    if (!workflow.premium) {
+      const previousRuns = conversionState.starterWorkflowRuns;
+      incrementConversionState({ starterWorkflowRuns: 1 });
+      if (previousRuns === 0) {
+        toast({
+          title: "Starter workflow ready",
+          description: "You can keep building for free here, or unlock Pro if you want AI to finish the heavier lifting faster.",
+        });
+      } else if (previousRuns === 2) {
+        toast({
+          title: "You're building momentum",
+          description: "PSForge Pro can take these repeated starter workflows and turn them into finished automation much faster.",
+        });
+      }
+    }
+
+    if (workflow.categoryId) {
+      setSelectedGuiCategory(workflow.categoryId);
+    }
+
+    if (workflow.seedScript) {
+      seedScriptForWorkflow(workflow.title, workflow.seedScript);
+    }
+
+    setActiveWorkspaceTab(workflow.tab);
+    toast({
+      title: workflow.title,
+      description: workflow.description,
+    });
+  };
+
+  const handleCompleteGuidedOnboarding = () => {
+    startGuidedWorkflow(guidedDraftWorkflow.id, guidedDraftFocus.id);
   };
 
   const closeScriptTab = (tabId: string) => {
@@ -434,6 +677,15 @@ export default function DesktopWorkspace() {
     const tab = scriptTabs.find((entry) => entry.id === tabId);
     if (!tab) {
       return false;
+    }
+
+    const preflight = analyzeScriptWorkbench(tab.script);
+    const notableIssues = preflight.issues.filter((issue) => issue.severity === "critical" || issue.severity === "warning");
+    if (notableIssues.length > 0) {
+      toast({
+        title: "Pre-flight note before save",
+        description: `${notableIssues.length} issue${notableIssues.length === 1 ? "" : "s"} still appear in this script. PSForge saved it locally, but review the Workbench tab before sharing or running it.`,
+      });
     }
 
     const result = !forceSaveAs && tab.filePath
@@ -492,6 +744,7 @@ export default function DesktopWorkspace() {
     setScriptTabs((currentTabs) => [...currentTabs, nextTab]);
     setActiveScriptTabId(nextTab.id);
     setRecoveryFound(false);
+    setActiveWorkspaceTab("script");
     rememberRecentFile(file.fileName || "script.ps1", file.filePath);
 
     toast({
@@ -572,6 +825,24 @@ export default function DesktopWorkspace() {
     setRegisterPasswordConfirm("");
   };
 
+  const handleCopyTrialCode = async () => {
+    try {
+      await navigator.clipboard.writeText(DESKTOP_FREE_TRIAL_PROMO_CODE);
+      setTrialCodeCopied(true);
+      window.setTimeout(() => setTrialCodeCopied(false), 2000);
+      toast({
+        title: "Promo code copied",
+        description: "Paste FREE30 into Stripe checkout to start the 30-day Pro trial.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Could not copy promo code",
+        description: error?.message || "Please copy FREE30 manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const scheduleProAccessRefresh = (attempt = 0) => {
     if (checkoutRefreshTimerRef.current) {
       window.clearTimeout(checkoutRefreshTimerRef.current);
@@ -585,11 +856,23 @@ export default function DesktopWorkspace() {
         await refetch();
 
         if (result.license.isPro) {
+          const upgradeContext = getDesktopStorageItem(DESKTOP_POST_UPGRADE_CONTEXT_KEY);
+          let contextLabel = "your workflow";
+          if (upgradeContext) {
+            try {
+              const parsed = JSON.parse(upgradeContext) as { label?: string };
+              contextLabel = parsed.label || contextLabel;
+            } catch {
+              contextLabel = "your workflow";
+            }
+            removeDesktopStorageItem(DESKTOP_POST_UPGRADE_CONTEXT_KEY);
+          }
+
           setLicenseStatusTone("default");
-          setLicenseStatusMessage(`PSForge Pro is active on this desktop app via ${result.license.plan || "your subscription"}.`);
+          setLicenseStatusMessage(`PSForge Pro is active on this desktop app via ${result.license.plan || "your subscription"}. Continue with ${contextLabel}.`);
           toast({
             title: "PSForge Pro activated",
-            description: "Your subscription checkout completed and Pro features are now enabled.",
+            description: `${contextLabel} is ready to continue with Pro features enabled.`,
           });
           return;
         }
@@ -688,7 +971,7 @@ export default function DesktopWorkspace() {
     }
   };
 
-  const handleUpgradeToPro = async () => {
+  const handleUpgradeToPro = async (contextLabel = currentGuidedWorkflow?.title || "PSForge Pro trial") => {
     if (!visibleUser) {
       setLicenseStatusTone("destructive");
       setLicenseStatusMessage("Sign in first, then start the secure PSForge Pro checkout.");
@@ -697,13 +980,20 @@ export default function DesktopWorkspace() {
 
     setBillingActionLoading("checkout");
     try {
-      const { url } = await createDesktopBillingCheckout(checkoutPromoCode);
+      setDesktopStorageItem(
+        DESKTOP_POST_UPGRADE_CONTEXT_KEY,
+        JSON.stringify({
+          label: contextLabel,
+          startedAt: new Date().toISOString(),
+        }),
+      );
+      const { url } = await createDesktopBillingCheckout();
       await openExternalUrl(url);
       setLicenseStatusTone("default");
-      setLicenseStatusMessage("Secure Stripe checkout opened in your browser. Complete the subscription there, then PSForge Desktop will refresh your access automatically.");
+      setLicenseStatusMessage("Secure Stripe checkout opened in your browser. Copy promo code FREE30 and paste it into Stripe checkout to start your 30-day Pro trial.");
       toast({
         title: "Secure checkout opened",
-        description: "Finish the recurring PSForge Pro subscription in your browser. We’ll keep checking for the updated license.",
+        description: `Finish the recurring PSForge Pro subscription in your browser, use promo code FREE30 at checkout, and then continue with ${contextLabel}.`,
       });
       scheduleProAccessRefresh();
     } catch (error: any) {
@@ -1012,19 +1302,28 @@ export default function DesktopWorkspace() {
                 {!hasProAccess && (
                   <div className="space-y-2">
                     <Label htmlFor="desktop-promo-code">Promo Code</Label>
-                    <Input
-                      id="desktop-promo-code"
-                      value={checkoutPromoCode}
-                      onChange={(event) => setCheckoutPromoCode(event.target.value.toUpperCase())}
-                      placeholder="Optional promo code"
-                    />
+                    <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 px-3 py-2">
+                      <Input
+                        id="desktop-promo-code"
+                        value={DESKTOP_FREE_TRIAL_PROMO_CODE}
+                        readOnly
+                        className="max-w-[160px] font-mono"
+                      />
+                      <Button type="button" size="sm" variant="outline" onClick={() => void handleCopyTrialCode()}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        {trialCodeCopied ? "Copied" : "Copy code"}
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Copy FREE30 here, then paste it into Stripe checkout to start the 30-day Pro trial.
+                    </div>
                   </div>
                 )}
                 <div className="grid gap-2">
                   {!hasProAccess && (
-                    <Button onClick={handleUpgradeToPro} disabled={billingActionLoading !== null}>
+                    <Button onClick={() => void handleUpgradeToPro("PSForge Pro trial")} disabled={billingActionLoading !== null}>
                       <CreditCard className="mr-2 h-4 w-4" />
-                      {billingActionLoading === "checkout" ? "Opening Secure Checkout..." : "Upgrade to Pro with Secure Stripe Checkout"}
+                      {billingActionLoading === "checkout" ? "Opening Secure Checkout..." : "Start 30-Day Pro Trial"}
                     </Button>
                   )}
                   <Button
@@ -1111,7 +1410,7 @@ export default function DesktopWorkspace() {
             </div>
           </div>
 
-          <div className="flex flex-1 items-center justify-center p-6">
+        <div className="flex flex-1 items-center justify-center p-6">
             <Card className="w-full max-w-3xl overflow-hidden">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
@@ -1269,15 +1568,15 @@ export default function DesktopWorkspace() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 xl:px-8">
+        <div className="flex w-full items-center justify-between gap-4 px-4 py-2 sm:px-5 xl:px-6">
           <div className="flex items-center gap-3">
             <div className="min-w-0">
               <img
                 src={logoImage}
                 alt="PSForge"
-                className="h-20 w-auto max-w-[360px] object-contain object-left sm:h-24 sm:max-w-[440px] 2xl:h-28 2xl:max-w-[560px]"
+                className="h-10 w-auto max-w-[220px] object-contain object-left sm:h-12 sm:max-w-[260px]"
               />
-              <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                 <span>PowerShell Automation Workspace for Windows</span>
                 <Badge variant="outline">v{desktopVersion}</Badge>
               </div>
@@ -1293,17 +1592,46 @@ export default function DesktopWorkspace() {
         </div>
       </div>
 
-      <div className="flex w-full flex-1 min-h-0 overflow-hidden p-4 xl:p-6">
-        <Card className="min-h-0 w-full overflow-hidden">
-          <Tabs defaultValue="script" className="flex h-full min-h-0 flex-col">
-            <div className="border-b px-4 py-3">
+      <div className="flex w-full min-h-0 flex-1 overflow-hidden p-3 xl:p-4">
+        <Card className="flex min-h-0 w-full flex-col overflow-hidden">
+          <div className="border-b px-4 py-3 sm:px-5">
+            <DesktopFocusPanel
+              profile={guidedProfile}
+              hasProAccess={hasProAccess}
+              onChangeFocus={openGuidedOnboarding}
+              onStartWorkflow={startGuidedWorkflow}
+            />
+            {desktopConversionBanner && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium">{desktopConversionBanner.title}</div>
+                  <div className="text-xs text-muted-foreground">{desktopConversionBanner.description}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => setGeneralUpgradeDialogOpen(true)}>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    {desktopConversionBanner.cta}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConversionBannerDismissed(true)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <Tabs value={activeWorkspaceTab} onValueChange={(value) => setActiveWorkspaceTab(value as DesktopWorkspaceTab)} className="flex h-full min-h-0 flex-col">
+            <div className="border-b px-4 py-2.5">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">
                     {currentFileName}
                     {activeTabDirty ? " *" : ""}
                   </div>
-                  <div className="text-xs text-muted-foreground">Desktop-first workspace with local recovery and Windows file access</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {currentGuidedFocus
+                      ? `Focused on ${currentGuidedFocus.title}. ${currentGuidedWorkflow?.description || "Choose the next workflow from the tabs or your guided panel."}`
+                      : "Desktop-first workspace with local recovery and Windows file access"}
+                  </div>
                 </div>
                 <TabsList>
                   <TabsTrigger value="script" className="gap-2">
@@ -1377,12 +1705,11 @@ export default function DesktopWorkspace() {
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-hidden">
-                  <ScriptGeneratorTab
+                  <DesktopScriptWorkbench
                     script={currentScript}
                     setScript={setActiveScript}
-                    exportDialogOpen={false}
-                    setExportDialogOpen={() => undefined}
                     currentFileName={currentFileName}
+                    authorName={visibleUser?.name || visibleUser?.email || "PSForge User"}
                   />
                 </div>
               </div>
@@ -1447,6 +1774,55 @@ export default function DesktopWorkspace() {
         </DialogContent>
       </Dialog>
 
+      <DesktopGuidedOnboardingDialog
+        open={guidedOnboardingOpen}
+        onOpenChange={(open) => {
+          setGuidedOnboardingOpen(open);
+          if (!open) {
+            setGuidedOnboardingDismissed(true);
+          }
+        }}
+        selectedFocusId={guidedFocusDraftId}
+        selectedWorkflowId={guidedWorkflowDraftId}
+        hasProAccess={hasProAccess}
+        onSelectFocus={setGuidedFocusDraftId}
+        onSelectWorkflow={setGuidedWorkflowDraftId}
+        onComplete={handleCompleteGuidedOnboarding}
+      />
+
+      <DesktopUpgradeDialog
+        open={generalUpgradeDialogOpen}
+        onOpenChange={setGeneralUpgradeDialogOpen}
+        feature="PSForge Pro"
+        title="Unlock PSForge Pro"
+        description="Get the full PSForge desktop experience with AI help, premium workflow packs, guided troubleshooting, and faster script generation across the app."
+        previewTitle="What PSForge Pro unlocks across the desktop app"
+        previewItems={[
+          "Generate and refine PowerShell scripts with AI from the desktop workflow.",
+          "Use premium workflow packs for Intune, Microsoft 365, Azure, Help Desk, and more.",
+          "Move from troubleshooting, planning, and drafting into finished automation faster.",
+        ]}
+        contextLabel="PSForge Pro"
+      />
+
+      <DesktopUpgradeDialog
+        open={!!guidedUpgradeWorkflow}
+        onOpenChange={(open) => !open && setGuidedUpgradeWorkflowId(null)}
+        feature={guidedUpgradeWorkflow?.title || "guided workflow"}
+        title={guidedUpgradeWorkflow?.title || "Unlock this workflow with Pro"}
+        description={guidedUpgradeWorkflow?.description || "PSForge Pro is required for this workflow."}
+        previewTitle="What Pro will do once you continue"
+        previewItems={guidedUpgradeWorkflow ? [
+          guidedUpgradeWorkflow.outcome,
+          guidedUpgradeWorkflow.tab === "ai"
+            ? "Draft the script directly in the AI tab instead of building it manually."
+            : guidedUpgradeWorkflow.tab === "troubleshooter"
+              ? "Analyze the issue and move straight into remediation guidance."
+              : "Open the premium task pack and generate repeatable automation faster.",
+        ] : []}
+        contextLabel={guidedUpgradeWorkflow?.title || "guided workflow"}
+      />
+
       <Dialog open={!!pendingCloseTab} onOpenChange={(open) => !open && setPendingTabCloseId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -1475,3 +1851,4 @@ export default function DesktopWorkspace() {
     </div>
   );
 }
+

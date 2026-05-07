@@ -37,6 +37,16 @@ contextBridge.exposeInMainWorld("psforgeDesktop", {
   gitCheckout: (payload: { repoPath: string; branchName: string }) => ipcRenderer.invoke("desktop:git-checkout", payload),
   gitCommitScript: (payload: { repoPath: string; relativePath: string; content: string; message: string }) =>
     ipcRenderer.invoke("desktop:git-commit-script", payload),
+  runPowerShellScript: (payload: {
+    scriptContent: string;
+    fileName?: string;
+    parameters?: Record<string, unknown>;
+    captureTranscript?: boolean;
+    runAsAdmin?: boolean;
+    runMode?: "standard" | "dry-run" | "report-only";
+  }) => ipcRenderer.invoke("desktop:run-powershell-script", payload),
+  zipDirectory: (payload: { sourceDirectory: string; archivePath: string }) =>
+    ipcRenderer.invoke("desktop:zip-directory", payload),
   getStorageItem: (key: string) => ipcRenderer.sendSync("desktop:storage-get", key),
   setStorageItem: (key: string, value: string) => ipcRenderer.sendSync("desktop:storage-set", { key, value }),
   removeStorageItem: (key: string) => ipcRenderer.sendSync("desktop:storage-remove", key),

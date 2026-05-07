@@ -24,9 +24,24 @@ let splashWindow = null;
 let localServer = null;
 let localServerUrl = null;
 let gitExecutablePath = null;
+let powerShellExecutablePath = null;
 let isQuitting = false;
 let updateCheckInterval = null;
 let latestUpdateStatus = { state: "idle" };
+
+function updateSplashProgress(percent, message = "Loading PSForge Desktop...") {
+  if (!splashWindow || splashWindow.isDestroyed()) {
+    return;
+  }
+
+  const clampedPercent = Math.max(0, Math.min(100, Math.round(percent)));
+  const serializedMessage = JSON.stringify(message);
+  splashWindow.webContents
+    .executeJavaScript(`window.__setSplashProgress?.(${clampedPercent}, ${serializedMessage});`, true)
+    .catch(() => {
+      // Ignore timing issues if the splash content has not finished loading yet.
+    });
+}
 
 function sendMenuAction(action) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -108,8 +123,21 @@ function getSplashImagePath() {
   return path.join(process.resourcesPath, "branding", "loading-screen.jpg");
 }
 
+function getSplashImageDataUrl() {
+  try {
+    const splashPath = getSplashImagePath();
+    const extension = path.extname(splashPath).toLowerCase();
+    const mimeType = extension === ".png" ? "image/png" : "image/jpeg";
+    const buffer = fsSync.readFileSync(splashPath);
+    return `data:${mimeType};base64,${buffer.toString("base64")}`;
+  } catch (error) {
+    writeDesktopLog(`Failed to read splash image: ${error?.message || error}`);
+    return null;
+  }
+}
+
 function createSplashWindow() {
-  const splashImageUrl = pathToFileURL(getSplashImagePath()).toString();
+  const splashImageUrl = getSplashImageDataUrl();
   splashWindow = new BrowserWindow({
     width: 720,
     height: 420,
@@ -133,6 +161,7 @@ function createSplashWindow() {
 
   splashWindow.once("ready-to-show", () => {
     splashWindow?.show();
+    updateSplashProgress(8, "Starting PSForge Desktop...");
   });
 
   splashWindow.on("closed", () => {
@@ -155,9 +184,11 @@ function createSplashWindow() {
             }
 
             body {
+              position: relative;
               display: grid;
               place-items: center;
               font-family: Segoe UI, Arial, sans-serif;
+              color: #f8fafc;
             }
 
             img {
@@ -167,10 +198,127 @@ function createSplashWindow() {
               user-select: none;
               -webkit-user-drag: none;
             }
+
+            .image-fallback {
+              position: absolute;
+              inset: 0;
+              display: none;
+              place-items: center;
+              padding: 32px;
+              text-align: center;
+              background: radial-gradient(circle at top, rgba(96, 165, 250, 0.25), rgba(21, 80, 166, 0.95) 55%);
+            }
+
+            .image-fallback.visible {
+              display: grid;
+            }
+
+            .fallback-title {
+              font-size: 48px;
+              font-weight: 800;
+              letter-spacing: -0.03em;
+              text-shadow: 0 10px 30px rgba(15, 23, 42, 0.45);
+            }
+
+            .fallback-subtitle {
+              margin-top: 12px;
+              font-size: 16px;
+              color: rgba(248, 250, 252, 0.8);
+            }
+
+            .overlay {
+              position: absolute;
+              left: 50%;
+              bottom: 32px;
+              width: min(440px, calc(100% - 64px));
+              transform: translateX(-50%);
+            }
+
+            .status-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 10px;
+              text-shadow: 0 2px 12px rgba(15, 23, 42, 0.65);
+            }
+
+            .status-label {
+              font-size: 14px;
+              font-weight: 600;
+              letter-spacing: 0.01em;
+            }
+
+            .status-percent {
+              font-size: 14px;
+              font-weight: 700;
+            }
+
+            .track {
+              height: 12px;
+              overflow: hidden;
+              border-radius: 999px;
+              background: rgba(15, 23, 42, 0.28);
+              box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+              backdrop-filter: blur(8px);
+            }
+
+            .bar {
+              height: 100%;
+              width: 0%;
+              border-radius: inherit;
+              background: linear-gradient(90deg, #60a5fa 0%, #93c5fd 100%);
+              box-shadow: 0 0 18px rgba(96, 165, 250, 0.45);
+              transition: width 180ms ease;
+            }
           </style>
         </head>
         <body>
-          <img src="${splashImageUrl}" alt="PSForge loading screen" />
+          ${splashImageUrl ? `<img id="splash-image" src="${splashImageUrl}" alt="PSForge loading screen" />` : ""}
+          <div id="image-fallback" class="image-fallback${splashImageUrl ? "" : " visible"}" aria-hidden="${splashImageUrl ? "true" : "false"}">
+            <div>
+              <div class="fallback-title">PSForge</div>
+              <div class="fallback-subtitle">PowerShell Automation Workspace for Windows</div>
+            </div>
+          </div>
+          <div class="overlay" aria-live="polite">
+            <div class="status-row">
+              <div class="status-label" id="status-label">Starting PSForge Desktop...</div>
+              <div class="status-percent" id="status-percent">0%</div>
+            </div>
+            <div class="track">
+              <div class="bar" id="status-bar"></div>
+            </div>
+          </div>
+          <script>
+            const splashImage = document.getElementById("splash-image");
+            const imageFallback = document.getElementById("image-fallback");
+
+            if (splashImage && imageFallback) {
+              splashImage.addEventListener("error", () => {
+                imageFallback.classList.add("visible");
+                imageFallback.setAttribute("aria-hidden", "false");
+              });
+            }
+
+            window.__setSplashProgress = (percent, message) => {
+              const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
+              const label = document.getElementById("status-label");
+              const percentNode = document.getElementById("status-percent");
+              const bar = document.getElementById("status-bar");
+
+              if (label) {
+                label.textContent = message || "Loading PSForge Desktop...";
+              }
+
+              if (percentNode) {
+                percentNode.textContent = safePercent + "%";
+              }
+
+              if (bar) {
+                bar.style.width = safePercent + "%";
+              }
+            };
+          </script>
         </body>
       </html>
     `)}`,
@@ -249,6 +397,217 @@ async function runGitCommand(args, cwd) {
     await writeDesktopLog(`git failed: ${detail}`);
     throw new Error(detail);
   }
+}
+
+async function findPowerShellExecutable() {
+  if (powerShellExecutablePath) {
+    return powerShellExecutablePath;
+  }
+
+  try {
+    const { stdout } = await execFileAsync("where.exe", ["pwsh"], { windowsHide: true });
+    const match = stdout
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .find((entry) => entry && fsSync.existsSync(entry));
+
+    if (match) {
+      powerShellExecutablePath = match;
+      return powerShellExecutablePath;
+    }
+  } catch {
+    // Fall back to common install locations below.
+  }
+
+  try {
+    const { stdout } = await execFileAsync("where.exe", ["powershell"], { windowsHide: true });
+    const match = stdout
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .find((entry) => entry && fsSync.existsSync(entry));
+
+    if (match) {
+      powerShellExecutablePath = match;
+      return powerShellExecutablePath;
+    }
+  } catch {
+    // Fall back to common install locations below.
+  }
+
+  const candidates = [
+    path.join(process.env["ProgramFiles"] || "C:\\Program Files", "PowerShell", "7", "pwsh.exe"),
+    path.join(process.env["ProgramFiles"] || "C:\\Program Files", "PowerShell", "6", "pwsh.exe"),
+    path.join(process.env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
+  ].filter(Boolean);
+
+  const found = candidates.find((candidate) => fsSync.existsSync(candidate));
+  powerShellExecutablePath = found || null;
+  return powerShellExecutablePath;
+}
+
+function toPowerShellLiteral(value) {
+  if (value == null) {
+    return "$null";
+  }
+
+  if (Array.isArray(value)) {
+    return `@(${value.map((entry) => toPowerShellLiteral(entry)).join(", ")})`;
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "$true" : "$false";
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function sanitizeFileName(value, fallback = "script.ps1") {
+  const nextValue = typeof value === "string" && value.trim() ? value.trim() : fallback;
+  const sanitized = nextValue.replace(/[<>:"/\\|?*]+/g, "-");
+  return sanitized || fallback;
+}
+
+async function zipDirectoryToArchive(sourceDirectory, archivePath) {
+  const powerShellPath = await findPowerShellExecutable();
+  if (!powerShellPath) {
+    throw new Error("PowerShell was not found on this computer. Install PowerShell 7 or enable Windows PowerShell.");
+  }
+
+  const zipScript = [
+    `$sourceDirectory = ${toPowerShellLiteral(sourceDirectory)}`,
+    `$archivePath = ${toPowerShellLiteral(archivePath)}`,
+    "if (Test-Path -LiteralPath $archivePath) { Remove-Item -LiteralPath $archivePath -Force }",
+    "Compress-Archive -LiteralPath $sourceDirectory -DestinationPath $archivePath -Force",
+    "",
+  ].join("\r\n");
+
+  const zipScriptPath = path.join(app.getPath("userData"), "temp", `zip-${Date.now()}.ps1`);
+  await fs.mkdir(path.dirname(zipScriptPath), { recursive: true });
+  await fs.writeFile(zipScriptPath, zipScript, "utf8");
+  await execFileAsync(powerShellPath, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", zipScriptPath], {
+    windowsHide: true,
+    maxBuffer: 10 * 1024 * 1024,
+  });
+}
+
+async function runDesktopPowerShellScript({ scriptContent, fileName, parameters, captureTranscript = true, runAsAdmin = false, runMode = "standard" }) {
+  const powerShellPath = await findPowerShellExecutable();
+  if (!powerShellPath) {
+    throw new Error("PowerShell was not found on this computer. Install PowerShell 7 or enable Windows PowerShell.");
+  }
+
+  const startedAt = new Date().toISOString();
+  const runDirectory = path.join(app.getPath("userData"), "runs", `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const safeFileName = sanitizeFileName(fileName || "psforge-script.ps1");
+  const scriptPath = path.join(runDirectory, safeFileName.endsWith(".ps1") ? safeFileName : `${safeFileName}.ps1`);
+  const transcriptPath = path.join(runDirectory, `${safeFileName.replace(/\.ps1$/i, "")}-transcript.txt`);
+  const wrapperPath = path.join(runDirectory, "run-wrapper.ps1");
+  const launcherPath = path.join(runDirectory, "run-launcher.ps1");
+  const stdoutPath = path.join(runDirectory, "stdout.txt");
+  const stderrPath = path.join(runDirectory, "stderr.txt");
+  const parameterEntries = Object.entries(parameters || {});
+  const parameterLiteral = parameterEntries.length > 0
+    ? parameterEntries.map(([key, value]) => `  ${key} = ${toPowerShellLiteral(value)}`).join(";\n")
+    : "";
+
+  const wrapperScript = [
+    "$ErrorActionPreference = 'Continue'",
+    runMode === "dry-run" || runMode === "report-only" ? "$WhatIfPreference = $true" : "",
+    runMode === "dry-run" || runMode === "report-only" ? "$PSDefaultParameterValues['*:WhatIf'] = $true" : "",
+    runMode === "report-only" ? "$VerbosePreference = 'Continue'" : "",
+    runMode === "report-only" ? "$InformationPreference = 'Continue'" : "",
+    `$scriptPath = ${toPowerShellLiteral(scriptPath)}`,
+    `$captureTranscript = ${captureTranscript ? "$true" : "$false"}`,
+    captureTranscript ? `$transcriptPath = ${toPowerShellLiteral(transcriptPath)}` : "$transcriptPath = $null",
+    "$invokeParams = @{}",
+    parameterLiteral ? `$invokeParams = @{\n${parameterLiteral}\n}` : "",
+    "if ($captureTranscript -and $transcriptPath) { Start-Transcript -Path $transcriptPath -Force | Out-Null }",
+    "try {",
+    "  & $scriptPath @invokeParams",
+    "  if ($LASTEXITCODE -ne $null) { $exitCode = [int]$LASTEXITCODE } else { $exitCode = 0 }",
+    "} catch {",
+    "  Write-Error $_",
+    "  $exitCode = 1",
+    "} finally {",
+    "  if ($captureTranscript -and $transcriptPath) { try { Stop-Transcript | Out-Null } catch {} }",
+    "}",
+    "exit $exitCode",
+    "",
+  ].filter(Boolean).join("\r\n");
+
+  await fs.mkdir(runDirectory, { recursive: true });
+  await fs.writeFile(scriptPath, scriptContent || "", "utf8");
+  await fs.writeFile(wrapperPath, wrapperScript, "utf8");
+  await writeDesktopLog(`powershell run start [shell=${powerShellPath}] [script=${scriptPath}] [elevated=${runAsAdmin}] [mode=${runMode}]`);
+
+  if (runAsAdmin) {
+    const launcherScript = [
+      `$scriptShell = ${toPowerShellLiteral(powerShellPath)}`,
+      `$wrapperPath = ${toPowerShellLiteral(wrapperPath)}`,
+      `$stdoutPath = ${toPowerShellLiteral(stdoutPath)}`,
+      `$stderrPath = ${toPowerShellLiteral(stderrPath)}`,
+      "$argumentList = @(",
+      "  '-NoProfile',",
+      "  '-ExecutionPolicy',",
+      "  'Bypass',",
+      "  '-File',",
+      "  $wrapperPath",
+      ")",
+      "$process = Start-Process -FilePath $scriptShell -Verb RunAs -ArgumentList $argumentList -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath",
+      "exit $process.ExitCode",
+      "",
+    ].join("\r\n");
+    await fs.writeFile(launcherPath, launcherScript, "utf8");
+  }
+
+  let stdout = "";
+  let stderr = "";
+  let exitCode = 0;
+  try {
+    const targetScript = runAsAdmin ? launcherPath : wrapperPath;
+    const result = await execFileAsync(powerShellPath, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", targetScript], {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    stdout = result.stdout?.trim() || "";
+    stderr = result.stderr?.trim() || "";
+  } catch (error) {
+    stdout = error?.stdout?.trim() || "";
+    stderr = error?.stderr?.trim() || error?.message || "PowerShell execution failed.";
+    exitCode = typeof error?.code === "number" ? error.code : 1;
+  }
+
+  if (runAsAdmin) {
+    stdout = fsSync.existsSync(stdoutPath) ? (await fs.readFile(stdoutPath, "utf8")).trim() : stdout;
+    stderr = fsSync.existsSync(stderrPath) ? (await fs.readFile(stderrPath, "utf8")).trim() : stderr;
+  }
+
+  const transcriptContent = captureTranscript && fsSync.existsSync(transcriptPath)
+    ? await fs.readFile(transcriptPath, "utf8")
+    : "";
+  const finishedAt = new Date().toISOString();
+  await writeDesktopLog(`powershell run finish [exit=${exitCode}] [transcript=${captureTranscript ? transcriptPath : "disabled"}] [elevated=${runAsAdmin}] [mode=${runMode}]`);
+
+  return {
+    ok: exitCode === 0,
+    exitCode,
+    stdout,
+    stderr,
+    transcriptPath: captureTranscript ? transcriptPath : undefined,
+    transcriptContent,
+    runDirectory,
+    shell: path.basename(powerShellPath),
+    scriptPath,
+    fileName: path.basename(scriptPath),
+    startedAt,
+    finishedAt,
+    elevated: runAsAdmin,
+    runMode,
+  };
 }
 
 function parseChangedFiles(output) {
@@ -446,6 +805,8 @@ async function startLocalFrontendServer() {
 }
 
 function createWindow() {
+  updateSplashProgress(76, "Opening desktop workspace...");
+
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 1000,
@@ -469,6 +830,30 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    void writeDesktopLog(`[renderer-console:${level}] ${sourceId || "unknown"}:${line} ${message}`);
+  });
+
+  mainWindow.webContents.on("did-start-loading", () => {
+    updateSplashProgress(86, "Loading workspace interface...");
+  });
+
+  mainWindow.webContents.on("dom-ready", () => {
+    updateSplashProgress(95, "Finalizing workspace...");
+  });
+
+  mainWindow.webContents.on("did-finish-load", () => {
+    updateSplashProgress(100, "Workspace ready");
+  });
+
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    void writeDesktopLog(`[renderer-load-failed] code=${errorCode} url=${validatedURL} message=${errorDescription}`);
+  });
+
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    void writeDesktopLog(`[renderer-gone] reason=${details.reason} exitCode=${details.exitCode}`);
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -482,14 +867,21 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
-    if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.close();
-    }
+    updateSplashProgress(100, "Workspace ready");
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close();
+      }
 
-    mainWindow?.show();
-    if (latestUpdateStatus.state !== "idle") {
-      mainWindow?.webContents.send("desktop:update-status", latestUpdateStatus);
-    }
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isMaximized()) {
+        mainWindow.maximize();
+      }
+
+      mainWindow?.show();
+      if (latestUpdateStatus.state !== "idle") {
+        mainWindow?.webContents.send("desktop:update-status", latestUpdateStatus);
+      }
+    }, 180);
   });
 
   mainWindow.loadURL(withDesktopFlag(isDev ? devServerUrl : localServerUrl));
@@ -503,6 +895,9 @@ function showMainWindow() {
 
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
+  }
+  if (!mainWindow.isMaximized()) {
+    mainWindow.maximize();
   }
   mainWindow.show();
   mainWindow.focus();
@@ -886,6 +1281,37 @@ ipcMain.handle("desktop:write-script-file", async (_event, payload) => {
   };
 });
 
+ipcMain.handle("desktop:run-powershell-script", async (_event, payload) => {
+  const scriptContent = typeof payload?.scriptContent === "string" ? payload.scriptContent : "";
+  if (!scriptContent.trim()) {
+    throw new Error("Add script content before starting a desktop PowerShell run.");
+  }
+
+  return runDesktopPowerShellScript({
+    scriptContent,
+    fileName: typeof payload?.fileName === "string" ? payload.fileName : "psforge-script.ps1",
+    parameters: payload?.parameters && typeof payload.parameters === "object" ? payload.parameters : {},
+    captureTranscript: payload?.captureTranscript !== false,
+    runAsAdmin: payload?.runAsAdmin === true,
+    runMode: payload?.runMode === "dry-run" || payload?.runMode === "report-only" ? payload.runMode : "standard",
+  });
+});
+
+ipcMain.handle("desktop:zip-directory", async (_event, payload) => {
+  const sourceDirectory = typeof payload?.sourceDirectory === "string" ? payload.sourceDirectory.trim() : "";
+  const archivePath = typeof payload?.archivePath === "string" ? payload.archivePath.trim() : "";
+
+  if (!sourceDirectory || !archivePath) {
+    throw new Error("A source directory and destination archive path are required.");
+  }
+
+  await zipDirectoryToArchive(sourceDirectory, archivePath);
+  return {
+    ok: true,
+    archivePath,
+  };
+});
+
 ipcMain.handle("desktop:open-external", async (_event, url) => {
   if (typeof url === "string" && url) {
     await shell.openExternal(url);
@@ -1088,11 +1514,14 @@ ipcMain.handle("desktop:debug-log", async (_event, message) => {
   return { ok: true };
 });
 
-  app.whenReady().then(async () => {
+app.whenReady().then(async () => {
   app.setAppUserModelId("com.psforge.desktop");
   createSplashWindow();
+  updateSplashProgress(12, "Starting local workspace services...");
   await startLocalFrontendServer();
+  updateSplashProgress(58, "Preparing desktop features...");
   createApplicationMenu();
+  updateSplashProgress(68, "Building desktop menu...");
   createWindow();
   configureAutoUpdater();
 

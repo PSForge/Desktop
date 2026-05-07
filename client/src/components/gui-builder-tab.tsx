@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Badge } from "@/components/ui/badge";
 import { TaskDetailForm } from "@/components/task-detail-form";
 import { ExportDialog } from "@/components/export-dialog";
-import { UpgradeModal } from "@/components/upgrade-modal";
+import { DesktopUpgradeDialog } from "@/components/desktop-upgrade-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
 import { apiRequest } from "@/lib/queryClient";
@@ -798,10 +798,19 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
         </div>
       </div>
 
-      <UpgradeModal 
+      <DesktopUpgradeDialog 
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
-        feature={upgradeFeature}
+        feature={`${upgradeFeature} workflow pack`}
+        title={`Unlock ${upgradeFeature} guided tasks`}
+        description={`Use PSForge Pro to open the ${upgradeFeature} pack, fill out guided forms, and generate repeatable PowerShell faster than building it from scratch.`}
+        previewTitle={`What you unlock in ${upgradeFeature}`}
+        previewItems={[
+          `Guided ${upgradeFeature} task flows instead of starting from a blank script each time.`,
+          "Reusable form-driven automation for repeat admin work.",
+          "A faster path from routine task to generated PowerShell output.",
+        ]}
+        contextLabel={upgradeFeature}
       />
     </div>
   );

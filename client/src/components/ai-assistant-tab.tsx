@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ScriptCommand } from "@shared/schema";
 import { AIHelperBot } from "@/components/ai-helper-bot";
-import { UpgradeModal } from "@/components/upgrade-modal";
+import { DesktopUpgradeDialog } from "@/components/desktop-upgrade-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { powershellCommands } from "@/lib/powershell-commands";
 import { generatePowerShellScript } from "@/lib/script-generator";
@@ -188,8 +188,16 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
             <div className="bg-muted/50 rounded-md p-4 text-center">
               <p className="text-2xl font-bold">$5/month</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Plus access to all 16 enterprise IT platform categories
+                Start with a 30-day free trial using code FREE30, then keep access to all premium desktop workflows
               </p>
+            </div>
+
+            <div className="rounded-md border border-primary/20 bg-primary/5 p-4 text-left">
+              <p className="text-sm font-semibold mb-2">Preview the Pro experience</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div>Prompt: “Create an Intune deployment script that logs failures and exports results.”</div>
+                <div>Preview: PSForge drafts the script, suggests parameters, and prepares a ready-to-edit PowerShell output.</div>
+              </div>
             </div>
 
             <Button 
@@ -204,10 +212,19 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
           </CardContent>
         </Card>
 
-        <UpgradeModal 
+        <DesktopUpgradeDialog 
           open={showUpgradeModal}
           onOpenChange={setShowUpgradeModal}
-          feature="AI Assistant"
+          feature="AI script generation"
+          title="Generate scripts with AI"
+          description="Turn plain-English automation requests into working PowerShell drafts, parameter suggestions, and faster iteration."
+          previewTitle="What the AI assistant will do for you"
+          previewItems={[
+            "Draft the first working version of your script from a plain-English request.",
+            "Recommend the right commands and parameters based on the task you described.",
+            "Keep you in the desktop workflow so you can edit, save, and run faster.",
+          ]}
+          contextLabel="AI Assistant"
         />
       </div>
     );
@@ -243,10 +260,18 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
           />
         </div>
       </div>
-      <UpgradeModal 
+      <DesktopUpgradeDialog 
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
-        feature="AI Assistant"
+        feature="AI script generation"
+        title="Upgrade when you want the AI to finish the script faster"
+        description="You already have the command flow started. Pro can draft the full script and speed up the next step."
+        previewTitle="Why this is a high-value Pro moment"
+        previewItems={[
+          "Generate the finished PowerShell draft from the commands you’ve built up.",
+          "Reduce manual assembly when you’re ready to move from idea to executable script.",
+        ]}
+        contextLabel="AI Assistant"
       />
     </div>
   );

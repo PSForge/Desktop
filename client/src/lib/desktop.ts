@@ -60,6 +60,23 @@ export interface DesktopUpdateState {
   timestamp?: string;
 }
 
+export interface DesktopPowerShellRunResult {
+  ok: boolean;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  transcriptPath?: string;
+  transcriptContent?: string;
+  runDirectory: string;
+  shell: string;
+  scriptPath: string;
+  fileName: string;
+  startedAt: string;
+  finishedAt: string;
+  elevated?: boolean;
+  runMode?: "standard" | "dry-run" | "report-only";
+}
+
 export type DesktopMenuAction =
   | "file:new"
   | "file:open"
@@ -240,4 +257,19 @@ export async function commitDesktopGitScript(
   message: string,
 ): Promise<DesktopGitCommitResult> {
   return desktopApi()!.gitCommitScript({ repoPath, relativePath, content, message });
+}
+
+export async function runDesktopPowerShellScript(payload: {
+  scriptContent: string;
+  fileName?: string;
+  parameters?: Record<string, unknown>;
+  captureTranscript?: boolean;
+  runAsAdmin?: boolean;
+  runMode?: "standard" | "dry-run" | "report-only";
+}): Promise<DesktopPowerShellRunResult> {
+  return desktopApi()!.runPowerShellScript(payload);
+}
+
+export async function zipDesktopDirectory(sourceDirectory: string, archivePath: string): Promise<{ ok: boolean; archivePath: string }> {
+  return desktopApi()!.zipDirectory({ sourceDirectory, archivePath });
 }

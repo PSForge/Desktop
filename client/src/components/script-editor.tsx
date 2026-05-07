@@ -12,9 +12,10 @@ interface ScriptEditorProps {
   script: string;
   onScriptChange: (script: string) => void;
   onCursorPositionChange?: (position: number) => void;
+  onSelectionChange?: (selectedText: string) => void;
 }
 
-export function ScriptEditor({ script, onScriptChange, onCursorPositionChange }: ScriptEditorProps) {
+export function ScriptEditor({ script, onScriptChange, onCursorPositionChange, onSelectionChange }: ScriptEditorProps) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -138,6 +139,20 @@ export function ScriptEditor({ script, onScriptChange, onCursorPositionChange }:
       }
     });
 
+    editor.onDidChangeCursorSelection((event) => {
+      if (!onSelectionChange) {
+        return;
+      }
+
+      const model = editor.getModel();
+      if (!model) {
+        onSelectionChange("");
+        return;
+      }
+
+      onSelectionChange(model.getValueInRange(event.selection));
+    });
+
     // Enable code folding by default
     editor.updateOptions({
       folding: true,
@@ -187,11 +202,18 @@ export function ScriptEditor({ script, onScriptChange, onCursorPositionChange }:
   const gutterWidth = Math.max(56, `${lineCount}`.length * 12 + 28);
 
   const syncDesktopCursorPosition = () => {
-    if (!textareaRef.current || !onCursorPositionChange) {
+    if (!textareaRef.current) {
       return;
     }
 
-    onCursorPositionChange(textareaRef.current.selectionStart || 0);
+    if (onCursorPositionChange) {
+      onCursorPositionChange(textareaRef.current.selectionStart || 0);
+    }
+
+    if (onSelectionChange) {
+      const { selectionStart, selectionEnd, value } = textareaRef.current;
+      onSelectionChange(value.slice(selectionStart || 0, selectionEnd || 0));
+    }
   };
 
   const syncDesktopScroll = () => {

@@ -64,6 +64,23 @@ interface DesktopGitCommitResult {
   relativePath: string;
 }
 
+interface DesktopPowerShellRunResult {
+  ok: boolean;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  transcriptPath?: string;
+  transcriptContent?: string;
+  runDirectory: string;
+  shell: string;
+  scriptPath: string;
+  fileName: string;
+  startedAt: string;
+  finishedAt: string;
+  elevated?: boolean;
+  runMode?: "standard" | "dry-run" | "report-only";
+}
+
 interface Window {
   psforgeDesktop?: {
     getContext: () => Promise<{ isDesktop: boolean; platform: string; version: string; osVersion?: string }>;
@@ -103,6 +120,15 @@ interface Window {
     gitCreateBranch: (payload: { repoPath: string; branchName: string; fromBranch?: string }) => Promise<DesktopGitRepoState>;
     gitCheckout: (payload: { repoPath: string; branchName: string }) => Promise<DesktopGitRepoState>;
     gitCommitScript: (payload: { repoPath: string; relativePath: string; content: string; message: string }) => Promise<DesktopGitCommitResult>;
+    runPowerShellScript: (payload: {
+      scriptContent: string;
+      fileName?: string;
+      parameters?: Record<string, unknown>;
+      captureTranscript?: boolean;
+      runAsAdmin?: boolean;
+      runMode?: "standard" | "dry-run" | "report-only";
+    }) => Promise<DesktopPowerShellRunResult>;
+    zipDirectory: (payload: { sourceDirectory: string; archivePath: string }) => Promise<{ ok: boolean; archivePath: string }>;
     getStorageItem: (key: string) => string | null;
     setStorageItem: (key: string, value: string) => boolean;
     removeStorageItem: (key: string) => boolean;

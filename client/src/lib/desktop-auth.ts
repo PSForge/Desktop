@@ -29,6 +29,7 @@ type DesktopAuthResponse = {
 
 type DesktopBillingResponse = {
   url: string;
+  appliedPromoCode?: string | null;
 };
 
 const STORAGE_KEY = "psforge-desktop-auth";

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { 
-  Search, ChevronDown, ChevronRight, Plus, FolderOpen, Terminal,
+  Search, ChevronDown, ChevronRight, Plus, FolderOpen, Terminal, Star,
   Database, Network, Shield, Users, Settings, Clock, Cog, Server,
   Cloud, Mail, Key, MonitorSmartphone, HardDrive, Globe,
   GitBranch, MessageSquare, Video, Ticket, ShoppingCart,
@@ -15,9 +15,17 @@ import { powershellCommands, getCommandsByCategory, searchCommands } from "@/lib
 
 interface CommandSidebarProps {
   onAddCommand: (command: Command) => void;
+  favoriteCommandIds?: string[];
+  onToggleFavorite?: (commandId: string) => void;
+  teamFavoriteCommandIds?: string[];
 }
 
-export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
+export function CommandSidebar({
+  onAddCommand,
+  favoriteCommandIds = [],
+  onToggleFavorite,
+  teamFavoriteCommandIds = [],
+}: CommandSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<CommandCategory>>(
     new Set()
@@ -27,6 +35,20 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
     if (!searchQuery.trim()) return null;
     return searchCommands(searchQuery);
   }, [searchQuery]);
+
+  const favoriteCommands = useMemo(
+    () => favoriteCommandIds
+      .map((commandId) => powershellCommands.find((command) => command.id === commandId))
+      .filter((command): command is Command => Boolean(command)),
+    [favoriteCommandIds],
+  );
+
+  const teamFavoriteCommands = useMemo(
+    () => teamFavoriteCommandIds
+      .map((commandId) => powershellCommands.find((command) => command.id === commandId))
+      .filter((command): command is Command => Boolean(command)),
+    [teamFavoriteCommandIds],
+  );
 
   const toggleCategory = (category: CommandCategory) => {
     const newOpen = new Set(openCategories);
@@ -171,12 +193,14 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
                   {filteredCommands.length} result{filteredCommands.length !== 1 ? 's' : ''}
                 </p>
                 {filteredCommands.map((command) => (
-                  <CommandCard
-                    key={command.id}
-                    command={command}
-                    onAdd={onAddCommand}
-                  />
-                ))}
+                    <CommandCard
+                      key={command.id}
+                      command={command}
+                      onAdd={onAddCommand}
+                      isFavorite={favoriteCommandIds.includes(command.id)}
+                      onToggleFavorite={onToggleFavorite}
+                    />
+                  ))}
               </div>
             ) : (
               <div className="text-center py-12" data-testid="empty-state-search">
@@ -186,47 +210,92 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
               </div>
             )
           ) : (
-            commandCategories.map((category) => {
-              const commands = getCommandsByCategory(category);
-              const isOpen = openCategories.has(category);
-              
-              return (
-                <Collapsible
-                  key={category}
-                  open={isOpen}
-                  onOpenChange={() => toggleCategory(category)}
-                >
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2 hover-elevate active-elevate-2 h-9"
-                      data-testid={`button-category-${category.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                      {getCategoryIcon(category)}
-                      <span className="flex-1 text-left text-sm font-medium">{category}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {commands.length}
-                      </Badge>
-                    </Button>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent className="mt-1 space-y-1 pl-4">
-                    {commands.map((command) => (
+            <>
+              {favoriteCommands.length > 0 && (
+                <div className="space-y-2 rounded-lg border bg-background/40 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Star className="h-4 w-4 text-amber-400" />
+                    Favorites
+                  </div>
+                  <div className="space-y-1">
+                    {favoriteCommands.map((command) => (
                       <CommandCard
                         key={command.id}
                         command={command}
                         onAdd={onAddCommand}
+                        isFavorite
+                        onToggleFavorite={onToggleFavorite}
                       />
                     ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              );
-            })
+                  </div>
+                </div>
+              )}
+
+              {teamFavoriteCommands.length > 0 && (
+                <div className="space-y-2 rounded-lg border bg-primary/5 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Star className="h-4 w-4 text-primary" />
+                    Team favorites
+                  </div>
+                  <div className="text-xs text-muted-foreground">Curated admin-friendly commands that come up often in support, remediation, and discovery workflows.</div>
+                  <div className="space-y-1">
+                    {teamFavoriteCommands.map((command) => (
+                      <CommandCard
+                        key={`team-${command.id}`}
+                        command={command}
+                        onAdd={onAddCommand}
+                        isFavorite={favoriteCommandIds.includes(command.id)}
+                        onToggleFavorite={onToggleFavorite}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {commandCategories.map((category) => {
+                const commands = getCommandsByCategory(category);
+                const isOpen = openCategories.has(category);
+                
+                return (
+                  <Collapsible
+                    key={category}
+                    open={isOpen}
+                    onOpenChange={() => toggleCategory(category)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2 hover-elevate active-elevate-2 h-9"
+                        data-testid={`button-category-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        {isOpen ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        {getCategoryIcon(category)}
+                        <span className="flex-1 text-left text-sm font-medium">{category}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {commands.length}
+                        </Badge>
+                      </Button>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent className="mt-1 space-y-1 pl-4">
+                      {commands.map((command) => (
+                        <CommandCard
+                          key={command.id}
+                          command={command}
+                          onAdd={onAddCommand}
+                          isFavorite={favoriteCommandIds.includes(command.id)}
+                          onToggleFavorite={onToggleFavorite}
+                        />
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </>
           )}
         </div>
       </div>
@@ -234,7 +303,17 @@ export function CommandSidebar({ onAddCommand }: CommandSidebarProps) {
   );
 }
 
-function CommandCard({ command, onAdd }: { command: Command; onAdd: (command: Command) => void }) {
+function CommandCard({
+  command,
+  onAdd,
+  isFavorite = false,
+  onToggleFavorite,
+}: {
+  command: Command;
+  onAdd: (command: Command) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (commandId: string) => void;
+}) {
   return (
     <div
       className="group border rounded-md p-3 hover-elevate active-elevate-2 transition-all"
@@ -247,15 +326,28 @@ function CommandCard({ command, onAdd }: { command: Command; onAdd: (command: Co
             {command.description}
           </p>
         </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => onAdd(command)}
-          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover-elevate active-elevate-2"
-          data-testid={`button-add-command-${command.id}`}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        <div className="flex shrink-0 items-center gap-1">
+          {onToggleFavorite ? (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onToggleFavorite(command.id)}
+              className="opacity-100 transition-opacity hover-elevate active-elevate-2"
+              data-testid={`button-favorite-command-${command.id}`}
+            >
+              <Star className={`h-4 w-4 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
+            </Button>
+          ) : null}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onAdd(command)}
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover-elevate active-elevate-2"
+            data-testid={`button-add-command-${command.id}`}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       
       {command.parameters.length > 0 && (

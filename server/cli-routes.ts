@@ -125,8 +125,8 @@ export function registerCliRoutes(app: Express): void {
         email: u.email,
         name: u.name ?? u.email,
         role: u.role,
-        totalScriptsCreated: u.totalScriptsCreated,
-        proSinceDate: u.proSinceDate ? u.proSinceDate.toISOString() : null,
+        totalScriptsCreated: u.totalScriptsCreated ?? 0,
+        proSinceDate: u.proSinceDate ?? null,
       };
       res.json(okResponse(profile));
     } catch (err) {
@@ -500,7 +500,7 @@ Keep explanations practical and concise. Focus on what IT admins need to know to
 
       // Sort
       if (sort === "popular") {
-        templates = templates.sort((a, b) => (b.downloadCount ?? 0) - (a.downloadCount ?? 0));
+        templates = templates.sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
       } else if (sort === "recent") {
         templates = templates.sort(
           (a, b) =>
@@ -521,7 +521,7 @@ Keep explanations practical and concise. Focus on what IT admins need to know to
         title: t.title,
         description: t.description,
         categoryId: t.categoryId ?? null,
-        downloads: t.downloadCount ?? 0,
+        downloads: t.downloads ?? 0,
         rating: t.averageRating ?? null,
         isPaid: t.isPaid ?? false,
         priceCents: t.priceCents ?? null,
@@ -549,7 +549,7 @@ Keep explanations practical and concise. Focus on what IT admins need to know to
         description: template.description,
         content: template.content,
         categoryId: template.categoryId ?? null,
-        downloads: template.downloadCount ?? 0,
+        downloads: template.downloads ?? 0,
         rating: template.averageRating ?? null,
         isPaid: template.isPaid ?? false,
         priceCents: template.priceCents ?? null,

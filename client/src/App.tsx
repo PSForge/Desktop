@@ -119,6 +119,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/cli" component={CliPage} />
       <Route path="/desktop-connect" component={DesktopConnect} />
+      <Route path="/desktop-preview" component={() => <DesktopWorkspace previewMode />} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/case-studies/techcorp-onboarding-automation" component={CaseStudyTechCorp} />
       <Route path="/case-studies/midwest-healthcare-compliance" component={CaseStudyMidwest} />

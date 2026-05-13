@@ -1,19 +1,20 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { ScriptCommand } from "@shared/schema";
 import { Header } from "@/components/header";
 import { ScriptGeneratorTab } from "@/components/script-generator-tab";
-import { AIAssistantTab } from "@/components/ai-assistant-tab";
-import { GUIBuilderTab } from "@/components/gui-builder-tab";
-import { ScriptWizardTab } from "@/components/script-wizard-tab";
 import { GitPanel } from "@/components/git-panel";
-import { TroubleshooterTab } from "@/components/troubleshooter-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileCode, Sparkles, LayoutGrid, Wand2, GitBranch, Wrench } from "lucide-react";
 import { generatePowerShellScript } from "@/lib/script-generator";
 import { useToast } from "@/hooks/use-toast";
 import { isDesktopApp, openDesktopScript } from "@/lib/desktop";
+
+const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
+const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
+const ScriptWizardTab = lazy(() => import("@/components/script-wizard-tab").then((module) => ({ default: module.ScriptWizardTab })));
+const TroubleshooterTab = lazy(() => import("@/components/troubleshooter-tab").then((module) => ({ default: module.TroubleshooterTab })));
 
 export default function ScriptBuilder() {
   const [location] = useLocation();
@@ -168,28 +169,34 @@ export default function ScriptBuilder() {
         </TabsContent>
 
         <TabsContent value="ai-assistant" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
-          <AIAssistantTab
-            scriptCommands={scriptCommands}
-            setScriptCommands={setScriptCommands}
-            script={script}
-            setScript={setScript}
-          />
+          <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading AI workspace...</div>}>
+            <AIAssistantTab
+              scriptCommands={scriptCommands}
+              setScriptCommands={setScriptCommands}
+              script={script}
+              setScript={setScript}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="gui-builder" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
-          <GUIBuilderTab 
-            selectedCategory={selectedGuiCategory}
-            onCategorySelect={setSelectedGuiCategory}
-            script={script}
-            setScript={setScript}
-          />
+          <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading GUI builder...</div>}>
+            <GUIBuilderTab
+              selectedCategory={selectedGuiCategory}
+              onCategorySelect={setSelectedGuiCategory}
+              script={script}
+              setScript={setScript}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="script-wizard" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
-          <ScriptWizardTab 
-            script={script}
-            setScript={setScript}
-          />
+          <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading script wizard...</div>}>
+            <ScriptWizardTab
+              script={script}
+              setScript={setScript}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="git" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
@@ -207,7 +214,9 @@ export default function ScriptBuilder() {
         </TabsContent>
 
         <TabsContent value="troubleshooter" className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0 data-[state=inactive]:absolute data-[state=inactive]:invisible">
-          <TroubleshooterTab setScript={setScript} />
+          <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading troubleshooter...</div>}>
+            <TroubleshooterTab setScript={setScript} />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

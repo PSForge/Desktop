@@ -671,7 +671,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="p-4 sm:p-6 border-b">
         <h2 className="text-xl sm:text-2xl font-bold text-foreground">GUI Script Builder</h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -679,10 +679,10 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
         </p>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Categories Panel - Left Side */}
-        <div className="w-64 lg:w-72 border-r overflow-y-auto flex-shrink-0 bg-muted/30">
-          <div className="p-3">
+        <div className="min-h-0 w-64 flex-shrink-0 overflow-y-scroll overscroll-contain border-r bg-muted/30 [scrollbar-gutter:stable] lg:w-72">
+          <div className="p-3 pb-6">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Categories</h3>
             <div className="space-y-1">
               {categories.map((category) => {
@@ -728,7 +728,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
         </div>
 
         {/* Tasks Panel - Right Side */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain p-4 pb-8 [scrollbar-gutter:stable] sm:p-6 sm:pb-8">
           {!selectedCategory && (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">

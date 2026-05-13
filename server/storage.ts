@@ -213,7 +213,7 @@ export interface IStorage {
   }>;
 }
 
-export class MemStorage implements IStorage {
+export class MemStorage {
   private scripts: Map<string, Script>;
   private users: Map<string, User>;
   private sessions: Map<string, Session>;
@@ -487,6 +487,10 @@ export class MemStorage implements IStorage {
       churnRate,
       newSignupsThisMonth,
       cancellationsThisMonth,
+      totalScriptsGenerated: 0,
+      totalScriptsSaved: this.scripts.size,
+      topTasks: [],
+      referralSources: [],
     };
   }
 
@@ -604,7 +608,7 @@ export class MemStorage implements IStorage {
     badgeDistribution: Array<{ badge: string; count: number }>;
     milestoneStats: Array<{ milestone: string; usersAchieved: number; usersConverted: number }>;
     conversionFunnel: { totalFreeUsers: number; usersWithMilestones: number; usersConverted: number; conversionRate: number };
-    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null }>;
+    topScriptCreators: Array<{ userId: string; email: string; scriptsCreated: number; timeSaved: number; badge: string | null; firstScriptDate: string | null }>;
   }> {
     return {
       badgeDistribution: [],
@@ -686,4 +690,4 @@ const shouldUseMemStorage =
   !process.env.DATABASE_URL;
 
 // Desktop builds can boot without cloud infrastructure; production web should use PostgreSQL.
-export const storage = shouldUseMemStorage ? new MemStorage() : new DatabaseStorage();
+export const storage = (shouldUseMemStorage ? new MemStorage() : new DatabaseStorage()) as IStorage;

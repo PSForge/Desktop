@@ -3,11 +3,15 @@ import { getDesktopAuthState, getDesktopCachedLicense, getDesktopRequestUrl } fr
 
 export type DesktopAnalyticsEventType =
   | "desktop_app_opened"
+  | "desktop_app_closed"
   | "desktop_session_heartbeat"
+  | "desktop_session_duration_seconds"
   | "desktop_ai_prompt_sent"
   | "desktop_ai_response_received"
   | "desktop_script_generated"
   | "desktop_script_saved_local"
+  | "desktop_renderer_error"
+  | "desktop_renderer_unhandled_rejection"
   | "desktop_update_checked"
   | "desktop_update_installed";
 
@@ -20,6 +24,7 @@ type DesktopAnalyticsEvent = {
   platform: string;
   osVersion: string;
   plan: string;
+  metadata?: Record<string, unknown>;
   timestamp?: string;
 };
 
@@ -169,7 +174,7 @@ export async function flushDesktopAnalytics() {
   }
 }
 
-export async function trackDesktopAnalyticsEvent(eventType: DesktopAnalyticsEventType, value = 1) {
+export async function trackDesktopAnalyticsEvent(eventType: DesktopAnalyticsEventType, value = 1, metadata?: Record<string, unknown>) {
   if (!isDesktopApp()) {
     return;
   }
@@ -184,6 +189,7 @@ export async function trackDesktopAnalyticsEvent(eventType: DesktopAnalyticsEven
     platform: context.platform,
     osVersion: context.osVersion,
     plan: getPlanLabel(),
+    metadata,
     timestamp: new Date().toISOString(),
   };
 

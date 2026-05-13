@@ -1871,7 +1871,7 @@ try {
         -Name "${lifName}" \`
         -Vserver "${svm}" \`
         -Role data \`
-        -DataProtocols ${dataProtocol.split(',').map(p => `"${p.trim()}"`).join(',')} \`
+        -DataProtocols ${dataProtocol.split(',').map((p: string) => `"${p.trim()}"`).join(',')} \`
         -Address "${ipAddress}" \`
         -Netmask "${netmask}" \`
         -HomeNode "${homeNode}" \`
@@ -1937,8 +1937,8 @@ Import-Module NetApp.ONTAP
 try {
     Connect-NcController -Name "${cluster}" -Credential (Get-Credential)
     
-    \$DnsDomains = @(${dnsDomains.split(',').map(d => `"${d.trim()}"`).join(', ')})
-    \$DnsServers = @(${dnsServers.split(',').map(s => `"${s.trim()}"`).join(', ')})
+    \$DnsDomains = @(${dnsDomains.split(',').map((d: string) => `"${d.trim()}"`).join(', ')})
+    \$DnsServers = @(${dnsServers.split(',').map((s: string) => `"${s.trim()}"`).join(', ')})
     
     Write-Host "Configuring DNS for SVM: ${svm}" -ForegroundColor Cyan
     Write-Host "  Domains: \$(\$DnsDomains -join ', ')" -ForegroundColor Cyan

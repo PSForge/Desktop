@@ -313,9 +313,7 @@ export class DatabaseStorage implements IStorage {
     // Convert date strings to Date objects for timestamp fields
     const dbUpdates: any = { ...updateData };
     if (updateData.lastLoginAt) {
-      dbUpdates.lastLoginAt = updateData.lastLoginAt instanceof Date 
-        ? updateData.lastLoginAt 
-        : new Date(updateData.lastLoginAt);
+      dbUpdates.lastLoginAt = new Date(updateData.lastLoginAt);
     }
     
     const result = await this.db.update(users).set(dbUpdates).where(eq(users.id, id)).returning();
@@ -814,10 +812,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateGitRepository(id: string, updates: Partial<GitRepository>): Promise<GitRepository | undefined> {
+    const { id: _id, createdAt: _createdAt, ...updateData } = updates;
     const result = await this.db.update(gitRepositories)
       .set({
-        ...updates,
-        lastSyncedAt: updates.lastSyncedAt ? new Date(updates.lastSyncedAt) : undefined,
+        ...updateData,
+        lastSyncedAt: updateData.lastSyncedAt ? new Date(updateData.lastSyncedAt) : undefined,
       })
       .where(eq(gitRepositories.id, id))
       .returning();

@@ -363,7 +363,7 @@ export type PurchaseStatus = typeof purchaseStatuses[number];
 export const payoutStatuses = ["pending", "processing", "completed", "failed"] as const;
 export type PayoutStatus = typeof payoutStatuses[number];
 
-export const sellerStatuses = ["not_seller", "pending_onboarding", "active", "suspended"] as const;
+export const sellerStatuses = ["not_seller", "pending", "pending_onboarding", "pending_verification", "active", "suspended"] as const;
 export type SellerStatus = typeof sellerStatuses[number];
 
 export const milestoneTypes = [
@@ -855,6 +855,14 @@ export const userSchema = z.object({
   referralSource: z.string().nullable(),
   createdAt: z.string(),
   lastLoginAt: z.string().nullable().optional(),
+  totalScriptsCreated: z.number().optional(),
+  totalTimeSavedMinutes: z.number().optional(),
+  firstScriptDate: z.string().nullable().optional(),
+  daysActive: z.number().optional(),
+  lastActiveDate: z.string().nullable().optional(),
+  communityBadge: z.string().nullable().optional(),
+  proSinceDate: z.string().nullable().optional(),
+  featuredContributor: z.boolean().optional(),
   stripeConnectAccountId: z.string().nullable().optional(),
   stripeConnectOnboardingComplete: z.boolean().optional(),
   sellerStatus: z.enum(sellerStatuses).nullable().optional(),

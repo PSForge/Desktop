@@ -238,32 +238,32 @@ export function ScriptEditor({ script, onScriptChange, onCursorPositionChange, o
     );
 
     textareaRef.current.scrollTop = nextScrollTop;
-    setDesktopScrollTop(nextScrollTop);
+    setDesktopScrollTop((current) => (current === nextScrollTop ? current : nextScrollTop));
   }, [desktopMode, script]);
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="px-6 py-4 border-b flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-medium flex items-center gap-2" data-testid="text-editor-title">
-            <FileCode className="h-5 w-5" />
+      <div className="flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 truncate text-base font-medium sm:text-lg" data-testid="text-editor-title">
+            <FileCode className="h-5 w-5 shrink-0" />
             PowerShell Script Editor
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 hidden truncate text-xs text-muted-foreground sm:block">
             Type your script or click commands from the sidebar • Hover over cmdlets for help
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={handleFormat}
             data-testid="button-format-script"
           >
-            <Wand2 className="h-4 w-4 mr-2" />
-            Format
+            <Wand2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Format</span>
           </Button>
-          <Badge variant="secondary" className="text-xs" data-testid="badge-line-count">
+          <Badge variant="secondary" className="hidden text-xs sm:inline-flex" data-testid="badge-line-count">
             {lineCount} line{lineCount !== 1 ? 's' : ''}
           </Badge>
         </div>

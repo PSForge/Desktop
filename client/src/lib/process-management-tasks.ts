@@ -1599,7 +1599,7 @@ $SuspiciousPaths = @(
     "$env:LOCALAPPDATA\\Temp",
     "C:\\Users\\Public",
     "C:\\ProgramData"
-    ${additionalPaths.map(p => `,"${escapePowerShellString(p)}"`).join('')}
+    ${additionalPaths.map((p: string) => `,"${escapePowerShellString(p)}"`).join('')}
 )
 
 Write-Host "Scanning for processes in suspicious locations..." -ForegroundColor Cyan

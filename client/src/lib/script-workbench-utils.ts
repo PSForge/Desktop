@@ -239,29 +239,31 @@ export function parseScriptParameters(script: string): ParsedScriptParameter[] {
     .map((entry) => entry.trim())
     .filter(Boolean);
 
-  return entries
-    .map((entry) => {
-      const variableMatch = /\$([A-Za-z_][A-Za-z0-9_]*)/.exec(entry);
-      if (!variableMatch) {
-        return null;
-      }
+  const parsedParameters: ParsedScriptParameter[] = [];
 
-      const typeMatch = entry.match(/\[([A-Za-z0-9_.\[\]]+)\]\s*\$[A-Za-z_]/);
-      const rawType = typeMatch?.[1] || "string";
-      const defaultMatch = entry.match(/=\s*(.+)$/s);
-      const required = /\bMandatory\s*=\s*\$true\b/i.test(entry) || /\[Parameter\s*\(\s*Mandatory\s*\)\s*\]/i.test(entry);
+  for (const entry of entries) {
+    const variableMatch = /\$([A-Za-z_][A-Za-z0-9_]*)/.exec(entry);
+    if (!variableMatch) {
+      continue;
+    }
 
-      const kind = normalizeParameterKind(rawType);
-      return {
-        name: variableMatch[1],
-        type: rawType,
-        kind,
-        required,
-        defaultValue: defaultMatch?.[1]?.trim(),
-        placeholder: getParameterPlaceholder(kind, variableMatch[1]),
-      } satisfies ParsedScriptParameter;
-    })
-    .filter((entry): entry is ParsedScriptParameter => Boolean(entry));
+    const typeMatch = entry.match(/\[([A-Za-z0-9_.\[\]]+)\]\s*\$[A-Za-z_]/);
+    const rawType = typeMatch?.[1] || "string";
+    const defaultMatch = entry.match(/=\s*(.+)$/s);
+    const required = /\bMandatory\s*=\s*\$true\b/i.test(entry) || /\[Parameter\s*\(\s*Mandatory\s*\)\s*\]/i.test(entry);
+
+    const kind = normalizeParameterKind(rawType);
+    parsedParameters.push({
+      name: variableMatch[1],
+      type: rawType,
+      kind,
+      required,
+      defaultValue: defaultMatch?.[1]?.trim(),
+      placeholder: getParameterPlaceholder(kind, variableMatch[1]),
+    });
+  }
+
+  return parsedParameters;
 }
 
 export function detectPlaceholders(script: string): PlaceholderToken[] {

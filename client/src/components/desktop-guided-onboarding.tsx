@@ -411,16 +411,16 @@ export function DesktopGuidedOnboardingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-5xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden p-0 sm:max-w-5xl">
+        <DialogHeader className="shrink-0 px-5 pt-5">
           <DialogTitle>What do you need to automate today?</DialogTitle>
           <DialogDescription>
             Pick a focus area, then choose the best starter workflow. PSForge will use this to guide your next steps and surface the right Pro value at the right time.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 overflow-hidden lg:grid-cols-[1.1fr_1fr]">
-          <div className="space-y-4 overflow-y-auto pr-1">
+        <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto px-5 py-4 lg:grid-cols-[1.1fr_1fr] lg:overflow-hidden">
+          <div className="space-y-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
             <div>
               <div className="text-sm font-semibold">Choose your focus</div>
               <div className="mt-1 text-sm text-muted-foreground">
@@ -436,14 +436,14 @@ export function DesktopGuidedOnboardingDialog({
                     key={focus.id}
                     type="button"
                     onClick={() => onSelectFocus(focus.id)}
-                    className={`rounded-xl border p-4 text-left transition ${
+                    className={`rounded-md border p-4 text-left transition ${
                       isSelected
                         ? "border-primary bg-primary/10 shadow-sm"
                         : "border-border hover:border-primary/40 hover:bg-muted/40"
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`rounded-lg p-2 ${isSelected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      <div className={`rounded-md p-2 ${isSelected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
@@ -457,7 +457,7 @@ export function DesktopGuidedOnboardingDialog({
             </div>
           </div>
 
-          <div className="space-y-4 overflow-y-auto pr-1">
+          <div className="space-y-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
             <div>
               <div className="text-sm font-semibold">Pick a starter workflow</div>
               <div className="mt-1 text-sm text-muted-foreground">
@@ -473,7 +473,7 @@ export function DesktopGuidedOnboardingDialog({
                     key={workflow.id}
                     type="button"
                     onClick={() => onSelectWorkflow(workflow.id)}
-                    className={`w-full rounded-xl border p-4 text-left transition ${
+                    className={`w-full rounded-md border p-4 text-left transition ${
                       isSelected
                         ? "border-primary bg-primary/10 shadow-sm"
                         : "border-border hover:border-primary/40 hover:bg-muted/40"
@@ -512,7 +512,7 @@ export function DesktopGuidedOnboardingDialog({
                 <div>{selectedWorkflow.description}</div>
                 <div>{selectedWorkflow.outcome}</div>
                 {selectedWorkflow.premium && !hasProAccess && (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-100">
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-amber-100">
                     This workflow is a Pro experience. We’ll take the user to the exact upgrade path right when they try it.
                   </div>
                 )}
@@ -521,7 +521,7 @@ export function DesktopGuidedOnboardingDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="shrink-0 gap-2 border-t bg-background/95 px-5 py-4 sm:justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Maybe later
           </Button>
@@ -544,78 +544,48 @@ type DesktopFocusPanelProps = {
 export function DesktopFocusPanel({ profile, hasProAccess, onChangeFocus, onStartWorkflow }: DesktopFocusPanelProps) {
   if (!profile) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold">Guide your next workflow</div>
-          <div className="text-xs text-muted-foreground">
-            Pick a focus once and we’ll keep the highest-value next step close to the editor.
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
+        <div className="flex min-w-[180px] flex-1 items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Shield className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">No workflow focus selected</div>
+            <div className="truncate text-xs text-muted-foreground">Pick a focus once and we'll keep one useful next step close to the editor.</div>
           </div>
         </div>
-        <Button size="sm" onClick={onChangeFocus}>Set up guided workflows</Button>
+        <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={onChangeFocus}>Choose Focus</Button>
       </div>
     );
   }
 
   const focus = getDesktopGuidedFocus(profile.focusId);
   const FocusIcon = focus.icon;
+  const workflow = getDesktopGuidedWorkflow(focus.id, profile.workflowId);
+  const locked = workflow.premium && !hasProAccess;
 
   return (
-    <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <FocusIcon className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-sm font-semibold">Focused on {focus.title}</div>
-                <Badge variant={hasProAccess ? "default" : "secondary"} className="text-[11px]">
-                  {hasProAccess ? "Pro ready" : "Free + Pro prompts"}
-                </Badge>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {focus.description}
-              </div>
-            </div>
-          </div>
+    <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <FocusIcon className="h-4 w-4" />
         </div>
-        <Button variant="outline" size="sm" onClick={onChangeFocus}>
-          <FocusIcon className="mr-2 h-4 w-4" />
-          Change focus
-        </Button>
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="truncate text-sm font-semibold">Focused on {focus.title}</span>
+            <Badge variant={hasProAccess ? "default" : "secondary"} className="text-[10px]">
+              {hasProAccess ? "Pro ready" : "Free"}
+            </Badge>
+          </div>
+          <div className="truncate text-xs text-muted-foreground">{workflow.title} - {workflow.outcome}</div>
+        </div>
       </div>
-
-      <div className="grid gap-2 lg:grid-cols-3">
-        {focus.workflows.map((workflow) => {
-          const locked = workflow.premium && !hasProAccess;
-          return (
-            <button
-              key={workflow.id}
-              type="button"
-              onClick={() => onStartWorkflow(workflow.id)}
-              className={`rounded-lg border px-3 py-3 text-left transition hover:border-primary/40 hover:bg-background/40 ${
-                locked ? "border-amber-500/20 bg-amber-500/5" : "border-border/70 bg-background/30"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-sm font-medium">{workflow.title}</span>
-                    <Badge variant={workflow.premium ? (locked ? "secondary" : "default") : "outline"} className="text-[10px]">
-                    {workflow.premium ? "Pro" : "Free"}
-                  </Badge>
-                  </div>
-                  <div className="mt-1 truncate text-xs text-muted-foreground">{workflow.outcome}</div>
-                </div>
-                <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              </div>
-              <div className="mt-2 text-xs font-medium text-primary">
-                {locked ? `${workflow.buttonLabel} - Pro` : workflow.buttonLabel}
-              </div>
-            </button>
-          );
-        })}
+      <div className="flex shrink-0 items-center gap-2">
+        <Button size="sm" onClick={() => onStartWorkflow(workflow.id)}>
+          {locked ? "Preview Pro" : workflow.buttonLabel}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={onChangeFocus}>Change</Button>
       </div>
     </div>
   );

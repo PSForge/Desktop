@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Bot,
   BookOpen,
+  ChevronDown,
   CheckCircle2,
   ClipboardList,
   Copy,
@@ -12,6 +13,7 @@ import {
   FileCheck,
   FlaskConical,
   List,
+  MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
   Play,
@@ -61,7 +63,16 @@ interface DesktopScriptWorkbenchProps {
   setScript: (script: string) => void;
   currentFileName?: string;
   authorName?: string;
+  pendingAction?: DesktopWorkbenchAction | null;
+  onRunHistorySummaryChange?: (summary: DesktopRunHistorySummary) => void;
 }
+
+export type DesktopWorkbenchActionType = "run" | "rerun-last" | "preflight" | "ai-review" | "header" | "placeholders" | "workbench";
+
+export type DesktopWorkbenchAction = {
+  id: number;
+  type: DesktopWorkbenchActionType;
+};
 
 type RunHistoryEntry = DesktopPowerShellRunResult & {
   id: string;
@@ -79,7 +90,30 @@ type SavedValueProfile = {
   values: Record<string, unknown>;
 };
 
-type RunMode = "standard" | "dry-run" | "report-only";
+export type RunMode = "standard" | "dry-run" | "report-only";
+
+export type DesktopRunHistorySummary = {
+  totalRuns: number;
+  failedRuns: number;
+  lastRun?: {
+    ok: boolean;
+    exitCode: number;
+    fileName: string;
+    runMode: RunMode;
+    startedAt: string;
+    finishedAt: string;
+    transcriptPath?: string;
+    runDirectory?: string;
+    stdout?: string;
+    stderr?: string;
+    shell?: string;
+    elevated?: boolean;
+    durationMs?: number;
+    parameters?: Record<string, unknown>;
+    beforeNotes?: string;
+    afterNotes?: string;
+  };
+};
 
 type EnvironmentProfile = {
   id: string;
@@ -153,6 +187,8 @@ type UpgradeDialogState = {
 };
 
 const COMMAND_FAVORITES_KEY = "psforge-desktop-command-favorites";
+const COMMAND_LIBRARY_VISIBLE_KEY = "psforge-desktop-command-library-visible-v2";
+const EDITOR_DETAILS_VISIBLE_KEY = "psforge-desktop-editor-details-visible";
 const RUN_HISTORY_KEY = "psforge-desktop-run-history";
 const PARAMETER_PRESETS_KEY = "psforge-desktop-parameter-presets";
 const PLACEHOLDER_PROFILES_KEY = "psforge-desktop-placeholder-profiles";
@@ -207,6 +243,28 @@ function convertParameterValue(parameter: ParsedScriptParameter, value: unknown)
   return String(value ?? "");
 }
 
+function recordsEqual(left: Record<string, unknown>, right: Record<string, unknown>) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  return leftKeys.every((key) => Object.is(left[key], right[key]));
+}
+
+function stringRecordsEqual(left: Record<string, string>, right: Record<string, string>) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  return leftKeys.every((key) => left[key] === right[key]);
+}
+
 function buildRecommendationKey(recommendation: AIOptimizationRecommendation) {
   return `${recommendation.type}:${recommendation.priority}:${recommendation.title}:${recommendation.line ?? "na"}`;
 }
@@ -216,6 +274,8 @@ export function DesktopScriptWorkbench({
   setScript,
   currentFileName = "script.ps1",
   authorName = "PSForge User",
+  pendingAction = null,
+  onRunHistorySummaryChange,
 }: DesktopScriptWorkbenchProps) {
   const { toast } = useToast();
   const { featureAccess } = useAuth();
@@ -225,7 +285,12 @@ export function DesktopScriptWorkbench({
   const [comprehensiveValidation, setComprehensiveValidation] = useState<ComprehensiveValidationResult | null>(null);
   const [lastValidatedCode, setLastValidatedCode] = useState("");
   const [lastComprehensiveCode, setLastComprehensiveCode] = useState("");
-  const [isCommandLibraryVisible, setIsCommandLibraryVisible] = useState(true);
+  const [isCommandLibraryVisible, setIsCommandLibraryVisible] = useState(() =>
+    safeJsonParse<boolean>(getDesktopStorageItem(COMMAND_LIBRARY_VISIBLE_KEY), false),
+  );
+  const [isEditorDetailsVisible, setIsEditorDetailsVisible] = useState(() =>
+    safeJsonParse<boolean>(getDesktopStorageItem(EDITOR_DETAILS_VISIBLE_KEY), false),
+  );
   const [detailsTab, setDetailsTab] = useState("preview");
   const [favoriteCommandIds, setFavoriteCommandIds] = useState<string[]>(() =>
     safeJsonParse<string[]>(getDesktopStorageItem(COMMAND_FAVORITES_KEY), []),
@@ -234,6 +299,7 @@ export function DesktopScriptWorkbench({
   const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
   const [placeholderDialogOpen, setPlaceholderDialogOpen] = useState(false);
   const [explainDialogOpen, setExplainDialogOpen] = useState(false);
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [exportingBundle, setExportingBundle] = useState(false);
   const [runbookName, setRunbookName] = useState("");
   const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>(() =>
@@ -296,6 +362,10 @@ export function DesktopScriptWorkbench({
     () => runbookLibrary[workspaceProfileKey] || [],
     [runbookLibrary, workspaceProfileKey],
   );
+  const showEditorDetailsTab = (tab: string) => {
+    setDetailsTab(tab);
+    setIsEditorDetailsVisible(true);
+  };
   const allOptimizationRecommendations = useMemo(
     () => aiOptimization ? [...aiOptimization.security, ...aiOptimization.performance, ...aiOptimization.bestPractices] : [],
     [aiOptimization],
@@ -308,20 +378,22 @@ export function DesktopScriptWorkbench({
   useEffect(() => {
     setParameterValues((current) => {
       const next = { ...normalizeParameterState(analysis.parameters), ...current };
-      return analysis.parameters.reduce<Record<string, unknown>>((accumulator, parameter) => {
+      const normalized = analysis.parameters.reduce<Record<string, unknown>>((accumulator, parameter) => {
         accumulator[parameter.name] = next[parameter.name];
         return accumulator;
       }, {});
+      return recordsEqual(current, normalized) ? current : normalized;
     });
   }, [analysis.parameters]);
 
   useEffect(() => {
-    setPlaceholderValues(
-      analysis.placeholders.reduce<Record<string, string>>((accumulator, placeholder) => {
+    setPlaceholderValues((current) => {
+      const normalized = analysis.placeholders.reduce<Record<string, string>>((accumulator, placeholder) => {
         accumulator[placeholder.token] = "";
         return accumulator;
-      }, {}),
-    );
+      }, {});
+      return stringRecordsEqual(current, normalized) ? current : normalized;
+    });
   }, [analysis.placeholders]);
 
   useEffect(() => {
@@ -330,7 +402,7 @@ export function DesktopScriptWorkbench({
       for (const item of analysis.checklist) {
         next[item.id] = current[item.id] ?? item.checked;
       }
-      return next;
+      return recordsEqual(current, next) ? current : next;
     });
   }, [analysis.checklist]);
 
@@ -339,8 +411,44 @@ export function DesktopScriptWorkbench({
   }, [favoriteCommandIds]);
 
   useEffect(() => {
+    setDesktopStorageItem(COMMAND_LIBRARY_VISIBLE_KEY, JSON.stringify(isCommandLibraryVisible));
+  }, [isCommandLibraryVisible]);
+
+  useEffect(() => {
+    setDesktopStorageItem(EDITOR_DETAILS_VISIBLE_KEY, JSON.stringify(isEditorDetailsVisible));
+  }, [isEditorDetailsVisible]);
+
+  useEffect(() => {
     setDesktopStorageItem(RUN_HISTORY_KEY, JSON.stringify(runHistory.slice(0, 12)));
   }, [runHistory]);
+
+  useEffect(() => {
+    const lastRun = runHistory[0];
+    onRunHistorySummaryChange?.({
+      totalRuns: runHistory.length,
+      failedRuns: runHistory.filter((run) => !run.ok || run.exitCode !== 0).length,
+      lastRun: lastRun
+        ? {
+          ok: lastRun.ok,
+          exitCode: lastRun.exitCode,
+          fileName: lastRun.fileName,
+          runMode: lastRun.runMode,
+          startedAt: lastRun.startedAt,
+          finishedAt: lastRun.finishedAt,
+          transcriptPath: lastRun.transcriptPath,
+          runDirectory: lastRun.runDirectory,
+          stdout: lastRun.stdout,
+          stderr: lastRun.stderr,
+          shell: lastRun.shell,
+          elevated: lastRun.elevated,
+          durationMs: new Date(lastRun.finishedAt).getTime() - new Date(lastRun.startedAt).getTime(),
+          parameters: lastRun.parameters,
+          beforeNotes: lastRun.beforeNotes,
+          afterNotes: lastRun.afterNotes,
+        }
+        : undefined,
+    });
+  }, [onRunHistorySummaryChange, runHistory]);
 
   useEffect(() => {
     setDesktopStorageItem(PARAMETER_PRESETS_KEY, JSON.stringify(parameterPresetLibrary));
@@ -432,7 +540,7 @@ export function DesktopScriptWorkbench({
         .filter((recommendation) => recommendation.priority === "critical" || recommendation.priority === "high")
         .map(buildRecommendationKey);
       setSelectedRecommendationKeys(defaultKeys);
-      setDetailsTab("ai-review");
+      showEditorDetailsTab("ai-review");
     },
     onError: () => {
       toast({
@@ -469,10 +577,14 @@ export function DesktopScriptWorkbench({
 
   useEffect(() => {
     if (!script.trim()) {
-      setValidationResult({ isValid: true, errors: [] });
-      setComprehensiveValidation(null);
-      setLastValidatedCode("");
-      setLastComprehensiveCode("");
+      setValidationResult((current) => (
+        current.isValid && current.errors.length === 0
+          ? current
+          : { isValid: true, errors: [] }
+      ));
+      setComprehensiveValidation((current) => (current === null ? current : null));
+      setLastValidatedCode((current) => (current === "" ? current : ""));
+      setLastComprehensiveCode((current) => (current === "" ? current : ""));
       return;
     }
 
@@ -483,7 +595,7 @@ export function DesktopScriptWorkbench({
     if (script !== lastComprehensiveCode && comprehensiveValidation !== null) {
       setComprehensiveValidation(null);
     }
-  }, [script, lastValidatedCode, lastComprehensiveCode, comprehensiveValidation, validationMutation]);
+  }, [script, lastValidatedCode, lastComprehensiveCode, comprehensiveValidation, validationMutation.isPending, validationMutation.mutate]);
 
   const preflightSummary = useMemo(() => {
     return {
@@ -706,7 +818,7 @@ export function DesktopScriptWorkbench({
       return;
     }
     comprehensiveValidationMutation.mutate(script);
-    setDetailsTab("workbench");
+    showEditorDetailsTab("workbench");
   };
 
   const openUpgradeDialog = (nextState: Omit<UpgradeDialogState, "open">) => {
@@ -756,7 +868,7 @@ export function DesktopScriptWorkbench({
     }
 
     if (!hasAIAccess) {
-      setDetailsTab("ai-review");
+      showEditorDetailsTab("ai-review");
       openUpgradeDialog({
         feature: "AI script review",
         title: "Review scripts with PSForge Pro",
@@ -813,6 +925,63 @@ export function DesktopScriptWorkbench({
 
     handleRunAiReview();
   };
+
+  useEffect(() => {
+    if (!pendingAction) {
+      return;
+    }
+
+    if (pendingAction.type === "run") {
+      setRunDialogOpen(true);
+      return;
+    }
+
+    if (pendingAction.type === "rerun-last") {
+      const lastRun = runHistory[0];
+      if (!lastRun) {
+        setRunDialogOpen(true);
+        return;
+      }
+
+      setParameterValues((current) => ({
+        ...current,
+        ...lastRun.parameters,
+      }));
+      setRunMode(lastRun.runMode);
+      setActiveEnvironmentProfileName(lastRun.environmentProfileName);
+      setBeforeRunNotes(lastRun.beforeNotes || "");
+      setRunDialogOpen(true);
+      toast({
+        title: "Last run loaded",
+        description: "Parameters and run mode are ready for review before rerunning.",
+      });
+      return;
+    }
+
+    if (pendingAction.type === "preflight") {
+      runComprehensiveValidation();
+      return;
+    }
+
+    if (pendingAction.type === "ai-review") {
+      handleRunAiReview();
+      return;
+    }
+
+    if (pendingAction.type === "header") {
+      setHeaderDialogOpen(true);
+      return;
+    }
+
+    if (pendingAction.type === "placeholders") {
+      setPlaceholderDialogOpen(true);
+      return;
+    }
+
+    if (pendingAction.type === "workbench") {
+      showEditorDetailsTab("workbench");
+    }
+  }, [pendingAction?.id]);
 
   const handleGenerateHeader = () => {
     const headerScript = generateCommentHeader(script, {
@@ -964,7 +1133,7 @@ export function DesktopScriptWorkbench({
     if (!script.trim()) {
       toast({
         title: "Nothing to run",
-        description: "Add a script before opening the parameter runner.",
+        description: "Add a script before opening Run setup.",
         variant: "destructive",
       });
       return;
@@ -995,7 +1164,7 @@ export function DesktopScriptWorkbench({
       };
       setRunHistory((current) => [nextEntry, ...current].slice(0, 12));
       setRunDialogOpen(false);
-      setDetailsTab("runs");
+      showEditorDetailsTab("runs");
 
       toast({
         title: result.exitCode === 0 ? "Script run completed" : "Script run finished with issues",
@@ -1106,35 +1275,15 @@ export function DesktopScriptWorkbench({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="border-b px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-muted-foreground">
-              Build scripts visually, review risks, fill parameters, and run them with transcripts from one workspace.
+        <div className="border-b px-4 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 text-sm text-muted-foreground">
+              <span className="line-clamp-1">Build, review, and run scripts from one focused workspace.</span>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setRunDialogOpen(true)} data-testid="button-run-script">
+            <div className="flex shrink-0 items-center gap-2">
+              <Button size="sm" onClick={() => setRunDialogOpen(true)} data-testid="button-run-script">
                 <Play className="mr-2 h-4 w-4" />
-                Run Script
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setHeaderDialogOpen(true)}>
-                <ScrollText className="mr-2 h-4 w-4" />
-                Header
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setExplainDialogOpen(true)}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Explain
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleRunAiReview} data-testid="button-ai-review">
-                <Bot className="mr-2 h-4 w-4" />
-                AI Review
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setPlaceholderDialogOpen(true)} disabled={analysis.placeholders.length === 0}>
-                <Replace className="mr-2 h-4 w-4" />
-                Placeholders
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportBundle} disabled={exportingBundle}>
-                <FileArchive className="mr-2 h-4 w-4" />
-                {exportingBundle ? "Exporting..." : "Export Bundle"}
+                Run
               </Button>
               <Button
                 variant="outline"
@@ -1143,23 +1292,81 @@ export function DesktopScriptWorkbench({
                 data-testid="button-toggle-command-library"
               >
                 {isCommandLibraryVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-                {isCommandLibraryVisible ? "Hide Command Library" : "Show Command Library"}
+                <span className="hidden sm:inline">{isCommandLibraryVisible ? "Hide Library" : "Library"}</span>
               </Button>
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-expanded={toolsMenuOpen}
+                  onClick={() => setToolsMenuOpen((current) => !current)}
+                >
+                  Tools
+                  <ChevronDown className={`ml-2 h-4 w-4 transition ${toolsMenuOpen ? "rotate-180" : ""}`} />
+                </Button>
+                {toolsMenuOpen ? (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+                    <div className="px-2 py-1.5 text-sm font-semibold">Script Tools</div>
+                    {[
+                      { label: "Header", icon: ScrollText, action: () => setHeaderDialogOpen(true) },
+                      { label: "Explain", icon: Sparkles, action: () => setExplainDialogOpen(true) },
+                      { label: "AI Review", icon: Bot, action: handleRunAiReview, testId: "button-ai-review" },
+                      { label: "Placeholders", icon: Replace, action: () => setPlaceholderDialogOpen(true), disabled: analysis.placeholders.length === 0 },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          data-testid={item.testId}
+                          disabled={item.disabled}
+                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                          onClick={() => {
+                            setToolsMenuOpen(false);
+                            item.action();
+                          }}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                    <div className="-mx-1 my-1 h-px bg-muted" />
+                    <button
+                      type="button"
+                      disabled={exportingBundle}
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      onClick={() => {
+                        setToolsMenuOpen(false);
+                        void handleExportBundle();
+                      }}
+                    >
+                      <FileArchive className="h-4 w-4 shrink-0" />
+                      {exportingBundle ? "Exporting..." : "Export Bundle"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {isCommandLibraryVisible && (
-            <CommandSidebar
-              onAddCommand={handleAddCommand}
-              favoriteCommandIds={favoriteCommandIds}
-              onToggleFavorite={toggleFavoriteCommand}
-              teamFavoriteCommandIds={getTeamFavoriteCommandIds()}
-            />
+            <div className="hidden min-h-0 lg:block">
+              <CommandSidebar
+                onAddCommand={handleAddCommand}
+                favoriteCommandIds={favoriteCommandIds}
+                onToggleFavorite={toggleFavoriteCommand}
+                teamFavoriteCommandIds={getTeamFavoriteCommandIds()}
+              />
+            </div>
           )}
 
-          <div className="grid min-w-0 flex-1 min-h-0 overflow-hidden" style={{ gridTemplateRows: "minmax(0, 1fr) clamp(260px, 34vh, 420px)" }}>
+          <div
+            className="grid min-w-0 flex-1 min-h-0 overflow-hidden"
+            style={{ gridTemplateRows: isEditorDetailsVisible ? "minmax(0, 1fr) clamp(220px, 30vh, 380px)" : "minmax(0, 1fr) 42px" }}
+          >
             <div className="min-h-0 overflow-hidden border-b">
               <ScriptEditor
                 script={script}
@@ -1170,46 +1377,52 @@ export function DesktopScriptWorkbench({
             </div>
 
             <div className="min-h-0 overflow-hidden">
-              <Tabs value={detailsTab} onValueChange={setDetailsTab} className="flex h-full min-h-0 flex-col overflow-hidden">
-                <div className="flex items-center justify-between border-b px-4 py-3">
-                  <TabsList className="grid w-auto grid-cols-6">
-                    <TabsTrigger value="preview" className="flex items-center gap-1">
+              <Tabs value={detailsTab} onValueChange={showEditorDetailsTab} className="flex h-full min-h-0 flex-col overflow-hidden">
+                <div className="flex h-[42px] shrink-0 items-center justify-between gap-3 border-b px-3 py-1.5">
+                  <TabsList className="flex w-auto shrink-0 overflow-hidden">
+                    <TabsTrigger value="preview" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Eye className="h-4 w-4" />
-                      <span>Preview</span>
+                      <span className="hidden sm:inline">Preview</span>
                     </TabsTrigger>
-                    <TabsTrigger value="basic" className="flex items-center gap-1">
+                    <TabsTrigger value="basic" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <List className="h-4 w-4" />
-                      <span>Basic</span>
+                      <span className="hidden sm:inline">Basic</span>
                     </TabsTrigger>
-                    <TabsTrigger value="comprehensive" className="flex items-center gap-1">
+                    <TabsTrigger value="comprehensive" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <FileCheck className="h-4 w-4" />
-                      <span>Comprehensive</span>
+                      <span className="hidden sm:inline">Full</span>
                     </TabsTrigger>
-                    <TabsTrigger value="workbench" className="flex items-center gap-1">
+                    <TabsTrigger value="workbench" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <ClipboardList className="h-4 w-4" />
-                      <span>Workbench</span>
+                      <span className="hidden sm:inline">Workbench</span>
                     </TabsTrigger>
-                    <TabsTrigger value="ai-review" className="flex items-center gap-1">
+                    <TabsTrigger value="ai-review" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Bot className="h-4 w-4" />
-                      <span>AI Review</span>
+                      <span className="hidden sm:inline">AI</span>
                     </TabsTrigger>
-                    <TabsTrigger value="runs" className="flex items-center gap-1">
+                    <TabsTrigger value="runs" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Play className="h-4 w-4" />
-                      <span>Runs</span>
+                      <span className="hidden sm:inline">Runs</span>
                     </TabsTrigger>
                   </TabsList>
 
-                  <div className="flex items-center gap-2">
-                    <Badge variant={preflightSummary.critical > 0 ? "destructive" : "secondary"}>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge variant={preflightSummary.critical > 0 ? "destructive" : "secondary"} className="hidden sm:inline-flex">
                       {preflightSummary.critical} critical
                     </Badge>
-                    <Badge variant="secondary">{preflightSummary.warning} warnings</Badge>
-                    <Button size="sm" onClick={runComprehensiveValidation} disabled={!script.trim() || comprehensiveValidationMutation.isPending}>
+                    <Badge variant="secondary" className="hidden sm:inline-flex">{preflightSummary.warning} warnings</Badge>
+                    <Button size="sm" className="hidden md:inline-flex" onClick={runComprehensiveValidation} disabled={!script.trim() || comprehensiveValidationMutation.isPending}>
                       {comprehensiveValidationMutation.isPending ? "Analyzing..." : "Run Pre-flight"}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditorDetailsVisible((current) => !current)}>
+                      <span className="hidden sm:inline">{isEditorDetailsVisible ? "Hide" : "Show"}</span>
+                      <ChevronDown className={`h-4 w-4 transition ${isEditorDetailsVisible ? "" : "rotate-180"}`} />
                     </Button>
                   </div>
                 </div>
 
+                {isEditorDetailsVisible && (
+                  <>
                 <TabsContent value="preview" className="mt-0 min-h-0 flex-1 overflow-hidden">
                   <CodePreview code={script} validationErrors={validationResult.errors || []} />
                 </TabsContent>
@@ -1267,7 +1480,7 @@ export function DesktopScriptWorkbench({
                                   {issue.id === "placeholders"
                                     ? "Replace placeholders"
                                     : issue.id === "required-parameters"
-                                      ? "Open parameter runner"
+                                      ? "Open Run setup"
                                       : issue.id === "no-param-block"
                                         ? "Add script header"
                                         : hasAIAccess
@@ -1723,7 +1936,7 @@ export function DesktopScriptWorkbench({
                       <div className="rounded-md border py-8 text-center text-muted-foreground">
                         <Play className="mx-auto mb-3 h-12 w-12 opacity-50" />
                         <p className="mb-1 font-medium">No desktop runs yet</p>
-                        <p className="text-sm">Use the parameter runner to execute the script and capture transcript output here.</p>
+                        <p className="text-sm">Use Run setup to execute the script and capture transcript output here.</p>
                       </div>
                     ) : filteredRunHistory.length === 0 ? (
                       <div className="rounded-md border py-8 text-center text-muted-foreground">
@@ -1794,6 +2007,8 @@ export function DesktopScriptWorkbench({
                     )}
                   </div>
                 </TabsContent>
+                  </>
+                )}
               </Tabs>
             </div>
           </div>
@@ -1801,14 +2016,33 @@ export function DesktopScriptWorkbench({
       </div>
 
       <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Parameter form runner</DialogTitle>
+            <DialogTitle>Run setup</DialogTitle>
             <DialogDescription>
-              Fill in the detected PowerShell parameters here instead of editing variables by hand. PSForge will run the script and capture transcript output for you.
+              Prepare parameters, safety options, transcript capture, and notes before launching PowerShell.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="max-h-[calc(90vh-140px)] space-y-4 overflow-y-auto pr-1">
+            <div className="grid gap-2 sm:grid-cols-4">
+              <div className="rounded-md border bg-background/60 p-3">
+                <div className="text-xs text-muted-foreground">Parameters</div>
+                <div className="mt-1 text-lg font-semibold">{analysis.parameters.length}</div>
+              </div>
+              <div className="rounded-md border bg-background/60 p-3">
+                <div className="text-xs text-muted-foreground">Mode</div>
+                <div className="mt-1 truncate font-medium capitalize">{runMode.replace("-", " ")}</div>
+              </div>
+              <div className="rounded-md border bg-background/60 p-3">
+                <div className="text-xs text-muted-foreground">Transcript</div>
+                <div className="mt-1 font-medium">{captureTranscript ? "On" : "Off"}</div>
+              </div>
+              <div className="rounded-md border bg-background/60 p-3">
+                <div className="text-xs text-muted-foreground">Elevation</div>
+                <div className="mt-1 font-medium">{runAsAdmin ? "Admin" : "Standard"}</div>
+              </div>
+            </div>
+
             <div className="rounded-md border bg-background/60 px-3 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -1889,7 +2123,7 @@ export function DesktopScriptWorkbench({
                           onChange={(event) => setParameterValues((current) => ({ ...current, [parameter.name]: event.target.value }))}
                         />
                       )}
-                      <div className="text-xs text-muted-foreground">{parameter.type} {parameter.required ? "• required" : "• optional"}</div>
+                      <div className="text-xs text-muted-foreground">{parameter.type} {parameter.required ? "- required" : "- optional"}</div>
                     </div>
                   );
                 })}

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, CreditCard, ExternalLink, FileCode, GitBranch, History, LayoutGrid, Plus, RefreshCcw, ShieldCheck, Sparkles, UserPlus, Wand2, Wrench, X } from "lucide-react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Copy, CreditCard, ExternalLink, FileCode, History, LayoutGrid, Plus, RefreshCcw, Search, ShieldCheck, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,14 +32,16 @@ import {
   desktopSignInWithPassword,
   fetchDesktopLicense,
   getDesktopApiBaseUrl,
+  getDesktopAuthHeader,
   getDesktopAuthState,
   getDesktopCachedLicense,
+  getDesktopRequestUrl,
   hasStoredDesktopSession,
 } from "@/lib/desktop-auth";
 import { queryClient } from "@/lib/queryClient";
 import type { ScriptCommand } from "@shared/schema";
-import { DesktopScriptWorkbench } from "@/components/desktop-script-workbench";
-import { AIAssistantTab } from "@/components/ai-assistant-tab";
+import { DesktopScriptWorkbench, type DesktopWorkbenchActionType, type DesktopWorkbenchAction, type DesktopRunHistorySummary } from "@/components/desktop-script-workbench";
+import { DesktopWorkbenchShell } from "@/components/desktop-workbench-shell";
 import {
   DESKTOP_GUIDED_FOCUSES,
   DesktopFocusPanel,
@@ -54,13 +56,15 @@ import {
   DESKTOP_POST_UPGRADE_CONTEXT_KEY,
   DesktopUpgradeDialog,
 } from "@/components/desktop-upgrade-dialog";
-import { GUIBuilderTab } from "@/components/gui-builder-tab";
-import { ScriptWizardTab } from "@/components/script-wizard-tab";
-import { DesktopGitPanel } from "@/components/desktop-git-panel";
-import { TroubleshooterTab } from "@/components/troubleshooter-tab";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import logoImage from "@assets/psforge-full-logo-wide.png";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import logoImage from "@assets/psforge-2-logo-transparent.png";
 import { analyzeScriptWorkbench } from "@/lib/script-workbench-utils";
+
+const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
+const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
+const ScriptWizardTab = lazy(() => import("@/components/script-wizard-tab").then((module) => ({ default: module.ScriptWizardTab })));
+const DesktopGitPanel = lazy(() => import("@/components/desktop-git-panel").then((module) => ({ default: module.DesktopGitPanel })));
+const TroubleshooterTab = lazy(() => import("@/components/troubleshooter-tab").then((module) => ({ default: module.TroubleshooterTab })));
 
 type RecentFile = {
   fileName: string;
@@ -75,6 +79,11 @@ type ScriptWorkspaceTab = {
   script: string;
   lastSavedContent: string;
   openedAt: string;
+  webScriptId?: string;
+  webScriptName?: string;
+  webScriptDescription?: string | null;
+  webScriptSyncedContent?: string;
+  webScriptLastSyncedAt?: string;
 };
 
 type AppSettingsView = "license" | "subscription" | "recovery" | "recent" | null;
@@ -84,9 +93,186 @@ type DesktopConversionState = {
   starterWorkflowRuns: number;
 };
 
+type StarterWorkflow = {
+  id: string;
+  title: string;
+  description: string;
+  badge: string;
+  outcome: string;
+  script: string;
+};
+
+type WebLibraryScript = {
+  id: string;
+  name: string;
+  description?: string | null;
+  content: string;
+  taskCategory?: string | null;
+  taskName?: string | null;
+  isFavorite?: boolean;
+  lastAccessed?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type LibraryFilter = "all" | "web" | "favorites" | "recent" | "starters" | "local";
+
+type WebScriptConflict = {
+  tabId: string;
+  remoteScript: WebLibraryScript;
+};
+
 const RECOVERY_KEY = "psforge-desktop-recovery";
 const RECENTS_KEY = "psforge-desktop-recent-files";
 const CONVERSION_STATE_KEY = "psforge-desktop-conversion-state";
+const WEB_LIBRARY_CACHE_KEY = "psforge-desktop-web-library-cache";
+
+const STARTER_WORKFLOWS: StarterWorkflow[] = [
+  {
+    id: "ad-user-offboarding",
+    title: "AD User Offboarding",
+    description: "Disable an account, move it to a target OU, and log the action with WhatIf support.",
+    badge: "Identity",
+    outcome: "A reviewable offboarding scaffold with ShouldProcess guardrails, logging, and AD module import hints.",
+    script: `<#
+.SYNOPSIS
+Safely prepares an Active Directory user offboarding workflow.
+
+.DESCRIPTION
+Disables a user account, optionally moves it to a target OU, and writes an operator log entry. Review all values before running against production.
+#>
+[CmdletBinding(SupportsShouldProcess)]
+param(
+  [Parameter(Mandatory)]
+  [string]$SamAccountName,
+
+  [string]$DisabledUsersOu = "OU=Disabled Users,DC=contoso,DC=com",
+
+  [string]$LogPath = ".\\offboarding-log.txt"
+)
+
+Import-Module ActiveDirectory
+
+$user = Get-ADUser -Identity $SamAccountName -Properties DistinguishedName
+
+if ($PSCmdlet.ShouldProcess($SamAccountName, "Disable AD account")) {
+  Disable-ADAccount -Identity $user
+}
+
+if ($DisabledUsersOu -and $PSCmdlet.ShouldProcess($SamAccountName, "Move account to disabled users OU")) {
+  Move-ADObject -Identity $user.DistinguishedName -TargetPath $DisabledUsersOu
+}
+
+"$(Get-Date -Format o) Offboarding prepared for $SamAccountName" | Add-Content -Path $LogPath
+`,
+  },
+  {
+    id: "intune-remediation",
+    title: "Intune Detection + Remediation",
+    description: "Create a safe detection/remediation starter for endpoint compliance work.",
+    badge: "Endpoint",
+    outcome: "A paired detection and remediation script that can be split into Intune-ready deployment pieces.",
+    script: `<#
+.SYNOPSIS
+Starter scaffold for an Intune detection and remediation workflow.
+
+.DESCRIPTION
+Use the detection block to report compliance and the remediation block to apply a targeted fix. Keep remediation idempotent.
+#>
+[CmdletBinding(SupportsShouldProcess)]
+param(
+  [switch]$Remediate,
+  [string]$LogPath = "$env:ProgramData\\PSForge\\intune-remediation.log"
+)
+
+New-Item -ItemType Directory -Path (Split-Path $LogPath) -Force | Out-Null
+
+$isCompliant = Test-Path "C:\\ProgramData\\Example\\required.marker"
+
+if (-not $isCompliant -and -not $Remediate) {
+  Write-Output "Non-compliant"
+  exit 1
+}
+
+if (-not $isCompliant -and $Remediate) {
+  if ($PSCmdlet.ShouldProcess("Endpoint", "Apply remediation")) {
+    New-Item -ItemType Directory -Path "C:\\ProgramData\\Example" -Force | Out-Null
+    New-Item -ItemType File -Path "C:\\ProgramData\\Example\\required.marker" -Force | Out-Null
+    "$(Get-Date -Format o) Remediation applied" | Add-Content -Path $LogPath
+  }
+}
+
+Write-Output "Compliant"
+exit 0
+`,
+  },
+  {
+    id: "m365-license-report",
+    title: "Microsoft 365 License Report",
+    description: "Generate a Graph-ready reporting scaffold for user license review.",
+    badge: "Reporting",
+    outcome: "A Graph module reporting starter with export wiring and obvious places for tenant-specific columns.",
+    script: `<#
+.SYNOPSIS
+Creates a Microsoft 365 license report scaffold.
+
+.DESCRIPTION
+Connects to Microsoft Graph and exports user license posture for review. Replace scopes and properties as needed.
+#>
+[CmdletBinding()]
+param(
+  [string]$OutputPath = ".\\m365-license-report.csv"
+)
+
+Import-Module Microsoft.Graph.Users
+Import-Module Microsoft.Graph.Identity.DirectoryManagement
+
+Connect-MgGraph -Scopes "User.Read.All", "Directory.Read.All"
+
+$users = Get-MgUser -All -Property Id,DisplayName,UserPrincipalName,AssignedLicenses
+
+$users | Select-Object DisplayName, UserPrincipalName, @{
+  Name = "AssignedLicenseCount"
+  Expression = { $_.AssignedLicenses.Count }
+} | Export-Csv -Path $OutputPath -NoTypeInformation
+
+Write-Output "License report exported to $OutputPath"
+`,
+  },
+  {
+    id: "windows-service-health",
+    title: "Windows Service Health Check",
+    description: "Audit service state and optionally restart target services with ShouldProcess.",
+    badge: "Windows",
+    outcome: "A safe operational check that reports service state and only restarts services when explicitly requested.",
+    script: `<#
+.SYNOPSIS
+Checks Windows service health and optionally restarts stopped services.
+#>
+[CmdletBinding(SupportsShouldProcess)]
+param(
+  [string[]]$ServiceName = @("Spooler"),
+  [switch]$RestartStopped
+)
+
+$services = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+foreach ($service in $services) {
+  [PSCustomObject]@{
+    Name = $service.Name
+    DisplayName = $service.DisplayName
+    Status = $service.Status
+  }
+
+  if ($RestartStopped -and $service.Status -ne "Running") {
+    if ($PSCmdlet.ShouldProcess($service.Name, "Restart service")) {
+      Restart-Service -Name $service.Name -Force
+    }
+  }
+}
+`,
+  },
+];
 
 function createWorkspaceTab(partial?: Partial<ScriptWorkspaceTab>): ScriptWorkspaceTab {
   return {
@@ -137,15 +323,31 @@ function readDesktopConversionState(): DesktopConversionState {
   }
 }
 
-export default function DesktopWorkspace() {
+interface DesktopWorkspaceProps {
+  previewMode?: boolean;
+}
+
+export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspaceProps) {
   const { toast } = useToast();
   const { user, isAuthenticated, featureAccess, logout, refetch } = useAuth();
   const [scriptTabs, setScriptTabs] = useState<ScriptWorkspaceTab[]>(() => [createWorkspaceTab()]);
   const [activeScriptTabId, setActiveScriptTabId] = useState("");
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<DesktopWorkspaceTab>("script");
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
+  const [pendingWorkbenchAction, setPendingWorkbenchAction] = useState<DesktopWorkbenchAction | null>(null);
+  const [runHistorySummary, setRunHistorySummary] = useState<DesktopRunHistorySummary>({ totalRuns: 0, failedRuns: 0 });
   const [selectedGuiCategory, setSelectedGuiCategory] = useState<string | null>(null);
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
+  const [starterWorkflowPreview, setStarterWorkflowPreview] = useState<StarterWorkflow | null>(null);
+  const [starterGalleryOpen, setStarterGalleryOpen] = useState(false);
+  const [starterGalleryQuery, setStarterGalleryQuery] = useState("");
+  const [webLibraryScripts, setWebLibraryScripts] = useState<WebLibraryScript[]>([]);
+  const [webLibraryLoading, setWebLibraryLoading] = useState(false);
+  const [webLibraryError, setWebLibraryError] = useState<string | null>(null);
+  const [webLibraryQuery, setWebLibraryQuery] = useState("");
+  const [webLibraryFilter, setWebLibraryFilter] = useState<LibraryFilter>("all");
+  const [webLibraryFromCache, setWebLibraryFromCache] = useState(false);
+  const [webScriptConflict, setWebScriptConflict] = useState<WebScriptConflict | null>(null);
   const [desktopSignInLoading, setDesktopSignInLoading] = useState(false);
   const [desktopSignOutLoading, setDesktopSignOutLoading] = useState(false);
   const [desktopRegisterLoading, setDesktopRegisterLoading] = useState(false);
@@ -165,7 +367,6 @@ export default function DesktopWorkspace() {
   const [appSettingsView, setAppSettingsView] = useState<AppSettingsView>(null);
   const [guidedProfile, setGuidedProfile] = useState<DesktopGuidedProfile | null>(null);
   const [guidedOnboardingOpen, setGuidedOnboardingOpen] = useState(false);
-  const [guidedOnboardingDismissed, setGuidedOnboardingDismissed] = useState(false);
   const [guidedUpgradeWorkflowId, setGuidedUpgradeWorkflowId] = useState<string | null>(null);
   const [guidedFocusDraftId, setGuidedFocusDraftId] = useState(() => DESKTOP_GUIDED_FOCUSES[0].id);
   const [guidedWorkflowDraftId, setGuidedWorkflowDraftId] = useState(() => DESKTOP_GUIDED_FOCUSES[0].workflows[0].id);
@@ -181,7 +382,15 @@ export default function DesktopWorkspace() {
   const appOpenedTrackedRef = useRef(false);
   const cachedLicense = desktopSession.license || getDesktopCachedLicense();
   const cachedUser = desktopSession.user || null;
-  const visibleUser = user || cachedUser;
+  const previewUser = previewMode
+    ? {
+      id: "desktop-preview-user",
+      email: "preview@psforge.local",
+      name: "PSForge Preview",
+      role: "admin" as const,
+    }
+    : null;
+  const visibleUser = user || cachedUser || previewUser;
   const activeScriptTab = useMemo(
     () => scriptTabs.find((tab) => tab.id === activeScriptTabId) || scriptTabs[0] || null,
     [activeScriptTabId, scriptTabs],
@@ -189,7 +398,11 @@ export default function DesktopWorkspace() {
   const currentFileName = activeScriptTab?.fileName || "Untitled.ps1";
   const currentScript = activeScriptTab?.script || "";
   const activeTabDirty = activeScriptTab ? activeScriptTab.script !== activeScriptTab.lastSavedContent : false;
-  const hasProAccess = user?.role === "admin" || !!featureAccess?.hasPremiumCategories || !!cachedLicense?.isPro;
+  const activeWebSyncDirty = activeScriptTab?.webScriptId
+    ? activeScriptTab.script !== (activeScriptTab.webScriptSyncedContent || "")
+    : false;
+  const currentScriptAnalysis = useMemo(() => analyzeScriptWorkbench(currentScript), [currentScript]);
+  const hasProAccess = previewMode || user?.role === "admin" || !!featureAccess?.hasPremiumCategories || !!cachedLicense?.isPro;
   const isRevalidatingStoredSession = !!desktopSession.token && !visibleUser;
   const currentGuidedProfile = guidedProfile ? guidedProfile : null;
   const currentGuidedFocus = currentGuidedProfile ? getDesktopGuidedFocus(currentGuidedProfile.focusId) : null;
@@ -201,6 +414,63 @@ export default function DesktopWorkspace() {
   const guidedUpgradeWorkflow = currentGuidedFocus && guidedUpgradeWorkflowId
     ? currentGuidedFocus.workflows.find((workflow) => workflow.id === guidedUpgradeWorkflowId) || null
     : null;
+  const filteredStarterWorkflows = useMemo(() => {
+    const query = starterGalleryQuery.trim().toLowerCase();
+    if (!query) {
+      return STARTER_WORKFLOWS;
+    }
+
+    return STARTER_WORKFLOWS.filter((workflow) =>
+      [workflow.title, workflow.description, workflow.badge, workflow.outcome].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [starterGalleryQuery]);
+  const filteredWebLibraryScripts = useMemo(() => {
+    const query = webLibraryQuery.trim().toLowerCase();
+    const baseScripts = webLibraryFilter === "favorites"
+      ? webLibraryScripts.filter((script) => script.isFavorite)
+      : webLibraryFilter === "recent"
+        ? [...webLibraryScripts].sort((first, second) =>
+          new Date(second.lastAccessed || second.updatedAt || second.createdAt || 0).getTime()
+          - new Date(first.lastAccessed || first.updatedAt || first.createdAt || 0).getTime(),
+        )
+        : webLibraryScripts;
+
+    if (!query) {
+      return baseScripts;
+    }
+
+    return baseScripts.filter((script) =>
+      [
+        script.name,
+        script.description || "",
+        script.taskCategory || "",
+        script.taskName || "",
+      ].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [webLibraryFilter, webLibraryQuery, webLibraryScripts]);
+  const filteredStarterLibrary = useMemo(() => {
+    const query = webLibraryQuery.trim().toLowerCase();
+    if (!query) {
+      return STARTER_WORKFLOWS;
+    }
+
+    return STARTER_WORKFLOWS.filter((workflow) =>
+      [workflow.title, workflow.description, workflow.badge, workflow.outcome].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [webLibraryQuery]);
+  const filteredRecentLibrary = useMemo(() => {
+    const query = webLibraryQuery.trim().toLowerCase();
+    if (!query) {
+      return recentFiles;
+    }
+
+    return recentFiles.filter((file) =>
+      [file.fileName, file.filePath || ""].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [recentFiles, webLibraryQuery]);
+  const showWebLibrary = webLibraryFilter === "all" || webLibraryFilter === "web" || webLibraryFilter === "favorites" || webLibraryFilter === "recent";
+  const showStarterLibrary = webLibraryFilter === "all" || webLibraryFilter === "starters";
+  const showLocalLibrary = webLibraryFilter === "all" || webLibraryFilter === "local" || webLibraryFilter === "recent";
 
   const accessLabel = useMemo(() => {
     if (hasProAccess) {
@@ -324,13 +594,8 @@ export default function DesktopWorkspace() {
     if (guidedProfile) {
       setGuidedFocusDraftId(guidedProfile.focusId);
       setGuidedWorkflowDraftId(guidedProfile.workflowId);
-      return;
     }
-
-    if (!guidedOnboardingDismissed) {
-      setGuidedOnboardingOpen(true);
-    }
-  }, [guidedOnboardingDismissed, guidedProfile, visibleUser]);
+  }, [guidedProfile, visibleUser]);
 
   useEffect(() => {
     if (!hasProAccess || !guidedUpgradeWorkflowId || !currentGuidedFocus) {
@@ -369,6 +634,12 @@ export default function DesktopWorkspace() {
       void flushDesktopAnalytics();
     }
   }, [desktopSession.token]);
+
+  useEffect(() => {
+    if (activeWorkspaceTab === "gui") {
+      void loadWebLibraryScripts();
+    }
+  }, [activeWorkspaceTab, desktopSession.token]);
 
   useEffect(() => {
     let mounted = true;
@@ -511,7 +782,20 @@ export default function DesktopWorkspace() {
   };
 
   const updateScriptTab = (tabId: string, updater: (tab: ScriptWorkspaceTab) => ScriptWorkspaceTab) => {
-    setScriptTabs((currentTabs) => currentTabs.map((tab) => (tab.id === tabId ? updater(tab) : tab)));
+    setScriptTabs((currentTabs) => {
+      let changed = false;
+      const nextTabs = currentTabs.map((tab) => {
+        if (tab.id !== tabId) {
+          return tab;
+        }
+
+        const nextTab = updater(tab);
+        changed = changed || nextTab !== tab;
+        return nextTab;
+      });
+
+      return changed ? nextTabs : currentTabs;
+    });
   };
 
   const setActiveScript = (nextScript: string) => {
@@ -519,10 +803,282 @@ export default function DesktopWorkspace() {
       return;
     }
 
-    updateScriptTab(activeScriptTab.id, (tab) => ({
-      ...tab,
-      script: nextScript,
-    }));
+    updateScriptTab(activeScriptTab.id, (tab) => (
+      tab.script === nextScript
+        ? tab
+        : {
+          ...tab,
+          script: nextScript,
+        }
+    ));
+  };
+
+  const triggerWorkbenchAction = (type: DesktopWorkbenchActionType) => {
+    setActiveWorkspaceTab("script");
+    setPendingWorkbenchAction({
+      id: Date.now(),
+      type,
+    });
+  };
+
+  const runWebLibraryRequest = async <T,>(path: string, init: { method?: string; body?: string; headers?: Record<string, string> } = {}) => {
+    const url = getDesktopRequestUrl(path);
+    const headers = {
+      ...getDesktopAuthHeader(),
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(init.headers || {}),
+    };
+
+    if (typeof window !== "undefined" && window.psforgeDesktop?.request) {
+      const response = await window.psforgeDesktop.request({
+        url,
+        method: init.method || "GET",
+        headers,
+        body: init.body,
+      });
+
+      if (!response.ok) {
+        throw new Error(response.text || `Request failed with status ${response.status}`);
+      }
+
+      return response.text ? JSON.parse(response.text) as T : ({} as T);
+    }
+
+    const response = await fetch(url, {
+      method: init.method || "GET",
+      headers,
+      body: init.body,
+    });
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    return response.status === 204 ? ({} as T) : await response.json() as T;
+  };
+
+  const readCachedWebLibraryScripts = () => {
+    const cached = getDesktopStorageItem(WEB_LIBRARY_CACHE_KEY);
+    if (!cached) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(cached) as { scripts?: WebLibraryScript[] };
+      return Array.isArray(parsed.scripts) ? parsed.scripts : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const loadWebLibraryScripts = async () => {
+    if (!getDesktopAuthState().token) {
+      const cachedScripts = readCachedWebLibraryScripts();
+      setWebLibraryScripts(cachedScripts);
+      setWebLibraryFromCache(cachedScripts.length > 0);
+      setWebLibraryError(cachedScripts.length > 0
+        ? "Showing the last cached web Library. Connect your account to refresh it."
+        : "Connect your PSForge web account to sync scripts created in the browser.");
+      return;
+    }
+
+    setWebLibraryLoading(true);
+    setWebLibraryError(null);
+
+    try {
+      const scripts = await runWebLibraryRequest<WebLibraryScript[]>("/api/scripts/user/me");
+      setWebLibraryScripts(scripts);
+      setWebLibraryFromCache(false);
+      setDesktopStorageItem(WEB_LIBRARY_CACHE_KEY, JSON.stringify({
+        cachedAt: new Date().toISOString(),
+        scripts,
+      }));
+    } catch (error) {
+      const cachedScripts = readCachedWebLibraryScripts();
+      if (cachedScripts.length > 0) {
+        setWebLibraryScripts(cachedScripts);
+        setWebLibraryFromCache(true);
+        setWebLibraryError("Could not refresh web scripts. Showing the last cached Library.");
+      } else {
+        setWebLibraryError(error instanceof Error ? error.message : "Could not load your web scripts.");
+      }
+    } finally {
+      setWebLibraryLoading(false);
+    }
+  };
+
+  const recordWebLibraryAccess = async (scriptId: string) => {
+    try {
+      await runWebLibraryRequest(`/api/scripts/${scriptId}/access`, { method: "PATCH" });
+    } catch {
+      // Access tracking should never block opening the script locally.
+    }
+  };
+
+  const openWebLibraryScript = (script: WebLibraryScript) => {
+    const fileName = script.name.toLowerCase().endsWith(".ps1") ? script.name : `${script.name}.ps1`;
+    const nextTab = createWorkspaceTab({
+      fileName,
+      script: script.content || "",
+      lastSavedContent: script.content || "",
+      webScriptId: script.id,
+      webScriptName: script.name,
+      webScriptDescription: script.description || null,
+      webScriptSyncedContent: script.content || "",
+      webScriptLastSyncedAt: new Date().toISOString(),
+    });
+
+    setScriptTabs((currentTabs) => [...currentTabs, nextTab]);
+    setActiveScriptTabId(nextTab.id);
+    setActiveWorkspaceTab("script");
+    rememberRecentFile(fileName);
+    void recordWebLibraryAccess(script.id);
+
+    toast({
+      title: "Web script opened",
+      description: `${script.name} is ready to edit locally.`,
+    });
+  };
+
+  const saveActiveWebScript = async (force = false) => {
+    if (!activeScriptTab?.webScriptId) {
+      return;
+    }
+
+    if (!getDesktopAuthState().token) {
+      setAccountDialogOpen(true);
+      toast({
+        title: "Account connection required",
+        description: "Connect your PSForge web account before saving this script back to Library.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const remoteScript = await runWebLibraryRequest<WebLibraryScript>(`/api/scripts/${activeScriptTab.webScriptId}`);
+      const lastSyncedContent = activeScriptTab.webScriptSyncedContent || "";
+      const remoteContent = remoteScript.content || "";
+
+      if (!force && remoteContent !== lastSyncedContent && activeScriptTab.script !== remoteContent) {
+        setWebScriptConflict({
+          tabId: activeScriptTab.id,
+          remoteScript,
+        });
+        return;
+      }
+
+      const updated = await runWebLibraryRequest<WebLibraryScript>(`/api/scripts/${activeScriptTab.webScriptId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: activeScriptTab.webScriptName || activeScriptTab.fileName.replace(/\.ps1$/i, ""),
+          description: activeScriptTab.webScriptDescription || remoteScript.description || undefined,
+          content: activeScriptTab.script,
+        }),
+      });
+
+      const syncedAt = new Date().toISOString();
+      updateScriptTab(activeScriptTab.id, (tab) => ({
+        ...tab,
+        webScriptName: updated.name || tab.webScriptName,
+        webScriptDescription: updated.description ?? tab.webScriptDescription,
+        webScriptSyncedContent: updated.content || tab.script,
+        webScriptLastSyncedAt: syncedAt,
+        lastSavedContent: tab.filePath ? tab.lastSavedContent : tab.script,
+      }));
+      setWebLibraryScripts((scripts) => scripts.map((script) => (script.id === updated.id ? { ...script, ...updated } : script)));
+
+      toast({
+        title: "Saved to web Library",
+        description: `${updated.name || activeScriptTab.fileName} is synced with PSForge web.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Web save failed",
+        description: error instanceof Error ? error.message : "Could not save this script to the web Library.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resolveWebScriptConflict = (action: "keep-desktop" | "use-web" | "open-both") => {
+    if (!webScriptConflict) {
+      return;
+    }
+
+    const tab = scriptTabs.find((currentTab) => currentTab.id === webScriptConflict.tabId);
+    if (!tab) {
+      setWebScriptConflict(null);
+      return;
+    }
+
+    if (action === "use-web") {
+      updateScriptTab(tab.id, (currentTab) => ({
+        ...currentTab,
+        script: webScriptConflict.remoteScript.content || "",
+        lastSavedContent: currentTab.filePath ? currentTab.lastSavedContent : webScriptConflict.remoteScript.content || "",
+        webScriptName: webScriptConflict.remoteScript.name,
+        webScriptDescription: webScriptConflict.remoteScript.description || null,
+        webScriptSyncedContent: webScriptConflict.remoteScript.content || "",
+        webScriptLastSyncedAt: new Date().toISOString(),
+      }));
+      setWebScriptConflict(null);
+      toast({
+        title: "Web copy loaded",
+        description: "The desktop tab now matches the latest web Library version.",
+      });
+      return;
+    }
+
+    if (action === "open-both") {
+      const nextTab = createWorkspaceTab({
+        fileName: `${webScriptConflict.remoteScript.name.replace(/\.ps1$/i, "")} - Web.ps1`,
+        script: webScriptConflict.remoteScript.content || "",
+        lastSavedContent: webScriptConflict.remoteScript.content || "",
+        webScriptId: webScriptConflict.remoteScript.id,
+        webScriptName: webScriptConflict.remoteScript.name,
+        webScriptDescription: webScriptConflict.remoteScript.description || null,
+        webScriptSyncedContent: webScriptConflict.remoteScript.content || "",
+        webScriptLastSyncedAt: new Date().toISOString(),
+      });
+      setScriptTabs((currentTabs) => [...currentTabs, nextTab]);
+      setActiveScriptTabId(nextTab.id);
+      setActiveWorkspaceTab("script");
+      setWebScriptConflict(null);
+      toast({
+        title: "Opened both versions",
+        description: "The latest web copy is open in a separate tab.",
+      });
+      return;
+    }
+
+    setWebScriptConflict(null);
+    void saveActiveWebScript(true);
+  };
+
+  const startStarterWorkflow = (workflow: StarterWorkflow) => {
+    const nextTab = createWorkspaceTab({
+      fileName: `${workflow.title.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")}.ps1`,
+      script: workflow.script,
+      lastSavedContent: "",
+    });
+
+    setScriptTabs((currentTabs) => [...currentTabs, nextTab]);
+    setActiveScriptTabId(nextTab.id);
+    setActiveWorkspaceTab("script");
+    setStarterWorkflowPreview(null);
+    setConversionState((current) => {
+      const next = {
+        ...current,
+        starterWorkflowRuns: current.starterWorkflowRuns + 1,
+      };
+      setDesktopStorageItem(CONVERSION_STATE_KEY, JSON.stringify(next));
+      return next;
+    });
+    toast({
+      title: `${workflow.title} loaded`,
+      description: "A fresh starter script was opened in a new tab.",
+    });
   };
 
   const createNewScriptTab = () => {
@@ -555,7 +1111,6 @@ export default function DesktopWorkspace() {
     const startingWorkflow = currentGuidedProfile?.workflowId || getDesktopGuidedFocus(startingFocus).workflows[0].id;
     setGuidedFocusDraftId(startingFocus);
     setGuidedWorkflowDraftId(startingWorkflow);
-    setGuidedOnboardingDismissed(false);
     setGuidedOnboardingOpen(true);
   };
 
@@ -596,7 +1151,6 @@ export default function DesktopWorkspace() {
     };
 
     persistGuidedProfile(nextProfile);
-    setGuidedOnboardingDismissed(false);
     setGuidedOnboardingOpen(false);
 
     if (workflow.premium && !hasProAccess) {
@@ -1361,7 +1915,7 @@ export default function DesktopWorkspace() {
               <div className="text-sm text-muted-foreground">No recent files yet.</div>
             ) : (
               recentFiles.map((entry) => (
-                <div key={`${entry.fileName}-${entry.openedAt}`} className="rounded-lg border p-3">
+                <div key={`${entry.fileName}-${entry.openedAt}`} className="rounded-md border p-3">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <History className="h-4 w-4 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate">{entry.fileName}</span>
@@ -1425,18 +1979,18 @@ export default function DesktopWorkspace() {
               </CardHeader>
               <CardContent className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
                 <div className="space-y-4">
-                  <div className="rounded-xl border bg-muted/30 p-5">
+                  <div className="rounded-md border bg-muted/30 p-5">
                     <div className="text-base font-semibold">What this sign-in does</div>
                     <div className="mt-2 text-sm text-muted-foreground">
                       PSForge Desktop uses your PSForge account as the identity and license source for this Windows installation.
                     </div>
                     <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-                      <div className="rounded-lg border bg-background/60 p-3">Connects the desktop app to your PSForge account.</div>
-                      <div className="rounded-lg border bg-background/60 p-3">Unlocks Pro features automatically when your web subscription is active.</div>
-                      <div className="rounded-lg border bg-background/60 p-3">Keeps desktop access in sync if your subscription changes on the website.</div>
+                      <div className="rounded-md border bg-background/60 p-3">Connects the desktop app to your PSForge account.</div>
+                      <div className="rounded-md border bg-background/60 p-3">Unlocks Pro features automatically when your web subscription is active.</div>
+                      <div className="rounded-md border bg-background/60 p-3">Keeps desktop access in sync if your subscription changes on the website.</div>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+                  <div className="rounded-md border border-primary/20 bg-primary/5 p-5">
                     <div className="flex items-center gap-2 text-base font-semibold">
                       <CreditCard className="h-4 w-4 text-primary" />
                       PSForge Pro subscription
@@ -1445,8 +1999,8 @@ export default function DesktopWorkspace() {
                       PSForge Pro is a paid recurring subscription. Purchases and renewals are processed securely through Stripe-hosted checkout tied to your PSForge account.
                     </div>
                     <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-                      <div className="rounded-lg border bg-background/60 p-3">Free tier: local editor, script tabs, file saves, recovery, and core desktop workflow.</div>
-                      <div className="rounded-lg border bg-background/60 p-3">Pro tier: AI tools, premium automation features, and advanced PSForge workflows.</div>
+                      <div className="rounded-md border bg-background/60 p-3">Free tier: local editor, script tabs, file saves, recovery, and core desktop workflow.</div>
+                      <div className="rounded-md border bg-background/60 p-3">Pro tier: AI tools, premium automation features, and advanced PSForge workflows.</div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -1566,43 +2120,52 @@ export default function DesktopWorkspace() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex w-full items-center justify-between gap-4 px-4 py-2 sm:px-5 xl:px-6">
-          <div className="flex items-center gap-3">
-            <div className="min-w-0">
-              <img
-                src={logoImage}
-                alt="PSForge"
-                className="h-10 w-auto max-w-[220px] object-contain object-left sm:h-12 sm:max-w-[260px]"
+    <DesktopWorkbenchShell
+      logoSrc={logoImage}
+      desktopVersion={desktopVersion}
+      accessLabel={accessLabel}
+      hasProAccess={hasProAccess}
+      updateState={updateState}
+      activeArea={activeWorkspaceTab}
+      currentFileName={currentFileName}
+      isDirty={activeTabDirty}
+      analysis={currentScriptAnalysis}
+      recentFilesCount={recentFiles.length}
+      recentFiles={recentFiles}
+      runHistorySummary={runHistorySummary}
+      onAreaChange={setActiveWorkspaceTab}
+      onNewScript={createNewScriptTab}
+      onOpenScript={() => void handleOpenScript()}
+      onSaveScript={() => void handleSaveScript()}
+      onSaveAs={() => void handleSaveAs()}
+      onManageLicense={() => setAppSettingsView("license")}
+      onCheckForUpdates={() => void handleCheckForUpdates()}
+      onOpenRecentFiles={() => setAppSettingsView("recent")}
+      onOpenRunTools={() => triggerWorkbenchAction("run")}
+      onRerunLastRun={() => triggerWorkbenchAction("rerun-last")}
+      onRunPreflight={() => triggerWorkbenchAction("preflight")}
+      onRunAiReview={() => triggerWorkbenchAction("ai-review")}
+      onOpenHeaderGenerator={() => triggerWorkbenchAction("header")}
+      onOpenPlaceholderTool={() => triggerWorkbenchAction("placeholders")}
+      onOpenWorkbenchReview={() => triggerWorkbenchAction("workbench")}
+    >
+        <Card className="grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-none border-0">
+          <div className="border-b px-3 py-2 sm:px-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <DesktopFocusPanel
+                profile={guidedProfile}
+                hasProAccess={hasProAccess}
+                onChangeFocus={openGuidedOnboarding}
+                onStartWorkflow={startGuidedWorkflow}
               />
-              <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                <span>PowerShell Automation Workspace for Windows</span>
-                <Badge variant="outline">v{desktopVersion}</Badge>
-              </div>
+              <Button size="sm" variant="outline" className="shrink-0" onClick={() => setStarterGalleryOpen((current) => !current)}>
+                <LayoutGrid className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Starters</span>
+                <ChevronDown className={`ml-1 h-4 w-4 transition sm:ml-2 ${starterGalleryOpen ? "rotate-180" : ""}`} />
+              </Button>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Badge variant={hasProAccess ? "default" : "secondary"}>
-              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-              {accessLabel}
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex w-full min-h-0 flex-1 overflow-hidden p-3 xl:p-4">
-        <Card className="flex min-h-0 w-full flex-col overflow-hidden">
-          <div className="border-b px-4 py-3 sm:px-5">
-            <DesktopFocusPanel
-              profile={guidedProfile}
-              hasProAccess={hasProAccess}
-              onChangeFocus={openGuidedOnboarding}
-              onStartWorkflow={startGuidedWorkflow}
-            />
             {desktopConversionBanner && (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium">{desktopConversionBanner.title}</div>
                   <div className="text-xs text-muted-foreground">{desktopConversionBanner.description}</div>
@@ -1618,50 +2181,48 @@ export default function DesktopWorkspace() {
                 </div>
               </div>
             )}
-          </div>
-          <Tabs value={activeWorkspaceTab} onValueChange={(value) => setActiveWorkspaceTab(value as DesktopWorkspaceTab)} className="flex h-full min-h-0 flex-col">
-            <div className="border-b px-4 py-2.5">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium">
-                    {currentFileName}
-                    {activeTabDirty ? " *" : ""}
+            {starterGalleryOpen && (
+              <div className="mt-2 rounded-md border bg-background/50 p-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-md border bg-background px-2 py-1.5">
+                    <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Input
+                      value={starterGalleryQuery}
+                      onChange={(event) => setStarterGalleryQuery(event.target.value)}
+                      placeholder="Search starters"
+                      className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                    />
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {currentGuidedFocus
-                      ? `Focused on ${currentGuidedFocus.title}. ${currentGuidedWorkflow?.description || "Choose the next workflow from the tabs or your guided panel."}`
-                      : "Desktop-first workspace with local recovery and Windows file access"}
+                  <div className="text-xs text-muted-foreground">
+                    {filteredStarterWorkflows.length} starter{filteredStarterWorkflows.length === 1 ? "" : "s"}
                   </div>
                 </div>
-                <TabsList>
-                  <TabsTrigger value="script" className="gap-2">
-                    <FileCode className="h-4 w-4" />
-                    Script
-                  </TabsTrigger>
-                  <TabsTrigger value="ai" className="gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    AI
-                  </TabsTrigger>
-                  <TabsTrigger value="gui" className="gap-2">
-                    <LayoutGrid className="h-4 w-4" />
-                    GUI
-                  </TabsTrigger>
-                  <TabsTrigger value="wizard" className="gap-2">
-                    <Wand2 className="h-4 w-4" />
-                    Wizard
-                  </TabsTrigger>
-                  <TabsTrigger value="git" className="gap-2">
-                    <GitBranch className="h-4 w-4" />
-                    Git
-                  </TabsTrigger>
-                  <TabsTrigger value="troubleshooter" className="gap-2">
-                    <Wrench className="h-4 w-4" />
-                    Troubleshooter
-                  </TabsTrigger>
-                </TabsList>
+                <div className="mt-2 grid max-h-40 gap-2 overflow-y-auto xl:grid-cols-4">
+                  {filteredStarterWorkflows.length === 0 ? (
+                    <div className="rounded-md border border-dashed bg-background/70 px-3 py-4 text-sm text-muted-foreground xl:col-span-4">
+                      No starters match that search. Try a platform like AD, Intune, Microsoft 365, or Exchange.
+                    </div>
+                  ) : (
+                    filteredStarterWorkflows.map((workflow) => (
+                      <button
+                        key={workflow.id}
+                        type="button"
+                        className="rounded-md border bg-background/70 px-3 py-2 text-left transition hover:border-primary/50 hover:bg-primary/5"
+                        onClick={() => setStarterWorkflowPreview(workflow)}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="truncate text-sm font-medium">{workflow.title}</div>
+                          <Badge variant="outline" className="text-[10px]">{workflow.badge}</Badge>
+                        </div>
+                        <div className="mt-1 line-clamp-1 text-xs text-muted-foreground">{workflow.description}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-
+            )}
+          </div>
+          <Tabs value={activeWorkspaceTab} onValueChange={(value) => setActiveWorkspaceTab(value as DesktopWorkspaceTab)} className="flex h-full min-h-0 flex-col overflow-hidden">
             <TabsContent value="script" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <div className="flex h-full min-h-0 flex-col overflow-hidden">
                 <div className="flex items-center justify-between gap-3 border-b px-4 py-2">
@@ -1685,6 +2246,11 @@ export default function DesktopWorkspace() {
                             {tab.fileName}
                             {isDirty ? " *" : ""}
                           </button>
+                          {tab.webScriptId ? (
+                            <Badge variant="outline" className="ml-1 border-primary/30 px-1.5 py-0 text-[10px] text-primary">
+                              Web
+                            </Badge>
+                          ) : null}
                           <button
                             type="button"
                             className="rounded-sm p-0.5 text-muted-foreground transition hover:bg-background/70 hover:text-foreground"
@@ -1698,10 +2264,22 @@ export default function DesktopWorkspace() {
                     })}
                   </div>
 
-                  <Button size="sm" variant="outline" onClick={createNewScriptTab}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Script
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {activeScriptTab?.webScriptId ? (
+                      <>
+                        <Badge variant={activeWebSyncDirty ? "secondary" : "outline"} className="hidden text-[11px] sm:inline-flex">
+                          {activeWebSyncDirty ? "Local edits" : "Synced"}
+                        </Badge>
+                        <Button size="sm" variant={activeWebSyncDirty ? "default" : "outline"} onClick={() => void saveActiveWebScript()}>
+                          Save to Web
+                        </Button>
+                      </>
+                    ) : null}
+                    <Button size="sm" variant="outline" className="shrink-0" onClick={createNewScriptTab}>
+                      <Plus className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">New Script</span>
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-hidden">
@@ -1710,6 +2288,8 @@ export default function DesktopWorkspace() {
                     setScript={setActiveScript}
                     currentFileName={currentFileName}
                     authorName={visibleUser?.name || visibleUser?.email || "PSForge User"}
+                    pendingAction={pendingWorkbenchAction}
+                    onRunHistorySummaryChange={setRunHistorySummary}
                   />
                 </div>
               </div>
@@ -1717,50 +2297,232 @@ export default function DesktopWorkspace() {
 
             <TabsContent value="ai" className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden">
               <div className="h-full min-h-0">
-                <AIAssistantTab
-                  scriptCommands={scriptCommands}
-                  setScriptCommands={setScriptCommands}
-                  script={currentScript}
-                  setScript={setActiveScript}
-                />
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading AI workspace...</div>}>
+                  <AIAssistantTab
+                    scriptCommands={scriptCommands}
+                    setScriptCommands={setScriptCommands}
+                    script={currentScript}
+                    setScript={setActiveScript}
+                  />
+                </Suspense>
               </div>
             </TabsContent>
 
-            <TabsContent value="gui" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
-              <div className="h-full overflow-auto">
-                <GUIBuilderTab
-                  selectedCategory={selectedGuiCategory}
-                  onCategorySelect={setSelectedGuiCategory}
-                  script={currentScript}
-                  setScript={setActiveScript}
-                />
+            <TabsContent value="gui" className="mt-0 h-full min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+              <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
+                <div className="border-b px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <LayoutGrid className="h-4 w-4 text-primary" />
+                        Library
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Open synced scripts, local recents, and starter building blocks from one place.
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => void loadWebLibraryScripts()} disabled={webLibraryLoading}>
+                      <RefreshCcw className={`mr-2 h-4 w-4 ${webLibraryLoading ? "animate-spin" : ""}`} />
+                      Sync
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid h-full min-h-0 grid-cols-[minmax(300px,380px)_minmax(0,1fr)] overflow-hidden max-xl:grid-cols-1">
+                  <section className="min-h-0 overflow-hidden border-r bg-muted/20 max-xl:border-b max-xl:border-r-0">
+                    <div className="flex h-full min-h-0 flex-col">
+                      <div className="border-b p-3">
+                        <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5">
+                          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <Input
+                            value={webLibraryQuery}
+                            onChange={(event) => setWebLibraryQuery(event.target.value)}
+                            placeholder="Search Library"
+                            className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {([
+                            ["all", "All"],
+                            ["web", "Web"],
+                            ["starters", "Starters"],
+                            ["local", "Local"],
+                            ["favorites", "Favorites"],
+                            ["recent", "Recent"],
+                          ] as Array<[LibraryFilter, string]>).map(([value, label]) => (
+                            <Button
+                              key={value}
+                              type="button"
+                              size="sm"
+                              variant={webLibraryFilter === value ? "default" : "outline"}
+                              className="h-7 px-2 text-xs"
+                              onClick={() => setWebLibraryFilter(value)}
+                            >
+                              {label}
+                            </Button>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{webLibraryScripts.length} web - {STARTER_WORKFLOWS.length} starters - {recentFiles.length} local</span>
+                          {webLibraryFromCache ? <span>Cached</span> : null}
+                        </div>
+                      </div>
+
+                      <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain p-3 [scrollbar-gutter:stable]">
+                        {webLibraryLoading && showWebLibrary ? (
+                          <div className="rounded-md border bg-background/70 p-4 text-sm text-muted-foreground">
+                            Loading scripts from your PSForge web account...
+                          </div>
+                        ) : webLibraryError && showWebLibrary && webLibraryScripts.length === 0 ? (
+                          <div className="rounded-md border border-dashed bg-background/70 p-4 text-sm text-muted-foreground">
+                            <div>{webLibraryError}</div>
+                            <Button className="mt-3" size="sm" variant="outline" onClick={() => setAccountDialogOpen(true)}>
+                              Connect Account
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {webLibraryError && showWebLibrary ? (
+                              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                                {webLibraryError}
+                              </div>
+                            ) : null}
+
+                            {showWebLibrary ? (
+                              <div className="space-y-2">
+                                {filteredWebLibraryScripts.length > 0 ? (
+                                  filteredWebLibraryScripts.map((script) => (
+                                    <div key={script.id} className="rounded-md border bg-background/80 p-3">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            <FileCode className="h-4 w-4 shrink-0 text-primary" />
+                                            <div className="truncate text-sm font-medium">{script.name}</div>
+                                            {script.isFavorite ? <Badge variant="outline" className="text-[10px]">Favorite</Badge> : null}
+                                          </div>
+                                          <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                            {script.description || script.taskName || "Saved from PSForge web."}
+                                          </div>
+                                        </div>
+                                        <Button size="sm" onClick={() => openWebLibraryScript(script)}>
+                                          Open
+                                        </Button>
+                                      </div>
+                                      <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                                        {script.taskCategory ? <Badge variant="secondary">{script.taskCategory}</Badge> : null}
+                                        {script.updatedAt || script.lastAccessed || script.createdAt ? (
+                                          <span>
+                                            {new Date(script.updatedAt || script.lastAccessed || script.createdAt || "").toLocaleDateString()}
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
+                                    No web scripts match this view.
+                                  </div>
+                                )}
+                              </div>
+                            ) : null}
+
+                            {showStarterLibrary ? (
+                              <div className="space-y-2">
+                                {filteredStarterLibrary.map((workflow) => (
+                                  <button
+                                    key={workflow.id}
+                                    type="button"
+                                    className="w-full rounded-md border bg-background/80 p-3 text-left transition hover:border-primary/50 hover:bg-primary/5"
+                                    onClick={() => setStarterWorkflowPreview(workflow)}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="truncate text-sm font-medium">{workflow.title}</div>
+                                      <Badge variant="outline" className="text-[10px]">{workflow.badge}</Badge>
+                                    </div>
+                                    <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{workflow.description}</div>
+                                  </button>
+                                ))}
+                                {filteredStarterLibrary.length === 0 ? (
+                                  <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
+                                    No starters match this search.
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : null}
+
+                            {showLocalLibrary ? (
+                              <div className="space-y-2">
+                                {filteredRecentLibrary.map((file) => (
+                                  <div key={`${file.fileName}-${file.openedAt}`} className="rounded-md border bg-background/80 p-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <div className="truncate text-sm font-medium">{file.fileName}</div>
+                                        <div className="mt-1 truncate text-xs text-muted-foreground">{file.filePath || "Local recent file"}</div>
+                                      </div>
+                                      <Button size="sm" variant="outline" onClick={() => setAppSettingsView("recent")}>
+                                        Open
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {filteredRecentLibrary.length === 0 ? (
+                                  <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
+                                    No local recent scripts match this view.
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="flex h-full min-h-0 overflow-hidden">
+                    <div className="h-full min-h-0 w-full overflow-hidden">
+                      <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading builder library...</div>}>
+                        <GUIBuilderTab
+                          selectedCategory={selectedGuiCategory}
+                          onCategorySelect={setSelectedGuiCategory}
+                          script={currentScript}
+                          setScript={setActiveScript}
+                        />
+                      </Suspense>
+                    </div>
+                  </section>
+                </div>
               </div>
             </TabsContent>
 
             <TabsContent value="wizard" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <div className="h-full overflow-auto">
-                <ScriptWizardTab
-                  script={currentScript}
-                  setScript={setActiveScript}
-                />
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading wizard...</div>}>
+                  <ScriptWizardTab
+                    script={currentScript}
+                    setScript={setActiveScript}
+                  />
+                </Suspense>
               </div>
             </TabsContent>
 
             <TabsContent value="git" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
-              <DesktopGitPanel
-                scriptName={currentFileName}
-                scriptContent={currentScript}
-              />
+              <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading Git workspace...</div>}>
+                <DesktopGitPanel
+                  scriptName={currentFileName}
+                  scriptContent={currentScript}
+                />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="troubleshooter" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <div className="h-full overflow-auto">
-                <TroubleshooterTab setScript={setActiveScript} />
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading troubleshooter...</div>}>
+                  <TroubleshooterTab setScript={setActiveScript} />
+                </Suspense>
               </div>
             </TabsContent>
           </Tabs>
         </Card>
-      </div>
 
       <Dialog open={appSettingsView !== null} onOpenChange={(open) => !open && setAppSettingsView(null)}>
         <DialogContent className="sm:max-w-2xl">
@@ -1774,14 +2536,45 @@ export default function DesktopWorkspace() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!starterWorkflowPreview} onOpenChange={(open) => !open && setStarterWorkflowPreview(null)}>
+        <DialogContent className="max-h-[86vh] overflow-hidden sm:max-w-4xl">
+          <DialogHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <DialogTitle>{starterWorkflowPreview?.title || "Starter Workflow"}</DialogTitle>
+              {starterWorkflowPreview ? <Badge variant="outline">{starterWorkflowPreview.badge}</Badge> : null}
+            </div>
+            <DialogDescription>
+              {starterWorkflowPreview?.description || "Review the starter before opening it."}
+            </DialogDescription>
+          </DialogHeader>
+          {starterWorkflowPreview && (
+            <div className="grid min-h-0 gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                <div className="font-medium">What this gives you</div>
+                <div className="mt-2 text-muted-foreground">{starterWorkflowPreview.outcome}</div>
+                <div className="mt-4 rounded-md border bg-background/70 p-3 text-xs text-muted-foreground">
+                  Opens in a fresh tab so your active draft stays untouched.
+                </div>
+              </div>
+              <pre className="max-h-[52vh] overflow-auto rounded-md border bg-background p-3 text-xs leading-relaxed">
+                <code>{starterWorkflowPreview.script}</code>
+              </pre>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStarterWorkflowPreview(null)}>
+              Cancel
+            </Button>
+            <Button onClick={() => starterWorkflowPreview && startStarterWorkflow(starterWorkflowPreview)}>
+              Open in New Tab
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <DesktopGuidedOnboardingDialog
         open={guidedOnboardingOpen}
-        onOpenChange={(open) => {
-          setGuidedOnboardingOpen(open);
-          if (!open) {
-            setGuidedOnboardingDismissed(true);
-          }
-        }}
+        onOpenChange={setGuidedOnboardingOpen}
         selectedFocusId={guidedFocusDraftId}
         selectedWorkflowId={guidedWorkflowDraftId}
         hasProAccess={hasProAccess}
@@ -1847,8 +2640,57 @@ export default function DesktopWorkspace() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!webScriptConflict} onOpenChange={(open) => !open && setWebScriptConflict(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Web script changed</DialogTitle>
+            <DialogDescription>
+              The Library copy changed after this desktop tab was opened. Choose which version to keep before saving.
+            </DialogDescription>
+          </DialogHeader>
+          {webScriptConflict ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border bg-muted/30 p-3">
+                <div className="text-sm font-medium">Desktop edits</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Your current local tab. Saving this will replace the web copy.
+                </div>
+                <pre className="mt-3 max-h-48 overflow-auto rounded-md border bg-background p-2 text-xs">
+                  <code>{scriptTabs.find((tab) => tab.id === webScriptConflict.tabId)?.script || ""}</code>
+                </pre>
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3">
+                <div className="text-sm font-medium">Latest web copy</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  The version currently saved in PSForge web Library.
+                </div>
+                <pre className="mt-3 max-h-48 overflow-auto rounded-md border bg-background p-2 text-xs">
+                  <code>{webScriptConflict.remoteScript.content || ""}</code>
+                </pre>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" onClick={() => setWebScriptConflict(null)}>
+              Cancel
+            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => resolveWebScriptConflict("open-both")}>
+                Open Both
+              </Button>
+              <Button variant="outline" onClick={() => resolveWebScriptConflict("use-web")}>
+                Use Web Copy
+              </Button>
+              <Button onClick={() => resolveWebScriptConflict("keep-desktop")}>
+                Keep Desktop
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {accountDialog}
-    </div>
+    </DesktopWorkbenchShell>
   );
 }
 

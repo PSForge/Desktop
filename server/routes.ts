@@ -38,12 +38,43 @@ import {
 import { randomBytes, createHash } from "crypto";
 import { attachUser, requireAuth, requireSubscriber, requireAdmin } from "./middleware/auth";
 import { approveDesktopDeviceSession, consumeDesktopDeviceSession, createDesktopAccessToken, createDesktopDeviceSession } from "./desktop-auth";
+import { z } from "zod";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "sk_test_desktop_placeholder";
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2025-09-30.clover",
 });
 const stripeEnabled = !!process.env.STRIPE_SECRET_KEY;
+const desktopAnalyticsEventSchema = z.object({
+  eventType: z.enum([
+    "desktop_app_opened",
+    "desktop_app_closed",
+    "desktop_session_heartbeat",
+    "desktop_session_duration_seconds",
+    "desktop_ai_prompt_sent",
+    "desktop_ai_response_received",
+    "desktop_script_generated",
+    "desktop_script_saved_local",
+    "desktop_renderer_error",
+    "desktop_renderer_unhandled_rejection",
+    "desktop_update_checked",
+    "desktop_update_installed",
+  ]),
+  value: z.number().int().finite().min(0).max(86_400).default(1),
+  installationId: z.string().max(128),
+  sessionId: z.string().max(128),
+  appVersion: z.string().max(64).default("unknown"),
+  platform: z.string().max(64).default("unknown"),
+  osVersion: z.string().max(64).default("unknown"),
+  plan: z.string().max(128).default("unknown"),
+  metadata: z.record(z.unknown()).optional(),
+  timestamp: z.string().optional(),
+});
+
+const desktopAnalyticsBatchSchema = z.object({
+  events: z.array(desktopAnalyticsEventSchema).min(1).max(100),
+});
+
 function requireStripeConfigured(res: any) {
   if (stripeEnabled) {
     return true;
@@ -363,7 +394,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
           });
         }
       }
-      
+
       const parsed = insertUserSchema.safeParse(req.body);
       
       if (!parsed.success) {
@@ -947,7 +978,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     try {
       const { id } = req.params;
       const script = await storage.getScript(id);
-      
+
       if (!script) {
         return res.status(404).json({
           error: "Script not found"
@@ -963,10 +994,24 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     }
   });
 
-  app.put("/api/scripts/:id", async (req, res) => {
+  app.put("/api/scripts/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const parsed = insertScriptSchema.partial().safeParse(req.body);
+      const script = await storage.getScript(id);
+
+      if (!script) {
+        return res.status(404).json({
+          error: "Script not found"
+        });
+      }
+
+      if (script.userId !== req.user!.id) {
+        return res.status(403).json({
+          error: "Not authorized to update this script"
+        });
+      }
+
+      const parsed = updateScriptSchema.omit({ id: true }).partial().safeParse(req.body);
       
       if (!parsed.success) {
         return res.status(400).json({
@@ -1102,6 +1147,46 @@ Sitemap: ${baseUrl}/sitemap.xml`;
     } catch (error) {
       console.error("Error tracking script generation:", error);
       // Don't fail the user's request if tracking fails
+      return res.status(200).json({ success: false });
+    }
+  });
+
+  app.post("/api/desktop/analytics/batch", requireAuth, async (req, res) => {
+    try {
+      const parsed = desktopAnalyticsBatchSchema.safeParse(req.body);
+
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid desktop analytics batch",
+          details: parsed.error.errors,
+        });
+      }
+
+      await Promise.all(parsed.data.events.map((event) => {
+        const recordedAt = event.timestamp ? new Date(event.timestamp) : new Date();
+        const safeRecordedAt = Number.isNaN(recordedAt.getTime()) ? new Date() : recordedAt;
+
+        return storage.createUsageMetric({
+          userId: req.user!.id,
+          metricType: event.eventType,
+          value: event.value,
+          metadata: {
+            installationId: event.installationId,
+            sessionId: event.sessionId,
+            appVersion: event.appVersion,
+            platform: event.platform,
+            osVersion: event.osVersion,
+            plan: event.plan,
+            source: "desktop",
+            ...(event.metadata ? { eventMetadata: event.metadata } : {}),
+          },
+          recordedAt: safeRecordedAt.toISOString(),
+        });
+      }));
+
+      return res.status(202).json({ success: true, accepted: parsed.data.events.length });
+    } catch (error) {
+      console.error("Error recording desktop analytics batch:", error);
       return res.status(200).json({ success: false });
     }
   });
@@ -2534,7 +2619,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         totalAnalyses,
         analysesLast30Days,
         severity: severityResult[0] ?? { totalIssues: 0, criticalCount: 0, errorCount: 0, warningCount: 0, infoCount: 0 },
-        topPlatforms: platformResult.map(p => ({ platform: p.platform ?? "Unknown", count: p.count })),
+        topPlatforms: platformResult.map((p: { platform: string | null; count: number }) => ({ platform: p.platform ?? "Unknown", count: p.count })),
       });
     } catch (error) {
       console.error("Troubleshoot analytics error:", error);
@@ -2977,7 +3062,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
               // Find and update the pending purchase
               const purchase = await storage.getTemplatePurchaseByCheckoutSession(session.id);
               
-              if (purchase) {
+              if (purchase?.id) {
                 await storage.updateTemplatePurchase(purchase.id, {
                   status: 'completed',
                   stripePaymentIntentId: session.payment_intent as string,

@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "1.1.2",
+  "version": "2.0.2",
   "description": "PSForge Desktop is a Windows PowerShell scripting workspace connected to PSForge web services.",
   "type": "module",
   "main": "desktop/main.mjs",
@@ -18,22 +18,23 @@
     "desktop:start": "cross-env NODE_ENV=production electron ./desktop/main.mjs",
     "desktop:icons": "node ./scripts/generate-icons.mjs",
     "desktop:patch-msi": "node ./scripts/patch-msi-template.mjs",
-    "desktop:dist": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip -c.win.verifyUpdateCodeSignature=false",
-    "desktop:dist:msi": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win msi -c.win.verifyUpdateCodeSignature=false",
-    "desktop:dist:dir": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win dir -c.win.verifyUpdateCodeSignature=false",
-    "desktop:dist:publish": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --publish never -c.win.verifyUpdateCodeSignature=false",
-    "desktop:dist:store": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip msi --publish never -c.win.verifyUpdateCodeSignature=false",
+    "desktop:dist": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
+    "desktop:dist:msi": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win msi --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
+    "desktop:dist:dir": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win dir --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
+    "desktop:dist:publish": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --publish never --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
+    "desktop:dist:store": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip msi --publish never --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
   "build": {
-    "appId": "com.psforge.desktop",
+    "appId": "com.isaiahblacknall.psforge.desktop",
     "productName": "PSForge Desktop",
     "artifactName": "PSForge-Desktop-${version}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": [
       "dist-electron/**/*"
     ],
+    "afterPack": "scripts/after-pack-desktop.mjs",
     "npmRebuild": false,
     "files": [
       "dist/**/*",
@@ -113,7 +114,7 @@
       "oneClick": false,
       "perMachine": true,
       "runAfterFinish": false,
-      "createDesktopShortcut": false,
+      "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "PSForge Desktop",
       "warningsAsErrors": true

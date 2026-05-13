@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } from "electron";
 import { execFile } from "node:child_process";
 import electronUpdater from "electron-updater";
 import fs from "node:fs/promises";
@@ -18,6 +18,9 @@ const devServerUrl = process.env.PSFORGE_DESKTOP_URL || "http://127.0.0.1:5173";
 const desktopUpdateFeedUrl = "https://www.psforge.app/api/desktop/updates";
 const execFileAsync = promisify(execFile);
 const { autoUpdater } = electronUpdater;
+const appUserModelId = "com.isaiahblacknall.psforge.desktop";
+
+app.setAppUserModelId(appUserModelId);
 
 let mainWindow = null;
 let splashWindow = null;
@@ -82,6 +85,15 @@ async function writeDesktopLog(message) {
   }
 }
 
+process.on("uncaughtExceptionMonitor", (error, origin) => {
+  void writeDesktopLog(`[main-uncaught-exception] origin=${origin} ${error?.stack || error?.message || error}`);
+});
+
+process.on("unhandledRejection", (reason) => {
+  const message = reason instanceof Error ? reason.stack || reason.message : String(reason);
+  void writeDesktopLog(`[main-unhandled-rejection] ${message}`);
+});
+
 function sendUpdateStatus(status) {
   latestUpdateStatus = {
     ...status,
@@ -113,6 +125,11 @@ function getWindowIconPath() {
   }
 
   return path.join(process.resourcesPath, "branding", "icon.ico");
+}
+
+function getWindowIcon() {
+  const icon = nativeImage.createFromPath(getWindowIconPath());
+  return icon.isEmpty() ? getWindowIconPath() : icon;
 }
 
 function getSplashImagePath() {
@@ -152,7 +169,7 @@ function createSplashWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     backgroundColor: "#1550a6",
-    icon: getWindowIconPath(),
+    icon: getWindowIcon(),
     webPreferences: {
       contextIsolation: true,
       sandbox: false,
@@ -815,7 +832,7 @@ function createWindow() {
     backgroundColor: "#0b1220",
     autoHideMenuBar: false,
     show: false,
-    icon: getWindowIconPath(),
+    icon: getWindowIcon(),
     title: "PSForge Desktop",
     webPreferences: {
       preload: getPreloadPath(),
@@ -824,6 +841,8 @@ function createWindow() {
       sandbox: false,
     },
   });
+
+  mainWindow.setIcon(getWindowIcon());
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -852,6 +871,14 @@ function createWindow() {
 
   mainWindow.webContents.on("render-process-gone", (_event, details) => {
     void writeDesktopLog(`[renderer-gone] reason=${details.reason} exitCode=${details.exitCode}`);
+  });
+
+  mainWindow.webContents.on("unresponsive", () => {
+    void writeDesktopLog("[renderer-unresponsive]");
+  });
+
+  mainWindow.webContents.on("responsive", () => {
+    void writeDesktopLog("[renderer-responsive]");
   });
 
   mainWindow.on("closed", () => {
@@ -1515,7 +1542,6 @@ ipcMain.handle("desktop:debug-log", async (_event, message) => {
 });
 
 app.whenReady().then(async () => {
-  app.setAppUserModelId("com.psforge.desktop");
   createSplashWindow();
   updateSplashProgress(12, "Starting local workspace services...");
   await startLocalFrontendServer();

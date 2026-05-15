@@ -8,6 +8,7 @@ PSForge Desktop is now set up for a production-style Windows release flow with:
 - `electron-updater` auto-update support
 - a GitHub Actions Windows release workflow
 - the live PSForge update feed at `https://www.psforge.app/api/desktop/updates`
+- a separate Enterprise update feed at `https://www.psforge.app/api/desktop/enterprise-updates`
 
 ## Live Web Endpoints
 
@@ -15,6 +16,8 @@ The desktop app uses these web-side endpoints:
 
 - `GET /api/desktop/updates/latest.yml` for update metadata
 - `GET /api/desktop/updates/:filename` for release artifact downloads
+- `GET /api/desktop/enterprise-updates/latest.yml` for Enterprise update metadata
+- `GET /api/desktop/enterprise-updates/:filename` for Enterprise release artifact downloads
 - `GET /api/desktop/version` for the public website version badge
 - `GET /api/desktop/download` for the public website installer download button
 - `POST /api/desktop/auth` for desktop sign-in and license association
@@ -36,6 +39,24 @@ Once deployed, `electron-updater` will poll:
 `https://www.psforge.app/api/desktop/updates/latest.yml`
 
 The website `/desktop` page and `/api/desktop/download` endpoint will also reflect the new release.
+
+## Enterprise Releases
+
+Enterprise builds use the same Azure Trusted Signing workflow but must publish to a separate feed so standard desktops never see Enterprise installers.
+
+After building an Enterprise release, publish these files to the Enterprise update location:
+
+- `latest.yml`
+- `PSForge-Enterprise-Setup-<version>-x64.exe`
+- `PSForge-Enterprise-Setup-<version>-x64.exe.blockmap`
+- `PSForge-Enterprise-<version>-x64.zip`
+- `PSForge-Enterprise-<version>-x64.msi`
+
+Enterprise desktop installs poll:
+
+`https://www.psforge.app/api/desktop/enterprise-updates/latest.yml`
+
+The Enterprise MSI is intended for SCCM, Intune, and other deployment tools. The in-app updater uses the signed NSIS `.exe` and `.blockmap`.
 
 ## GitHub workflow
 
@@ -78,7 +99,7 @@ No AWS secrets are required now that updates are served by `www.psforge.app`.
 
 1. Bump the app version in `package.json`.
 2. Push a tag such as `v1.0.1`.
-3. Let GitHub Actions build and sign the Windows release.
+3. Let GitHub Actions build and sign the Windows release. For Enterprise, run the workflow manually and choose `edition = enterprise`.
 4. Download the workflow or GitHub Release artifacts.
 5. Copy the four release files into the web app's `downloads/` directory.
    If you are also hosting the MSI for Microsoft Store ingestion or direct enterprise deployment, copy the MSI as well.

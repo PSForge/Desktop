@@ -3,6 +3,10 @@
 interface ImportMetaEnv {
   readonly VITE_GA_MEASUREMENT_ID: string;
   readonly VITE_PSFORGE_DESKTOP_ANALYTICS_KEY?: string;
+  readonly VITE_PSFORGE_EDITION?: string;
+  readonly VITE_PSFORGE_ENTERPRISE?: string;
+  readonly VITE_PSFORGE_ENTERPRISE_LICENSE_URL?: string;
+  readonly VITE_PSFORGE_WEB_URL?: string;
 }
 
 interface ImportMeta {
@@ -83,7 +87,18 @@ interface DesktopPowerShellRunResult {
 
 interface Window {
   psforgeDesktop?: {
-    getContext: () => Promise<{ isDesktop: boolean; platform: string; version: string; osVersion?: string }>;
+    getContext: () => Promise<{
+      isDesktop: boolean;
+      platform: string;
+      version: string;
+      osVersion?: string;
+      edition?: "standard" | "enterprise";
+      enterpriseInstallOptions?: {
+        licenseKey?: string;
+        licenseServerUrl?: string;
+        silent?: boolean;
+      };
+    }>;
     getUpdateState: () => Promise<DesktopUpdateState>;
     checkForUpdates: () => Promise<DesktopUpdateState>;
     installUpdate: () => Promise<{ ok: boolean }>;

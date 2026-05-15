@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { User, FeatureAccess } from "@shared/schema";
 import { deauthorizeDesktopLicense, hasStoredDesktopSession, isDesktopRemoteAuthEnabled } from "@/lib/desktop-auth";
 import { isDesktopApp } from "@/lib/desktop";
+import { getEnterpriseAuthPayload, isEnterpriseEdition, isEnterpriseLicenseActive } from "@/lib/enterprise-license";
 
 interface AuthContextType {
   user: User | null;
@@ -59,9 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle 401 errors gracefully - treat as anonymous/not authenticated
   const isUnauthenticated = error && (error as any)?.message?.includes('401');
-  const user = isUnauthenticated ? null : (data?.user || null);
-  const subscription = isUnauthenticated ? null : (data?.subscription || null);
-  const featureAccess = isUnauthenticated ? null : (data?.featureAccess || null);
+  const enterprisePayload = isEnterpriseEdition() && isEnterpriseLicenseActive() ? (getEnterpriseAuthPayload() as any) : null;
+  const user = enterprisePayload?.user || (isUnauthenticated ? null : (data?.user || null));
+  const subscription = enterprisePayload?.subscription || (isUnauthenticated ? null : (data?.subscription || null));
+  const featureAccess = enterprisePayload?.featureAccess || (isUnauthenticated ? null : (data?.featureAccess || null));
 
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {

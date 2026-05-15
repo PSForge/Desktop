@@ -3,6 +3,12 @@ export interface DesktopContext {
   platform: string;
   version: string;
   osVersion?: string;
+  edition?: "standard" | "enterprise";
+  enterpriseInstallOptions?: {
+    licenseKey?: string;
+    licenseServerUrl?: string;
+    silent?: boolean;
+  };
 }
 
 export interface DesktopScriptFile {

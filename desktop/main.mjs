@@ -15,10 +15,15 @@ const __dirname = path.dirname(__filename);
 const appRoot = path.resolve(__dirname, "..");
 const isDev = !app.isPackaged;
 const devServerUrl = process.env.PSFORGE_DESKTOP_URL || "http://127.0.0.1:5173";
-const desktopUpdateFeedUrl = "https://www.psforge.app/api/desktop/updates";
 const execFileAsync = promisify(execFile);
 const { autoUpdater } = electronUpdater;
 const appUserModelId = "com.isaiahblacknall.psforge.desktop";
+const desktopEdition = process.env.PSFORGE_EDITION === "enterprise" || app.getName().toLowerCase().includes("enterprise")
+  ? "enterprise"
+  : "standard";
+const desktopUpdateFeedUrl = desktopEdition === "enterprise"
+  ? "https://www.psforge.app/api/desktop/enterprise-updates"
+  : "https://www.psforge.app/api/desktop/updates";
 
 app.setAppUserModelId(appUserModelId);
 
@@ -31,6 +36,128 @@ let powerShellExecutablePath = null;
 let isQuitting = false;
 let updateCheckInterval = null;
 let latestUpdateStatus = { state: "idle" };
+
+function readCommandLineValue(names) {
+  for (const rawArg of process.argv.slice(1)) {
+    const arg = String(rawArg || "").trim();
+    for (const name of names) {
+      const normalizedName = name.toLowerCase();
+      const normalizedArg = arg.toLowerCase();
+      if (normalizedArg === normalizedName) {
+        return "true";
+      }
+      if (normalizedArg.startsWith(`${normalizedName}=`)) {
+        return arg.slice(name.length + 1).replace(/^"|"$/g, "");
+      }
+      if (normalizedArg.startsWith(`${normalizedName}:`)) {
+        return arg.slice(name.length + 1).replace(/^"|"$/g, "");
+      }
+    }
+  }
+
+  return null;
+}
+
+async function readRegistryValue(root, keyPath, valueName) {
+  try {
+    const { stdout } = await execFileAsync("reg.exe", ["query", `${root}\\${keyPath}`, "/v", valueName], {
+      windowsHide: true,
+    });
+    const line = stdout
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .find((entry) => entry.toLowerCase().startsWith(valueName.toLowerCase()));
+
+    if (!line) {
+      return null;
+    }
+
+    const parts = line.split(/\s{2,}/);
+    return parts.length >= 3 ? parts.slice(2).join(" ").trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function readEnterpriseConfigFile() {
+  const candidates = [
+    path.join(process.env.ProgramData || "C:\\ProgramData", "PSForge", "Enterprise", "activation.json"),
+    path.join(app.getPath("userData"), "enterprise-activation.json"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (!fsSync.existsSync(candidate)) {
+        continue;
+      }
+
+      const parsed = JSON.parse(fsSync.readFileSync(candidate, "utf8"));
+      return {
+        licenseKey: typeof parsed.licenseKey === "string" ? parsed.licenseKey : undefined,
+        licenseServerUrl: typeof parsed.licenseServerUrl === "string" ? parsed.licenseServerUrl : undefined,
+        silent: parsed.silent === true,
+      };
+    } catch {
+      // Ignore malformed deployment config files and continue to other sources.
+    }
+  }
+
+  return {};
+}
+
+async function readEnterpriseRegistryOptions() {
+  const keyPath = "Software\\PSForge\\Enterprise";
+  const [hklmLicenseKey, hkcuLicenseKey, hklmLicenseServer, hkcuLicenseServer, hklmSilent, hkcuSilent] = await Promise.all([
+    readRegistryValue("HKLM", keyPath, "LicenseKey"),
+    readRegistryValue("HKCU", keyPath, "LicenseKey"),
+    readRegistryValue("HKLM", keyPath, "LicenseServerUrl"),
+    readRegistryValue("HKCU", keyPath, "LicenseServerUrl"),
+    readRegistryValue("HKLM", keyPath, "Silent"),
+    readRegistryValue("HKCU", keyPath, "Silent"),
+  ]);
+
+  return {
+    licenseKey: hkcuLicenseKey || hklmLicenseKey || undefined,
+    licenseServerUrl: hkcuLicenseServer || hklmLicenseServer || undefined,
+    silent: (hkcuSilent || hklmSilent || "").toLowerCase() === "true" || (hkcuSilent || hklmSilent || "") === "1",
+  };
+}
+
+async function getEnterpriseInstallOptions() {
+  if (desktopEdition !== "enterprise") {
+    return undefined;
+  }
+
+  const fileOptions = readEnterpriseConfigFile();
+  const registryOptions = await readEnterpriseRegistryOptions();
+  const licenseKey = process.env.PSFORGE_ENTERPRISE_LICENSE_KEY
+    || readCommandLineValue([
+      "--enterprise-license-key",
+      "--psforge-license-key",
+      "/enterpriseLicenseKey",
+      "/psforgeLicenseKey",
+    ])
+    || fileOptions.licenseKey
+    || registryOptions.licenseKey;
+  const licenseServerUrl = process.env.PSFORGE_ENTERPRISE_LICENSE_URL
+    || readCommandLineValue([
+      "--enterprise-license-server",
+      "--psforge-license-server",
+      "/enterpriseLicenseServer",
+      "/psforgeLicenseServer",
+    ])
+    || fileOptions.licenseServerUrl
+    || registryOptions.licenseServerUrl;
+  const silent = readCommandLineValue(["--enterprise-silent", "/enterpriseSilent"]) === "true"
+    || fileOptions.silent === true
+    || registryOptions.silent === true;
+
+  return {
+    ...(licenseKey ? { licenseKey } : {}),
+    ...(licenseServerUrl ? { licenseServerUrl } : {}),
+    silent,
+  };
+}
 
 function updateSplashProgress(percent, message = "Loading PSForge Desktop...") {
   if (!splashWindow || splashWindow.isDestroyed()) {
@@ -1172,6 +1299,8 @@ ipcMain.handle("desktop:get-context", async () => ({
   platform: process.platform,
   version: app.getVersion(),
   osVersion: os.release(),
+  edition: desktopEdition,
+  enterpriseInstallOptions: await getEnterpriseInstallOptions(),
 }));
 
 ipcMain.handle("desktop:updates-get-state", async () => latestUpdateStatus);
@@ -1495,7 +1624,8 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
   try {
     await writeDesktopLog(`HTTP ${method} ${url}`);
     const result = await new Promise((resolve, reject) => {
-      const request = https.request(url, {
+      const requestClient = url.startsWith("http://") ? http : https;
+      const request = requestClient.request(url, {
         method,
         headers,
       }, (response) => {

@@ -2,6 +2,15 @@ name: Release PSForge Desktop
 
 on:
   workflow_dispatch:
+    inputs:
+      edition:
+        description: "Desktop edition to build"
+        required: true
+        default: "standard"
+        type: choice
+        options:
+          - standard
+          - enterprise
   push:
     tags:
       - "v*"
@@ -16,6 +25,7 @@ jobs:
 
     env:
       DESKTOP_OUTPUT_DIR: release-publish
+      DESKTOP_EDITION: ${{ github.event_name == 'workflow_dispatch' && inputs.edition || 'standard' }}
       AZURE_STORE_STORAGE_ACCOUNT: psforgedownloads01
       AZURE_STORE_STORAGE_CONTAINER: store-packages
       AZURE_STORE_STORAGE_PREFIX: psforge
@@ -42,7 +52,14 @@ jobs:
         run: npm run desktop:icons
 
       - name: Build desktop app
-        run: npm run build
+        shell: pwsh
+        run: |
+          if ($env:DESKTOP_EDITION -eq "enterprise") {
+            $env:VITE_PSFORGE_EDITION = "enterprise"
+            $env:PSFORGE_EDITION = "enterprise"
+          }
+
+          npm run build
 
       - name: Patch MSI cleanup template
         run: npm run desktop:patch-msi
@@ -152,28 +169,50 @@ jobs:
             }
           }
 
-          npx electron-builder --win nsis zip msi --publish never `
-            --config.directories.output=$env:DESKTOP_OUTPUT_DIR `
-            --config.win.azureSignOptions.endpoint=$env:AZURE_TRUSTED_SIGNING_ENDPOINT `
-            --config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT `
-            --config.win.azureSignOptions.certificateProfileName=$env:AZURE_TRUSTED_SIGNING_CERT_PROFILE `
-            --config.win.azureSignOptions.publisherName=$env:AZURE_TRUSTED_SIGNING_PUBLISHER_NAME `
-            --config.win.azureSignOptions.ExcludeCredentials=ManagedIdentityCredential,WorkloadIdentityCredential,SharedTokenCacheCredential,VisualStudioCredential,VisualStudioCodeCredential,AzureCliCredential,AzurePowerShellCredential,AzureDeveloperCliCredential,InteractiveBrowserCredential `
-            --config.win.azureSignOptions.fileDigest=SHA256 `
-            --config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com `
-            --config.win.azureSignOptions.timestampDigest=SHA256
+          $builderArgs = @(
+            "electron-builder",
+            "--win", "nsis", "zip", "msi",
+            "--publish", "never",
+            "--config.directories.output=$env:DESKTOP_OUTPUT_DIR",
+            "--config.win.azureSignOptions.endpoint=$env:AZURE_TRUSTED_SIGNING_ENDPOINT",
+            "--config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT",
+            "--config.win.azureSignOptions.certificateProfileName=$env:AZURE_TRUSTED_SIGNING_CERT_PROFILE",
+            "--config.win.azureSignOptions.publisherName=$env:AZURE_TRUSTED_SIGNING_PUBLISHER_NAME",
+            "--config.win.azureSignOptions.ExcludeCredentials=ManagedIdentityCredential,WorkloadIdentityCredential,SharedTokenCacheCredential,VisualStudioCredential,VisualStudioCodeCredential,AzureCliCredential,AzurePowerShellCredential,AzureDeveloperCliCredential,InteractiveBrowserCredential",
+            "--config.win.azureSignOptions.fileDigest=SHA256",
+            "--config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com",
+            "--config.win.azureSignOptions.timestampDigest=SHA256"
+          )
+
+          if ($env:DESKTOP_EDITION -eq "enterprise") {
+            $builderArgs += @(
+              "--config.productName=PSForge Enterprise",
+              '--config.artifactName=PSForge-Enterprise-${version}-${arch}.${ext}',
+              '--config.nsis.artifactName=PSForge-Enterprise-Setup-${version}-${arch}.${ext}',
+              '--config.msi.artifactName=PSForge-Enterprise-${version}-${arch}.${ext}'
+            )
+          }
+
+          npx @builderArgs
 
       - name: Resolve release metadata
         id: release_meta
         shell: pwsh
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
-          $msi = Get-ChildItem -Path $env:DESKTOP_OUTPUT_DIR -Filter "PSForge-Desktop-Store-$version-x64.msi" | Select-Object -First 1
+          $msiPattern = if ($env:DESKTOP_EDITION -eq "enterprise") {
+            "PSForge-Enterprise-$version-x64.msi"
+          } else {
+            "PSForge-Desktop-Store-$version-x64.msi"
+          }
+
+          $msi = Get-ChildItem -Path $env:DESKTOP_OUTPUT_DIR -Filter $msiPattern | Select-Object -First 1
           if (!$msi) {
             throw "Could not find MSI artifact for version $version."
           }
 
-          $blobName = "$($env:AZURE_STORE_STORAGE_PREFIX.Trim('/'))/$version/$($msi.Name)"
+          $editionPrefix = if ($env:DESKTOP_EDITION -eq "enterprise") { "psforge-enterprise" } else { $env:AZURE_STORE_STORAGE_PREFIX.Trim('/') }
+          $blobName = "$editionPrefix/$version/$($msi.Name)"
           $blobUrl = "https://$($env:AZURE_STORE_STORAGE_ACCOUNT).blob.core.windows.net/$($env:AZURE_STORE_STORAGE_CONTAINER)/$blobName"
 
           "release_version=$version" >> $env:GITHUB_OUTPUT
@@ -204,12 +243,21 @@ jobs:
       - name: Verify update metadata
         shell: pwsh
         run: |
-          $requiredPatterns = @(
-            "latest.yml",
-            "PSForge-Desktop-Setup-*-x64.exe",
-            "PSForge-Desktop-Setup-*-x64.exe.blockmap",
-            "PSForge-Desktop-Store-*-x64.msi"
-          )
+          if ($env:DESKTOP_EDITION -eq "enterprise") {
+            $requiredPatterns = @(
+              "latest.yml",
+              "PSForge-Enterprise-Setup-*-x64.exe",
+              "PSForge-Enterprise-Setup-*-x64.exe.blockmap",
+              "PSForge-Enterprise-*-x64.msi"
+            )
+          } else {
+            $requiredPatterns = @(
+              "latest.yml",
+              "PSForge-Desktop-Setup-*-x64.exe",
+              "PSForge-Desktop-Setup-*-x64.exe.blockmap",
+              "PSForge-Desktop-Store-*-x64.msi"
+            )
+          }
 
           foreach ($pattern in $requiredPatterns) {
             $match = Get-ChildItem -Path $env:DESKTOP_OUTPUT_DIR -Filter $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -221,7 +269,7 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: psforge-desktop-windows-release
+          name: psforge-${{ env.DESKTOP_EDITION }}-windows-release
           path: |
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.exe
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.msi

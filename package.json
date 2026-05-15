@@ -19,6 +19,7 @@
     "desktop:icons": "node ./scripts/generate-icons.mjs",
     "desktop:patch-msi": "node ./scripts/patch-msi-template.mjs",
     "desktop:dist": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
+    "desktop:dist:enterprise": "npm run desktop:icons && cross-env VITE_PSFORGE_EDITION=enterprise PSFORGE_EDITION=enterprise npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip msi --config.productName=\"PSForge Enterprise\" --config.artifactName=\"PSForge-Enterprise-${version}-${arch}.${ext}\" --config.nsis.artifactName=\"PSForge-Enterprise-Setup-${version}-${arch}.${ext}\" --config.msi.artifactName=\"PSForge-Enterprise-${version}-${arch}.${ext}\" --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:msi": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win msi --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:dir": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win dir --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:publish": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --publish never --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",

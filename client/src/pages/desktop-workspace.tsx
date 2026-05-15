@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Copy, CreditCard, ExternalLink, FileCode, History, LayoutGrid, Plus, RefreshCcw, Search, ShieldCheck, UserPlus, X } from "lucide-react";
+import { ChevronDown, Copy, CreditCard, ExternalLink, FileCode, History, KeyRound, LayoutGrid, Plus, RefreshCcw, Search, ShieldCheck, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,18 @@ import {
   getDesktopRequestUrl,
   hasStoredDesktopSession,
 } from "@/lib/desktop-auth";
+import {
+  activateEnterpriseLicense,
+  clearEnterpriseLicenseRecord,
+  getEnterpriseAuthHeader,
+  getEnterpriseLicenseRecord,
+  getEnterpriseLicenseServerUrl,
+  getEnterpriseRequestUrl,
+  isEnterpriseEdition,
+  isEnterpriseLicenseActive,
+  validateEnterpriseLicense,
+  type EnterpriseInstallOptions,
+} from "@/lib/enterprise-license";
 import { queryClient } from "@/lib/queryClient";
 import type { ScriptCommand } from "@shared/schema";
 import { DesktopScriptWorkbench, type DesktopWorkbenchActionType, type DesktopWorkbenchAction, type DesktopRunHistorySummary } from "@/components/desktop-script-workbench";
@@ -374,13 +386,23 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const [conversionBannerDismissed, setConversionBannerDismissed] = useState(false);
   const [trialCodeCopied, setTrialCodeCopied] = useState(false);
   const [desktopSession, setDesktopSession] = useState(() => getDesktopAuthState());
+  const [enterpriseInstallOptions, setEnterpriseInstallOptions] = useState<EnterpriseInstallOptions | null>(null);
+  const [enterpriseLicenseKey, setEnterpriseLicenseKey] = useState("");
+  const [enterpriseLicenseServerUrl, setEnterpriseLicenseServerUrl] = useState(() => getEnterpriseLicenseServerUrl());
+  const [enterpriseActivationLoading, setEnterpriseActivationLoading] = useState(false);
+  const [enterpriseActivationMessage, setEnterpriseActivationMessage] = useState<string | null>(null);
+  const [enterpriseLicense, setEnterpriseLicense] = useState(() => getEnterpriseLicenseRecord());
   const [desktopVersion, setDesktopVersion] = useState("1.0.0");
   const [updateState, setUpdateState] = useState<{ state: string; version?: string; percent?: number; message?: string }>({ state: "idle" });
   const pollTimerRef = useRef<number | null>(null);
   const checkoutRefreshTimerRef = useRef<number | null>(null);
   const analyticsHeartbeatRef = useRef<number | null>(null);
+  const enterpriseRefreshTimerRef = useRef<number | null>(null);
   const appOpenedTrackedRef = useRef(false);
   const cachedLicense = desktopSession.license || getDesktopCachedLicense();
+  const enterpriseMode = isEnterpriseEdition();
+  const enterpriseActive = enterpriseMode && isEnterpriseLicenseActive(enterpriseLicense);
+  const cloudStorageEnabled = !enterpriseMode;
   const cachedUser = desktopSession.user || null;
   const previewUser = previewMode
     ? {
@@ -390,7 +412,15 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       role: "admin" as const,
     }
     : null;
-  const visibleUser = user || cachedUser || previewUser;
+  const enterpriseUser = enterpriseActive
+    ? {
+      id: enterpriseLicense?.licenseId || "enterprise-license",
+      email: "enterprise@psforge.local",
+      name: enterpriseLicense?.organizationName || "PSForge Enterprise",
+      role: "admin" as const,
+    }
+    : null;
+  const visibleUser = enterpriseUser || user || cachedUser || previewUser;
   const activeScriptTab = useMemo(
     () => scriptTabs.find((tab) => tab.id === activeScriptTabId) || scriptTabs[0] || null,
     [activeScriptTabId, scriptTabs],
@@ -402,7 +432,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     ? activeScriptTab.script !== (activeScriptTab.webScriptSyncedContent || "")
     : false;
   const currentScriptAnalysis = useMemo(() => analyzeScriptWorkbench(currentScript), [currentScript]);
-  const hasProAccess = previewMode || user?.role === "admin" || !!featureAccess?.hasPremiumCategories || !!cachedLicense?.isPro;
+  const hasProAccess = enterpriseActive || previewMode || user?.role === "admin" || !!featureAccess?.hasPremiumCategories || !!cachedLicense?.isPro;
   const isRevalidatingStoredSession = !!desktopSession.token && !visibleUser;
   const currentGuidedProfile = guidedProfile ? guidedProfile : null;
   const currentGuidedFocus = currentGuidedProfile ? getDesktopGuidedFocus(currentGuidedProfile.focusId) : null;
@@ -425,6 +455,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     );
   }, [starterGalleryQuery]);
   const filteredWebLibraryScripts = useMemo(() => {
+    if (!cloudStorageEnabled) {
+      return [];
+    }
+
     const query = webLibraryQuery.trim().toLowerCase();
     const baseScripts = webLibraryFilter === "favorites"
       ? webLibraryScripts.filter((script) => script.isFavorite)
@@ -447,7 +481,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
         script.taskName || "",
       ].some((value) => value.toLowerCase().includes(query)),
     );
-  }, [webLibraryFilter, webLibraryQuery, webLibraryScripts]);
+  }, [cloudStorageEnabled, webLibraryFilter, webLibraryQuery, webLibraryScripts]);
   const filteredStarterLibrary = useMemo(() => {
     const query = webLibraryQuery.trim().toLowerCase();
     if (!query) {
@@ -468,11 +502,32 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       [file.fileName, file.filePath || ""].some((value) => value.toLowerCase().includes(query)),
     );
   }, [recentFiles, webLibraryQuery]);
-  const showWebLibrary = webLibraryFilter === "all" || webLibraryFilter === "web" || webLibraryFilter === "favorites" || webLibraryFilter === "recent";
+  const showWebLibrary = cloudStorageEnabled
+    && (webLibraryFilter === "all" || webLibraryFilter === "web" || webLibraryFilter === "favorites" || webLibraryFilter === "recent");
   const showStarterLibrary = webLibraryFilter === "all" || webLibraryFilter === "starters";
   const showLocalLibrary = webLibraryFilter === "all" || webLibraryFilter === "local" || webLibraryFilter === "recent";
+  const libraryFilters: Array<[LibraryFilter, string]> = cloudStorageEnabled
+    ? [
+      ["all", "All"],
+      ["web", "Web"],
+      ["starters", "Starters"],
+      ["local", "Local"],
+      ["favorites", "Favorites"],
+      ["recent", "Recent"],
+    ]
+    : [
+      ["all", "All"],
+      ["starters", "Starters"],
+      ["local", "Local"],
+      ["recent", "Recent"],
+    ];
 
   const accessLabel = useMemo(() => {
+    if (enterpriseActive) {
+      return enterpriseLicense?.organizationName
+        ? `${enterpriseLicense.organizationName} Enterprise`
+        : "Enterprise activated";
+    }
     if (hasProAccess) {
       return "Pro access enabled";
     }
@@ -480,7 +535,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       return "Free access";
     }
     return "License not connected";
-  }, [hasProAccess, isAuthenticated, visibleUser]);
+  }, [enterpriseActive, enterpriseLicense?.organizationName, hasProAccess, isAuthenticated, visibleUser]);
 
   const desktopConversionBanner = useMemo(() => {
     if (hasProAccess || !visibleUser || conversionBannerDismissed) {
@@ -562,6 +617,9 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       if (analyticsHeartbeatRef.current) {
         window.clearInterval(analyticsHeartbeatRef.current);
       }
+      if (enterpriseRefreshTimerRef.current) {
+        window.clearTimeout(enterpriseRefreshTimerRef.current);
+      }
     };
   }, []);
 
@@ -636,17 +694,111 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   }, [desktopSession.token]);
 
   useEffect(() => {
+    if (!enterpriseMode || !enterpriseActive) {
+      return;
+    }
+
+    void validateEnterpriseLicense(enterpriseLicenseServerUrl)
+      .then((record) => {
+        if (record) {
+          setEnterpriseLicense(record);
+          void queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+        }
+      })
+      .catch((error: any) => {
+        if (error?.status === 401 || error?.status === 403) {
+          clearEnterpriseLicenseRecord();
+          setEnterpriseLicense(null);
+          void queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+        }
+        setEnterpriseActivationMessage(error?.message || "Enterprise license validation failed.");
+      });
+  }, [enterpriseActive, enterpriseLicenseServerUrl, enterpriseMode]);
+
+  useEffect(() => {
+    if (enterpriseRefreshTimerRef.current) {
+      window.clearTimeout(enterpriseRefreshTimerRef.current);
+      enterpriseRefreshTimerRef.current = null;
+    }
+
+    if (!enterpriseMode || !enterpriseActive || !enterpriseLicense) {
+      return;
+    }
+
+    const refreshAt = enterpriseLicense.refreshAfter
+      ? new Date(enterpriseLicense.refreshAfter).getTime()
+      : Date.now() + 24 * 60 * 60 * 1000;
+    const refreshDelay = Math.max(60_000, refreshAt - Date.now());
+
+    enterpriseRefreshTimerRef.current = window.setTimeout(async () => {
+      try {
+        const record = await validateEnterpriseLicense(enterpriseLicenseServerUrl);
+        if (record) {
+          setEnterpriseLicense(record);
+          setEnterpriseActivationMessage(null);
+          await queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+        }
+      } catch (error: any) {
+        if (error?.status === 401 || error?.status === 403) {
+          clearEnterpriseLicenseRecord();
+          setEnterpriseLicense(null);
+          setEnterpriseActivationMessage(error?.message || "Enterprise license is no longer active.");
+          await queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+          return;
+        }
+
+        setEnterpriseActivationMessage(error?.message || "Enterprise license validation failed. The app will retry after restart.");
+      }
+    }, refreshDelay);
+
+    return () => {
+      if (enterpriseRefreshTimerRef.current) {
+        window.clearTimeout(enterpriseRefreshTimerRef.current);
+        enterpriseRefreshTimerRef.current = null;
+      }
+    };
+  }, [enterpriseActive, enterpriseLicense, enterpriseLicenseServerUrl, enterpriseMode]);
+
+  useEffect(() => {
+    if (!enterpriseMode || enterpriseActive || !enterpriseInstallOptions?.licenseKey) {
+      return;
+    }
+
+    void handleEnterpriseActivation(enterpriseInstallOptions.licenseKey, enterpriseInstallOptions.licenseServerUrl);
+  }, [enterpriseActive, enterpriseInstallOptions, enterpriseMode]);
+
+  useEffect(() => {
+    if (!cloudStorageEnabled && (webLibraryFilter === "web" || webLibraryFilter === "favorites")) {
+      setWebLibraryFilter("all");
+    }
+  }, [cloudStorageEnabled, webLibraryFilter]);
+
+  useEffect(() => {
     if (activeWorkspaceTab === "gui") {
       void loadWebLibraryScripts();
     }
-  }, [activeWorkspaceTab, desktopSession.token]);
+  }, [activeWorkspaceTab, cloudStorageEnabled, desktopSession.token]);
 
   useEffect(() => {
     let mounted = true;
 
     getDesktopContext().then((context) => {
-      if (mounted && context?.version) {
+      if (!mounted) {
+        return;
+      }
+
+      if (context?.version) {
         setDesktopVersion(context.version);
+      }
+
+      if (context?.enterpriseInstallOptions) {
+        setEnterpriseInstallOptions(context.enterpriseInstallOptions);
+        if (context.enterpriseInstallOptions.licenseKey) {
+          setEnterpriseLicenseKey(context.enterpriseInstallOptions.licenseKey);
+        }
+        if (context.enterpriseInstallOptions.licenseServerUrl) {
+          setEnterpriseLicenseServerUrl(getEnterpriseLicenseServerUrl(context.enterpriseInstallOptions.licenseServerUrl));
+        }
       }
     }).catch(() => undefined);
 
@@ -822,9 +974,14 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   };
 
   const runWebLibraryRequest = async <T,>(path: string, init: { method?: string; body?: string; headers?: Record<string, string> } = {}) => {
-    const url = getDesktopRequestUrl(path);
+    if (!cloudStorageEnabled) {
+      throw new Error("Cloud storage is not available in PSForge Enterprise.");
+    }
+
+    const enterpriseRemoteAuth = enterpriseMode && enterpriseActive;
+    const url = enterpriseRemoteAuth ? getEnterpriseRequestUrl(path) : getDesktopRequestUrl(path);
     const headers = {
-      ...getDesktopAuthHeader(),
+      ...(enterpriseRemoteAuth ? getEnterpriseAuthHeader() : getDesktopAuthHeader()),
       ...(init.body ? { "Content-Type": "application/json" } : {}),
       ...(init.headers || {}),
     };
@@ -872,6 +1029,13 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   };
 
   const loadWebLibraryScripts = async () => {
+    if (!cloudStorageEnabled) {
+      setWebLibraryScripts([]);
+      setWebLibraryFromCache(false);
+      setWebLibraryError(null);
+      return;
+    }
+
     if (!getDesktopAuthState().token) {
       const cachedScripts = readCachedWebLibraryScripts();
       setWebLibraryScripts(cachedScripts);
@@ -908,6 +1072,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   };
 
   const recordWebLibraryAccess = async (scriptId: string) => {
+    if (!cloudStorageEnabled) {
+      return;
+    }
+
     try {
       await runWebLibraryRequest(`/api/scripts/${scriptId}/access`, { method: "PATCH" });
     } catch {
@@ -942,6 +1110,15 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
 
   const saveActiveWebScript = async (force = false) => {
     if (!activeScriptTab?.webScriptId) {
+      return;
+    }
+
+    if (!cloudStorageEnabled) {
+      toast({
+        title: "Cloud storage unavailable",
+        description: "PSForge Enterprise keeps scripts local and disables web Library sync.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -1332,6 +1509,38 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       title: "Recovery cleared",
       description: "The cached recovery draft has been cleared.",
     });
+  };
+
+  const handleEnterpriseActivation = async (keyOverride?: string, serverOverride?: string | null) => {
+    const licenseKey = keyOverride || enterpriseLicenseKey;
+    const licenseServerUrl = serverOverride || enterpriseLicenseServerUrl;
+
+    setEnterpriseActivationLoading(true);
+    setEnterpriseActivationMessage(null);
+    try {
+      const record = await activateEnterpriseLicense({
+        licenseKey,
+        licenseServerUrl,
+      });
+      setEnterpriseLicense(record);
+      setEnterpriseLicenseKey("");
+      setEnterpriseActivationMessage(`Activated ${record.plan || "PSForge Enterprise"}${record.organizationName ? ` for ${record.organizationName}` : ""}.`);
+      await queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+      toast({
+        title: "Enterprise activated",
+        description: "PSForge Enterprise is ready with all desktop features enabled.",
+      });
+    } catch (error: any) {
+      const message = error?.message || "Enterprise activation failed.";
+      setEnterpriseActivationMessage(message);
+      toast({
+        title: "Enterprise activation failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setEnterpriseActivationLoading(false);
+    }
   };
 
   const handleDesktopSignIn = async () => {
@@ -1733,12 +1942,16 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
 
   const appSettingsDialogMeta: Record<Exclude<AppSettingsView, null>, { title: string; description: string }> = {
     license: {
-      title: "Account & License",
-      description: "Connect this Windows app to your PSForge account and refresh desktop access.",
+      title: enterpriseMode ? "Enterprise License" : "Account & License",
+      description: enterpriseMode
+        ? "Review the activated Enterprise product key for this Windows app."
+        : "Connect this Windows app to your PSForge account and refresh desktop access.",
     },
     subscription: {
-      title: "Subscription & Billing",
-      description: "Manage PSForge Pro access and secure Stripe-hosted billing actions.",
+      title: enterpriseMode ? "Enterprise Plan" : "Subscription & Billing",
+      description: enterpriseMode
+        ? "Enterprise builds unlock the full PSForge desktop feature set through product-key activation."
+        : "Manage PSForge Pro access and secure Stripe-hosted billing actions.",
     },
     recovery: {
       title: "Workspace Recovery",
@@ -1753,6 +1966,42 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const renderAppSettingsContent = () => {
     switch (appSettingsView) {
       case "license":
+        if (enterpriseMode) {
+          return (
+            <div className="space-y-4">
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
+                <div className="font-medium text-foreground">PSForge Enterprise is activated</div>
+                <div className="mt-1 text-muted-foreground">
+                  {enterpriseLicense?.organizationName || "Enterprise license"} has access to every desktop workflow and capability in this 2.0.2 build.
+                </div>
+              </div>
+              <div className="grid gap-2 text-sm text-muted-foreground">
+                <div>Plan: {enterpriseLicense?.plan || "PSForge Enterprise"}</div>
+                <div>Status: {enterpriseLicense?.status || "active"}</div>
+                {enterpriseLicense?.licenseKeySuffix ? <div>Product key ending: {enterpriseLicense.licenseKeySuffix}</div> : null}
+                {enterpriseLicense?.validUntil ? <div>Valid until: {new Date(enterpriseLicense.validUntil).toLocaleString()}</div> : null}
+              </div>
+              {enterpriseActivationMessage && (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  {enterpriseActivationMessage}
+                </div>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => void validateEnterpriseLicense(enterpriseLicenseServerUrl).then((record) => {
+                  if (record) {
+                    setEnterpriseLicense(record);
+                    setEnterpriseActivationMessage("Enterprise license refreshed.");
+                  }
+                }).catch((error: any) => setEnterpriseActivationMessage(error?.message || "Enterprise license refresh failed."))}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Refresh Enterprise License
+              </Button>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
@@ -1840,6 +2089,19 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
           </div>
         );
       case "subscription":
+        if (enterpriseMode) {
+          return (
+            <div className="space-y-4">
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                This Enterprise build removes PSForge account sign-in and Stripe billing from the desktop app. Product-key activation grants access to all local desktop features.
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                License renewals, seat limits, revocation, offline grace periods, and audit history should be managed by the Enterprise license service endpoint.
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -1943,6 +2205,90 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
         return null;
     }
   };
+
+  if (enterpriseMode && !enterpriseActive) {
+    const silentActivation = enterpriseInstallOptions?.silent && enterpriseInstallOptions.licenseKey;
+
+    return (
+      <div className="min-h-screen bg-background p-6 text-foreground">
+        <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl items-center justify-center">
+          <div className="grid w-full gap-6 lg:grid-cols-[1fr_420px]">
+            <div className="flex flex-col justify-center">
+              <img src={logoImage} alt="PSForge" className="mb-8 h-16 w-fit" />
+              <Badge variant="outline" className="mb-4 w-fit">
+                PSForge Enterprise 2.0.2
+              </Badge>
+              <h1 className="max-w-2xl text-4xl font-bold tracking-tight">
+                Activate your Enterprise license to open PSForge.
+              </h1>
+              <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+                This build removes PSForge account sign-in and unlocks every desktop workflow after product-key activation.
+              </p>
+              <div className="mt-6 grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
+                <div className="rounded-md border bg-muted/20 p-3">All 2.0.2 features retained</div>
+                <div className="rounded-md border bg-muted/20 p-3">No user sign-in required</div>
+                <div className="rounded-md border bg-muted/20 p-3">Silent deployment ready</div>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5 text-primary" />
+                  <CardTitle>Product Key Activation</CardTitle>
+                </div>
+                <CardDescription>
+                  Enter a PSForge Enterprise product key. IT deployments can pass the same key with installation or launch parameters.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {silentActivation ? (
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                    Silent activation is running from enterprise deployment parameters.
+                  </div>
+                ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="enterprise-license-key">Enterprise Product Key</Label>
+                  <Input
+                    id="enterprise-license-key"
+                    value={enterpriseLicenseKey}
+                    onChange={(event) => setEnterpriseLicenseKey(event.target.value)}
+                    placeholder="PSF-ENT-XXXX-XXXX-XXXX"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="enterprise-license-server">License Server URL</Label>
+                  <Input
+                    id="enterprise-license-server"
+                    value={enterpriseLicenseServerUrl}
+                    onChange={(event) => setEnterpriseLicenseServerUrl(event.target.value)}
+                    placeholder="https://www.psforge.app"
+                  />
+                </div>
+                {enterpriseActivationMessage ? (
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                    {enterpriseActivationMessage}
+                  </div>
+                ) : null}
+                <Button
+                  className="w-full"
+                  onClick={() => void handleEnterpriseActivation()}
+                  disabled={enterpriseActivationLoading || !enterpriseLicenseKey.trim()}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  {enterpriseActivationLoading ? "Activating..." : "Activate Enterprise"}
+                </Button>
+                <div className="text-xs text-muted-foreground">
+                  Deployment example: <code>PSForge Enterprise.exe --enterprise-license-key=PSF-ENT-... --enterprise-silent</code>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!visibleUser) {
     return (
@@ -2246,7 +2592,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                             {tab.fileName}
                             {isDirty ? " *" : ""}
                           </button>
-                          {tab.webScriptId ? (
+                          {cloudStorageEnabled && tab.webScriptId ? (
                             <Badge variant="outline" className="ml-1 border-primary/30 px-1.5 py-0 text-[10px] text-primary">
                               Web
                             </Badge>
@@ -2265,7 +2611,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    {activeScriptTab?.webScriptId ? (
+                    {cloudStorageEnabled && activeScriptTab?.webScriptId ? (
                       <>
                         <Badge variant={activeWebSyncDirty ? "secondary" : "outline"} className="hidden text-[11px] sm:inline-flex">
                           {activeWebSyncDirty ? "Local edits" : "Synced"}
@@ -2318,13 +2664,17 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                         Library
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Open synced scripts, local recents, and starter building blocks from one place.
+                        {cloudStorageEnabled
+                          ? "Open synced scripts, local recents, and starter building blocks from one place."
+                          : "Open local recents and starter building blocks from one place."}
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => void loadWebLibraryScripts()} disabled={webLibraryLoading}>
-                      <RefreshCcw className={`mr-2 h-4 w-4 ${webLibraryLoading ? "animate-spin" : ""}`} />
-                      Sync
-                    </Button>
+                    {cloudStorageEnabled ? (
+                      <Button size="sm" variant="outline" onClick={() => void loadWebLibraryScripts()} disabled={webLibraryLoading}>
+                        <RefreshCcw className={`mr-2 h-4 w-4 ${webLibraryLoading ? "animate-spin" : ""}`} />
+                        Sync
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -2342,14 +2692,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                           />
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {([
-                            ["all", "All"],
-                            ["web", "Web"],
-                            ["starters", "Starters"],
-                            ["local", "Local"],
-                            ["favorites", "Favorites"],
-                            ["recent", "Recent"],
-                          ] as Array<[LibraryFilter, string]>).map(([value, label]) => (
+                          {libraryFilters.map(([value, label]) => (
                             <Button
                               key={value}
                               type="button"
@@ -2363,8 +2706,12 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                           ))}
                         </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{webLibraryScripts.length} web - {STARTER_WORKFLOWS.length} starters - {recentFiles.length} local</span>
-                          {webLibraryFromCache ? <span>Cached</span> : null}
+                          <span>
+                            {cloudStorageEnabled
+                              ? `${webLibraryScripts.length} web - ${STARTER_WORKFLOWS.length} starters - ${recentFiles.length} local`
+                              : `${STARTER_WORKFLOWS.length} starters - ${recentFiles.length} local`}
+                          </span>
+                          {cloudStorageEnabled && webLibraryFromCache ? <span>Cached</span> : null}
                         </div>
                       </div>
 

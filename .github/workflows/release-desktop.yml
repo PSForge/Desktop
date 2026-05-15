@@ -169,31 +169,36 @@ jobs:
             }
           }
 
-          $builderArgs = @(
-            "electron-builder",
-            "--win", "nsis", "zip", "msi",
-            "--publish", "never",
-            "--config.directories.output=$env:DESKTOP_OUTPUT_DIR",
-            "--config.win.azureSignOptions.endpoint=$env:AZURE_TRUSTED_SIGNING_ENDPOINT",
-            "--config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT",
-            "--config.win.azureSignOptions.certificateProfileName=$env:AZURE_TRUSTED_SIGNING_CERT_PROFILE",
-            "--config.win.azureSignOptions.publisherName=$env:AZURE_TRUSTED_SIGNING_PUBLISHER_NAME",
-            "--config.win.azureSignOptions.ExcludeCredentials=ManagedIdentityCredential,WorkloadIdentityCredential,SharedTokenCacheCredential,VisualStudioCredential,VisualStudioCodeCredential,AzureCliCredential,AzurePowerShellCredential,AzureDeveloperCliCredential,InteractiveBrowserCredential",
-            "--config.win.azureSignOptions.fileDigest=SHA256",
-            "--config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com",
-            "--config.win.azureSignOptions.timestampDigest=SHA256"
-          )
-
           if ($env:DESKTOP_EDITION -eq "enterprise") {
-            $builderArgs += @(
-              "--config.productName=PSForge Enterprise",
-              '--config.artifactName=PSForge-Enterprise-${version}-${arch}.${ext}',
-              '--config.nsis.artifactName=PSForge-Enterprise-Setup-${version}-${arch}.${ext}',
-              '--config.msi.artifactName=PSForge-Enterprise-${version}-${arch}.${ext}'
-            )
-          }
+            $env:VITE_PSFORGE_EDITION = "enterprise"
+            $env:PSFORGE_EDITION = "enterprise"
 
-          npx @builderArgs
+            npx electron-builder --win nsis zip msi --publish never `
+              --config.directories.output=$env:DESKTOP_OUTPUT_DIR `
+              --config.productName="PSForge Enterprise" `
+              '--config.artifactName=PSForge-Enterprise-${version}-${arch}.${ext}' `
+              '--config.nsis.artifactName=PSForge-Enterprise-Setup-${version}-${arch}.${ext}' `
+              '--config.msi.artifactName=PSForge-Enterprise-${version}-${arch}.${ext}' `
+              --config.win.azureSignOptions.endpoint=$env:AZURE_TRUSTED_SIGNING_ENDPOINT `
+              --config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT `
+              --config.win.azureSignOptions.certificateProfileName=$env:AZURE_TRUSTED_SIGNING_CERT_PROFILE `
+              --config.win.azureSignOptions.publisherName=$env:AZURE_TRUSTED_SIGNING_PUBLISHER_NAME `
+              --config.win.azureSignOptions.ExcludeCredentials=ManagedIdentityCredential,WorkloadIdentityCredential,SharedTokenCacheCredential,VisualStudioCredential,VisualStudioCodeCredential,AzureCliCredential,AzurePowerShellCredential,AzureDeveloperCliCredential,InteractiveBrowserCredential `
+              --config.win.azureSignOptions.fileDigest=SHA256 `
+              --config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com `
+              --config.win.azureSignOptions.timestampDigest=SHA256
+          } else {
+            npx electron-builder --win nsis zip msi --publish never `
+              --config.directories.output=$env:DESKTOP_OUTPUT_DIR `
+              --config.win.azureSignOptions.endpoint=$env:AZURE_TRUSTED_SIGNING_ENDPOINT `
+              --config.win.azureSignOptions.codeSigningAccountName=$env:AZURE_TRUSTED_SIGNING_ACCOUNT `
+              --config.win.azureSignOptions.certificateProfileName=$env:AZURE_TRUSTED_SIGNING_CERT_PROFILE `
+              --config.win.azureSignOptions.publisherName=$env:AZURE_TRUSTED_SIGNING_PUBLISHER_NAME `
+              --config.win.azureSignOptions.ExcludeCredentials=ManagedIdentityCredential,WorkloadIdentityCredential,SharedTokenCacheCredential,VisualStudioCredential,VisualStudioCodeCredential,AzureCliCredential,AzurePowerShellCredential,AzureDeveloperCliCredential,InteractiveBrowserCredential `
+              --config.win.azureSignOptions.fileDigest=SHA256 `
+              --config.win.azureSignOptions.timestampRfc3161=http://timestamp.acs.microsoft.com `
+              --config.win.azureSignOptions.timestampDigest=SHA256
+          }
 
       - name: Resolve release metadata
         id: release_meta

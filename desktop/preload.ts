@@ -19,6 +19,14 @@ contextBridge.exposeInMainWorld("psforgeDesktop", {
       ipcRenderer.removeListener("desktop:menu-action", listener);
     };
   },
+  onWorkflowDeepLink: (callback: (payload: any) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: any) => callback(payload);
+    ipcRenderer.on("desktop:workflow-deeplink", listener);
+    return () => {
+      ipcRenderer.removeListener("desktop:workflow-deeplink", listener);
+    };
+  },
+  getPendingWorkflowDeepLink: () => ipcRenderer.invoke("desktop:get-pending-workflow-deeplink"),
   openScript: () => ipcRenderer.invoke("desktop:open-script"),
   saveScript: (payload: { content: string; defaultFileName?: string }) =>
     ipcRenderer.invoke("desktop:save-script", payload),

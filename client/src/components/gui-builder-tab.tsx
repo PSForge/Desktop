@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TaskDetailForm } from "@/components/task-detail-form";
@@ -6,6 +6,7 @@ import { ExportDialog } from "@/components/export-dialog";
 import { DesktopUpgradeDialog } from "@/components/desktop-upgrade-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
+import { getGuiBuilderTasks } from "@/lib/gui-builder-registry";
 import { apiRequest } from "@/lib/queryClient";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
 import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
@@ -495,9 +496,11 @@ interface GUIBuilderTabProps {
   onCategorySelect: (categoryId: string) => void;
   script: string;
   setScript: (script: string) => void;
+  highlightedTaskIds?: string[];
+  autoSelectedTaskId?: string | null;
 }
 
-export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript }: GUIBuilderTabProps) {
+export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript, highlightedTaskIds = [], autoSelectedTaskId = null }: GUIBuilderTabProps) {
   const { featureAccess } = useAuth();
   const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | SQLServerTask | null>(null);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
@@ -544,106 +547,19 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
     setScriptDialogOpen(true);
   };
 
-  // Get tasks for selected category
-  const categoryTasks = selectedCategory === 'active-directory' 
-    ? adTasks 
-    : selectedCategory === 'mecm'
-    ? mecmTasks
-    : selectedCategory === 'exchange-online'
-    ? exchangeOnlineTasks
-    : selectedCategory === 'exchange-server'
-    ? exchangeServerTasks
-    : selectedCategory === 'azure-ad'
-    ? azureAdTasks
-    : selectedCategory === 'azure-resources'
-    ? azureResourceTasks
-    : selectedCategory === 'hyper-v'
-    ? hyperVTasks
-    : selectedCategory === 'intune'
-    ? intuneTasks
-    : selectedCategory === 'power-platform'
-    ? powerPlatformTasks
-    : selectedCategory === 'teams'
-    ? teamsTasks
-    : selectedCategory === 'office365'
-    ? office365Tasks
-    : selectedCategory === 'onedrive'
-    ? oneDriveTasks
-    : selectedCategory === 'sharepoint-online'
-    ? sharePointOnlineTasks
-    : selectedCategory === 'sharepoint-onprem'
-    ? sharePointOnPremTasks
-    : selectedCategory === 'windows365'
-    ? windows365Tasks
-    : selectedCategory === 'windows-server'
-    ? windowsServerTasks
-    : selectedCategory === 'vmware'
-    ? vmwareTasks
-    : selectedCategory === 'veeam'
-    ? veeamTasks
-    : selectedCategory === 'nutanix'
-    ? nutanixTasks
-    : selectedCategory === 'citrix'
-    ? citrixTasks
-    : selectedCategory === 'pdq'
-    ? pdqTasks
-    : selectedCategory === 'chocolatey'
-    ? chocolateyTasks
-    : selectedCategory === 'servicenow'
-    ? servicenowTasks
-    : selectedCategory === 'connectwise'
-    ? connectwiseTasks
-    : selectedCategory === 'aws'
-    ? awsTasks
-    : selectedCategory === 'gcp'
-    ? gcpTasks
-    : selectedCategory === 'crowdstrike'
-    ? crowdstrikeTasks
-    : selectedCategory === 'sophos'
-    ? sophosTasks
-    : selectedCategory === 'okta'
-    ? oktaTasks
-    : selectedCategory === 'duo'
-    ? duoTasks
-    : selectedCategory === 'fortinet'
-    ? fortinetTasks
-    : selectedCategory === 'cisco'
-    ? ciscoTasks
-    : selectedCategory === 'netapp'
-    ? netappTasks
-    : selectedCategory === 'jamf'
-    ? jamfTasks
-    : selectedCategory === 'slack'
-    ? slackTasks
-    : selectedCategory === 'zoom'
-    ? zoomTasks
-    : selectedCategory === 'github'
-    ? githubTasks
-    : selectedCategory === 'splunk'
-    ? splunkTasks
-    : selectedCategory === 'docker'
-    ? dockerTasks
-    : selectedCategory === 'jira'
-    ? jiraTasks
-    : selectedCategory === 'salesforce'
-    ? salesforceTasks
-    : selectedCategory === 'sql-server'
-    ? sqlServerTasks
-    : selectedCategory === 'event-logs'
-    ? eventLogTasks
-    : selectedCategory === 'file-system'
-    ? fileSystemTasks
-    : selectedCategory === 'network'
-    ? networkingTasks
-    : selectedCategory === 'process-management'
-    ? processManagementTasks
-    : selectedCategory === 'registry'
-    ? registryTasks
-    : selectedCategory === 'security'
-    ? securityManagementTasks
-    : selectedCategory === 'services'
-    ? servicesTasks
-    : [];
+  const categoryTasks = getGuiBuilderTasks(selectedCategory);
+  const highlightedTaskSet = new Set(highlightedTaskIds);
+
+  useEffect(() => {
+    if (!autoSelectedTaskId) {
+      return;
+    }
+
+    const task = categoryTasks.find((item: any) => item.id === autoSelectedTaskId);
+    if (task) {
+      setSelectedTask(task as any);
+    }
+  }, [autoSelectedTaskId, categoryTasks]);
 
   // If a task is selected, show the task detail form
   if (selectedTask) {
@@ -752,10 +668,11 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {categoryTasks.map((task: any) => {
                   const taskName = task.name || task.title;
+                  const isWorkflowRequestedTask = highlightedTaskSet.has(task.id);
                   return (
                     <Card
                       key={task.id}
-                      className="cursor-pointer hover-elevate active-elevate-2"
+                      className={`cursor-pointer hover-elevate active-elevate-2 ${isWorkflowRequestedTask ? "border-primary/70 bg-primary/5" : ""}`}
                       onClick={() => handleTaskSelect(task)}
                       data-testid={`task-card-${task.id}`}
                     >
@@ -770,6 +687,11 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
                               <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
                                 {task.category}
                               </span>
+                              {isWorkflowRequestedTask ? (
+                                <span className="ml-2 inline-block rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs text-primary">
+                                  Workflow
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                           <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />

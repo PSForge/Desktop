@@ -33,10 +33,11 @@ type DesktopBillingResponse = {
 };
 
 const STORAGE_KEY = "psforge-desktop-auth";
-const DEFAULT_WEB_URL = "https://www.psforge.app";
+const DEFAULT_WEB_URL = "https://psforge.app";
 
 function normalizeBaseUrl(url: string) {
-  return url.replace(/\/+$/, "");
+  const trimmed = url.trim().replace(/\/+$/, "");
+  return trimmed === "https://www.psforge.app" ? DEFAULT_WEB_URL : trimmed;
 }
 
 function getDesktopFeatureAccess(user: User | null, license: DesktopLicense | null): FeatureAccess | null {

@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import { extractWorkflowDeepLinkFromArgv, parseWorkflowDeepLink } from "./deeplink.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,10 +23,17 @@ const desktopEdition = process.env.PSFORGE_EDITION === "enterprise" || app.getNa
   ? "enterprise"
   : "standard";
 const desktopUpdateFeedUrl = desktopEdition === "enterprise"
-  ? "https://www.psforge.app/api/desktop/enterprise-updates"
-  : "https://www.psforge.app/api/desktop/updates";
+  ? "https://psforge.app/api/desktop/enterprise-updates"
+  : "https://psforge.app/api/desktop/updates";
 
 app.setAppUserModelId(appUserModelId);
+
+const initialWorkflowDeepLinkResult = extractWorkflowDeepLinkFromArgv(process.argv);
+const initialWorkflowDeepLink = initialWorkflowDeepLinkResult?.ok ? initialWorkflowDeepLinkResult : null;
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
 
 let mainWindow = null;
 let splashWindow = null;
@@ -36,6 +44,7 @@ let powerShellExecutablePath = null;
 let isQuitting = false;
 let updateCheckInterval = null;
 let latestUpdateStatus = { state: "idle" };
+let pendingWorkflowDeepLink = initialWorkflowDeepLink;
 
 function readCommandLineValue(names) {
   for (const rawArg of process.argv.slice(1)) {
@@ -990,6 +999,7 @@ function createWindow() {
 
   mainWindow.webContents.on("did-finish-load", () => {
     updateSplashProgress(100, "Workspace ready");
+    sendPendingWorkflowDeepLink();
   });
 
   mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
@@ -1039,6 +1049,58 @@ function createWindow() {
   });
 
   mainWindow.loadURL(withDesktopFlag(isDev ? devServerUrl : localServerUrl));
+}
+
+function normalizeWorkflowDeepLinkPayload(result) {
+  if (!result || !result.ok) {
+    return null;
+  }
+
+  return {
+    ok: true,
+    workflowId: result.workflowId,
+    source: "protocol",
+    receivedAt: new Date().toISOString(),
+  };
+}
+
+function sendWorkflowDeepLink(result) {
+  const payload = normalizeWorkflowDeepLinkPayload(result);
+  if (!payload) {
+    return;
+  }
+
+  pendingWorkflowDeepLink = result;
+  sendPendingWorkflowDeepLink();
+}
+
+function sendPendingWorkflowDeepLink() {
+  if (!pendingWorkflowDeepLink || !mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  const payload = normalizeWorkflowDeepLinkPayload(pendingWorkflowDeepLink);
+  if (!payload) {
+    pendingWorkflowDeepLink = null;
+    return;
+  }
+
+  if (mainWindow.webContents.isLoading()) {
+    return;
+  }
+
+  mainWindow.webContents.send("desktop:workflow-deeplink", payload);
+  pendingWorkflowDeepLink = null;
+}
+
+function handleWorkflowDeepLinkActivation(commandLine) {
+  const result = extractWorkflowDeepLinkFromArgv(commandLine);
+  if (!result?.ok) {
+    return;
+  }
+
+  showMainWindow();
+  sendWorkflowDeepLink(result);
 }
 
 function showMainWindow() {
@@ -1174,7 +1236,7 @@ function createApplicationMenu() {
       submenu: [
         {
           label: "PSForge Website",
-          click: () => shell.openExternal("https://www.psforge.app"),
+          click: () => shell.openExternal("https://psforge.app"),
         },
       ],
     },
@@ -1611,6 +1673,7 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
   const method = typeof payload?.method === "string" ? payload.method : "GET";
   const headers = payload?.headers && typeof payload.headers === "object" ? payload.headers : {};
   const body = typeof payload?.body === "string" ? payload.body : undefined;
+  const maxRedirects = 3;
 
   if (!url) {
     return {
@@ -1622,33 +1685,56 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
   }
 
   try {
-    await writeDesktopLog(`HTTP ${method} ${url}`);
-    const result = await new Promise((resolve, reject) => {
-      const requestClient = url.startsWith("http://") ? http : https;
-      const request = requestClient.request(url, {
-        method,
-        headers,
-      }, (response) => {
-        const chunks = [];
-        response.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-        response.on("end", () => {
-          resolve({
-            ok: (response.statusCode || 0) >= 200 && (response.statusCode || 0) < 300,
-            status: response.statusCode || 0,
-            headers: response.headers,
-            text: Buffer.concat(chunks).toString("utf8"),
+    const requestWithRedirects = async (requestUrl, requestMethod, requestBody, redirectsRemaining) => {
+      await writeDesktopLog(`HTTP ${requestMethod} ${requestUrl}`);
+      const result = await new Promise((resolve, reject) => {
+        const requestClient = requestUrl.startsWith("http://") ? http : https;
+        const request = requestClient.request(requestUrl, {
+          method: requestMethod,
+          headers,
+        }, (response) => {
+          const chunks = [];
+          response.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+          response.on("end", () => {
+            resolve({
+              ok: (response.statusCode || 0) >= 200 && (response.statusCode || 0) < 300,
+              status: response.statusCode || 0,
+              headers: response.headers,
+              text: Buffer.concat(chunks).toString("utf8"),
+            });
           });
         });
+
+        request.on("error", reject);
+
+        if (requestBody) {
+          request.write(requestBody);
+        }
+
+        request.end();
       });
 
-      request.on("error", reject);
+      const locationHeader = result.headers?.location;
+      const redirectLocation = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
+      if ([301, 302, 303, 307, 308].includes(result.status) && redirectLocation && redirectsRemaining > 0) {
+        const nextUrl = new URL(redirectLocation, requestUrl);
+        if (nextUrl.protocol !== "https:" && nextUrl.protocol !== "http:") {
+          return result;
+        }
 
-      if (body) {
-        request.write(body);
+        const preserveBody = result.status === 307 || result.status === 308;
+        return requestWithRedirects(
+          nextUrl.toString(),
+          preserveBody ? requestMethod : "GET",
+          preserveBody ? requestBody : undefined,
+          redirectsRemaining - 1,
+        );
       }
 
-      request.end();
-    });
+      return result;
+    };
+
+    const result = await requestWithRedirects(url, method, body, maxRedirects);
 
     await writeDesktopLog(`HTTP ${method} ${url} -> ${result.status}`);
     return result;
@@ -1671,7 +1757,32 @@ ipcMain.handle("desktop:debug-log", async (_event, message) => {
   return { ok: true };
 });
 
+ipcMain.handle("desktop:get-pending-workflow-deeplink", async () => {
+  const payload = normalizeWorkflowDeepLinkPayload(pendingWorkflowDeepLink);
+  pendingWorkflowDeepLink = null;
+  return payload;
+});
+
+app.on("second-instance", (_event, commandLine) => {
+  handleWorkflowDeepLinkActivation(commandLine);
+});
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  const result = parseWorkflowDeepLink(url);
+  if (result.ok) {
+    showMainWindow();
+    sendWorkflowDeepLink(result);
+  }
+});
+
 app.whenReady().then(async () => {
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient("psforge", process.execPath, [path.resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient("psforge");
+  }
+
   createSplashWindow();
   updateSplashProgress(12, "Starting local workspace services...");
   await startLocalFrontendServer();

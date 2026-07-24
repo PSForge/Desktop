@@ -117,6 +117,15 @@ interface Window {
           | "settings:check-updates",
       ) => void,
     ) => () => void;
+    onWorkflowDeepLink?: (callback: (payload:
+      | { ok: true; workflowId: string; source: "protocol"; receivedAt: string }
+      | { ok: false; reason: string; source: "protocol"; receivedAt: string }
+    ) => void) => () => void;
+    getPendingWorkflowDeepLink?: () => Promise<
+      | { ok: true; workflowId: string; source: "protocol"; receivedAt: string }
+      | { ok: false; reason: string; source: "protocol"; receivedAt: string }
+      | null
+    >;
     openScript: () => Promise<DesktopScriptFileResult>;
     saveScript: (payload: { content: string; defaultFileName?: string }) => Promise<DesktopScriptFileResult>;
     writeScriptFile: (payload: { filePath: string; content: string }) => Promise<DesktopScriptFileResult>;

@@ -46,10 +46,11 @@ const ENTERPRISE_LICENSE_STORAGE_KEY = "psforge-enterprise-license";
 const ENTERPRISE_DEVICE_STORAGE_KEY = "psforge-enterprise-device-id";
 const ENTERPRISE_ACTIVATION_ENDPOINT = "/api/enterprise/desktop/activate";
 const ENTERPRISE_VALIDATE_ENDPOINT = "/api/enterprise/desktop/validate";
-const DEFAULT_LICENSE_SERVER_URL = "https://www.psforge.app";
+const DEFAULT_LICENSE_SERVER_URL = "https://psforge.app";
 
 function normalizeBaseUrl(url: string) {
-  return url.replace(/\/+$/, "");
+  const trimmed = url.trim().replace(/\/+$/, "");
+  return trimmed === "https://www.psforge.app" ? DEFAULT_LICENSE_SERVER_URL : trimmed;
 }
 
 export function isEnterpriseEdition() {

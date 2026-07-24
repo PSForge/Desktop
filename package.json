@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "PSForge Desktop is a Windows PowerShell scripting workspace connected to PSForge web services.",
   "type": "module",
   "main": "desktop/main.mjs",
@@ -25,6 +25,7 @@
     "desktop:dist:publish": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --publish never --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:store": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip msi --publish never --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "check": "tsc",
+    "test:desktop-deeplink": "node --import tsx --test tests/desktop-deeplink.test.ts",
     "db:push": "drizzle-kit push"
   },
   "build": {
@@ -41,6 +42,7 @@
       "dist/**/*",
       "dist-electron/**/*",
       "desktop/main.mjs",
+      "desktop/deeplink.mjs",
       "node_modules/**/*",
       "package.json"
     ],
@@ -51,7 +53,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://www.psforge.app/api/desktop/updates",
+        "url": "https://psforge.app/api/desktop/updates",
         "channel": "latest"
       }
     ],
@@ -73,6 +75,14 @@
     "extraMetadata": {
       "main": "desktop/main.mjs"
     },
+    "protocols": [
+      {
+        "name": "PSForge Workflow Link",
+        "schemes": [
+          "psforge"
+        ]
+      }
+    ],
     "win": {
       "target": [
         {

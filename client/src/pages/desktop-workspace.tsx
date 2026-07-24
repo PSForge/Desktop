@@ -21,9 +21,12 @@ import {
   removeDesktopStorageItem,
   saveDesktopScript,
   setDesktopStorageItem,
+  getPendingDesktopWorkflowLink,
   subscribeToDesktopMenuActions,
   subscribeToDesktopUpdates,
+  subscribeToDesktopWorkflowLinks,
   writeDesktopScriptFile,
+  type DesktopWorkflowDeepLinkPayload,
 } from "@/lib/desktop";
 import {
   createDesktopBillingCheckout,
@@ -71,6 +74,14 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import logoImage from "@assets/psforge-2-logo-transparent.png";
 import { analyzeScriptWorkbench } from "@/lib/script-workbench-utils";
+import {
+  DESKTOP_WORKFLOW_CONTEXT_KEY,
+  fetchPublicWorkflowDefinition,
+  getWorkflowDisplayTitle,
+  mapWorkflowToLocalRegistry,
+  type SharedWorkflowDefinition,
+  type WorkflowMappingResult,
+} from "@/lib/desktop-workflow-links";
 
 const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
 const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
@@ -132,6 +143,11 @@ type LibraryFilter = "all" | "web" | "favorites" | "recent" | "starters" | "loca
 type WebScriptConflict = {
   tabId: string;
   remoteScript: WebLibraryScript;
+};
+
+type WorkflowReviewState = {
+  workflow: SharedWorkflowDefinition;
+  mapping: WorkflowMappingResult;
 };
 
 const RECOVERY_KEY = "psforge-desktop-recovery";
@@ -360,6 +376,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const [webLibraryFilter, setWebLibraryFilter] = useState<LibraryFilter>("all");
   const [webLibraryFromCache, setWebLibraryFromCache] = useState(false);
   const [webScriptConflict, setWebScriptConflict] = useState<WebScriptConflict | null>(null);
+  const [workflowLaunchNotice, setWorkflowLaunchNotice] = useState<string | null>(null);
+  const [workflowTaskHighlights, setWorkflowTaskHighlights] = useState<string[]>([]);
+  const [workflowSelectedTaskId, setWorkflowSelectedTaskId] = useState<string | null>(null);
+  const [workflowUpgradeContext, setWorkflowUpgradeContext] = useState<WorkflowReviewState | null>(null);
   const [desktopSignInLoading, setDesktopSignInLoading] = useState(false);
   const [desktopSignOutLoading, setDesktopSignOutLoading] = useState(false);
   const [desktopRegisterLoading, setDesktopRegisterLoading] = useState(false);
@@ -972,6 +992,107 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       type,
     });
   };
+
+  const openWorkflowChooserFallback = (notice = "We couldn't preselect this workflow - pick your platform below.") => {
+    setSelectedGuiCategory(null);
+    setWorkflowTaskHighlights([]);
+    setWorkflowSelectedTaskId(null);
+    setWorkflowLaunchNotice(notice);
+    setWebLibraryFilter("starters");
+    setActiveWorkspaceTab("gui");
+  };
+
+  const launchWorkflowToBuilder = async (workflowId: string) => {
+    if (!visibleUser) {
+      setDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY, JSON.stringify({ workflowId }));
+      setLicenseStatusTone("default");
+      setLicenseStatusMessage("Sign in to continue opening this PSForge workflow in the desktop builder.");
+      return;
+    }
+
+    const result = await fetchPublicWorkflowDefinition(workflowId);
+    if (!result.ok) {
+      removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+      openWorkflowChooserFallback();
+      return;
+    }
+
+    const mapping = mapWorkflowToLocalRegistry(result.workflow, hasProAccess);
+    const hasPreselectableWorkflow = !!mapping.platform && mapping.validTasks.length > 0;
+
+    if (!hasPreselectableWorkflow) {
+      removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+      openWorkflowChooserFallback();
+      return;
+    }
+
+    setSelectedGuiCategory(mapping.platform!.id);
+    setWorkflowTaskHighlights(mapping.validTasks.map((task) => task.id));
+    setWorkflowSelectedTaskId(mapping.requiresUpgrade ? null : mapping.validTasks[0].id);
+    setWorkflowLaunchNotice(
+      mapping.validTasks.length > 1
+        ? `${getWorkflowDisplayTitle(result.workflow)} opened. The first task is selected; remaining workflow tasks are highlighted as suggestions.`
+        : `${getWorkflowDisplayTitle(result.workflow)} opened in the builder.`,
+    );
+    setWebLibraryFilter("starters");
+    setActiveWorkspaceTab("gui");
+    removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+
+    if (mapping.requiresUpgrade) {
+      setWorkflowUpgradeContext({ workflow: result.workflow, mapping });
+      setDesktopStorageItem(DESKTOP_POST_UPGRADE_CONTEXT_KEY, JSON.stringify({
+        label: getWorkflowDisplayTitle(result.workflow),
+      }));
+      return;
+    }
+
+    toast({
+      title: "Workflow opened",
+      description: "Review the selected task before generating or running any PowerShell.",
+    });
+  };
+
+  const handleWorkflowDeepLink = async (payload: DesktopWorkflowDeepLinkPayload) => {
+    if (!payload.ok) {
+      return;
+    }
+
+    await launchWorkflowToBuilder(payload.workflowId);
+  };
+
+  useEffect(() => {
+    const unsubscribe = subscribeToDesktopWorkflowLinks((payload) => {
+      void handleWorkflowDeepLink(payload);
+    });
+
+    void getPendingDesktopWorkflowLink().then((payload) => {
+      if (payload) {
+        void handleWorkflowDeepLink(payload);
+      }
+    });
+
+    return unsubscribe;
+  }, [hasProAccess, visibleUser]);
+
+  useEffect(() => {
+    if (!visibleUser) {
+      return;
+    }
+
+    const storedWorkflowContext = getDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+    if (!storedWorkflowContext) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedWorkflowContext) as { workflowId?: string };
+      if (parsed.workflowId) {
+        void launchWorkflowToBuilder(parsed.workflowId);
+      }
+    } catch {
+      removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+    }
+  }, [hasProAccess, visibleUser]);
 
   const runWebLibraryRequest = async <T,>(path: string, init: { method?: string; body?: string; headers?: Record<string, string> } = {}) => {
     if (!cloudStorageEnabled) {
@@ -2263,7 +2384,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                     id="enterprise-license-server"
                     value={enterpriseLicenseServerUrl}
                     onChange={(event) => setEnterpriseLicenseServerUrl(event.target.value)}
-                    placeholder="https://www.psforge.app"
+                    placeholder="https://psforge.app"
                   />
                 </div>
                 {enterpriseActivationMessage ? (
@@ -2826,13 +2947,25 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                   </section>
 
                   <section className="flex h-full min-h-0 overflow-hidden">
-                    <div className="h-full min-h-0 w-full overflow-hidden">
+                    <div className="grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
+                      {workflowLaunchNotice ? (
+                        <div className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-sm text-muted-foreground">
+                          <div className="flex items-center justify-between gap-3">
+                            <span>{workflowLaunchNotice}</span>
+                            <Button size="sm" variant="ghost" onClick={() => setWorkflowLaunchNotice(null)}>
+                              Dismiss
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
                       <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading builder library...</div>}>
                         <GUIBuilderTab
                           selectedCategory={selectedGuiCategory}
                           onCategorySelect={setSelectedGuiCategory}
                           script={currentScript}
                           setScript={setActiveScript}
+                          highlightedTaskIds={workflowTaskHighlights}
+                          autoSelectedTaskId={workflowSelectedTaskId}
                         />
                       </Suspense>
                     </div>
@@ -2961,6 +3094,23 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               : "Open the premium task pack and generate repeatable automation faster.",
         ] : []}
         contextLabel={guidedUpgradeWorkflow?.title || "guided workflow"}
+      />
+
+      <DesktopUpgradeDialog
+        open={!!workflowUpgradeContext}
+        onOpenChange={(open) => !open && setWorkflowUpgradeContext(null)}
+        feature={workflowUpgradeContext ? getWorkflowDisplayTitle(workflowUpgradeContext.workflow) : "workflow"}
+        title="Unlock this workflow with Pro"
+        description="This PSForge workflow is marked as Pro. Upgrade or connect a Pro account to continue without losing the workflow context."
+        previewTitle="What will stay ready after upgrade"
+        previewItems={workflowUpgradeContext ? [
+          `${getWorkflowDisplayTitle(workflowUpgradeContext.workflow)} from psforge.app.`,
+          workflowUpgradeContext.mapping.platform
+            ? `${workflowUpgradeContext.mapping.platform.name} will stay selected in the builder.`
+            : "The general workflow chooser will open when no local platform mapping is available.",
+          `${workflowUpgradeContext.mapping.validTasks.length} mapped task${workflowUpgradeContext.mapping.validTasks.length === 1 ? "" : "s"} will remain highlighted for review.`,
+        ] : []}
+        contextLabel={workflowUpgradeContext ? getWorkflowDisplayTitle(workflowUpgradeContext.workflow) : "workflow"}
       />
 
       <Dialog open={!!pendingCloseTab} onOpenChange={(open) => !open && setPendingTabCloseId(null)}>

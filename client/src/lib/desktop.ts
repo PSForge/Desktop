@@ -185,6 +185,15 @@ export async function getPendingDesktopWorkflowLink(): Promise<DesktopWorkflowDe
   return api.getPendingWorkflowDeepLink();
 }
 
+export function reportDesktopRendererReady(payload?: { elapsedMs?: number; route?: string }) {
+  const api = desktopApi();
+  if (!isDesktopApp() || typeof api?.rendererReady !== "function") {
+    return;
+  }
+
+  api.rendererReady(payload);
+}
+
 export async function openDesktopScript(): Promise<DesktopScriptFile | null> {
   if (!isDesktopApp()) {
     return null;

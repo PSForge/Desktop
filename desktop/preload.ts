@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld("psforgeDesktop", {
     };
   },
   getPendingWorkflowDeepLink: () => ipcRenderer.invoke("desktop:get-pending-workflow-deeplink"),
+  rendererReady: (payload?: { elapsedMs?: number; route?: string }) => ipcRenderer.send("desktop:renderer-ready", payload || {}),
   openScript: () => ipcRenderer.invoke("desktop:open-script"),
   saveScript: (payload: { content: string; defaultFileName?: string }) =>
     ipcRenderer.invoke("desktop:save-script", payload),

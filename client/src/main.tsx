@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { flushDesktopAnalytics, trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
+import { reportDesktopRendererReady } from "@/lib/desktop";
 
 const rendererSessionStartedAt = Date.now();
 let hasTrackedSessionClose = false;
@@ -59,6 +60,14 @@ document.addEventListener("visibilitychange", () => {
 
 try {
   createRoot(document.getElementById("root")!).render(<App />);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      reportDesktopRendererReady({
+        elapsedMs: Date.now() - rendererSessionStartedAt,
+        route: window.location.pathname,
+      });
+    });
+  });
 } catch (error) {
   logRendererStartupIssue("react.render", error);
   throw error;

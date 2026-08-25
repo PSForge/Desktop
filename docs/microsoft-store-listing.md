@@ -5,12 +5,12 @@ This file is the working source of truth for the PSForge Desktop Microsoft Store
 ## Submission Basics
 
 - Product name: `PSForge Desktop`
-- Version: `2.0.3`
+- Version: `2.0.4`
 - Package type: `MSI`
 - Architecture: `x64`
 - Category recommendation: `Developer tools`
-- Supported language: `English (United States)`
-- Package URL: `https://psforgedownloads01.blob.core.windows.net/store-packages/psforge/2.0.3/PSForge-Desktop-Store-2.0.3-x64.msi`
+- Supported language: `English (United States)` with in-app language selection foundation
+- Package URL: `https://psforgedownloads01.blob.core.windows.net/store-packages/psforge/2.0.4/PSForge-Desktop-Store-2.0.4-x64.msi`
 - Silent install: Microsoft Store uses MSI silent install behavior.
 
 ## Short Description
@@ -39,7 +39,7 @@ PSForge is built for people who want the speed of PowerShell with a cleaner, saf
 
 ## What's New In This Version
 
-Version 2.0.3 introduces secure `psforge://` workflow deep links so PSForge articles can open directly into the desktop GUI builder, while preserving the 2.0 workbench refresh, improved Library and GUI builder scrolling, Script Intelligence in the AI workspace, refreshed branding, updated sign-in flow, desktop packaging metadata, and analytics readiness for Microsoft Store usage, engagement, and health reporting.
+Version 2.0.4 improves startup with a progress-aware loading screen that stays visible until the workspace is ready, adds a first-run language chooser, and introduces the multilingual foundation for the desktop shell. It also preserves secure `psforge://` workflow deep links, updated sign-in, refreshed branding, and Microsoft Store analytics readiness.
 
 ## Product Features
 
@@ -55,6 +55,8 @@ Each item is under the Microsoft Store 200-character feature limit.
 - Built-in run preparation flow with preflight checks and execution context.
 - Git workspace for local version history and script change tracking.
 - Refreshed PSForge 2.0 branding, desktop icon, and Microsoft Store-ready MSI packaging.
+- Faster startup handoff with visible loading progress instead of a blank launch window.
+- First-run language selection with persisted in-app language preference.
 
 ## Search Terms
 
@@ -78,7 +80,7 @@ Recommended Store keywords and discoverability phrases:
 
 ## Store Asset Plan
 
-Microsoft requires at least one screenshot and recommends four or more screenshots. The current local art assets cover Store logos, but final screenshots should be captured from the released 2.0.3 app.
+Microsoft requires at least one screenshot and recommends four or more screenshots. The current local art assets cover Store logos, but final screenshots should be captured from the released 2.0.4 app.
 
 ### Store Logos
 
@@ -113,7 +115,7 @@ Recommended first submission set:
 - Paste the package URL exactly as listed above.
 - Select `MSI` and `x64`.
 - Upload the 1:1 box art and 2:3 poster art.
-- Capture and upload at least four screenshots from the 2.0.3 app.
+- Capture and upload at least four screenshots from the 2.0.4 app.
 - Paste the short description, description, features, and What's New copy.
 - Confirm support/contact/privacy URLs in Partner Center.
 - Confirm pricing/free trial/subscription notes match the current PSForge account model.

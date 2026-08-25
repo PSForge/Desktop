@@ -126,6 +126,7 @@ interface Window {
       | { ok: false; reason: string; source: "protocol"; receivedAt: string }
       | null
     >;
+    rendererReady?: (payload?: { elapsedMs?: number; route?: string }) => void;
     openScript: () => Promise<DesktopScriptFileResult>;
     saveScript: (payload: { content: string; defaultFileName?: string }) => Promise<DesktopScriptFileResult>;
     writeScriptFile: (payload: { filePath: string; content: string }) => Promise<DesktopScriptFileResult>;

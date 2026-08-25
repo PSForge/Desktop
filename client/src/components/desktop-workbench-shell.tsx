@@ -15,6 +15,7 @@ import {
   GitBranch,
   History,
   LayoutGrid,
+  Languages,
   ListChecks,
   PackageCheck,
   Replace,
@@ -44,6 +45,15 @@ import {
 } from "@/components/ui/command";
 import type { ScriptWorkbenchAnalysis } from "@/lib/script-workbench-utils";
 import type { DesktopRunHistorySummary } from "@/components/desktop-script-workbench";
+import {
+  getLocaleDirection,
+  getStoredLocale,
+  setStoredLocale,
+  supportedLocales,
+  translate,
+  type LocaleCode,
+  type TranslationKey,
+} from "@/lib/i18n";
 
 type WorkbenchArea = "script" | "ai" | "gui" | "wizard" | "git" | "troubleshooter";
 
@@ -106,15 +116,15 @@ interface DesktopWorkbenchShellProps {
 
 const railItems: Array<{
   value: WorkbenchArea;
-  label: string;
+  labelKey: TranslationKey;
   icon: typeof FileCode;
 }> = [
-  { value: "script", label: "Work", icon: FileCode },
-  { value: "gui", label: "Library", icon: LayoutGrid },
-  { value: "troubleshooter", label: "Logs", icon: Wrench },
-  { value: "ai", label: "AI", icon: Bot },
-  { value: "git", label: "Git", icon: GitBranch },
-  { value: "wizard", label: "Wizard", icon: Wand2 },
+  { value: "script", labelKey: "work", icon: FileCode },
+  { value: "gui", labelKey: "library", icon: LayoutGrid },
+  { value: "troubleshooter", labelKey: "logs", icon: Wrench },
+  { value: "ai", labelKey: "ai", icon: Bot },
+  { value: "git", labelKey: "git", icon: GitBranch },
+  { value: "wizard", labelKey: "wizard", icon: Wand2 },
 ];
 
 const WORKBENCH_PREFS_KEY = "psforge-workbench-preferences";
@@ -192,20 +202,20 @@ function getRiskLabel(analysis: ScriptWorkbenchAnalysis) {
   return { label: "Looks calm", variant: "default" as const };
 }
 
-function formatUpdateLabel(updateState: UpdateState) {
+function formatUpdateLabel(updateState: UpdateState, t: (key: TranslationKey, replacements?: Record<string, string | number>) => string) {
   if (updateState.state === "downloaded") {
-    return "Update ready";
+    return t("updateReady");
   }
   if (updateState.state === "downloading" && typeof updateState.percent === "number") {
-    return `Updating ${Math.round(updateState.percent)}%`;
+    return `${t("updating")} ${Math.round(updateState.percent)}%`;
   }
   if (updateState.state === "available") {
-    return updateState.version ? `Update ${updateState.version}` : "Update available";
+    return updateState.version ? `Update ${updateState.version}` : t("updateAvailable");
   }
   if (updateState.state === "checking") {
-    return "Checking updates";
+    return t("checkingUpdates");
   }
-  return "Check updates";
+  return t("checkUpdates");
 }
 
 function getSeverityClasses(severity: "critical" | "warning" | "info") {
@@ -251,9 +261,11 @@ export function DesktopWorkbenchShell({
   onOpenWorkbenchReview,
 }: DesktopWorkbenchShellProps) {
   const { toast } = useToast();
+  const [locale, setLocale] = useState<LocaleCode>(() => getStoredLocale());
   const [bottomPanelTab, setBottomPanelTab] = useState<BottomPanelTab>(() => readWorkbenchPreferences().bottomPanelTab || "workspace");
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(() => readWorkbenchPreferences().detailsDrawerOpen ?? false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const t = (key: TranslationKey, replacements?: Record<string, string | number>) => translate(locale, key, replacements);
   const risk = getRiskLabel(analysis);
   const lastRun = runHistorySummary.lastRun;
   const criticalIssues = analysis.issues.filter((issue) => issue.severity === "critical").length;
@@ -265,17 +277,21 @@ export function DesktopWorkbenchShell({
     setBottomPanelTab(tab);
     setDetailsDrawerOpen(true);
   };
+  const changeLocale = (nextLocale: LocaleCode) => {
+    setLocale(nextLocale);
+    setStoredLocale(nextLocale);
+  };
   const commandGroups = useMemo(
     () => {
       const groups: Array<{ heading: string; actions: CommandPaletteAction[] }> = [
         {
-          heading: "File",
+          heading: t("file"),
           actions: [
           { label: "New Script", shortcut: "Ctrl N", icon: FileCode, run: onNewScript },
-          { label: "Open Script", shortcut: "Ctrl O", icon: FolderOpen, run: onOpenScript },
+          { label: t("openScript"), shortcut: "Ctrl O", icon: FolderOpen, run: onOpenScript },
           { label: "Save Script", shortcut: "Ctrl S", icon: Save, run: onSaveScript },
           { label: "Save As", shortcut: "Ctrl Shift S", icon: Save, run: onSaveAs },
-          { label: "Open Recent Files", shortcut: "Ctrl Alt O", icon: History, run: onOpenRecentFiles },
+          { label: t("openRecentFiles"), shortcut: "Ctrl Alt O", icon: History, run: onOpenRecentFiles },
           ...recentFiles.slice(0, 3).map((file) => ({
             label: `Recent: ${file.fileName}`,
             icon: History,
@@ -284,50 +300,50 @@ export function DesktopWorkbenchShell({
           ],
         },
         {
-          heading: "Run",
+          heading: t("run"),
           actions: [
-          { label: "Run Script", shortcut: "Ctrl R", icon: TerminalSquare, run: onOpenRunTools },
-          { label: "Rerun Last Setup", icon: TerminalSquare, run: onRerunLastRun, disabled: !lastRun },
-          { label: "Run Preflight", shortcut: "Ctrl Alt P", icon: ShieldCheck, run: onRunPreflight },
-          { label: "Open Run Center", icon: TerminalSquare, run: () => openBottomPanelTab("runs") },
-          { label: "Open Last Transcript", icon: FileOutput, run: () => void openLastRunPath(lastRun?.transcriptPath, "transcript"), disabled: !lastRun?.transcriptPath },
-          { label: "Open Last Run Folder", icon: FolderOpen, run: () => void openLastRunPath(lastRun?.runDirectory, "run folder"), disabled: !lastRun?.runDirectory },
+          { label: t("runScript"), shortcut: "Ctrl R", icon: TerminalSquare, run: onOpenRunTools },
+          { label: t("rerunLastSetup"), icon: TerminalSquare, run: onRerunLastRun, disabled: !lastRun },
+          { label: t("runPreflight"), shortcut: "Ctrl Alt P", icon: ShieldCheck, run: onRunPreflight },
+          { label: t("openRunCenter"), icon: TerminalSquare, run: () => openBottomPanelTab("runs") },
+          { label: t("openLastTranscript"), icon: FileOutput, run: () => void openLastRunPath(lastRun?.transcriptPath, "transcript"), disabled: !lastRun?.transcriptPath },
+          { label: t("openLastRunFolder"), icon: FolderOpen, run: () => void openLastRunPath(lastRun?.runDirectory, "run folder"), disabled: !lastRun?.runDirectory },
           { label: "Copy Last STDOUT", icon: Clipboard, run: () => void copyRunOutput("stdout", lastRun?.stdout), disabled: !lastRun?.stdout?.trim() },
           { label: "Copy Last STDERR", icon: Clipboard, run: () => void copyRunOutput("stderr", lastRun?.stderr), disabled: !lastRun?.stderr?.trim() },
           { label: "Explain Last Failure With AI", icon: Sparkles, run: onRunAiReview, disabled: !lastRun || (lastRun.ok && lastRun.exitCode === 0) },
           ],
         },
         {
-          heading: "Script Tools",
+          heading: t("scriptTools"),
           actions: [
-          { label: "Run AI Review", shortcut: "Ctrl Alt A", icon: Sparkles, run: onRunAiReview },
+          { label: t("runAiReview"), shortcut: "Ctrl Alt A", icon: Sparkles, run: onRunAiReview },
           { label: "Open Workbench Review", shortcut: "Ctrl Alt W", icon: ShieldAlert, run: onOpenWorkbenchReview },
           { label: "Generate Header", shortcut: "Ctrl Alt H", icon: ScrollText, run: onOpenHeaderGenerator },
-          { label: "Replace Placeholders", shortcut: "Ctrl Alt R", icon: Replace, run: onOpenPlaceholderTool },
-          { label: "Show Script Intelligence", icon: ListChecks, run: () => openBottomPanelTab("ai") },
+          { label: t("replacePlaceholders"), shortcut: "Ctrl Alt R", icon: Replace, run: onOpenPlaceholderTool },
+          { label: t("showScriptIntelligence"), icon: ListChecks, run: () => openBottomPanelTab("ai") },
           ],
         },
         {
-          heading: "Navigation",
+          heading: t("navigation"),
           actions: [
-          { label: "Open Script Workspace", icon: FileCode, run: () => onAreaChange("script") },
-          { label: "Open Command Library", icon: LayoutGrid, run: () => onAreaChange("gui") },
-          { label: "Open Wizard", icon: Wand2, run: () => onAreaChange("wizard") },
-          { label: "Open AI Workspace", icon: Bot, run: () => onAreaChange("ai") },
-          { label: "Open Git Workspace", icon: GitBranch, run: () => onAreaChange("git") },
+          { label: t("openScriptWorkspace"), icon: FileCode, run: () => onAreaChange("script") },
+          { label: t("openCommandLibrary"), icon: LayoutGrid, run: () => onAreaChange("gui") },
+          { label: t("openWizard"), icon: Wand2, run: () => onAreaChange("wizard") },
+          { label: t("openAiWorkspace"), icon: Bot, run: () => onAreaChange("ai") },
+          { label: t("openGitWorkspace"), icon: GitBranch, run: () => onAreaChange("git") },
           { label: "Open Log Troubleshooter", icon: Wrench, run: () => onAreaChange("troubleshooter") },
-          { label: "Show Workspace Details", icon: BriefcaseBusiness, run: () => openBottomPanelTab("workspace") },
-          { label: "Show Problems", icon: ShieldAlert, run: () => openBottomPanelTab("problems") },
-          { label: "Show Script Intelligence", icon: Sparkles, run: () => openBottomPanelTab("ai") },
-          { label: "Show Git Details", icon: GitBranch, run: () => openBottomPanelTab("git") },
-          { label: detailsDrawerOpen ? "Collapse Details Drawer" : "Open Details Drawer", icon: ChevronDown, run: () => setDetailsDrawerOpen((current) => !current) },
+          { label: t("showWorkspaceDetails"), icon: BriefcaseBusiness, run: () => openBottomPanelTab("workspace") },
+          { label: t("showProblems"), icon: ShieldAlert, run: () => openBottomPanelTab("problems") },
+          { label: t("showScriptIntelligence"), icon: Sparkles, run: () => openBottomPanelTab("ai") },
+          { label: t("showGitDetails"), icon: GitBranch, run: () => openBottomPanelTab("git") },
+          { label: detailsDrawerOpen ? t("collapseDetailsDrawer") : t("expandDetailsDrawer"), icon: ChevronDown, run: () => setDetailsDrawerOpen((current) => !current) },
           ],
         },
         {
-          heading: "App",
+          heading: t("app"),
           actions: [
           { label: hasProAccess ? "Manage Pro Access" : accessLabel, icon: Settings, run: onManageLicense },
-          { label: formatUpdateLabel(updateState), icon: Clock3, run: onCheckForUpdates },
+          { label: formatUpdateLabel(updateState, t), icon: Clock3, run: onCheckForUpdates },
           ],
         },
       ];
@@ -339,6 +355,7 @@ export function DesktopWorkbenchShell({
       accessLabel,
       hasProAccess,
       lastRun,
+      locale,
       onAreaChange,
       onCheckForUpdates,
       onManageLicense,
@@ -379,6 +396,15 @@ export function DesktopWorkbenchShell({
 
     window.localStorage.setItem(WORKBENCH_PREFS_KEY, JSON.stringify({ bottomPanelTab, detailsDrawerOpen }));
   }, [bottomPanelTab, detailsDrawerOpen]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    document.documentElement.lang = locale;
+    document.documentElement.dir = getLocaleDirection(locale);
+  }, [locale]);
 
   const runPaletteAction = (action: () => void) => {
     setCommandPaletteOpen(false);
@@ -425,7 +451,7 @@ export function DesktopWorkbenchShell({
             />
             <div className="min-w-0 flex-1 border-l pl-3">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <div className="truncate text-sm font-medium sm:text-base">2.0 Workbench</div>
+                <div className="truncate text-sm font-medium sm:text-base">{t("workbench")}</div>
                 <Badge variant="outline">v{desktopVersion}</Badge>
                 <Badge variant={risk.variant}>{risk.label}</Badge>
               </div>
@@ -435,20 +461,35 @@ export function DesktopWorkbenchShell({
               <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
                 <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setCommandPaletteOpen(true)} title="Command palette">
                   <Search className="h-3.5 w-3.5" />
-                  <span className="hidden lg:inline">Command</span>
+                  <span className="hidden lg:inline">{t("command")}</span>
                 </Button>
                 <Button size="sm" className="h-7 px-2 text-xs" onClick={onOpenRunTools} title="Run script">
                   <TerminalSquare className="h-3.5 w-3.5" />
-                  <span>Run</span>
+                  <span>{t("run")}</span>
                 </Button>
                 <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onRunPreflight} title="Run preflight">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Preflight</span>
+                  <span className="hidden sm:inline">{t("preflight")}</span>
                 </Button>
                 <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onRunAiReview} title="AI review">
                   <Sparkles className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">AI Review</span>
+                  <span className="hidden sm:inline">{t("aiReview")}</span>
                 </Button>
+                <label className="flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground" title={t("language")}>
+                  <Languages className="h-3.5 w-3.5" />
+                  <select
+                    className="h-6 max-w-28 bg-transparent text-foreground outline-none"
+                    value={locale}
+                    aria-label={t("language")}
+                    onChange={(event) => changeLocale(event.target.value as LocaleCode)}
+                  >
+                    {supportedLocales.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.nativeLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             </div>
           </div>
@@ -472,10 +513,10 @@ export function DesktopWorkbenchShell({
                       : "border-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                   }`}
                   onClick={() => onAreaChange(item.value)}
-                  title={item.label}
+                  title={t(item.labelKey)}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <span>{t(item.labelKey)}</span>
                 </button>
               );
             })}
@@ -497,12 +538,12 @@ export function DesktopWorkbenchShell({
               <div className="flex h-11 shrink-0 items-center justify-between gap-3 border-b px-4 py-1.5">
                 <div className="flex min-w-0 items-center gap-1 overflow-x-auto text-xs">
                   {([
-                    { value: "workspace", label: "Workspace", icon: BriefcaseBusiness },
-                    { value: "problems", label: "Problems", icon: ShieldAlert },
-                    { value: "runs", label: "Run Center", icon: TerminalSquare },
-                    { value: "ai", label: "AI", icon: Sparkles },
-                    { value: "git", label: "Git", icon: GitBranch },
-                  ] as Array<{ value: BottomPanelTab; label: string; icon: typeof ShieldAlert }>).map((tab) => {
+                    { value: "workspace", labelKey: "workspace", icon: BriefcaseBusiness },
+                    { value: "problems", labelKey: "problems", icon: ShieldAlert },
+                    { value: "runs", labelKey: "runCenter", icon: TerminalSquare },
+                    { value: "ai", labelKey: "ai", icon: Sparkles },
+                    { value: "git", labelKey: "git", icon: GitBranch },
+                  ] as Array<{ value: BottomPanelTab; labelKey: TranslationKey; icon: typeof ShieldAlert }>).map((tab) => {
                     const Icon = tab.icon;
                     const isActive = bottomPanelTab === tab.value;
 
@@ -518,7 +559,7 @@ export function DesktopWorkbenchShell({
                         onClick={() => openBottomPanelTab(tab.value)}
                       >
                         <Icon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="hidden sm:inline">{tab.label}</span>
+                        <span className="hidden sm:inline">{t(tab.labelKey)}</span>
                         {tab.value === "problems" && analysis.issues.length > 0 ? (
                           <Badge variant={criticalIssues > 0 ? "destructive" : "secondary"} className="ml-1 h-5 px-1.5 text-[10px]">
                             {analysis.issues.length}
@@ -531,10 +572,10 @@ export function DesktopWorkbenchShell({
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="hidden sm:inline-flex">
                     <Clock3 className="mr-1 h-3.5 w-3.5" />
-                    {recentFilesCount} recent
+                    {recentFilesCount} {t("recent")}
                   </Badge>
                   <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setDetailsDrawerOpen((current) => !current)}>
-                    <span className="hidden sm:inline">{detailsDrawerOpen ? "Collapse" : "Details"}</span>
+                    <span className="hidden sm:inline">{detailsDrawerOpen ? t("collapse") : t("details")}</span>
                     <span className="sm:hidden">{detailsDrawerOpen ? "Less" : "More"}</span>
                     <ChevronDown className={`ml-1 h-4 w-4 transition ${detailsDrawerOpen ? "" : "rotate-180"}`} />
                   </Button>
@@ -881,12 +922,12 @@ export function DesktopWorkbenchShell({
                     </div>
 
                     <div className="rounded-md border bg-background/60 p-3 max-xl:col-span-2 max-lg:col-span-1">
-                      <div className="font-medium">AI Actions</div>
+                      <div className="font-medium">{t("aiActions")}</div>
                       <div className="mt-2 grid gap-2">
-                        <Button size="sm" onClick={onRunAiReview}>Run AI review</Button>
-                        <Button size="sm" variant="outline" onClick={onOpenWorkbenchReview}>Open review</Button>
-                        <Button size="sm" variant="outline" onClick={onRunPreflight}>Run preflight</Button>
-                        <Button size="sm" variant="outline" onClick={() => onAreaChange("ai")}>Open AI workspace</Button>
+                        <Button size="sm" onClick={onRunAiReview}>{t("runAiReview")}</Button>
+                        <Button size="sm" variant="outline" onClick={onOpenWorkbenchReview}>{t("openReview")}</Button>
+                        <Button size="sm" variant="outline" onClick={onRunPreflight}>{t("runPreflight")}</Button>
+                        <Button size="sm" variant="outline" onClick={() => onAreaChange("ai")}>{t("openAiWorkspace")}</Button>
                       </div>
                     </div>
                   </div>
@@ -905,9 +946,9 @@ export function DesktopWorkbenchShell({
                       </div>
                     </div>
                     <div className="rounded-md border bg-background/60 p-3">
-                      <div className="font-medium">Git Actions</div>
+                      <div className="font-medium">{t("gitActions")}</div>
                       <div className="mt-2 grid gap-2">
-                        <Button size="sm" onClick={() => onAreaChange("git")}>Open Git workspace</Button>
+                        <Button size="sm" onClick={() => onAreaChange("git")}>{t("openGitWorkspace")}</Button>
                         <Button size="sm" variant="outline" onClick={onSaveScript}>Save script first</Button>
                       </div>
                     </div>
@@ -921,9 +962,9 @@ export function DesktopWorkbenchShell({
       </div>
 
       <CommandDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
-        <CommandInput placeholder="Search commands, workbench actions, and navigation..." />
+        <CommandInput placeholder={t("commandPalettePlaceholder")} />
         <CommandList className="max-h-[440px]">
-          <CommandEmpty>No matching command found.</CommandEmpty>
+          <CommandEmpty>{t("noMatchingCommand")}</CommandEmpty>
           {commandGroups.map((group) => (
             <CommandGroup key={group.heading} heading={group.heading}>
               {group.actions.map((action) => {

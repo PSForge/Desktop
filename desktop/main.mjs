@@ -25,6 +25,21 @@ const desktopEdition = process.env.PSFORGE_EDITION === "enterprise" || app.getNa
 const desktopUpdateFeedUrl = desktopEdition === "enterprise"
   ? "https://psforge.app/api/desktop/enterprise-updates"
   : "https://psforge.app/api/desktop/updates";
+const localeStorageKey = "psforge-locale";
+const supportedLocales = [
+  { code: "en", label: "English" },
+  { code: "es", label: "Espanol" },
+  { code: "fr", label: "Francais" },
+  { code: "de", label: "Deutsch" },
+  { code: "pt", label: "Portugues" },
+  { code: "it", label: "Italiano" },
+  { code: "nl", label: "Nederlands" },
+  { code: "ja", label: "Japanese" },
+  { code: "ko", label: "Korean" },
+  { code: "zh", label: "Chinese" },
+  { code: "hi", label: "Hindi" },
+  { code: "ar", label: "Arabic" },
+];
 
 app.setAppUserModelId(appUserModelId);
 
@@ -45,6 +60,11 @@ let isQuitting = false;
 let updateCheckInterval = null;
 let latestUpdateStatus = { state: "idle" };
 let pendingWorkflowDeepLink = initialWorkflowDeepLink;
+let mainWindowReadyToShow = false;
+let rendererReadyForDisplay = false;
+let hasRevealedMainWindow = false;
+let rendererReadyFallbackTimer = null;
+let startupStartedAt = Date.now();
 
 function readCommandLineValue(names) {
   for (const rawArg of process.argv.slice(1)) {
@@ -168,7 +188,7 @@ async function getEnterpriseInstallOptions() {
   };
 }
 
-function updateSplashProgress(percent, message = "Loading PSForge Desktop...") {
+function updateSplashProgress(percent, message = getStartupMessage("starting")) {
   if (!splashWindow || splashWindow.isDestroyed()) {
     return;
   }
@@ -180,6 +200,41 @@ function updateSplashProgress(percent, message = "Loading PSForge Desktop...") {
     .catch(() => {
       // Ignore timing issues if the splash content has not finished loading yet.
     });
+}
+
+function revealMainWindow(reason = "ready") {
+  if (hasRevealedMainWindow || !mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if ((!mainWindowReadyToShow || !rendererReadyForDisplay) && reason !== "fallback") {
+    return;
+  }
+
+  hasRevealedMainWindow = true;
+  updateSplashProgress(100, getStartupMessage("ready"));
+
+  if (rendererReadyFallbackTimer) {
+    clearTimeout(rendererReadyFallbackTimer);
+    rendererReadyFallbackTimer = null;
+  }
+
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isMaximized()) {
+      mainWindow.maximize();
+    }
+
+    mainWindow?.show();
+    mainWindow?.focus();
+
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+    }
+
+    if (latestUpdateStatus.state !== "idle") {
+      mainWindow?.webContents.send("desktop:update-status", latestUpdateStatus);
+    }
+  }, 180);
 }
 
 function sendMenuAction(action) {
@@ -210,6 +265,79 @@ function writeDesktopStorage(nextStorage) {
   const storagePath = getDesktopStoragePath();
   fsSync.mkdirSync(path.dirname(storagePath), { recursive: true });
   fsSync.writeFileSync(storagePath, JSON.stringify(nextStorage, null, 2), "utf8");
+}
+
+function normalizeLocale(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  const base = normalized.split(/[-_]/)[0];
+  return supportedLocales.some((locale) => locale.code === base) ? base : "en";
+}
+
+function getStoredLocale() {
+  const storage = readDesktopStorage();
+  return normalizeLocale(storage[localeStorageKey] || app.getLocale());
+}
+
+function setStoredLocale(locale) {
+  const storage = readDesktopStorage();
+  storage[localeStorageKey] = normalizeLocale(locale);
+  writeDesktopStorage(storage);
+}
+
+function getStartupMessage(key) {
+  const locale = getStoredLocale();
+  const messages = {
+    en: {
+      starting: "Starting PSForge Desktop...",
+      services: "Starting local workspace services...",
+      features: "Preparing desktop features...",
+      menu: "Building desktop menu...",
+      opening: "Opening desktop workspace...",
+      loading: "Loading workspace interface...",
+      finalizing: "Finalizing workspace...",
+      rendering: "Rendering workspace...",
+      finishing: "Finishing first render...",
+      ready: "Workspace ready",
+    },
+    es: {
+      starting: "Iniciando PSForge Desktop...",
+      services: "Iniciando servicios locales...",
+      features: "Preparando funciones de escritorio...",
+      menu: "Creando menu de escritorio...",
+      opening: "Abriendo el espacio de trabajo...",
+      loading: "Cargando la interfaz...",
+      finalizing: "Finalizando el espacio de trabajo...",
+      rendering: "Renderizando el espacio de trabajo...",
+      finishing: "Terminando la primera vista...",
+      ready: "Espacio de trabajo listo",
+    },
+    fr: {
+      starting: "Demarrage de PSForge Desktop...",
+      services: "Demarrage des services locaux...",
+      features: "Preparation des fonctions bureau...",
+      menu: "Creation du menu bureau...",
+      opening: "Ouverture de l'espace de travail...",
+      loading: "Chargement de l'interface...",
+      finalizing: "Finalisation de l'espace de travail...",
+      rendering: "Rendu de l'espace de travail...",
+      finishing: "Finalisation du premier rendu...",
+      ready: "Espace de travail pret",
+    },
+    de: {
+      starting: "PSForge Desktop wird gestartet...",
+      services: "Lokale Arbeitsbereichsdienste werden gestartet...",
+      features: "Desktop-Funktionen werden vorbereitet...",
+      menu: "Desktop-Menu wird erstellt...",
+      opening: "Arbeitsbereich wird geoffnet...",
+      loading: "Arbeitsbereichsoberflache wird geladen...",
+      finalizing: "Arbeitsbereich wird abgeschlossen...",
+      rendering: "Arbeitsbereich wird gerendert...",
+      finishing: "Erste Ansicht wird abgeschlossen...",
+      ready: "Arbeitsbereich bereit",
+    },
+  };
+
+  return messages[locale]?.[key] || messages.en[key] || "Loading PSForge Desktop...";
 }
 
 async function writeDesktopLog(message) {
@@ -244,6 +372,7 @@ function sendUpdateStatus(status) {
 function withDesktopFlag(url) {
   const nextUrl = new URL(url);
   nextUrl.searchParams.set("desktop", "1");
+  nextUrl.searchParams.set("psforgeLocale", getStoredLocale());
   return nextUrl.toString();
 }
 
@@ -314,7 +443,7 @@ function createSplashWindow() {
 
   splashWindow.once("ready-to-show", () => {
     splashWindow?.show();
-    updateSplashProgress(8, "Starting PSForge Desktop...");
+    updateSplashProgress(8, getStartupMessage("starting"));
   });
 
   splashWindow.on("closed", () => {
@@ -476,6 +605,187 @@ function createSplashWindow() {
       </html>
     `)}`,
   );
+}
+
+function createFirstRunLanguageWindow() {
+  const storage = readDesktopStorage();
+  if (storage[localeStorageKey]) {
+    return Promise.resolve(getStoredLocale());
+  }
+
+  const detectedLocale = getStoredLocale();
+
+  return new Promise((resolve) => {
+    let resolved = false;
+    const finish = (locale) => {
+      if (resolved) {
+        return;
+      }
+      resolved = true;
+      const selectedLocale = normalizeLocale(locale);
+      setStoredLocale(selectedLocale);
+      if (languageWindow && !languageWindow.isDestroyed()) {
+        languageWindow.close();
+      }
+      resolve(selectedLocale);
+    };
+
+    const languageWindow = new BrowserWindow({
+      width: 560,
+      height: 520,
+      frame: false,
+      resizable: false,
+      movable: true,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      show: false,
+      center: true,
+      backgroundColor: "#0f172a",
+      icon: getWindowIcon(),
+      webPreferences: {
+        contextIsolation: true,
+        sandbox: false,
+        nodeIntegration: true,
+      },
+    });
+
+    languageWindow.once("ready-to-show", () => {
+      languageWindow.show();
+      languageWindow.focus();
+    });
+
+    languageWindow.on("closed", () => {
+      finish(detectedLocale);
+    });
+
+    ipcMain.once("desktop:first-run-language-selected", (_event, locale) => {
+      finish(locale);
+    });
+
+    const options = supportedLocales
+      .map((locale) => `<option value="${locale.code}"${locale.code === detectedLocale ? " selected" : ""}>${locale.label}</option>`)
+      .join("");
+
+    languageWindow.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(`
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              * { box-sizing: border-box; }
+              html, body {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                background: #0f172a;
+                color: #f8fafc;
+                font-family: Segoe UI, Arial, sans-serif;
+              }
+              body {
+                display: grid;
+                place-items: center;
+                padding: 28px;
+              }
+              .panel {
+                width: 100%;
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                border-radius: 12px;
+                background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98));
+                box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+                padding: 28px;
+              }
+              .mark {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                color: #93c5fd;
+                font-size: 13px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+              }
+              h1 {
+                margin: 18px 0 8px;
+                font-size: 30px;
+                line-height: 1.1;
+              }
+              p {
+                margin: 0;
+                color: #cbd5e1;
+                font-size: 15px;
+                line-height: 1.5;
+              }
+              label {
+                display: block;
+                margin-top: 24px;
+                color: #e2e8f0;
+                font-size: 13px;
+                font-weight: 700;
+              }
+              select {
+                width: 100%;
+                margin-top: 8px;
+                border: 1px solid rgba(148, 163, 184, 0.32);
+                border-radius: 8px;
+                background: #111827;
+                color: #f8fafc;
+                font-size: 16px;
+                padding: 12px;
+                outline: none;
+              }
+              .actions {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 26px;
+              }
+              button {
+                border: 0;
+                border-radius: 8px;
+                background: #3b82f6;
+                color: white;
+                font-size: 15px;
+                font-weight: 700;
+                padding: 12px 18px;
+                cursor: pointer;
+              }
+              button:hover { background: #2563eb; }
+              .note {
+                margin-top: 14px;
+                color: #94a3b8;
+                font-size: 12px;
+              }
+            </style>
+          </head>
+          <body>
+            <main class="panel">
+              <div class="mark">PSForge Desktop</div>
+              <h1>Choose your language</h1>
+              <p>Select the language you want PSForge to use. You can change this later from the desktop header.</p>
+              <label for="locale">Language</label>
+              <select id="locale">${options}</select>
+              <div class="note">PSForge will continue loading after this choice is saved.</div>
+              <div class="actions">
+                <button id="continue">Continue</button>
+              </div>
+            </main>
+            <script>
+              const { ipcRenderer } = require("electron");
+              const select = document.getElementById("locale");
+              const submit = () => ipcRenderer.send("desktop:first-run-language-selected", select.value);
+              document.getElementById("continue").addEventListener("click", submit);
+              document.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                  submit();
+                }
+              });
+            </script>
+          </body>
+        </html>
+      `)}`,
+    );
+  });
 }
 
 function isPathInside(basePath, targetPath) {
@@ -958,7 +1268,11 @@ async function startLocalFrontendServer() {
 }
 
 function createWindow() {
-  updateSplashProgress(76, "Opening desktop workspace...");
+  mainWindowReadyToShow = false;
+  rendererReadyForDisplay = false;
+  hasRevealedMainWindow = false;
+  startupStartedAt = Date.now();
+  updateSplashProgress(76, getStartupMessage("opening"));
 
   mainWindow = new BrowserWindow({
     width: 1600,
@@ -990,15 +1304,15 @@ function createWindow() {
   });
 
   mainWindow.webContents.on("did-start-loading", () => {
-    updateSplashProgress(86, "Loading workspace interface...");
+    updateSplashProgress(86, getStartupMessage("loading"));
   });
 
   mainWindow.webContents.on("dom-ready", () => {
-    updateSplashProgress(95, "Finalizing workspace...");
+    updateSplashProgress(95, getStartupMessage("finalizing"));
   });
 
   mainWindow.webContents.on("did-finish-load", () => {
-    updateSplashProgress(100, "Workspace ready");
+    updateSplashProgress(98, getStartupMessage("rendering"));
     sendPendingWorkflowDeepLink();
   });
 
@@ -1031,24 +1345,18 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
-    updateSplashProgress(100, "Workspace ready");
-    setTimeout(() => {
-      if (splashWindow && !splashWindow.isDestroyed()) {
-        splashWindow.close();
-      }
-
-      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isMaximized()) {
-        mainWindow.maximize();
-      }
-
-      mainWindow?.show();
-      if (latestUpdateStatus.state !== "idle") {
-        mainWindow?.webContents.send("desktop:update-status", latestUpdateStatus);
-      }
-    }, 180);
+    mainWindowReadyToShow = true;
+    updateSplashProgress(99, getStartupMessage("finishing"));
+    revealMainWindow("window-ready");
   });
 
   mainWindow.loadURL(withDesktopFlag(isDev ? devServerUrl : localServerUrl));
+
+  rendererReadyFallbackTimer = setTimeout(() => {
+    void writeDesktopLog("[startup] Renderer ready signal timed out; revealing main window by fallback.");
+    mainWindowReadyToShow = true;
+    revealMainWindow("fallback");
+  }, 12000);
 }
 
 function normalizeWorkflowDeepLinkPayload(result) {
@@ -1757,6 +2065,17 @@ ipcMain.handle("desktop:debug-log", async (_event, message) => {
   return { ok: true };
 });
 
+ipcMain.on("desktop:renderer-ready", (_event, payload = {}) => {
+  rendererReadyForDisplay = true;
+  const elapsedMs = Number.isFinite(payload?.elapsedMs)
+    ? Math.max(0, Math.round(payload.elapsedMs))
+    : Date.now() - startupStartedAt;
+  const route = typeof payload?.route === "string" ? payload.route.slice(0, 120) : "unknown";
+  void writeDesktopLog(`[startup] Renderer first paint ready in ${elapsedMs}ms route=${route}`);
+  updateSplashProgress(100, getStartupMessage("ready"));
+  revealMainWindow("renderer-ready");
+});
+
 ipcMain.handle("desktop:get-pending-workflow-deeplink", async () => {
   const payload = normalizeWorkflowDeepLinkPayload(pendingWorkflowDeepLink);
   pendingWorkflowDeepLink = null;
@@ -1783,12 +2102,13 @@ app.whenReady().then(async () => {
     app.setAsDefaultProtocolClient("psforge");
   }
 
+  await createFirstRunLanguageWindow();
   createSplashWindow();
-  updateSplashProgress(12, "Starting local workspace services...");
+  updateSplashProgress(12, getStartupMessage("services"));
   await startLocalFrontendServer();
-  updateSplashProgress(58, "Preparing desktop features...");
+  updateSplashProgress(58, getStartupMessage("features"));
   createApplicationMenu();
-  updateSplashProgress(68, "Building desktop menu...");
+  updateSplashProgress(68, getStartupMessage("menu"));
   createWindow();
   configureAutoUpdater();
 

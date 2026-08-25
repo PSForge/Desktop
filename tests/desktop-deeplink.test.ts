@@ -189,7 +189,7 @@ test("workflow mapping opens the builder without generating executable script co
 
 test("installer configuration registers and packages the psforge protocol", () => {
   const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
-  assert.equal(pkg.version, "2.0.3");
+  assert.equal(pkg.version, "2.0.4");
   assert.deepEqual(pkg.build.protocols, [{ name: "PSForge Workflow Link", schemes: ["psforge"] }]);
   assert.ok(pkg.build.files.includes("desktop/deeplink.mjs"));
   assert.ok(String(pkg.scripts["desktop:dist:store"]).includes("electron-builder --win nsis zip msi"));

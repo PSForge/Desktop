@@ -384,6 +384,10 @@ function getPreloadPath() {
   return path.join(process.resourcesPath, "app.asar.unpacked", "dist-electron", "preload.cjs");
 }
 
+function getLanguagePreloadPath() {
+  return path.join(__dirname, "language-preload.cjs");
+}
+
 function getWindowIconPath() {
   if (isDev) {
     return path.join(appRoot, "build", "icon.ico");
@@ -644,9 +648,10 @@ function createFirstRunLanguageWindow() {
       backgroundColor: "#0f172a",
       icon: getWindowIcon(),
       webPreferences: {
+        preload: getLanguagePreloadPath(),
         contextIsolation: true,
         sandbox: false,
-        nodeIntegration: true,
+        nodeIntegration: false,
       },
     });
 
@@ -771,9 +776,11 @@ function createFirstRunLanguageWindow() {
               </div>
             </main>
             <script>
-              const { ipcRenderer } = require("electron");
               const select = document.getElementById("locale");
-              const submit = () => ipcRenderer.send("desktop:first-run-language-selected", select.value);
+              const submit = () => {
+                document.getElementById("continue").disabled = true;
+                window.psforgeLanguagePrompt.selectLanguage(select.value);
+              };
               document.getElementById("continue").addEventListener("click", submit);
               document.addEventListener("keydown", (event) => {
                 if (event.key === "Enter") {

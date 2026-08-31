@@ -49,6 +49,7 @@ import { isDesktopApp, openDesktopDirectory, openDesktopPath, runDesktopPowerShe
 import type { Command, ValidationResult, ComprehensiveValidationResult } from "@shared/schema";
 import {
   analyzeScriptWorkbench,
+  buildOperationsSuitePlan,
   buildWorkbenchProfileKey,
   buildExportBundleArtifacts,
   generateCommentHeader,
@@ -1186,6 +1187,14 @@ export function DesktopScriptWorkbench({
     () => analysis.checklist.map((item) => ({ ...item, checked: checklistState[item.id] ?? item.checked })),
     [analysis.checklist, checklistState],
   );
+  const operationsSuitePlan = useMemo(
+    () => buildOperationsSuitePlan(script, {
+      fileName: currentFileName,
+      author: authorName,
+      checklist: checklistItems,
+    }),
+    [authorName, checklistItems, currentFileName, script],
+  );
 
   const filteredRunHistory = useMemo(() => {
     const query = runHistoryFilter.trim().toLowerCase();
@@ -1395,6 +1404,10 @@ export function DesktopScriptWorkbench({
                     <TabsTrigger value="workbench" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <ClipboardList className="h-4 w-4" />
                       <span className="hidden sm:inline">Workbench</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="ops-suite" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
+                      <Rocket className="h-4 w-4" />
+                      <span className="hidden sm:inline">Ops</span>
                     </TabsTrigger>
                     <TabsTrigger value="ai-review" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Bot className="h-4 w-4" />
@@ -1707,6 +1720,162 @@ export function DesktopScriptWorkbench({
                         </Button>
                       </CardContent>
                     </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ops-suite" className="mt-0 min-h-0 flex-1 overflow-auto p-4">
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              <Rocket className="h-5 w-5" />
+                              PSForge 3.0 Ops Suite
+                            </CardTitle>
+                            <CardDescription>
+                              Turn the active script into an environment readiness review, package plan, runbook, tests, dependency manifest, impact preview, rollback plan, and modernization guide.
+                            </CardDescription>
+                          </div>
+                          <Badge variant={operationsSuitePlan.readinessScore >= 80 ? "default" : operationsSuitePlan.readinessScore >= 60 ? "secondary" : "destructive"}>
+                            {operationsSuitePlan.readinessScore}% ready
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="grid gap-3 lg:grid-cols-4">
+                        {[
+                          { label: "Environment checks", value: operationsSuitePlan.environmentChecks.length, detail: "machine readiness signals" },
+                          { label: "Dependencies", value: analysis.moduleSuggestions.length, detail: "module hints found" },
+                          { label: "Impact items", value: operationsSuitePlan.impactPreview.length, detail: "predicted effects" },
+                          { label: "Safety notes", value: analysis.issues.length, detail: "review items" },
+                        ].map((metric) => (
+                          <div key={metric.label} className="rounded-md border bg-background/60 px-3 py-3">
+                            <div className="text-xs text-muted-foreground">{metric.label}</div>
+                            <div className="mt-1 text-2xl font-semibold">{metric.value}</div>
+                            <div className="text-xs text-muted-foreground">{metric.detail}</div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <ShieldAlert className="h-5 w-5" />
+                            Environment Doctor
+                          </CardTitle>
+                          <CardDescription>Review host prerequisites before the script is run.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {operationsSuitePlan.environmentChecks.map((check) => (
+                            <div key={check.id} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={check.status === "action" ? "destructive" : check.status === "warning" ? "secondary" : "outline"}>
+                                  {check.status}
+                                </Badge>
+                                <div className="font-medium">{check.label}</div>
+                              </div>
+                              <div className="mt-2 text-sm text-muted-foreground">{check.detail}</div>
+                              {check.remediation ? (
+                                <Button size="sm" variant="ghost" className="mt-2 px-0" onClick={() => handleCopyText(check.remediation || "", `${check.label} command copied.`)}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copy check
+                                </Button>
+                              ) : null}
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Eye className="h-5 w-5" />
+                            Change Impact Preview
+                          </CardTitle>
+                          <CardDescription>Static prediction of what the script is likely to touch.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {operationsSuitePlan.impactPreview.map((impact) => (
+                            <div key={impact} className="rounded-md border bg-background/60 px-3 py-3 text-sm text-muted-foreground">
+                              {impact}
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+
+                      {[
+                        {
+                          title: "Pester Test Generator",
+                          description: "Companion .Tests.ps1 starter for syntax, parameter, and safety discovery tests.",
+                          icon: FlaskConical,
+                          content: operationsSuitePlan.pesterTestDraft,
+                          copy: "Pester test draft copied.",
+                        },
+                        {
+                          title: "PowerShell Script Packager",
+                          description: "Deployment packaging plan for ZIP, Intune, scheduled task, and install/uninstall outputs.",
+                          icon: FileArchive,
+                          content: operationsSuitePlan.packagePlan,
+                          copy: "Package plan copied.",
+                        },
+                        {
+                          title: "Runbook Generator",
+                          description: "Operational documentation with prerequisites, validation, and rollback sections.",
+                          icon: BookOpen,
+                          content: operationsSuitePlan.runbookDraft,
+                          copy: "Runbook draft copied.",
+                        },
+                        {
+                          title: "Dependency and Module Manager",
+                          description: "Module, cmdlet, and #Requires manifest based on the current script.",
+                          icon: ClipboardList,
+                          content: operationsSuitePlan.dependencyManifest,
+                          copy: "Dependency manifest copied.",
+                        },
+                        {
+                          title: "Rollback Builder",
+                          description: "Honest rollback guidance with non-reversible operations called out for review.",
+                          icon: ShieldAlert,
+                          content: operationsSuitePlan.rollbackPlan.map((item) => `- ${item}`).join("\n"),
+                          copy: "Rollback plan copied.",
+                        },
+                        {
+                          title: "Script Modernizer",
+                          description: "Modernization guidance for deprecated modules, secrets, output style, and strict mode.",
+                          icon: WandSparkles,
+                          content: operationsSuitePlan.modernizationPlan.map((item) => `- ${item}`).join("\n"),
+                          copy: "Modernization plan copied.",
+                        },
+                      ].map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <Card key={item.title}>
+                            <CardHeader>
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <CardTitle className="flex items-center gap-2">
+                                    <Icon className="h-5 w-5" />
+                                    {item.title}
+                                  </CardTitle>
+                                  <CardDescription>{item.description}</CardDescription>
+                                </div>
+                                <Button size="sm" variant="outline" onClick={() => handleCopyText(item.content, item.copy)}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copy
+                                </Button>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <pre className="max-h-56 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground">
+                                <code>{item.content}</code>
+                              </pre>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
                 </TabsContent>
 

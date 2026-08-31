@@ -5,12 +5,12 @@ This file is the working source of truth for the PSForge Desktop Microsoft Store
 ## Submission Basics
 
 - Product name: `PSForge Desktop`
-- Version: `2.0.4`
+- Version: `3.0.0`
 - Package type: `MSI`
 - Architecture: `x64`
 - Category recommendation: `Developer tools`
 - Supported language: `English (United States)` with in-app language selection foundation
-- Package URL: `https://psforgedownloads01.blob.core.windows.net/store-packages/psforge/2.0.4/PSForge-Desktop-Store-2.0.4-x64.msi`
+- Package URL: `https://psforgedownloads01.blob.core.windows.net/store-packages/psforge/3.0.0/PSForge-Desktop-Store-3.0.0-x64.msi`
 - Silent install: Microsoft Store uses MSI silent install behavior.
 
 ## Short Description
@@ -39,7 +39,7 @@ PSForge is built for people who want the speed of PowerShell with a cleaner, saf
 
 ## What's New In This Version
 
-Version 2.0.4 improves startup with a progress-aware loading screen that stays visible until the workspace is ready, adds a first-run language chooser, and introduces the multilingual foundation for the desktop shell. It also preserves secure `psforge://` workflow deep links, updated sign-in, refreshed branding, and Microsoft Store analytics readiness.
+Version 3.0 adds the PSForge Ops Suite: Environment Doctor, Pester Test Generator, PowerShell Script Packager, Runbook Generator, Change Impact Preview, Rollback Builder, Script Modernizer, and Dependency and Module Manager. It also fixes first-run language selection so Continue immediately advances into startup loading, keeps the loading screen visible until the workspace is ready, and preserves secure `psforge://` workflow deep links, updated sign-in, refreshed branding, and Microsoft Store analytics readiness.
 
 ## Product Features
 
@@ -57,6 +57,7 @@ Each item is under the Microsoft Store 200-character feature limit.
 - Refreshed PSForge 2.0 branding, desktop icon, and Microsoft Store-ready MSI packaging.
 - Faster startup handoff with visible loading progress instead of a blank launch window.
 - First-run language selection with persisted in-app language preference.
+- PSForge 3.0 Ops Suite for readiness, tests, packaging, runbooks, impact, rollback, modernization, and dependencies.
 
 ## Search Terms
 
@@ -80,7 +81,7 @@ Recommended Store keywords and discoverability phrases:
 
 ## Store Asset Plan
 
-Microsoft requires at least one screenshot and recommends four or more screenshots. The current local art assets cover Store logos, but final screenshots should be captured from the released 2.0.4 app.
+Microsoft requires at least one screenshot and recommends four or more screenshots. The current local art assets cover Store logos, but final screenshots should be captured from the released 3.0 app.
 
 ### Store Logos
 
@@ -98,6 +99,7 @@ Recommended first submission set:
 3. AI workspace: Script Intelligence and AI review/remediation surface.
 4. Log Troubleshooter: upload/paste workflow and diagnosis area.
 5. Run workflow: preflight/run setup or Run Center view.
+6. PSForge 3.0 Ops Suite: readiness score, generated runbook, and operational planning cards.
 
 ### Screenshot Guidance
 
@@ -115,7 +117,7 @@ Recommended first submission set:
 - Paste the package URL exactly as listed above.
 - Select `MSI` and `x64`.
 - Upload the 1:1 box art and 2:3 poster art.
-- Capture and upload at least four screenshots from the 2.0.4 app.
+- Capture and upload at least four screenshots from the 3.0 app.
 - Paste the short description, description, features, and What's New copy.
 - Confirm support/contact/privacy URLs in Partner Center.
 - Confirm pricing/free trial/subscription notes match the current PSForge account model.

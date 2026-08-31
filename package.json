@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "2.0.4",
+  "version": "3.0.0",
   "description": "PSForge Desktop is a Windows PowerShell scripting workspace connected to PSForge web services.",
   "type": "module",
   "main": "desktop/main.mjs",
@@ -43,6 +43,7 @@
       "dist-electron/**/*",
       "desktop/main.mjs",
       "desktop/deeplink.mjs",
+      "desktop/language-preload.cjs",
       "node_modules/**/*",
       "package.json"
     ],

@@ -60,6 +60,26 @@ export interface ScriptWorkbenchAnalysis {
   explanation: ScriptExplanation;
 }
 
+export interface EnvironmentDoctorCheck {
+  id: string;
+  label: string;
+  status: "pass" | "warning" | "action";
+  detail: string;
+  remediation?: string;
+}
+
+export interface OperationsSuitePlan {
+  readinessScore: number;
+  environmentChecks: EnvironmentDoctorCheck[];
+  dependencyManifest: string;
+  impactPreview: string[];
+  rollbackPlan: string[];
+  modernizationPlan: string[];
+  pesterTestDraft: string;
+  packagePlan: string;
+  runbookDraft: string;
+}
+
 const TEAM_FAVORITE_COMMAND_IDS = [
   "get-childitem",
   "test-connection",
@@ -800,6 +820,247 @@ export function buildExportBundleArtifacts(
     { name: "parameters.json", content: parameterJson },
     { name: "sample-input.csv", content: csvSample },
   ];
+}
+
+function detectReferencedCmdlets(script: string) {
+  return Array.from(new Set(script.match(/\b[A-Z][A-Za-z0-9]+-[A-Z][A-Za-z0-9]+\b/g) || [])).sort();
+}
+
+function detectImpactPreview(script: string) {
+  const impacts: string[] = [];
+  const impactRules: Array<{ pattern: RegExp; label: string }> = [
+    { pattern: /\b(New-ADUser|New-MgUser|New-LocalUser)\b/i, label: "Create user or identity objects" },
+    { pattern: /\b(Add-ADGroupMember|Add-MgGroupMember|Add-LocalGroupMember)\b/i, label: "Add principals to groups" },
+    { pattern: /\b(Set-AD|Set-Mg|Set-ItemProperty|New-ItemProperty)\b/i, label: "Modify directory, cloud, or registry settings" },
+    { pattern: /\b(Remove-Item|Remove-AD|Remove-Mg|Clear-EventLog)\b/i, label: "Delete or clear objects/data" },
+    { pattern: /\b(Restart-Service|Stop-Service|Start-Service|Restart-Computer)\b/i, label: "Change service or machine state" },
+    { pattern: /\b(Connect-MgGraph|Connect-ExchangeOnline|Connect-AzAccount)\b/i, label: "Connect to Microsoft cloud services" },
+    { pattern: /\b(Export-Csv|Out-File|Set-Content|Add-Content)\b/i, label: "Write report or output files" },
+    { pattern: /\bInvoke-Command\b/i, label: "Run commands on local or remote machines" },
+  ];
+
+  for (const rule of impactRules) {
+    if (rule.pattern.test(script)) {
+      impacts.push(rule.label);
+    }
+  }
+
+  return impacts.length > 0 ? impacts : ["No obvious high-impact changes detected by static review."];
+}
+
+export function buildOperationsSuitePlan(
+  script: string,
+  options: {
+    fileName: string;
+    author?: string;
+    checklist: ExecutionChecklistItem[];
+  },
+): OperationsSuitePlan {
+  const analysis = analyzeScriptWorkbench(script);
+  const cmdlets = detectReferencedCmdlets(script);
+  const hasAdminSignals = /\b(HKLM:|Restart-Service|Stop-Service|Set-Service|New-Service|Remove-Service|Install-WindowsFeature|Set-ExecutionPolicy)\b/i.test(script);
+  const hasRemotingSignals = /\b(Invoke-Command|Enter-PSSession|New-PSSession|Enable-PSRemoting)\b/i.test(script);
+  const hasCloudAuthSignals = /\b(Connect-MgGraph|Connect-ExchangeOnline|Connect-AzAccount|Connect-AzureAD|Connect-MsolService)\b/i.test(script);
+  const hasWhatIfSupport = /\b(SupportsShouldProcess\s*=\s*\$true|ShouldProcess|-WhatIf|-Confirm)\b/i.test(script);
+  const hasDeprecatedModules = /\b(Connect-AzureAD|Get-AzureAD|Set-AzureAD|Connect-MsolService|Get-Msol|Set-Msol)\b/i.test(script);
+  const hasCredentialRisk = /\b(password|clientsecret|secret|token|apikey)\s*=\s*["'][^"']+["']/i.test(script);
+  const hasPester = /\bDescribe\s+["']|It\s+["']|Should\s+-/i.test(script);
+  const baseName = options.fileName.replace(/\.[^.]+$/, "") || "psforge-script";
+
+  const environmentChecks: EnvironmentDoctorCheck[] = [
+    {
+      id: "powershell-version",
+      label: "PowerShell runtime",
+      status: cmdlets.length > 0 ? "warning" : "pass",
+      detail: cmdlets.length > 0
+        ? "Confirm the target host has Windows PowerShell 5.1 or PowerShell 7 compatible with the referenced cmdlets."
+        : "No cmdlets were detected, so runtime requirements need operator confirmation.",
+      remediation: "$PSVersionTable.PSVersion",
+    },
+    {
+      id: "execution-policy",
+      label: "Execution policy",
+      status: script.trim() ? "warning" : "action",
+      detail: "Confirm scripts can run in the target scope before deployment.",
+      remediation: "Get-ExecutionPolicy -List",
+    },
+    {
+      id: "modules",
+      label: "Module availability",
+      status: analysis.moduleSuggestions.length > 0 ? "action" : "pass",
+      detail: analysis.moduleSuggestions.length > 0
+        ? `Review required modules: ${analysis.moduleSuggestions.map((module) => module.moduleName).join(", ")}.`
+        : "No known enterprise module dependency was detected.",
+      remediation: analysis.moduleSuggestions.map((module) => module.installCommand).join("\n"),
+    },
+    {
+      id: "administrator",
+      label: "Administrator privileges",
+      status: hasAdminSignals ? "action" : "pass",
+      detail: hasAdminSignals
+        ? "This script appears to touch machine-wide state and may require elevation."
+        : "No obvious administrator-only commands were detected.",
+      remediation: "Start-Process PowerShell -Verb RunAs",
+    },
+    {
+      id: "remoting",
+      label: "WinRM and remoting",
+      status: hasRemotingSignals ? "action" : "pass",
+      detail: hasRemotingSignals
+        ? "The script references remoting. Confirm WinRM, DNS, firewall, and credentials before execution."
+        : "No remoting workflow was detected.",
+      remediation: "Test-WSMan <ComputerName>",
+    },
+    {
+      id: "authentication",
+      label: "Authentication prerequisites",
+      status: hasCloudAuthSignals ? "action" : "pass",
+      detail: hasCloudAuthSignals
+        ? "Cloud connection commands were detected. Confirm tenant, scopes, and sign-in method before running."
+        : "No cloud authentication command was detected.",
+      remediation: "Confirm account permissions and required Graph/Azure/Exchange scopes.",
+    },
+    {
+      id: "commands",
+      label: "Referenced commands",
+      status: cmdlets.length > 0 ? "warning" : "action",
+      detail: cmdlets.length > 0
+        ? `${cmdlets.length} cmdlet${cmdlets.length === 1 ? "" : "s"} should be verified on the target host.`
+        : "No standard cmdlets were found to verify automatically.",
+      remediation: cmdlets.slice(0, 12).map((cmdlet) => `Get-Command ${cmdlet} -ErrorAction SilentlyContinue`).join("\n"),
+    },
+  ];
+
+  const readinessScore = Math.max(
+    5,
+    100
+      - environmentChecks.filter((check) => check.status === "action").length * 13
+      - environmentChecks.filter((check) => check.status === "warning").length * 6
+      - analysis.issues.filter((issue) => issue.severity === "critical").length * 12
+      - analysis.issues.filter((issue) => issue.severity === "warning").length * 6,
+  );
+
+  const dependencyManifest = [
+    `# ${baseName} dependency manifest`,
+    "",
+    "## Modules",
+    ...(analysis.moduleSuggestions.length > 0
+      ? analysis.moduleSuggestions.map((module) => `- ${module.moduleName}: ${module.installCommand}`)
+      : ["- No known module dependency detected by static review."]),
+    "",
+    "## Referenced commands",
+    ...(cmdlets.length > 0 ? cmdlets.map((cmdlet) => `- ${cmdlet}`) : ["- No standard cmdlets detected."]),
+    "",
+    "## Suggested #Requires",
+    ...(analysis.moduleSuggestions.length > 0
+      ? analysis.moduleSuggestions.map((module) => `#Requires -Modules ${module.moduleName}`)
+      : ["# Add #Requires statements after confirming module requirements."]),
+  ].join("\n");
+
+  const impactPreview = detectImpactPreview(script);
+  const rollbackPlan = [
+    hasWhatIfSupport
+      ? "Script includes WhatIf/ShouldProcess signals. Use them before committing changes."
+      : "Add WhatIf or SupportsShouldProcess before using this against production.",
+    hasAdminSignals
+      ? "Capture current service, registry, or Windows feature state before applying changes."
+      : "Capture affected object state before applying changes.",
+    "Save the original script, parameter values, transcript, and generated output with the change record.",
+    "Mark any delete, clear, or external API operations as manually reviewed because they may not be fully reversible.",
+  ];
+
+  const modernizationPlan = [
+    hasDeprecatedModules
+      ? "Deprecated AzureAD/MSOnline cmdlets detected. Plan migration to Microsoft Graph modules."
+      : "No AzureAD/MSOnline modernization issue detected by static review.",
+    hasCredentialRisk
+      ? "Potential hard-coded credential or token value detected. Move secrets into secure prompts or a vault."
+      : "No obvious hard-coded credential assignment detected.",
+    /\bWrite-Host\b/i.test(script)
+      ? "Replace status-only Write-Host output with Write-Verbose or structured output where automation will consume results."
+      : "Output style looks suitable for automation based on the quick review.",
+    /\bSet-StrictMode\b/i.test(script)
+      ? "Strict mode is already present."
+      : "Consider Set-StrictMode -Version Latest while testing older scripts.",
+  ];
+
+  const pesterTestDraft = [
+    `# ${baseName}.Tests.ps1`,
+    `# Generated by PSForge 3.0 Ops Suite`,
+    "",
+    `BeforeAll {`,
+    `  $ScriptPath = Join-Path $PSScriptRoot "${options.fileName}"`,
+    `}`,
+    "",
+    `Describe "${baseName}" {`,
+    `  It "has valid PowerShell syntax" {`,
+    `    { [scriptblock]::Create((Get-Content -Raw -Path $ScriptPath)) } | Should -Not -Throw`,
+    `  }`,
+    "",
+    ...analysis.parameters.map((parameter) => [
+      `  It "declares the ${parameter.name} parameter" {`,
+      `    Get-Content -Raw -Path $ScriptPath | Should -Match '\\$${parameter.name}\\b'`,
+      `  }`,
+      "",
+    ].join("\n")),
+    `  It "does not run destructive commands during test discovery" {`,
+    `    $content = Get-Content -Raw -Path $ScriptPath`,
+    `    $content | Should -Not -Match 'Invoke-Expression\\s+\\$'`,
+    `  }`,
+    `}`,
+  ].join("\n");
+
+  const packagePlan = [
+    `# ${baseName} package plan`,
+    "",
+    "## Recommended outputs",
+    "- ZIP bundle with script, README, runbook, dependency manifest, and sample parameters.",
+    "- Intune Win32 package when endpoint deployment is required.",
+    "- Scheduled task installer when recurring local execution is required.",
+    "- Install/uninstall script pair when the workflow changes machine state.",
+    "",
+    "## Detected package inputs",
+    `- Parameters: ${analysis.parameters.length}`,
+    `- Module hints: ${analysis.moduleSuggestions.length}`,
+    `- Requires elevation: ${hasAdminSignals ? "likely" : "not detected"}`,
+    `- Safer dry-run support: ${hasWhatIfSupport ? "detected" : "not detected"}`,
+  ].join("\n");
+
+  const runbookDraft = [
+    `# ${baseName} operational runbook`,
+    "",
+    `Owner: ${options.author || "PSForge User"}`,
+    `Generated: ${new Date().toISOString()}`,
+    "",
+    "## Purpose",
+    analysis.explanation.summary,
+    "",
+    "## Prerequisites",
+    ...environmentChecks.map((check) => `- ${check.label}: ${check.detail}`),
+    "",
+    "## Parameters",
+    ...(analysis.parameters.length > 0
+      ? analysis.parameters.map((parameter) => `- ${parameter.name} (${parameter.type})${parameter.required ? " - required" : ""}`)
+      : ["- No explicit param() block detected."]),
+    "",
+    "## Validation",
+    ...options.checklist.map((item) => `- [${item.checked ? "x" : " "}] ${item.label}`),
+    "",
+    "## Rollback",
+    ...rollbackPlan.map((item) => `- ${item}`),
+  ].join("\n");
+
+  return {
+    readinessScore,
+    environmentChecks,
+    dependencyManifest,
+    impactPreview,
+    rollbackPlan,
+    modernizationPlan,
+    pesterTestDraft,
+    packagePlan,
+    runbookDraft,
+  };
 }
 
 export function getTeamFavoriteCommandIds() {

@@ -203,6 +203,26 @@ type UpgradeDialogState = {
   contextLabel?: string;
 };
 
+type OpsToolId =
+  | "environment-doctor"
+  | "impact-preview"
+  | "pester-generator"
+  | "script-packager"
+  | "runbook-generator"
+  | "dependency-manager"
+  | "rollback-builder"
+  | "script-modernizer"
+  | "regex-lab"
+  | "pipeline-explorer"
+  | "parameter-set-designer"
+  | "credential-leak-detector"
+  | "performance-profiler"
+  | "compatibility-matrix"
+  | "csv-data-mapper"
+  | "error-reproduction-builder"
+  | "scheduled-task-builder"
+  | "script-certification";
+
 const COMMAND_FAVORITES_KEY = "psforge-desktop-command-favorites";
 const COMMAND_LIBRARY_VISIBLE_KEY = "psforge-desktop-command-library-visible-v2";
 const EDITOR_DETAILS_VISIBLE_KEY = "psforge-desktop-editor-details-visible";
@@ -379,6 +399,7 @@ export function DesktopScriptWorkbench({
   const [certificationNotes, setCertificationNotes] = useState("Reviewed and approved in PSForge Desktop 3.0.");
   const [certificationHash, setCertificationHash] = useState("");
   const [opsExporting, setOpsExporting] = useState(false);
+  const [selectedOpsToolId, setSelectedOpsToolId] = useState<OpsToolId>("environment-doctor");
   const [upgradeDialogState, setUpgradeDialogState] = useState<UpgradeDialogState>({
     open: false,
     feature: "PSForge Pro",
@@ -1482,6 +1503,156 @@ export function DesktopScriptWorkbench({
     }),
     [authorName, certificationHash, certificationNotes, currentFileName, script],
   );
+  const opsToolGroups = [
+    {
+      label: "Prepare",
+      tools: [
+        {
+          id: "environment-doctor" as OpsToolId,
+          title: "Environment Doctor",
+          description: "Readiness score, machine checks, and remediation commands.",
+          icon: ShieldAlert,
+          badge: `${operationsSuitePlan.readinessScore}%`,
+        },
+        {
+          id: "impact-preview" as OpsToolId,
+          title: "Change Impact Preview",
+          description: "Predicted changes and touched systems before execution.",
+          icon: Eye,
+          badge: `${operationsSuitePlan.impactPreview.length}`,
+        },
+        {
+          id: "credential-leak-detector" as OpsToolId,
+          title: "Credential Leak Detector",
+          description: "Hard-coded passwords, tokens, tenant IDs, and unsafe secret handling.",
+          icon: KeyRound,
+          badge: `${credentialFindings.length}`,
+        },
+        {
+          id: "compatibility-matrix" as OpsToolId,
+          title: "Compatibility Matrix",
+          description: "PowerShell, Server, Azure Automation, and constrained endpoint fit.",
+          icon: FileCheck,
+          badge: `${compatibilityMatrix.filter((item) => item.status !== "compatible").length}`,
+        },
+      ],
+    },
+    {
+      label: "Build",
+      tools: [
+        {
+          id: "pester-generator" as OpsToolId,
+          title: "Pester Test Generator",
+          description: "Generate and run starter tests for the active script.",
+          icon: FlaskConical,
+          badge: "Tests",
+        },
+        {
+          id: "parameter-set-designer" as OpsToolId,
+          title: "Parameter Set Designer",
+          description: "Turn detected parameters into an advanced function scaffold.",
+          icon: List,
+          badge: `${analysis.parameters.length}`,
+        },
+        {
+          id: "regex-lab" as OpsToolId,
+          title: "Regex Lab",
+          description: "Build, explain, and test PowerShell regular expressions.",
+          icon: Search,
+          badge: `${regexLabResult.matches.length}`,
+        },
+        {
+          id: "csv-data-mapper" as OpsToolId,
+          title: "CSV Data Mapper",
+          description: "Map CSV columns into parameters and preview bulk objects.",
+          icon: Table2,
+          badge: `${csvMapping.headers.length}`,
+        },
+      ],
+    },
+    {
+      label: "Document",
+      tools: [
+        {
+          id: "runbook-generator" as OpsToolId,
+          title: "Runbook Generator",
+          description: "Operational documentation with prerequisites, validation, and rollback.",
+          icon: BookOpen,
+          badge: "MD",
+        },
+        {
+          id: "dependency-manager" as OpsToolId,
+          title: "Dependency and Module Manager",
+          description: "Module hints, referenced commands, and #Requires suggestions.",
+          icon: ClipboardList,
+          badge: `${analysis.moduleSuggestions.length}`,
+        },
+        {
+          id: "pipeline-explorer" as OpsToolId,
+          title: "Object/Pipeline Explorer",
+          description: "Inspect likely object flow through each pipeline stage.",
+          icon: Activity,
+          badge: `${pipelineStages.length}`,
+        },
+        {
+          id: "error-reproduction-builder" as OpsToolId,
+          title: "Error Reproduction Builder",
+          description: "Create a sanitized support bundle from errors and context.",
+          icon: FileJson,
+          badge: "Safe",
+        },
+      ],
+    },
+    {
+      label: "Ship",
+      tools: [
+        {
+          id: "script-packager" as OpsToolId,
+          title: "PowerShell Script Packager",
+          description: "Deployment package plan and one-click Ops bundle export.",
+          icon: FileArchive,
+          badge: "ZIP",
+        },
+        {
+          id: "scheduled-task-builder" as OpsToolId,
+          title: "Scheduled Task Builder",
+          description: "Configure Task Scheduler triggers, accounts, and installer script.",
+          icon: CalendarClock,
+          badge: scheduledTaskSchedule,
+        },
+        {
+          id: "rollback-builder" as OpsToolId,
+          title: "Rollback Builder",
+          description: "Rollback guidance with irreversible operations called out.",
+          icon: ShieldAlert,
+          badge: `${operationsSuitePlan.rollbackPlan.length}`,
+        },
+        {
+          id: "script-modernizer" as OpsToolId,
+          title: "Script Modernizer",
+          description: "Migration and hardening guidance for older PowerShell scripts.",
+          icon: WandSparkles,
+          badge: `${operationsSuitePlan.modernizationPlan.length}`,
+        },
+        {
+          id: "performance-profiler" as OpsToolId,
+          title: "Performance Profiler",
+          description: "Generate a timing wrapper for script execution analysis.",
+          icon: Gauge,
+          badge: "Time",
+        },
+        {
+          id: "script-certification" as OpsToolId,
+          title: "Script Certification",
+          description: "Create approval manifests with hashes, owners, and expiration.",
+          icon: FileCheck,
+          badge: certificationHash ? "Signed" : "Hash",
+        },
+      ],
+    },
+  ];
+  const selectedOpsTool = opsToolGroups.flatMap((group) => group.tools).find((tool) => tool.id === selectedOpsToolId) || opsToolGroups[0].tools[0];
+  const SelectedOpsIcon = selectedOpsTool.icon;
 
   const filteredRunHistory = useMemo(() => {
     const query = runHistoryFilter.trim().toLowerCase();
@@ -2051,8 +2222,68 @@ export function DesktopScriptWorkbench({
                       </CardContent>
                     </Card>
 
-                    <div className="grid gap-4 xl:grid-cols-2">
-                      <Card>
+                    <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+                      <Card className="min-h-0 xl:sticky xl:top-0 xl:max-h-[calc(100vh-18rem)]">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">Ops tools</CardTitle>
+                          <CardDescription>Select one tool at a time to keep the review focused.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="min-h-0 space-y-4 overflow-auto pr-2">
+                          {opsToolGroups.map((group) => (
+                            <div key={group.label} className="space-y-2">
+                              <div className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{group.label}</div>
+                              <div className="space-y-1">
+                                {group.tools.map((tool) => {
+                                  const Icon = tool.icon;
+                                  const selected = selectedOpsToolId === tool.id;
+                                  return (
+                                    <button
+                                      key={tool.id}
+                                      type="button"
+                                      onClick={() => setSelectedOpsToolId(tool.id)}
+                                      className={`flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition ${
+                                        selected ? "border-primary bg-primary/10 text-foreground" : "border-transparent bg-background/40 text-muted-foreground hover:border-border hover:bg-background/70 hover:text-foreground"
+                                      }`}
+                                    >
+                                      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${selected ? "text-primary" : ""}`} />
+                                      <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-sm font-medium">{tool.title}</span>
+                                        <span className="mt-0.5 line-clamp-2 block text-xs">{tool.description}</span>
+                                      </span>
+                                      <Badge variant={selected ? "default" : "outline"} className="shrink-0 text-[10px]">{tool.badge}</Badge>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+
+                      <div className="min-w-0 space-y-4">
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <CardTitle className="flex items-center gap-2">
+                                  <SelectedOpsIcon className="h-5 w-5" />
+                                  {selectedOpsTool.title}
+                                </CardTitle>
+                                <CardDescription>{selectedOpsTool.description}</CardDescription>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline">{selectedOpsTool.badge}</Badge>
+                                <Button size="sm" variant="outline" onClick={handleExportOpsSuiteBundle} disabled={opsExporting || !script.trim()}>
+                                  <FileArchive className="mr-2 h-4 w-4" />
+                                  {opsExporting ? "Exporting..." : "Export Ops Bundle"}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+
+                        <div className="grid gap-4">
+                      <Card className={selectedOpsToolId === "environment-doctor" ? "" : "hidden"}>
                         <CardHeader>
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -2094,7 +2325,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "impact-preview" ? "" : "hidden"}>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Eye className="h-5 w-5" />
@@ -2113,6 +2344,7 @@ export function DesktopScriptWorkbench({
 
                       {[
                         {
+                          id: "pester-generator" as OpsToolId,
                           title: "Pester Test Generator",
                           description: "Companion .Tests.ps1 starter for syntax, parameter, and safety discovery tests.",
                           icon: FlaskConical,
@@ -2122,6 +2354,7 @@ export function DesktopScriptWorkbench({
                           actionLabel: "Run Tests",
                         },
                         {
+                          id: "script-packager" as OpsToolId,
                           title: "PowerShell Script Packager",
                           description: "Deployment packaging plan for ZIP, Intune, scheduled task, and install/uninstall outputs.",
                           icon: FileArchive,
@@ -2129,6 +2362,7 @@ export function DesktopScriptWorkbench({
                           copy: "Package plan copied.",
                         },
                         {
+                          id: "runbook-generator" as OpsToolId,
                           title: "Runbook Generator",
                           description: "Operational documentation with prerequisites, validation, and rollback sections.",
                           icon: BookOpen,
@@ -2136,6 +2370,7 @@ export function DesktopScriptWorkbench({
                           copy: "Runbook draft copied.",
                         },
                         {
+                          id: "dependency-manager" as OpsToolId,
                           title: "Dependency and Module Manager",
                           description: "Module, cmdlet, and #Requires manifest based on the current script.",
                           icon: ClipboardList,
@@ -2143,6 +2378,7 @@ export function DesktopScriptWorkbench({
                           copy: "Dependency manifest copied.",
                         },
                         {
+                          id: "rollback-builder" as OpsToolId,
                           title: "Rollback Builder",
                           description: "Honest rollback guidance with non-reversible operations called out for review.",
                           icon: ShieldAlert,
@@ -2150,13 +2386,14 @@ export function DesktopScriptWorkbench({
                           copy: "Rollback plan copied.",
                         },
                         {
+                          id: "script-modernizer" as OpsToolId,
                           title: "Script Modernizer",
                           description: "Modernization guidance for deprecated modules, secrets, output style, and strict mode.",
                           icon: WandSparkles,
                           content: operationsSuitePlan.modernizationPlan.map((item) => `- ${item}`).join("\n"),
                           copy: "Modernization plan copied.",
                         },
-                      ].map((item) => {
+                      ].filter((item) => item.id === selectedOpsToolId).map((item) => {
                         const Icon = item.icon;
                         return (
                           <Card key={item.title}>
@@ -2192,7 +2429,7 @@ export function DesktopScriptWorkbench({
                         );
                       })}
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "regex-lab" ? "" : "hidden"}>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Search className="h-5 w-5" />
@@ -2218,7 +2455,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "pipeline-explorer" ? "" : "hidden"}>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Activity className="h-5 w-5" />
@@ -2242,7 +2479,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "parameter-set-designer" ? "" : "hidden"}>
                         <CardHeader>
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -2263,7 +2500,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "credential-leak-detector" ? "" : "hidden"}>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <KeyRound className="h-5 w-5" />
@@ -2288,7 +2525,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "performance-profiler" ? "" : "hidden"}>
                         <CardHeader>
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -2309,7 +2546,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "compatibility-matrix" ? "" : "hidden"}>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <FileCheck className="h-5 w-5" />
@@ -2332,7 +2569,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "csv-data-mapper" ? "" : "hidden"}>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Table2 className="h-5 w-5" />
@@ -2352,7 +2589,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "error-reproduction-builder" ? "" : "hidden"}>
                         <CardHeader>
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -2374,7 +2611,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "scheduled-task-builder" ? "" : "hidden"}>
                         <CardHeader>
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -2421,7 +2658,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card className={selectedOpsToolId === "script-certification" ? "" : "hidden"}>
                         <CardHeader>
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -2442,6 +2679,8 @@ export function DesktopScriptWorkbench({
                           <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{certificationManifest}</code></pre>
                         </CardContent>
                       </Card>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>

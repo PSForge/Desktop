@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-export type DesktopWorkspaceTab = "script" | "ai" | "gui" | "wizard" | "git" | "troubleshooter";
+export type DesktopWorkspaceTab = "script" | "ai" | "gui" | "wizard" | "git" | "troubleshooter" | "ops";
 
 export type DesktopGuidedWorkflow = {
   id: string;

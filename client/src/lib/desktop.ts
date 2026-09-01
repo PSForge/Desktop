@@ -194,6 +194,15 @@ export function reportDesktopRendererReady(payload?: { elapsedMs?: number; route
   api.rendererReady(payload);
 }
 
+export async function showDesktopEditContextMenu() {
+  const api = desktopApi();
+  if (!isDesktopApp() || typeof api?.showEditContextMenu !== "function") {
+    return null;
+  }
+
+  return api.showEditContextMenu();
+}
+
 export async function openDesktopScript(): Promise<DesktopScriptFile | null> {
   if (!isDesktopApp()) {
     return null;

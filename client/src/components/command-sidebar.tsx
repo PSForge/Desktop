@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import { 
   Search, ChevronDown, ChevronRight, Plus, FolderOpen, Terminal, Star,
   Database, Network, Shield, Users, Settings, Clock, Cog, Server,
@@ -12,8 +12,31 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Command, CommandCategory, commandCategories } from "@shared/schema";
 import { powershellCommands, getCommandsByCategory, searchCommands } from "@/lib/powershell-commands";
+import { showDesktopEditContextMenu } from "@/lib/desktop";
 
 type LibraryViewMode = "compact" | "expanded";
+type LibrarySectionId = "favorites" | "recent" | "team-favorites";
+
+type LibraryContextMenuState =
+  | {
+    x: number;
+    y: number;
+    type: "section";
+    sectionId: LibrarySectionId;
+    label: string;
+  }
+  | {
+    x: number;
+    y: number;
+    type: "library";
+  }
+  | {
+    x: number;
+    y: number;
+    type: "command";
+    command: Command;
+    isFavorite: boolean;
+  };
 
 type PlatformPackId =
   | "windows-core"
@@ -30,6 +53,7 @@ const COMMAND_LIBRARY_PREFS_KEY = "psforge-command-library-preferences";
 type CommandLibraryPreferences = {
   viewMode?: LibraryViewMode;
   activePackId?: PlatformPackId;
+  hiddenSections?: LibrarySectionId[];
 };
 
 const platformPacks: Array<{
@@ -126,6 +150,8 @@ export function CommandSidebar({
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<LibraryViewMode>(() => readCommandLibraryPreferences().viewMode || "compact");
   const [activePackId, setActivePackId] = useState<PlatformPackId>(() => readCommandLibraryPreferences().activePackId || "windows-core");
+  const [hiddenSections, setHiddenSections] = useState<LibrarySectionId[]>(() => readCommandLibraryPreferences().hiddenSections || []);
+  const [contextMenu, setContextMenu] = useState<LibraryContextMenuState | null>(null);
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>(() =>
     safeJsonParse<string[]>(typeof window !== "undefined" ? window.localStorage.getItem(RECENT_COMMANDS_KEY) : null, []),
   );
@@ -187,9 +213,30 @@ export function CommandSidebar({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(COMMAND_LIBRARY_PREFS_KEY, JSON.stringify({ viewMode, activePackId }));
+      window.localStorage.setItem(COMMAND_LIBRARY_PREFS_KEY, JSON.stringify({ viewMode, activePackId, hiddenSections }));
     }
-  }, [activePackId, viewMode]);
+  }, [activePackId, hiddenSections, viewMode]);
+
+  useEffect(() => {
+    if (!contextMenu || typeof window === "undefined") {
+      return;
+    }
+
+    const close = () => setContextMenu(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        close();
+      }
+    };
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [contextMenu]);
 
   const rememberCommand = (command: Command) => {
     setRecentCommandIds((current) => [command.id, ...current.filter((commandId) => commandId !== command.id)].slice(0, 8));
@@ -198,6 +245,46 @@ export function CommandSidebar({
   const handleAddCommand = (command: Command) => {
     rememberCommand(command);
     onAddCommand(command);
+  };
+
+  const showSectionContextMenu = (event: ReactMouseEvent, sectionId: LibrarySectionId, label: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({ x: event.clientX, y: event.clientY, type: "section", sectionId, label });
+  };
+
+  const showLibraryContextMenu = (event: ReactMouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({ x: event.clientX, y: event.clientY, type: "library" });
+  };
+
+  const showCommandContextMenu = (event: ReactMouseEvent, command: Command, isFavorite: boolean) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({ x: event.clientX, y: event.clientY, type: "command", command, isFavorite });
+  };
+
+  const hideSection = (sectionId: LibrarySectionId) => {
+    setHiddenSections((current) => current.includes(sectionId) ? current : [...current, sectionId]);
+    setContextMenu(null);
+  };
+
+  const showSection = (sectionId: LibrarySectionId) => {
+    setHiddenSections((current) => current.filter((entry) => entry !== sectionId));
+    setContextMenu(null);
+  };
+
+  const showAllSections = () => {
+    setHiddenSections([]);
+    setContextMenu(null);
+  };
+
+  const isSectionHidden = (sectionId: LibrarySectionId) => hiddenSections.includes(sectionId);
+
+  const copyCommandSyntax = async (command: Command) => {
+    await navigator.clipboard.writeText(command.syntax || command.name);
+    setContextMenu(null);
   };
 
   const selectPack = (packId: PlatformPackId) => {
@@ -322,7 +409,55 @@ export function CommandSidebar({
 
   return (
     <div className="w-full sm:w-80 md:w-96 border-b md:border-b-0 md:border-r bg-card flex flex-col md:h-full md:shrink-0" data-testid="sidebar-commands">
-      <div className="border-b p-4 sm:p-5 space-y-3 md:shrink-0">
+      {contextMenu ? (
+        <div
+          className="fixed z-50 min-w-52 rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-lg"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+          data-testid="command-library-context-menu"
+        >
+          {contextMenu.type === "section" ? (
+            <>
+              <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={() => hideSection(contextMenu.sectionId)}>
+                Hide {contextMenu.label}
+              </button>
+              <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={() => void showDesktopEditContextMenu()}>
+                Edit menu
+              </button>
+            </>
+          ) : contextMenu.type === "command" ? (
+            <>
+              <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={() => { handleAddCommand(contextMenu.command); setContextMenu(null); }}>
+                Add to script
+              </button>
+              <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={() => void copyCommandSyntax(contextMenu.command)}>
+                Copy syntax
+              </button>
+              {onToggleFavorite ? (
+                <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={() => { onToggleFavorite(contextMenu.command.id); setContextMenu(null); }}>
+                  {contextMenu.isFavorite ? "Remove favorite" : "Add favorite"}
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {hiddenSections.length > 0 ? (
+                <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={showAllSections}>
+                  Show hidden sections
+                </button>
+              ) : null}
+              <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={() => { setViewMode(viewMode === "compact" ? "expanded" : "compact"); setContextMenu(null); }}>
+                Switch to {viewMode === "compact" ? "expanded" : "compact"} cards
+              </button>
+              <button className="w-full rounded-sm px-3 py-2 text-left hover:bg-muted" onClick={() => void showDesktopEditContextMenu()}>
+                Edit menu
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      <div className="border-b p-4 sm:p-5 space-y-3 md:shrink-0" onContextMenu={showLibraryContextMenu}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base sm:text-lg font-medium mb-1" data-testid="text-sidebar-title">Command Library 2.0</h2>
@@ -401,6 +536,7 @@ export function CommandSidebar({
                         onAdd={handleAddCommand}
                         isFavorite={favoriteCommandIds.includes(command.id)}
                         onToggleFavorite={onToggleFavorite}
+                        onContextMenu={showCommandContextMenu}
                         viewMode={viewMode}
                       />
                     ))}
@@ -416,8 +552,19 @@ export function CommandSidebar({
             )
           ) : (
             <>
-              {favoriteCommands.length > 0 && (
-                <div className="space-y-2 rounded-lg border bg-background/40 p-3">
+              {hiddenSections.length > 0 ? (
+                <div className="flex flex-wrap gap-2 rounded-md border border-dashed bg-background/30 px-3 py-2 text-xs text-muted-foreground">
+                  <span>Hidden:</span>
+                  {hiddenSections.map((sectionId) => (
+                    <button key={sectionId} type="button" className="text-primary hover:underline" onClick={() => showSection(sectionId)}>
+                      {sectionId === "team-favorites" ? "Team favorites" : sectionId === "recent" ? "Recent commands" : "Favorites"}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {favoriteCommands.length > 0 && !isSectionHidden("favorites") && (
+                <div className="space-y-2 rounded-lg border bg-background/40 p-3" onContextMenu={(event) => showSectionContextMenu(event, "favorites", "Favorites")}>
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Star className="h-4 w-4 text-amber-400" />
                     Favorites
@@ -430,6 +577,7 @@ export function CommandSidebar({
                         onAdd={handleAddCommand}
                         isFavorite
                         onToggleFavorite={onToggleFavorite}
+                        onContextMenu={showCommandContextMenu}
                         viewMode={viewMode}
                       />
                     ))}
@@ -437,8 +585,8 @@ export function CommandSidebar({
                 </div>
               )}
 
-              {recentCommands.length > 0 && (
-                <div className="space-y-2 rounded-lg border bg-background/40 p-3">
+              {recentCommands.length > 0 && !isSectionHidden("recent") && (
+                <div className="space-y-2 rounded-lg border bg-background/40 p-3" onContextMenu={(event) => showSectionContextMenu(event, "recent", "Recent commands")}>
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Clock className="h-4 w-4 text-primary" />
                     Recent commands
@@ -451,6 +599,7 @@ export function CommandSidebar({
                         onAdd={handleAddCommand}
                         isFavorite={favoriteCommandIds.includes(command.id)}
                         onToggleFavorite={onToggleFavorite}
+                        onContextMenu={showCommandContextMenu}
                         viewMode={viewMode}
                       />
                     ))}
@@ -458,8 +607,8 @@ export function CommandSidebar({
                 </div>
               )}
 
-              {teamFavoriteCommands.length > 0 && (
-                <div className="space-y-2 rounded-lg border bg-primary/5 p-3">
+              {teamFavoriteCommands.length > 0 && !isSectionHidden("team-favorites") && (
+                <div className="space-y-2 rounded-lg border bg-primary/5 p-3" onContextMenu={(event) => showSectionContextMenu(event, "team-favorites", "Team favorites")}>
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Star className="h-4 w-4 text-primary" />
                     Team favorites
@@ -473,6 +622,7 @@ export function CommandSidebar({
                         onAdd={handleAddCommand}
                         isFavorite={favoriteCommandIds.includes(command.id)}
                         onToggleFavorite={onToggleFavorite}
+                        onContextMenu={showCommandContextMenu}
                         viewMode={viewMode}
                       />
                     ))}
@@ -525,6 +675,7 @@ export function CommandSidebar({
                             onAdd={handleAddCommand}
                             isFavorite={favoriteCommandIds.includes(command.id)}
                             onToggleFavorite={onToggleFavorite}
+                            onContextMenu={showCommandContextMenu}
                             viewMode={viewMode}
                           />
                         ))}
@@ -546,12 +697,14 @@ function CommandCard({
   onAdd,
   isFavorite = false,
   onToggleFavorite,
+  onContextMenu,
   viewMode,
 }: {
   command: Command;
   onAdd: (command: Command) => void;
   isFavorite?: boolean;
   onToggleFavorite?: (commandId: string) => void;
+  onContextMenu?: (event: ReactMouseEvent, command: Command, isFavorite: boolean) => void;
   viewMode: LibraryViewMode;
 }) {
   const risk = getCommandRisk(command);
@@ -562,6 +715,7 @@ function CommandCard({
   return (
     <div
       className={`group border rounded-md hover-elevate active-elevate-2 transition-all ${isCompact ? "p-2" : "p-3"}`}
+      onContextMenu={(event) => onContextMenu?.(event, command, isFavorite)}
       data-testid={`card-command-${command.id}`}
     >
       <div className={`flex items-start justify-between gap-2 ${isCompact ? "" : "mb-2"}`}>

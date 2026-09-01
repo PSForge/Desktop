@@ -78,6 +78,8 @@ test("3.0 release metadata and Store listing point to the 3.0 MSI", () => {
 test("3.0 operations suite exposes review-first workflow features", () => {
   const utils = readRepoFile("client", "src", "lib", "script-workbench-utils.ts");
   const workbench = readRepoFile("client", "src", "components", "desktop-script-workbench.tsx");
+  const shell = readRepoFile("client", "src", "components", "desktop-workbench-shell.tsx");
+  const workspace = readRepoFile("client", "src", "pages", "desktop-workspace.tsx");
 
   for (const phrase of [
     "Environment Doctor",
@@ -120,6 +122,11 @@ test("3.0 operations suite exposes review-first workflow features", () => {
 
   assert.match(workbench, /value="ops-suite"/);
   assert.match(workbench, /PSForge 3\.0 Ops Suite/);
+  assert.match(workbench, /displayMode === "ops"/);
+  assert.match(shell, /value: "ops"/);
+  assert.match(shell, /label: "Ops"/);
+  assert.match(workspace, /TabsContent value="ops"/);
+  assert.doesNotMatch(workbench, /TabsTrigger value="ops-suite"/);
   assert.match(workbench, /handleRunEnvironmentDoctor/);
   assert.match(workbench, /handleRunGeneratedPesterTests/);
   assert.match(workbench, /FromBase64String/);
@@ -127,4 +134,24 @@ test("3.0 operations suite exposes review-first workflow features", () => {
   assert.match(workbench, /Pester is not installed\. Running PSForge syntax fallback only\./);
   assert.match(workbench, /handleExportOpsSuiteBundle/);
   assert.match(workbench, /handleCalculateCertification/);
+});
+
+test("desktop right-click menus support native editing and command library sections", () => {
+  const main = readRepoFile("desktop", "main.mjs");
+  const preload = readRepoFile("desktop", "preload.ts");
+  const desktop = readRepoFile("client", "src", "lib", "desktop.ts");
+  const commandSidebar = readRepoFile("client", "src", "components", "command-sidebar.tsx");
+
+  assert.match(main, /webContents\.on\("context-menu"/);
+  assert.match(main, /desktop:show-edit-context-menu/);
+  assert.match(main, /role: "cut"/);
+  assert.match(main, /role: "copy"/);
+  assert.match(main, /role: "paste"/);
+  assert.match(preload, /showEditContextMenu/);
+  assert.match(desktop, /showDesktopEditContextMenu/);
+  assert.match(commandSidebar, /command-library-context-menu/);
+  assert.match(commandSidebar, /team-favorites/);
+  assert.match(commandSidebar, /Hide \{contextMenu\.label\}/);
+  assert.match(commandSidebar, /Show hidden sections/);
+  assert.match(commandSidebar, /Copy syntax/);
 });

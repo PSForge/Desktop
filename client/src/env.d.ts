@@ -140,6 +140,7 @@ interface Window {
       text: string;
     }>;
     debugLog: (message: string) => Promise<{ ok: boolean }>;
+    showEditContextMenu?: () => Promise<{ ok: boolean }>;
     gitStatus: (payload: { repoPath: string }) => Promise<DesktopGitRepoState>;
     gitInit: (payload: { repoPath: string; branchName?: string }) => Promise<DesktopGitRepoState>;
     gitCreateBranch: (payload: { repoPath: string; branchName: string; fromBranch?: string }) => Promise<DesktopGitRepoState>;

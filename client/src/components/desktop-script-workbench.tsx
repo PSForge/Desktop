@@ -80,6 +80,7 @@ interface DesktopScriptWorkbenchProps {
   setScript: (script: string) => void;
   currentFileName?: string;
   authorName?: string;
+  displayMode?: "editor" | "ops";
   pendingAction?: DesktopWorkbenchAction | null;
   onRunHistorySummaryChange?: (summary: DesktopRunHistorySummary) => void;
 }
@@ -325,6 +326,7 @@ export function DesktopScriptWorkbench({
   setScript,
   currentFileName = "script.ps1",
   authorName = "PSForge User",
+  displayMode = "editor",
   pendingAction = null,
   onRunHistorySummaryChange,
 }: DesktopScriptWorkbenchProps) {
@@ -1742,6 +1744,7 @@ export function DesktopScriptWorkbench({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        {displayMode === "editor" ? (
         <div className="border-b px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 text-sm text-muted-foreground">
@@ -1817,9 +1820,10 @@ export function DesktopScriptWorkbench({
             </div>
           </div>
         </div>
+        ) : null}
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          {isCommandLibraryVisible && (
+          {displayMode === "editor" && isCommandLibraryVisible && (
             <div className="hidden min-h-0 lg:block">
               <CommandSidebar
                 onAddCommand={handleAddCommand}
@@ -1832,8 +1836,9 @@ export function DesktopScriptWorkbench({
 
           <div
             className="grid min-w-0 flex-1 min-h-0 overflow-hidden"
-            style={{ gridTemplateRows: isEditorDetailsVisible ? "minmax(0, 1fr) clamp(220px, 30vh, 380px)" : "minmax(0, 1fr) 42px" }}
+            style={{ gridTemplateRows: displayMode === "ops" ? "minmax(0, 1fr)" : isEditorDetailsVisible ? "minmax(0, 1fr) clamp(220px, 30vh, 380px)" : "minmax(0, 1fr) 42px" }}
           >
+            {displayMode === "editor" ? (
             <div className="min-h-0 overflow-hidden border-b">
               <ScriptEditor
                 script={script}
@@ -1842,9 +1847,11 @@ export function DesktopScriptWorkbench({
                 onSelectionChange={setSelectedText}
               />
             </div>
+            ) : null}
 
             <div className="min-h-0 overflow-hidden">
-              <Tabs value={detailsTab} onValueChange={showEditorDetailsTab} className="flex h-full min-h-0 flex-col overflow-hidden">
+              <Tabs value={displayMode === "ops" ? "ops-suite" : detailsTab} onValueChange={showEditorDetailsTab} className="flex h-full min-h-0 flex-col overflow-hidden">
+                {displayMode === "editor" ? (
                 <div className="flex h-[42px] shrink-0 items-center justify-between gap-3 border-b px-3 py-1.5">
                   <TabsList className="flex w-auto shrink-0 overflow-hidden">
                     <TabsTrigger value="preview" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
@@ -1862,10 +1869,6 @@ export function DesktopScriptWorkbench({
                     <TabsTrigger value="workbench" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <ClipboardList className="h-4 w-4" />
                       <span className="hidden sm:inline">Workbench</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="ops-suite" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
-                      <Rocket className="h-4 w-4" />
-                      <span className="hidden sm:inline">Ops</span>
                     </TabsTrigger>
                     <TabsTrigger value="ai-review" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Bot className="h-4 w-4" />
@@ -1891,8 +1894,9 @@ export function DesktopScriptWorkbench({
                     </Button>
                   </div>
                 </div>
+                ) : null}
 
-                {isEditorDetailsVisible && (
+                {(displayMode === "ops" || isEditorDetailsVisible) && (
                   <>
                 <TabsContent value="preview" className="mt-0 min-h-0 flex-1 overflow-hidden">
                   <CodePreview code={script} validationErrors={validationResult.errors || []} />

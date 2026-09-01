@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld("psforgeDesktop", {
   request: (payload: { url: string; method?: string; headers?: Record<string, string>; body?: string }) =>
     ipcRenderer.invoke("desktop:http-request", payload),
   debugLog: (message: string) => ipcRenderer.invoke("desktop:debug-log", message),
+  showEditContextMenu: () => ipcRenderer.invoke("desktop:show-edit-context-menu"),
   gitStatus: (payload: { repoPath: string }) => ipcRenderer.invoke("desktop:git-status", payload),
   gitInit: (payload: { repoPath: string; branchName?: string }) => ipcRenderer.invoke("desktop:git-init", payload),
   gitCreateBranch: (payload: { repoPath: string; branchName: string; fromBranch?: string }) =>

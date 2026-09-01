@@ -2985,6 +2985,18 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               </div>
             </TabsContent>
 
+            <TabsContent value="ops" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+              <DesktopScriptWorkbench
+                script={currentScript}
+                setScript={setActiveScript}
+                currentFileName={currentFileName}
+                authorName={visibleUser?.name || visibleUser?.email || "PSForge User"}
+                displayMode="ops"
+                pendingAction={pendingWorkbenchAction}
+                onRunHistorySummaryChange={setRunHistorySummary}
+              />
+            </TabsContent>
+
             <TabsContent value="git" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading Git workspace...</div>}>
                 <DesktopGitPanel

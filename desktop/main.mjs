@@ -1306,6 +1306,13 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  mainWindow.webContents.on("context-menu", (event, params) => {
+    if (params.isEditable || params.selectionText) {
+      event.preventDefault();
+      showEditContextMenu(mainWindow.webContents, params);
+    }
+  });
+
   mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
     void writeDesktopLog(`[renderer-console:${level}] ${sourceId || "unknown"}:${line} ${message}`);
   });
@@ -1432,6 +1439,21 @@ function showMainWindow() {
   }
   mainWindow.show();
   mainWindow.focus();
+}
+
+function showEditContextMenu(webContents, params = {}) {
+  const menu = Menu.buildFromTemplate([
+    { role: "undo", enabled: Boolean(params.editFlags?.canUndo) },
+    { role: "redo", enabled: Boolean(params.editFlags?.canRedo) },
+    { type: "separator" },
+    { role: "cut", enabled: Boolean(params.editFlags?.canCut) },
+    { role: "copy", enabled: Boolean(params.editFlags?.canCopy) },
+    { role: "paste", enabled: Boolean(params.editFlags?.canPaste) },
+    { type: "separator" },
+    { role: "selectAll", enabled: Boolean(params.editFlags?.canSelectAll ?? true) },
+  ]);
+
+  menu.popup({ window: BrowserWindow.fromWebContents(webContents) || mainWindow || undefined });
 }
 
 function createApplicationMenu() {
@@ -2069,6 +2091,20 @@ ipcMain.handle("desktop:debug-log", async (_event, message) => {
     await writeDesktopLog(`[renderer] ${message.trim()}`);
   }
 
+  return { ok: true };
+});
+
+ipcMain.handle("desktop:show-edit-context-menu", async (event) => {
+  showEditContextMenu(event.sender, {
+    editFlags: {
+      canUndo: true,
+      canRedo: true,
+      canCut: true,
+      canCopy: true,
+      canPaste: true,
+      canSelectAll: true,
+    },
+  });
   return { ok: true };
 });
 

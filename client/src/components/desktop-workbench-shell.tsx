@@ -55,7 +55,7 @@ import {
   type TranslationKey,
 } from "@/lib/i18n";
 
-type WorkbenchArea = "script" | "ai" | "gui" | "wizard" | "git" | "troubleshooter";
+type WorkbenchArea = "script" | "ai" | "gui" | "wizard" | "git" | "troubleshooter" | "ops";
 
 type UpdateState = {
   state: string;
@@ -116,7 +116,8 @@ interface DesktopWorkbenchShellProps {
 
 const railItems: Array<{
   value: WorkbenchArea;
-  labelKey: TranslationKey;
+  labelKey?: TranslationKey;
+  label?: string;
   icon: typeof FileCode;
 }> = [
   { value: "script", labelKey: "work", icon: FileCode },
@@ -125,6 +126,7 @@ const railItems: Array<{
   { value: "ai", labelKey: "ai", icon: Bot },
   { value: "git", labelKey: "git", icon: GitBranch },
   { value: "wizard", labelKey: "wizard", icon: Wand2 },
+  { value: "ops", label: "Ops", icon: PackageCheck },
 ];
 
 const WORKBENCH_PREFS_KEY = "psforge-workbench-preferences";
@@ -332,6 +334,7 @@ export function DesktopWorkbenchShell({
           { label: t("openAiWorkspace"), icon: Bot, run: () => onAreaChange("ai") },
           { label: t("openGitWorkspace"), icon: GitBranch, run: () => onAreaChange("git") },
           { label: "Open Log Troubleshooter", icon: Wrench, run: () => onAreaChange("troubleshooter") },
+          { label: "Open Ops Suite", icon: PackageCheck, run: () => onAreaChange("ops") },
           { label: t("showWorkspaceDetails"), icon: BriefcaseBusiness, run: () => openBottomPanelTab("workspace") },
           { label: t("showProblems"), icon: ShieldAlert, run: () => openBottomPanelTab("problems") },
           { label: t("showScriptIntelligence"), icon: Sparkles, run: () => openBottomPanelTab("ai") },
@@ -513,10 +516,10 @@ export function DesktopWorkbenchShell({
                       : "border-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                   }`}
                   onClick={() => onAreaChange(item.value)}
-                  title={t(item.labelKey)}
+                  title={item.labelKey ? t(item.labelKey) : item.label}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{t(item.labelKey)}</span>
+                  <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
                 </button>
               );
             })}

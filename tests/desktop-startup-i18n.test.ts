@@ -88,11 +88,43 @@ test("3.0 operations suite exposes review-first workflow features", () => {
     "Rollback Builder",
     "Script Modernizer",
     "Dependency and Module Manager",
+    "Regex Lab",
+    "Object/Pipeline Explorer",
+    "Parameter Set Designer",
+    "Credential Leak Detector",
+    "Performance Profiler",
+    "Compatibility Matrix",
+    "CSV Data Mapper",
+    "Error Reproduction Builder",
+    "Scheduled Task Builder",
+    "Script Certification",
   ]) {
     assert.match(workbench, new RegExp(phrase));
   }
 
-  assert.match(utils, /buildOperationsSuitePlan/);
+  for (const utility of [
+    "buildOperationsSuitePlan",
+    "runRegexLab",
+    "inspectPipeline",
+    "buildParameterSetDesignerDraft",
+    "detectCredentialLeaks",
+    "buildPerformanceProfilerScript",
+    "buildCompatibilityMatrix",
+    "parseCsvMapping",
+    "buildSanitizedSupportBundle",
+    "buildScheduledTaskInstaller",
+    "buildCertificationManifest",
+  ]) {
+    assert.match(utils, new RegExp(`export function ${utility}`));
+  }
+
   assert.match(workbench, /value="ops-suite"/);
   assert.match(workbench, /PSForge 3\.0 Ops Suite/);
+  assert.match(workbench, /handleRunEnvironmentDoctor/);
+  assert.match(workbench, /handleRunGeneratedPesterTests/);
+  assert.match(workbench, /FromBase64String/);
+  assert.match(workbench, /Invoke-Pester -Path/);
+  assert.match(workbench, /Pester is not installed\. Running PSForge syntax fallback only\./);
+  assert.match(workbench, /handleExportOpsSuiteBundle/);
+  assert.match(workbench, /handleCalculateCertification/);
 });

@@ -39,7 +39,7 @@ PSForge is built for people who want the speed of PowerShell with a cleaner, saf
 
 ## What's New In This Version
 
-Version 3.0 adds the PSForge Ops Suite: Environment Doctor, Pester Test Generator, PowerShell Script Packager, Runbook Generator, Change Impact Preview, Rollback Builder, Script Modernizer, and Dependency and Module Manager. It also fixes first-run language selection so Continue immediately advances into startup loading, keeps the loading screen visible until the workspace is ready, and preserves secure `psforge://` workflow deep links, updated sign-in, refreshed branding, and Microsoft Store analytics readiness.
+Version 3.0 adds the full PSForge Ops Suite: Environment Doctor, Pester Test Generator, PowerShell Script Packager, Runbook Generator, Change Impact Preview, Rollback Builder, Script Modernizer, Dependency and Module Manager, Regex Lab, Object/Pipeline Explorer, Parameter Set Designer, Credential Leak Detector, Performance Profiler, Compatibility Matrix, CSV Data Mapper, Error Reproduction Builder, Scheduled Task Builder, and Script Certification. It also fixes first-run language selection so Continue immediately advances into startup loading, keeps the loading screen visible until the workspace is ready, and preserves secure `psforge://` workflow deep links, updated sign-in, refreshed branding, and Microsoft Store analytics readiness.
 
 ## Product Features
 
@@ -57,7 +57,7 @@ Each item is under the Microsoft Store 200-character feature limit.
 - Refreshed PSForge 2.0 branding, desktop icon, and Microsoft Store-ready MSI packaging.
 - Faster startup handoff with visible loading progress instead of a blank launch window.
 - First-run language selection with persisted in-app language preference.
-- PSForge 3.0 Ops Suite for readiness, tests, packaging, runbooks, impact, rollback, modernization, and dependencies.
+- PSForge 3.0 Ops Suite for readiness, tests, packaging, runbooks, impact, rollback, modernization, dependencies, CSV mapping, scheduling, and certification.
 
 ## Search Terms
 

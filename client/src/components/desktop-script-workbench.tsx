@@ -2,16 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  Activity,
   Bot,
   BookOpen,
+  CalendarClock,
   ChevronDown,
   CheckCircle2,
   ClipboardList,
   Copy,
   Eye,
+  FileJson,
   FileArchive,
   FileCheck,
   FlaskConical,
+  Gauge,
+  KeyRound,
   List,
   MoreHorizontal,
   PanelLeftClose,
@@ -23,6 +28,7 @@ import {
   Search,
   ShieldAlert,
   Sparkles,
+  Table2,
   WandSparkles,
   Wand2,
   X,
@@ -49,12 +55,22 @@ import { isDesktopApp, openDesktopDirectory, openDesktopPath, runDesktopPowerShe
 import type { Command, ValidationResult, ComprehensiveValidationResult } from "@shared/schema";
 import {
   analyzeScriptWorkbench,
+  buildCertificationManifest,
+  buildCompatibilityMatrix,
   buildOperationsSuitePlan,
+  buildParameterSetDesignerDraft,
+  buildPerformanceProfilerScript,
+  buildSanitizedSupportBundle,
+  buildScheduledTaskInstaller,
   buildWorkbenchProfileKey,
   buildExportBundleArtifacts,
+  detectCredentialLeaks,
   generateCommentHeader,
   getTeamFavoriteCommandIds,
+  inspectPipeline,
+  parseCsvMapping,
   replacePlaceholders,
+  runRegexLab,
   type ExecutionChecklistItem,
   type ParsedScriptParameter,
 } from "@/lib/script-workbench-utils";
@@ -270,6 +286,20 @@ function buildRecommendationKey(recommendation: AIOptimizationRecommendation) {
   return `${recommendation.type}:${recommendation.priority}:${recommendation.title}:${recommendation.line ?? "na"}`;
 }
 
+function encodeUtf8Base64(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function sanitizePowerShellFileName(fileName: string) {
+  const sanitized = fileName.replace(/[^A-Za-z0-9_.-]/g, "-").replace(/^-+|-+$/g, "");
+  return sanitized || "script.ps1";
+}
+
 export function DesktopScriptWorkbench({
   script,
   setScript,
@@ -335,6 +365,20 @@ export function DesktopScriptWorkbench({
   const [aiExplanation, setAiExplanation] = useState<AIExplainResult | null>(null);
   const [aiOptimization, setAiOptimization] = useState<AIOptimizationResult | null>(null);
   const [selectedRecommendationKeys, setSelectedRecommendationKeys] = useState<string[]>([]);
+  const [environmentDoctorResult, setEnvironmentDoctorResult] = useState<DesktopPowerShellRunResult | null>(null);
+  const [environmentDoctorRunning, setEnvironmentDoctorRunning] = useState(false);
+  const [regexPattern, setRegexPattern] = useState("\\b[A-Z][A-Za-z]+-[A-Z][A-Za-z]+\\b");
+  const [regexSample, setRegexSample] = useState(script.slice(0, 4000));
+  const [csvSample, setCsvSample] = useState(() => "Name,Path,Enabled\nExample,C:\\Temp,true");
+  const [supportContext, setSupportContext] = useState("");
+  const [scheduledTaskName, setScheduledTaskName] = useState("PSForge Script Task");
+  const [scheduledTaskPath, setScheduledTaskPath] = useState(`C:\\Scripts\\${currentFileName}`);
+  const [scheduledTaskSchedule, setScheduledTaskSchedule] = useState<"Daily" | "Weekly" | "AtLogon">("Daily");
+  const [scheduledTaskTime, setScheduledTaskTime] = useState("09:00");
+  const [scheduledTaskRunHighest, setScheduledTaskRunHighest] = useState(false);
+  const [certificationNotes, setCertificationNotes] = useState("Reviewed and approved in PSForge Desktop 3.0.");
+  const [certificationHash, setCertificationHash] = useState("");
+  const [opsExporting, setOpsExporting] = useState(false);
   const [upgradeDialogState, setUpgradeDialogState] = useState<UpgradeDialogState>({
     open: false,
     feature: "PSForge Pro",
@@ -472,6 +516,21 @@ export function DesktopScriptWorkbench({
     setAiOptimization(null);
     setSelectedRecommendationKeys([]);
   }, [script, selectedText]);
+
+  useEffect(() => {
+    if (!regexSample.trim() && script.trim()) {
+      setRegexSample(script.slice(0, 4000));
+    }
+  }, [regexSample, script]);
+
+  useEffect(() => {
+    setScheduledTaskPath((current) => {
+      if (!current || /\\script\.ps1$/i.test(current) || current.endsWith(currentFileName)) {
+        return `C:\\Scripts\\${currentFileName}`;
+      }
+      return current;
+    });
+  }, [currentFileName]);
 
   const validationMutation = useMutation({
     mutationFn: async (code: string) => {
@@ -1121,6 +1180,207 @@ export function DesktopScriptWorkbench({
     }
   };
 
+  const buildEnvironmentDoctorScript = () => [
+    "$ErrorActionPreference = 'Continue'",
+    "$checks = [ordered]@{}",
+    "$checks.PowerShellVersion = $PSVersionTable.PSVersion.ToString()",
+    "$checks.Edition = $PSVersionTable.PSEdition",
+    "$checks.ExecutionPolicy = (Get-ExecutionPolicy -List | Out-String).Trim()",
+    "$identity = [Security.Principal.WindowsIdentity]::GetCurrent()",
+    "$principal = [Security.Principal.WindowsPrincipal]::new($identity)",
+    "$checks.IsAdministrator = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)",
+    "$checks.Network = Test-Connection -ComputerName 'psforge.app' -Count 1 -Quiet -ErrorAction SilentlyContinue",
+    "$checks.Dns = [bool](Resolve-DnsName 'psforge.app' -ErrorAction SilentlyContinue)",
+    "$checks.Domain = try { (Get-CimInstance Win32_ComputerSystem).Domain } catch { 'Unavailable' }",
+    "$checks.EntraJoin = try { (dsregcmd /status | Select-String 'AzureAdJoined|DomainJoined' | ForEach-Object { $_.Line.Trim() }) -join '; ' } catch { 'Unavailable' }",
+    "$checks.WinRM = try { Test-WSMan -ComputerName localhost -ErrorAction Stop | Out-Null; 'Available' } catch { 'Unavailable' }",
+    "$checks.Modules = @(",
+    ...operationsSuitePlan.environmentChecks
+      .find((check) => check.id === "modules")
+      ?.remediation?.split(/\r?\n/)
+      .filter(Boolean)
+      .map((command) => {
+        const moduleMatch = /Install-Module\s+([A-Za-z0-9_.-]+)/i.exec(command);
+        return moduleMatch ? `  '${moduleMatch[1]}'` : "";
+      })
+      .filter(Boolean) || [],
+    ") | ForEach-Object { [pscustomobject]@{ Name = $_; Available = [bool](Get-Module -ListAvailable -Name $_) } }",
+    "[pscustomobject]$checks | Format-List",
+  ].join("\n");
+
+  const handleRunEnvironmentDoctor = async () => {
+    if (!isDesktopApp()) {
+      toast({
+        title: "Desktop-only action",
+        description: "Environment Doctor needs the Windows desktop runtime.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEnvironmentDoctorRunning(true);
+    try {
+      const result = await runDesktopPowerShellScript({
+        scriptContent: buildEnvironmentDoctorScript(),
+        fileName: "psforge-environment-doctor.ps1",
+        captureTranscript: true,
+        runMode: "report-only",
+      });
+      setEnvironmentDoctorResult(result);
+      toast({
+        title: "Environment Doctor complete",
+        description: "Machine readiness output was captured for review.",
+        variant: result.exitCode === 0 ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Environment Doctor failed",
+        description: error?.message || "Could not run the local diagnostic script.",
+        variant: "destructive",
+      });
+    } finally {
+      setEnvironmentDoctorRunning(false);
+    }
+  };
+
+  const handleRunGeneratedPesterTests = async () => {
+    if (!isDesktopApp()) {
+      toast({
+        title: "Desktop-only action",
+        description: "Pester execution needs the Windows desktop runtime.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const safeScriptFileName = sanitizePowerShellFileName(currentFileName);
+      const safeTestFileName = `${safeScriptFileName.replace(/\.[^.]+$/, "") || "script"}.Tests.ps1`;
+      const encodedScript = encodeUtf8Base64(script);
+      const encodedTest = encodeUtf8Base64(operationsSuitePlan.pesterTestDraft);
+      const runnerScript = [
+        "$ErrorActionPreference = 'Stop'",
+        `$ScriptBytes = [Convert]::FromBase64String("${encodedScript}")`,
+        `$TestBytes = [Convert]::FromBase64String("${encodedTest}")`,
+        "$ScriptText = [Text.Encoding]::UTF8.GetString($ScriptBytes)",
+        "$TestText = [Text.Encoding]::UTF8.GetString($TestBytes)",
+        "$TempRoot = Join-Path $env:TEMP ('psforge-pester-' + [guid]::NewGuid().ToString('N'))",
+        "New-Item -ItemType Directory -Path $TempRoot -Force | Out-Null",
+        `$ScriptPath = Join-Path $TempRoot "${safeScriptFileName}"`,
+        `$TestPath = Join-Path $TempRoot "${safeTestFileName}"`,
+        "Set-Content -Path $ScriptPath -Value $ScriptText -Encoding UTF8",
+        "Set-Content -Path $TestPath -Value $TestText -Encoding UTF8",
+        "if (Get-Module -ListAvailable -Name Pester) {",
+        "  Import-Module Pester",
+        "  Invoke-Pester -Path $TestPath -Output Detailed",
+        "} else {",
+        "  Write-Warning 'Pester is not installed. Running PSForge syntax fallback only.'",
+        "  [scriptblock]::Create($ScriptText) | Out-Null",
+        "  Write-Host '[PASS] Script syntax parsed successfully.'",
+        "  Write-Host 'Install-Module Pester -Scope CurrentUser to run the generated .Tests.ps1 file.'",
+        "}",
+      ].join("\n");
+
+      const result = await runDesktopPowerShellScript({
+        scriptContent: runnerScript,
+        fileName: `${safeScriptFileName.replace(/\.[^.]+$/, "") || "script"}-pester-runner.ps1`,
+        captureTranscript: true,
+        runMode: "report-only",
+      });
+      const nextEntry: RunHistoryEntry = {
+        ...result,
+        id: `${Date.now()}`,
+        parameters: {},
+        runMode: "report-only",
+        beforeNotes: "Generated Pester starter test run.",
+      };
+      setRunHistory((current) => [nextEntry, ...current].slice(0, 12));
+      showEditorDetailsTab("runs");
+      toast({
+        title: result.exitCode === 0 ? "Pester run captured" : "Pester run needs review",
+        description: "The generated test output is available in Runs.",
+        variant: result.exitCode === 0 ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Could not run Pester tests",
+        description: error?.message || "Install Pester or export the test file to run it manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCalculateCertification = async () => {
+    try {
+      const bytes = new TextEncoder().encode(script);
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const hash = Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
+      setCertificationHash(hash);
+      toast({
+        title: "Certification hash calculated",
+        description: "A SHA-256 script fingerprint is ready for the manifest.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Certification failed",
+        description: error?.message || "Could not calculate the SHA-256 hash.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportOpsSuiteBundle = async () => {
+    const targetDirectory = await openDesktopDirectory();
+    if (!targetDirectory || targetDirectory.canceled || !targetDirectory.filePath) {
+      return;
+    }
+
+    setOpsExporting(true);
+    try {
+      const baseName = currentFileName.replace(/\.[^.]+$/, "") || "psforge-script";
+      const bundleRoot = `${targetDirectory.filePath}\\${baseName}-psforge-ops-suite`;
+      const artifacts = [
+        { name: currentFileName, content: script },
+        { name: `${baseName}.Tests.ps1`, content: operationsSuitePlan.pesterTestDraft },
+        { name: "environment-doctor.ps1", content: buildEnvironmentDoctorScript() },
+        { name: "dependency-manifest.md", content: operationsSuitePlan.dependencyManifest },
+        { name: "package-plan.md", content: operationsSuitePlan.packagePlan },
+        { name: "runbook.md", content: operationsSuitePlan.runbookDraft },
+        { name: "rollback-plan.md", content: operationsSuitePlan.rollbackPlan.map((item) => `- ${item}`).join("\n") },
+        { name: "modernization-plan.md", content: operationsSuitePlan.modernizationPlan.map((item) => `- ${item}`).join("\n") },
+        { name: "compatibility-matrix.json", content: JSON.stringify(compatibilityMatrix, null, 2) },
+        { name: "credential-leak-report.json", content: JSON.stringify(credentialFindings, null, 2) },
+        { name: "pipeline-explorer.json", content: JSON.stringify(pipelineStages, null, 2) },
+        { name: "performance-profiler.ps1", content: profilerScript },
+        { name: "scheduled-task-installer.ps1", content: scheduledTaskInstaller },
+        { name: "sanitized-support-bundle.md", content: supportBundle },
+        { name: "script-certification.json", content: certificationManifest },
+      ];
+
+      for (const artifact of artifacts) {
+        await writeDesktopScriptFile(`${bundleRoot}\\${artifact.name}`, artifact.content);
+      }
+
+      const zipPath = `${bundleRoot}.zip`;
+      await zipDesktopDirectory(bundleRoot, zipPath);
+      await openDesktopPath(zipPath);
+      toast({
+        title: "Ops Suite bundle exported",
+        description: "The script, diagnostics, tests, package plan, runbook, rollback plan, and support artifacts were zipped.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Ops Suite export failed",
+        description: error?.message || "Could not create the Ops Suite bundle.",
+        variant: "destructive",
+      });
+    } finally {
+      setOpsExporting(false);
+    }
+  };
+
   const handleRunScript = async () => {
     if (!isDesktopApp()) {
       toast({
@@ -1194,6 +1454,33 @@ export function DesktopScriptWorkbench({
       checklist: checklistItems,
     }),
     [authorName, checklistItems, currentFileName, script],
+  );
+  const regexLabResult = useMemo(() => runRegexLab(regexPattern, regexSample), [regexPattern, regexSample]);
+  const pipelineStages = useMemo(() => inspectPipeline(script), [script]);
+  const parameterSetDraft = useMemo(() => buildParameterSetDesignerDraft(analysis.parameters), [analysis.parameters]);
+  const credentialFindings = useMemo(() => detectCredentialLeaks(script), [script]);
+  const compatibilityMatrix = useMemo(() => buildCompatibilityMatrix(script), [script]);
+  const csvMapping = useMemo(() => parseCsvMapping(csvSample, analysis.parameters), [analysis.parameters, csvSample]);
+  const profilerScript = useMemo(() => buildPerformanceProfilerScript(script, currentFileName), [currentFileName, script]);
+  const supportBundle = useMemo(() => buildSanitizedSupportBundle(script, supportContext, currentFileName), [currentFileName, script, supportContext]);
+  const scheduledTaskInstaller = useMemo(
+    () => buildScheduledTaskInstaller({
+      taskName: scheduledTaskName,
+      scriptPath: scheduledTaskPath,
+      schedule: scheduledTaskSchedule,
+      time: scheduledTaskTime,
+      runAsHighest: scheduledTaskRunHighest,
+    }),
+    [scheduledTaskName, scheduledTaskPath, scheduledTaskRunHighest, scheduledTaskSchedule, scheduledTaskTime],
+  );
+  const certificationManifest = useMemo(
+    () => buildCertificationManifest(script, {
+      fileName: currentFileName,
+      hash: certificationHash || "Run certification to calculate SHA-256",
+      owner: authorName,
+      notes: certificationNotes,
+    }),
+    [authorName, certificationHash, certificationNotes, currentFileName, script],
   );
 
   const filteredRunHistory = useMemo(() => {
@@ -1734,12 +2021,18 @@ export function DesktopScriptWorkbench({
                               PSForge 3.0 Ops Suite
                             </CardTitle>
                             <CardDescription>
-                              Turn the active script into an environment readiness review, package plan, runbook, tests, dependency manifest, impact preview, rollback plan, and modernization guide.
+                              Turn the active script into diagnostics, tests, deployment packages, documentation, safety reviews, data mapping, support bundles, and certification records.
                             </CardDescription>
                           </div>
-                          <Badge variant={operationsSuitePlan.readinessScore >= 80 ? "default" : operationsSuitePlan.readinessScore >= 60 ? "secondary" : "destructive"}>
-                            {operationsSuitePlan.readinessScore}% ready
-                          </Badge>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={operationsSuitePlan.readinessScore >= 80 ? "default" : operationsSuitePlan.readinessScore >= 60 ? "secondary" : "destructive"}>
+                              {operationsSuitePlan.readinessScore}% ready
+                            </Badge>
+                            <Button size="sm" variant="outline" onClick={handleExportOpsSuiteBundle} disabled={opsExporting || !script.trim()}>
+                              <FileArchive className="mr-2 h-4 w-4" />
+                              {opsExporting ? "Exporting..." : "Export Ops Bundle"}
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="grid gap-3 lg:grid-cols-4">
@@ -1761,11 +2054,19 @@ export function DesktopScriptWorkbench({
                     <div className="grid gap-4 xl:grid-cols-2">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <ShieldAlert className="h-5 w-5" />
-                            Environment Doctor
-                          </CardTitle>
-                          <CardDescription>Review host prerequisites before the script is run.</CardDescription>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <ShieldAlert className="h-5 w-5" />
+                                Environment Doctor
+                              </CardTitle>
+                              <CardDescription>Run a local diagnostic and review prerequisites before the script is run.</CardDescription>
+                            </div>
+                            <Button size="sm" onClick={handleRunEnvironmentDoctor} disabled={environmentDoctorRunning}>
+                              <Play className="mr-2 h-4 w-4" />
+                              {environmentDoctorRunning ? "Running..." : "Run Doctor"}
+                            </Button>
+                          </div>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {operationsSuitePlan.environmentChecks.map((check) => (
@@ -1785,6 +2086,11 @@ export function DesktopScriptWorkbench({
                               ) : null}
                             </div>
                           ))}
+                          {environmentDoctorResult ? (
+                            <pre className="max-h-48 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
+                              <code>{environmentDoctorResult.stdout || environmentDoctorResult.stderr || "Environment Doctor produced no console output."}</code>
+                            </pre>
+                          ) : null}
                         </CardContent>
                       </Card>
 
@@ -1812,6 +2118,8 @@ export function DesktopScriptWorkbench({
                           icon: FlaskConical,
                           content: operationsSuitePlan.pesterTestDraft,
                           copy: "Pester test draft copied.",
+                          action: handleRunGeneratedPesterTests,
+                          actionLabel: "Run Tests",
                         },
                         {
                           title: "PowerShell Script Packager",
@@ -1861,10 +2169,18 @@ export function DesktopScriptWorkbench({
                                   </CardTitle>
                                   <CardDescription>{item.description}</CardDescription>
                                 </div>
-                                <Button size="sm" variant="outline" onClick={() => handleCopyText(item.content, item.copy)}>
-                                  <Copy className="mr-2 h-4 w-4" />
-                                  Copy
-                                </Button>
+                                <div className="flex flex-wrap gap-2">
+                                  {"action" in item && item.action ? (
+                                    <Button size="sm" onClick={item.action}>
+                                      <Play className="mr-2 h-4 w-4" />
+                                      {item.actionLabel}
+                                    </Button>
+                                  ) : null}
+                                  <Button size="sm" variant="outline" onClick={() => handleCopyText(item.content, item.copy)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Copy
+                                  </Button>
+                                </div>
                               </div>
                             </CardHeader>
                             <CardContent>
@@ -1875,6 +2191,257 @@ export function DesktopScriptWorkbench({
                           </Card>
                         );
                       })}
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Search className="h-5 w-5" />
+                            Regex Lab
+                          </CardTitle>
+                          <CardDescription>Build, explain, test, and preview PowerShell regex matches against sample text.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Input value={regexPattern} onChange={(event) => setRegexPattern(event.target.value)} placeholder="Regex pattern" />
+                          <Textarea value={regexSample} onChange={(event) => setRegexSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder="Sample text" />
+                          {regexLabResult.ok ? (
+                            <div className="grid gap-2">
+                              {regexLabResult.explanation.map((line) => (
+                                <div key={line} className="rounded-md border bg-background/60 px-3 py-2 text-sm text-muted-foreground">{line}</div>
+                              ))}
+                              <pre className="max-h-40 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
+                                <code>{regexLabResult.matches.map((match) => `${match.index}: ${match.value}${match.groups.length ? ` groups=${JSON.stringify(match.groups)}` : ""}`).join("\n") || "No matches."}</code>
+                              </pre>
+                            </div>
+                          ) : (
+                            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-3 text-sm text-destructive">{regexLabResult.error}</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Activity className="h-5 w-5" />
+                            Object/Pipeline Explorer
+                          </CardTitle>
+                          <CardDescription>Inspect the likely object flow through each pipeline stage.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {pipelineStages.length > 0 ? pipelineStages.map((stage) => (
+                            <div key={`${stage.index}-${stage.command}`} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="font-mono text-sm text-primary">{stage.index}. {stage.command}</div>
+                              <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                                <div>Input: {stage.likelyInput}</div>
+                                <div>Output: {stage.likelyOutput}</div>
+                                {stage.notes.map((note) => <div key={note}>Note: {note}</div>)}
+                              </div>
+                            </div>
+                          )) : (
+                            <div className="rounded-md border bg-background/60 px-3 py-3 text-sm text-muted-foreground">No pipeline stages were detected.</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <List className="h-5 w-5" />
+                                Parameter Set Designer
+                              </CardTitle>
+                              <CardDescription>Create an advanced-function parameter block from detected parameters.</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(parameterSetDraft, "Parameter set draft copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="max-h-56 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{parameterSetDraft}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <KeyRound className="h-5 w-5" />
+                            Credential Leak Detector
+                          </CardTitle>
+                          <CardDescription>Detect hard-coded passwords, tokens, tenant values, and unsafe secret handling.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {credentialFindings.length > 0 ? credentialFindings.map((finding) => (
+                            <div key={finding.id} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={finding.severity === "critical" ? "destructive" : "secondary"}>{finding.severity}</Badge>
+                                <div className="font-medium">{finding.title}</div>
+                                <Badge variant="outline">Line {finding.line}</Badge>
+                              </div>
+                              <div className="mt-2 font-mono text-xs text-muted-foreground">{finding.evidence}</div>
+                              <div className="mt-2 text-sm text-primary">{finding.recommendation}</div>
+                            </div>
+                          )) : (
+                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">No credential leak patterns detected.</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <Gauge className="h-5 w-5" />
+                                Performance Profiler
+                              </CardTitle>
+                              <CardDescription>Generate a wrapper that measures elapsed time, errors, and process memory.</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(profilerScript, "Performance profiler copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="max-h-56 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{profilerScript}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileCheck className="h-5 w-5" />
+                            Compatibility Matrix
+                          </CardTitle>
+                          <CardDescription>Review suitability for PowerShell 5.1, 7.x, Windows Server, Azure Automation, and constrained endpoints.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {compatibilityMatrix.map((finding) => (
+                            <div key={finding.target} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={finding.status === "unsupported" ? "destructive" : finding.status === "review" ? "secondary" : "outline"}>{finding.status}</Badge>
+                                <div className="font-medium">{finding.target}</div>
+                              </div>
+                              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                                {finding.notes.map((note) => <div key={note}>{note}</div>)}
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Table2 className="h-5 w-5" />
+                            CSV Data Mapper
+                          </CardTitle>
+                          <CardDescription>Map CSV columns into script parameters and preview bulk input objects.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Textarea value={csvSample} onChange={(event) => setCsvSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder="Paste CSV sample" />
+                          <div className="rounded-md border bg-background/60 px-3 py-3 text-sm">
+                            <div className="font-medium">Detected headers</div>
+                            <div className="mt-1 text-muted-foreground">{csvMapping.headers.join(", ") || "No headers detected."}</div>
+                          </div>
+                          <pre className="max-h-40 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
+                            <code>{JSON.stringify({ suggestedParameterMap: csvMapping.suggestedParameterMap, previewObjects: csvMapping.previewObjects }, null, 2)}</code>
+                          </pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <FileJson className="h-5 w-5" />
+                                Error Reproduction Builder
+                              </CardTitle>
+                              <CardDescription>Create a sanitized support bundle from an error, notes, and the relevant script.</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(supportBundle, "Sanitized support bundle copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Textarea value={supportContext} onChange={(event) => setSupportContext(event.target.value)} className="min-h-28" placeholder="Paste the error message and environment context. PSForge will redact common sensitive values." />
+                          <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{supportBundle}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <CalendarClock className="h-5 w-5" />
+                                Scheduled Task Builder
+                              </CardTitle>
+                              <CardDescription>Configure triggers, run level, and deployment script for Task Scheduler.</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(scheduledTaskInstaller, "Scheduled task installer copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <Label>Task name</Label>
+                              <Input value={scheduledTaskName} onChange={(event) => setScheduledTaskName(event.target.value)} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>Script path</Label>
+                              <Input value={scheduledTaskPath} onChange={(event) => setScheduledTaskPath(event.target.value)} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>Schedule</Label>
+                              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={scheduledTaskSchedule} onChange={(event) => setScheduledTaskSchedule(event.target.value as "Daily" | "Weekly" | "AtLogon")}>
+                                <option value="Daily">Daily</option>
+                                <option value="Weekly">Weekly</option>
+                                <option value="AtLogon">At logon</option>
+                              </select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>Time</Label>
+                              <Input value={scheduledTaskTime} onChange={(event) => setScheduledTaskTime(event.target.value)} disabled={scheduledTaskSchedule === "AtLogon"} />
+                            </div>
+                          </div>
+                          <label className="flex items-center justify-between gap-3 rounded-md border bg-background/60 px-3 py-3 text-sm">
+                            <span>Run with highest privileges</span>
+                            <Switch checked={scheduledTaskRunHighest} onCheckedChange={setScheduledTaskRunHighest} />
+                          </label>
+                          <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{scheduledTaskInstaller}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <ShieldAlert className="h-5 w-5" />
+                                Script Certification
+                              </CardTitle>
+                              <CardDescription>Create an approval manifest with hash, owner, issue counts, and expiration.</CardDescription>
+                            </div>
+                            <Button size="sm" onClick={handleCalculateCertification} disabled={!script.trim()}>
+                              <KeyRound className="mr-2 h-4 w-4" />
+                              Certify
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Textarea value={certificationNotes} onChange={(event) => setCertificationNotes(event.target.value)} className="min-h-20" placeholder="Approval notes" />
+                          <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{certificationManifest}</code></pre>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                 </TabsContent>

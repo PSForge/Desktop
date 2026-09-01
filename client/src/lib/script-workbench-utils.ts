@@ -80,6 +80,43 @@ export interface OperationsSuitePlan {
   runbookDraft: string;
 }
 
+export interface RegexLabResult {
+  ok: boolean;
+  error?: string;
+  matches: Array<{ value: string; index: number; groups: string[] }>;
+  explanation: string[];
+}
+
+export interface PipelineStage {
+  index: number;
+  command: string;
+  likelyInput: string;
+  likelyOutput: string;
+  notes: string[];
+}
+
+export interface CredentialLeakFinding {
+  id: string;
+  severity: "critical" | "warning";
+  line: number;
+  title: string;
+  evidence: string;
+  recommendation: string;
+}
+
+export interface CompatibilityFinding {
+  target: string;
+  status: "compatible" | "review" | "unsupported";
+  notes: string[];
+}
+
+export interface CsvMappingResult {
+  headers: string[];
+  rows: string[][];
+  suggestedParameterMap: Record<string, string>;
+  previewObjects: Record<string, string>[];
+}
+
 const TEAM_FAVORITE_COMMAND_IDS = [
   "get-childitem",
   "test-connection",
@@ -1061,6 +1098,318 @@ export function buildOperationsSuitePlan(
     packagePlan,
     runbookDraft,
   };
+}
+
+export function runRegexLab(pattern: string, sampleText: string): RegexLabResult {
+  const trimmedPattern = pattern.trim();
+  if (!trimmedPattern) {
+    return {
+      ok: false,
+      error: "Enter a regular expression pattern first.",
+      matches: [],
+      explanation: ["The Regex Lab needs a pattern before it can test sample text."],
+    };
+  }
+
+  try {
+    const regex = new RegExp(trimmedPattern, "gim");
+    const matches = Array.from(sampleText.matchAll(regex)).slice(0, 100).map((match) => ({
+      value: match[0],
+      index: match.index || 0,
+      groups: match.slice(1),
+    }));
+
+    const explanation = [
+      regex.ignoreCase ? "Case-insensitive matching is enabled." : "Case-sensitive matching is enabled.",
+      regex.multiline ? "Multiline mode lets anchors match each line." : "Multiline mode is not enabled.",
+      trimmedPattern.includes("\\d") ? "The pattern looks for digits." : "",
+      trimmedPattern.includes("\\w") ? "The pattern looks for word characters." : "",
+      trimmedPattern.includes(".*") ? "The pattern includes a greedy wildcard. Review it carefully on long logs." : "",
+      matches.length === 0 ? "No matches were found in the current sample." : `${matches.length} match${matches.length === 1 ? "" : "es"} found in the sample.`,
+    ].filter(Boolean);
+
+    return { ok: true, matches, explanation };
+  } catch (error: any) {
+    return {
+      ok: false,
+      error: error?.message || "Invalid regular expression.",
+      matches: [],
+      explanation: ["Fix the regular expression syntax and try again."],
+    };
+  }
+}
+
+export function inspectPipeline(script: string): PipelineStage[] {
+  return script
+    .split(/\r?\n/)
+    .flatMap((line) => line.split("|").map((part) => part.trim()).filter(Boolean))
+    .filter((part) => /\b[A-Za-z]+-[A-Za-z]+\b/.test(part))
+    .slice(0, 40)
+    .map((command, index) => {
+      const verb = command.split("-")[0]?.toLowerCase();
+      const likelyOutput = verb === "get"
+        ? "PowerShell objects from a query command"
+        : verb === "select"
+          ? "Projected objects with selected properties"
+          : verb === "where"
+            ? "Filtered objects from the previous stage"
+            : verb === "export"
+              ? "A file or serialized output"
+              : "Objects or side effects depending on command behavior";
+
+      return {
+        index: index + 1,
+        command,
+        likelyInput: index === 0 ? "Script input, parameters, or local state" : "Objects from previous pipeline stage",
+        likelyOutput,
+        notes: [
+          command.includes("$") ? "Uses variable input." : "No variable input detected in this stage.",
+          /\b(Format-|Out-Host|Write-Host)\b/i.test(command) ? "Display-only output can be hard to automate." : "Stage appears reusable in automation.",
+        ],
+      };
+    });
+}
+
+export function buildParameterSetDesignerDraft(parameters: ParsedScriptParameter[]) {
+  const required = parameters.filter((parameter) => parameter.required);
+  const optional = parameters.filter((parameter) => !parameter.required);
+  const requiredLines = required.length > 0
+    ? required.map((parameter) => `  [Parameter(Mandatory, ParameterSetName = "Default")]\n  [${parameter.type}]$${parameter.name},`)
+    : [`  [Parameter(ParameterSetName = "Default")]\n  [string]$TargetName,`];
+  const optionalLines = optional.map((parameter) => `  [Parameter(ParameterSetName = "Default")]\n  [${parameter.type}]$${parameter.name}${parameter.defaultValue ? ` = ${parameter.defaultValue}` : ""},`);
+
+  return [
+    "[CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = \"Default\")]",
+    "param(",
+    ...requiredLines,
+    ...optionalLines,
+    "  [Parameter(ParameterSetName = \"ReportOnly\")]",
+    "  [switch]$ReportOnly",
+    ")",
+  ].join("\n");
+}
+
+export function detectCredentialLeaks(script: string): CredentialLeakFinding[] {
+  const findings: CredentialLeakFinding[] = [];
+  const rules: Array<{ title: string; severity: "critical" | "warning"; pattern: RegExp; recommendation: string }> = [
+    {
+      title: "Possible hard-coded secret assignment",
+      severity: "critical",
+      pattern: /\b(password|passwd|pwd|secret|token|apikey|api_key|clientsecret)\b\s*=\s*["'][^"']{4,}["']/i,
+      recommendation: "Replace hard-coded values with Get-Credential, SecretManagement, environment variables, or a secure vault.",
+    },
+    {
+      title: "Plain-text secure string conversion",
+      severity: "critical",
+      pattern: /\bConvertTo-SecureString\b.+\b-AsPlainText\b/i,
+      recommendation: "Avoid embedding plain-text secrets. Prompt securely or retrieve secrets from a managed vault.",
+    },
+    {
+      title: "Potential tenant or machine-specific value",
+      severity: "warning",
+      pattern: /\b[A-Za-z0-9.-]+\.(onmicrosoft\.com|local|corp)\b/i,
+      recommendation: "Parameterize tenant, domain, or machine-specific values before sharing or packaging.",
+    },
+    {
+      title: "Credential object exported or serialized",
+      severity: "warning",
+      pattern: /\b(Export-Clixml|ConvertFrom-SecureString)\b/i,
+      recommendation: "Confirm exported credential material is encrypted for the intended user/machine and never committed to source control.",
+    },
+  ];
+
+  for (const [lineIndex, line] of script.split(/\r?\n/).entries()) {
+    for (const rule of rules) {
+      const match = rule.pattern.exec(line);
+      if (match) {
+        findings.push({
+          id: `${rule.title}-${lineIndex}`,
+          severity: rule.severity,
+          line: lineIndex + 1,
+          title: rule.title,
+          evidence: line.trim().slice(0, 160),
+          recommendation: rule.recommendation,
+        });
+      }
+    }
+  }
+
+  return findings;
+}
+
+export function buildPerformanceProfilerScript(script: string, fileName = "script.ps1") {
+  const safeName = fileName.replace(/"/g, "");
+  return [
+    `$ScriptPath = Join-Path $PSScriptRoot "${safeName}"`,
+    "$Result = [ordered]@{}",
+    "$Timer = [System.Diagnostics.Stopwatch]::StartNew()",
+    "try {",
+    "  & $ScriptPath",
+    "  $Result.ExitCode = 0",
+    "} catch {",
+    "  $Result.ExitCode = 1",
+    "  $Result.Error = $_.Exception.Message",
+    "} finally {",
+    "  $Timer.Stop()",
+    "  $Result.ElapsedMs = $Timer.ElapsedMilliseconds",
+    "  $Result.WorkingSetMB = [math]::Round((Get-Process -Id $PID).WorkingSet64 / 1MB, 2)",
+    "  [pscustomobject]$Result | Format-List",
+    "}",
+    "",
+    "# Original script preview",
+    ...script.split(/\r?\n/).slice(0, 40).map((line) => `# ${line}`),
+  ].join("\n");
+}
+
+export function buildCompatibilityMatrix(script: string): CompatibilityFinding[] {
+  const usesWindowsOnly = /\b(Get-CimInstance|Get-WmiObject|Get-EventLog|Get-WindowsFeature|Install-WindowsFeature|HKLM:|Get-Service)\b/i.test(script);
+  const usesDesktopOnly = /\bOut-GridView|System\.Windows\.Forms|PresentationFramework\b/i.test(script);
+  const usesDeprecated = /\b(Get-WmiObject|Connect-AzureAD|Get-AzureAD|Connect-MsolService|Get-Msol)\b/i.test(script);
+  const usesUnsupportedAutomation = /\bRead-Host|Get-Credential|Out-GridView\b/i.test(script);
+
+  return [
+    {
+      target: "Windows PowerShell 5.1",
+      status: usesDeprecated ? "review" : "compatible",
+      notes: [
+        usesWindowsOnly ? "Windows administration cmdlets detected and are usually best tested on Windows PowerShell." : "No Windows-only dependency detected.",
+        usesDeprecated ? "Deprecated cmdlets are present. Keep compatibility notes with the runbook." : "No deprecated 5.1 compatibility issue detected.",
+      ],
+    },
+    {
+      target: "PowerShell 7.x",
+      status: usesWindowsOnly || usesDeprecated ? "review" : "compatible",
+      notes: [
+        usesWindowsOnly ? "Windows-only modules or providers may require Windows compatibility mode." : "No obvious blocker for PowerShell 7.x.",
+        usesDeprecated ? "Replace deprecated AzureAD/MSOnline/WMI commands where possible." : "No deprecated module signal detected.",
+      ],
+    },
+    {
+      target: "Windows Server",
+      status: usesDesktopOnly ? "review" : "compatible",
+      notes: [
+        usesDesktopOnly ? "Desktop UI dependencies may not work on Server Core or unattended jobs." : "No desktop UI dependency detected.",
+        "Confirm required roles/features on the target server.",
+      ],
+    },
+    {
+      target: "Azure Automation",
+      status: usesUnsupportedAutomation ? "unsupported" : usesWindowsOnly ? "review" : "compatible",
+      notes: [
+        usesUnsupportedAutomation ? "Interactive prompts or UI commands are not suitable for Azure Automation." : "No interactive prompt blocker detected.",
+        usesWindowsOnly ? "Windows-only cmdlets need Hybrid Worker or replacement cloud modules." : "Cloud execution looks plausible after module validation.",
+      ],
+    },
+    {
+      target: "Constrained endpoints",
+      status: /\bInvoke-Expression|Add-Type|Start-Process|New-Object\b/i.test(script) ? "review" : "compatible",
+      notes: [
+        "Confirm allowed cmdlets, language mode, and module availability.",
+        /\bInvoke-Expression|Add-Type|Start-Process|New-Object\b/i.test(script) ? "Dynamic execution or process creation may be blocked." : "No dynamic execution blocker detected.",
+      ],
+    },
+  ];
+}
+
+export function parseCsvMapping(csvText: string, parameters: ParsedScriptParameter[]): CsvMappingResult {
+  const rows = csvText
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => line.split(",").map((cell) => cell.trim().replace(/^"|"$/g, "")))
+    .filter((row) => row.some(Boolean));
+  const headers = rows[0] || [];
+  const dataRows = rows.slice(1);
+  const suggestedParameterMap = parameters.reduce<Record<string, string>>((accumulator, parameter) => {
+    const match = headers.find((header) => header.toLowerCase() === parameter.name.toLowerCase())
+      || headers.find((header) => header.toLowerCase().includes(parameter.name.toLowerCase()));
+    accumulator[parameter.name] = match || "";
+    return accumulator;
+  }, {});
+  const previewObjects = dataRows.slice(0, 5).map((row) =>
+    headers.reduce<Record<string, string>>((accumulator, header, index) => {
+      accumulator[header] = row[index] || "";
+      return accumulator;
+    }, {}),
+  );
+
+  return { headers, rows: dataRows, suggestedParameterMap, previewObjects };
+}
+
+export function buildSanitizedSupportBundle(script: string, context: string, fileName: string) {
+  const redact = (value: string) =>
+    value
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[redacted-email]")
+      .replace(/\b[A-Za-z0-9.-]+\.onmicrosoft\.com\b/gi, "[redacted-tenant]")
+      .replace(/\b(password|secret|token|apikey|clientsecret)\s*[:=]\s*["']?[^"'\s]+/gi, "$1=[redacted]")
+      .replace(/\b[A-Z]:\\Users\\[^\\\r\n]+/gi, "C:\\Users\\[redacted]");
+
+  return [
+    "# PSForge sanitized support bundle",
+    "",
+    `File: ${fileName}`,
+    `Created: ${new Date().toISOString()}`,
+    "",
+    "## Sanitized context",
+    redact(context || "No extra context provided."),
+    "",
+    "## Sanitized script excerpt",
+    "```powershell",
+    redact(script).slice(0, 12000),
+    "```",
+  ].join("\n");
+}
+
+export function buildScheduledTaskInstaller(options: {
+  taskName: string;
+  scriptPath: string;
+  schedule: "Daily" | "Weekly" | "AtLogon";
+  time: string;
+  runAsHighest: boolean;
+}) {
+  const taskName = options.taskName.trim() || "PSForge Script Task";
+  const scriptPath = options.scriptPath.trim() || "C:\\Path\\To\\script.ps1";
+  const action = `New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File \\"${scriptPath}\\""`;
+  const trigger = options.schedule === "AtLogon"
+    ? "New-ScheduledTaskTrigger -AtLogOn"
+    : `New-ScheduledTaskTrigger -${options.schedule} -At "${options.time || "09:00"}"`;
+  const principal = options.runAsHighest
+    ? "$Principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest -LogonType Interactive"
+    : "$Principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive";
+
+  return [
+    `[CmdletBinding(SupportsShouldProcess)]`,
+    "param()",
+    "",
+    `$TaskName = "${taskName.replace(/"/g, "")}"`,
+    `$Action = ${action}`,
+    `$Trigger = ${trigger}`,
+    principal,
+    "$Settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries",
+    "",
+    "if ($PSCmdlet.ShouldProcess($TaskName, 'Register scheduled task')) {",
+    "  Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Principal $Principal -Settings $Settings -Force",
+    "}",
+    "",
+    "# Uninstall command:",
+    "# Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false",
+  ].join("\n");
+}
+
+export function buildCertificationManifest(script: string, options: { fileName: string; hash: string; owner: string; notes: string }) {
+  const analysis = analyzeScriptWorkbench(script);
+  return JSON.stringify({
+    schema: "psforge.script-certification.v1",
+    fileName: options.fileName,
+    sha256: options.hash,
+    owner: options.owner || "PSForge User",
+    certifiedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
+    status: analysis.issues.some((issue) => issue.severity === "critical") ? "review-required" : "approved",
+    notes: options.notes || "Certified from PSForge Desktop 3.0 after operator review.",
+    summary: analysis.explanation.summary,
+    issueCount: analysis.issues.length,
+    criticalIssueCount: analysis.issues.filter((issue) => issue.severity === "critical").length,
+  }, null, 2);
 }
 
 export function getTeamFavoriteCommandIds() {

@@ -1471,39 +1471,57 @@ export function DesktopScriptWorkbench({
     [analysis.checklist, checklistState],
   );
   const operationsSuitePlan = useMemo(
-    () => buildOperationsSuitePlan(script, {
-      fileName: currentFileName,
-      author: authorName,
-      checklist: checklistItems,
-    }),
-    [authorName, checklistItems, currentFileName, script],
+    () => displayMode === "ops"
+      ? buildOperationsSuitePlan(script, {
+        fileName: currentFileName,
+        author: authorName,
+        checklist: checklistItems,
+      })
+      : {
+        readinessScore: 0,
+        environmentChecks: [],
+        dependencyManifest: "",
+        impactPreview: [],
+        rollbackPlan: [],
+        modernizationPlan: [],
+        pesterTestDraft: "",
+        packagePlan: "",
+        runbookDraft: "",
+      },
+    [authorName, checklistItems, currentFileName, displayMode, script],
   );
-  const regexLabResult = useMemo(() => runRegexLab(regexPattern, regexSample), [regexPattern, regexSample]);
-  const pipelineStages = useMemo(() => inspectPipeline(script), [script]);
-  const parameterSetDraft = useMemo(() => buildParameterSetDesignerDraft(analysis.parameters), [analysis.parameters]);
-  const credentialFindings = useMemo(() => detectCredentialLeaks(script), [script]);
-  const compatibilityMatrix = useMemo(() => buildCompatibilityMatrix(script), [script]);
-  const csvMapping = useMemo(() => parseCsvMapping(csvSample, analysis.parameters), [analysis.parameters, csvSample]);
-  const profilerScript = useMemo(() => buildPerformanceProfilerScript(script, currentFileName), [currentFileName, script]);
-  const supportBundle = useMemo(() => buildSanitizedSupportBundle(script, supportContext, currentFileName), [currentFileName, script, supportContext]);
+  const regexLabResult = useMemo(
+    () => displayMode === "ops" ? runRegexLab(regexPattern, regexSample) : { ok: true, matches: [], explanation: [] },
+    [displayMode, regexPattern, regexSample],
+  );
+  const pipelineStages = useMemo(() => displayMode === "ops" ? inspectPipeline(script) : [], [displayMode, script]);
+  const parameterSetDraft = useMemo(() => displayMode === "ops" ? buildParameterSetDesignerDraft(analysis.parameters) : "", [analysis.parameters, displayMode]);
+  const credentialFindings = useMemo(() => displayMode === "ops" ? detectCredentialLeaks(script) : [], [displayMode, script]);
+  const compatibilityMatrix = useMemo(() => displayMode === "ops" ? buildCompatibilityMatrix(script) : [], [displayMode, script]);
+  const csvMapping = useMemo(
+    () => displayMode === "ops" ? parseCsvMapping(csvSample, analysis.parameters) : { headers: [], suggestedParameterMap: {}, previewObjects: [] },
+    [analysis.parameters, csvSample, displayMode],
+  );
+  const profilerScript = useMemo(() => displayMode === "ops" ? buildPerformanceProfilerScript(script, currentFileName) : "", [currentFileName, displayMode, script]);
+  const supportBundle = useMemo(() => displayMode === "ops" ? buildSanitizedSupportBundle(script, supportContext, currentFileName) : "", [currentFileName, displayMode, script, supportContext]);
   const scheduledTaskInstaller = useMemo(
-    () => buildScheduledTaskInstaller({
+    () => displayMode === "ops" ? buildScheduledTaskInstaller({
       taskName: scheduledTaskName,
       scriptPath: scheduledTaskPath,
       schedule: scheduledTaskSchedule,
       time: scheduledTaskTime,
       runAsHighest: scheduledTaskRunHighest,
-    }),
-    [scheduledTaskName, scheduledTaskPath, scheduledTaskRunHighest, scheduledTaskSchedule, scheduledTaskTime],
+    }) : "",
+    [displayMode, scheduledTaskName, scheduledTaskPath, scheduledTaskRunHighest, scheduledTaskSchedule, scheduledTaskTime],
   );
   const certificationManifest = useMemo(
-    () => buildCertificationManifest(script, {
+    () => displayMode === "ops" ? buildCertificationManifest(script, {
       fileName: currentFileName,
       hash: certificationHash || "Run certification to calculate SHA-256",
       owner: authorName,
       notes: certificationNotes,
-    }),
-    [authorName, certificationHash, certificationNotes, currentFileName, script],
+    }) : "",
+    [authorName, certificationHash, certificationNotes, currentFileName, displayMode, script],
   );
   const opsToolGroups = [
     {
@@ -2193,7 +2211,7 @@ export function DesktopScriptWorkbench({
                           <div>
                             <CardTitle className="flex items-center gap-2">
                               <Rocket className="h-5 w-5" />
-                              PSForge 3.0 Ops Suite
+                              Ops Suite
                             </CardTitle>
                             <CardDescription>
                               Turn the active script into diagnostics, tests, deployment packages, documentation, safety reviews, data mapping, support bundles, and certification records.
@@ -2226,41 +2244,43 @@ export function DesktopScriptWorkbench({
                       </CardContent>
                     </Card>
 
-                    <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
-                      <Card className="min-h-0 xl:sticky xl:top-0 xl:max-h-[calc(100vh-18rem)]">
+                    <div className="grid min-h-0 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+                      <Card className="flex min-h-0 flex-col xl:sticky xl:top-0 xl:h-[calc(100vh-18rem)] xl:max-h-[calc(100vh-18rem)]">
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base">Ops tools</CardTitle>
                           <CardDescription>Select one tool at a time to keep the review focused.</CardDescription>
                         </CardHeader>
-                        <CardContent className="min-h-0 space-y-4 overflow-auto pr-2">
-                          {opsToolGroups.map((group) => (
-                            <div key={group.label} className="space-y-2">
-                              <div className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{group.label}</div>
-                              <div className="space-y-1">
-                                {group.tools.map((tool) => {
-                                  const Icon = tool.icon;
-                                  const selected = selectedOpsToolId === tool.id;
-                                  return (
-                                    <button
-                                      key={tool.id}
-                                      type="button"
-                                      onClick={() => setSelectedOpsToolId(tool.id)}
-                                      className={`flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition ${
-                                        selected ? "border-primary bg-primary/10 text-foreground" : "border-transparent bg-background/40 text-muted-foreground hover:border-border hover:bg-background/70 hover:text-foreground"
-                                      }`}
-                                    >
-                                      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${selected ? "text-primary" : ""}`} />
-                                      <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-sm font-medium">{tool.title}</span>
-                                        <span className="mt-0.5 line-clamp-2 block text-xs">{tool.description}</span>
-                                      </span>
-                                      <Badge variant={selected ? "default" : "outline"} className="shrink-0 text-[10px]">{tool.badge}</Badge>
-                                    </button>
-                                  );
-                                })}
+                        <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
+                          <div className="h-full space-y-4 overflow-y-auto px-6 pb-6 pr-4">
+                            {opsToolGroups.map((group) => (
+                              <div key={group.label} className="space-y-2">
+                                <div className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{group.label}</div>
+                                <div className="space-y-1">
+                                  {group.tools.map((tool) => {
+                                    const Icon = tool.icon;
+                                    const selected = selectedOpsToolId === tool.id;
+                                    return (
+                                      <button
+                                        key={tool.id}
+                                        type="button"
+                                        onClick={() => setSelectedOpsToolId(tool.id)}
+                                        className={`flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition ${
+                                          selected ? "border-primary bg-primary/10 text-foreground" : "border-transparent bg-background/40 text-muted-foreground hover:border-border hover:bg-background/70 hover:text-foreground"
+                                        }`}
+                                      >
+                                        <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${selected ? "text-primary" : ""}`} />
+                                        <span className="min-w-0 flex-1">
+                                          <span className="block truncate text-sm font-medium">{tool.title}</span>
+                                          <span className="mt-0.5 line-clamp-2 block text-xs">{tool.description}</span>
+                                        </span>
+                                        <Badge variant={selected ? "default" : "outline"} className="shrink-0 text-[10px]">{tool.badge}</Badge>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </CardContent>
                       </Card>
 

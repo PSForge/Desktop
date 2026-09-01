@@ -121,7 +121,7 @@ test("3.0 operations suite exposes review-first workflow features", () => {
   }
 
   assert.match(workbench, /value="ops-suite"/);
-  assert.match(workbench, /PSForge 3\.0 Ops Suite/);
+  assert.match(workbench, /Ops Suite/);
   assert.match(workbench, /displayMode === "ops"/);
   assert.match(shell, /value: "ops"/);
   assert.match(shell, /label: "Ops"/);

@@ -144,7 +144,7 @@ const en: TranslationTable = {
   updating: "Updating",
   wizard: "Wizard",
   work: "Work",
-  workbench: "2.0 Workbench",
+  workbench: "Workbench",
   workspace: "Workspace",
 };
 

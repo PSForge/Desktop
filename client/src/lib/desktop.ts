@@ -92,6 +92,7 @@ export type DesktopMenuAction =
   | "settings:license"
   | "settings:subscription"
   | "settings:recovery"
+  | "settings:language"
   | "settings:check-updates";
 
 export type DesktopWorkflowDeepLinkPayload =

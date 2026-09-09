@@ -50,6 +50,8 @@ test("first run prompts for language before the splash starts", () => {
 test("desktop localization foundation exposes persisted supported locales", () => {
   const i18n = readRepoFile("client", "src", "lib", "i18n.ts");
   const shell = readRepoFile("client", "src", "components", "desktop-workbench-shell.tsx");
+  const workspace = readRepoFile("client", "src", "pages", "desktop-workspace.tsx");
+  const main = readRepoFile("desktop", "main.mjs");
 
   for (const locale of ["en", "es", "fr", "de", "pt", "it", "nl", "ja", "ko", "zh", "hi", "ar"]) {
     assert.match(i18n, new RegExp(`code: "${locale}"`));
@@ -58,8 +60,11 @@ test("desktop localization foundation exposes persisted supported locales", () =
   assert.match(i18n, /PSFORGE_LOCALE_STORAGE_KEY/);
   assert.match(i18n, /getDesktopStorageItem/);
   assert.match(i18n, /setDesktopStorageItem/);
-  assert.match(shell, /supportedLocales\.map/);
-  assert.match(shell, /aria-label=\{t\("language"\)\}/);
+  assert.doesNotMatch(shell, /supportedLocales\.map/);
+  assert.match(workspace, /supportedLocales\.map/);
+  assert.match(workspace, /setStoredLocale\(settingsLocale\)/);
+  assert.match(workspace, /window\.location\.reload\(\)/);
+  assert.match(main, /settings:language/);
   assert.match(shell, /document\.documentElement\.lang = locale/);
   assert.match(shell, /document\.documentElement\.dir = getLocaleDirection\(locale\)/);
 });
@@ -125,7 +130,7 @@ test("3.0 operations suite exposes review-first workflow features", () => {
   assert.match(workbench, /displayMode === "ops"/);
   assert.match(shell, /value: "ops"/);
   assert.match(shell, /label: "Ops"/);
-  assert.match(workspace, /TabsContent value="ops"/);
+  assert.match(workspace, /value="ops"/);
   assert.doesNotMatch(workbench, /TabsTrigger value="ops-suite"/);
   assert.match(workbench, /handleRunEnvironmentDoctor/);
   assert.match(workbench, /handleRunGeneratedPesterTests/);
@@ -150,7 +155,8 @@ test("desktop right-click menus support native editing and command library secti
   assert.match(preload, /showEditContextMenu/);
   assert.match(desktop, /showDesktopEditContextMenu/);
   assert.match(commandSidebar, /command-library-context-menu/);
-  assert.match(commandSidebar, /team-favorites/);
+  assert.doesNotMatch(commandSidebar, /team-favorites/);
+  assert.doesNotMatch(commandSidebar, /Team favorites/);
   assert.match(commandSidebar, /Hide \{contextMenu\.label\}/);
   assert.match(commandSidebar, /Show hidden sections/);
   assert.match(commandSidebar, /Copy syntax/);

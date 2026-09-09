@@ -114,6 +114,7 @@ interface Window {
           | "settings:license"
           | "settings:subscription"
           | "settings:recovery"
+          | "settings:language"
           | "settings:check-updates",
       ) => void,
     ) => () => void;

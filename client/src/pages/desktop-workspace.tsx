@@ -82,6 +82,7 @@ import {
   type SharedWorkflowDefinition,
   type WorkflowMappingResult,
 } from "@/lib/desktop-workflow-links";
+import { getStoredLocale, setStoredLocale, supportedLocales, type LocaleCode } from "@/lib/i18n";
 
 const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
 const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
@@ -109,7 +110,7 @@ type ScriptWorkspaceTab = {
   webScriptLastSyncedAt?: string;
 };
 
-type AppSettingsView = "license" | "subscription" | "recovery" | "recent" | null;
+type AppSettingsView = "license" | "subscription" | "recovery" | "language" | "recent" | null;
 
 type DesktopConversionState = {
   appLaunches: number;
@@ -361,6 +362,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const [scriptTabs, setScriptTabs] = useState<ScriptWorkspaceTab[]>(() => [createWorkspaceTab()]);
   const [activeScriptTabId, setActiveScriptTabId] = useState("");
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<DesktopWorkspaceTab>("script");
+  const [visitedWorkspaceTabs, setVisitedWorkspaceTabs] = useState<Set<DesktopWorkspaceTab>>(() => new Set(["script"]));
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [pendingWorkbenchAction, setPendingWorkbenchAction] = useState<DesktopWorkbenchAction | null>(null);
   const [runHistorySummary, setRunHistorySummary] = useState<DesktopRunHistorySummary>({ totalRuns: 0, failedRuns: 0 });
@@ -397,6 +399,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const [recoveryFound, setRecoveryFound] = useState(false);
   const [pendingTabCloseId, setPendingTabCloseId] = useState<string | null>(null);
   const [appSettingsView, setAppSettingsView] = useState<AppSettingsView>(null);
+  const [settingsLocale, setSettingsLocale] = useState<LocaleCode>(() => getStoredLocale());
   const [guidedProfile, setGuidedProfile] = useState<DesktopGuidedProfile | null>(null);
   const [guidedOnboardingOpen, setGuidedOnboardingOpen] = useState(false);
   const [guidedUpgradeWorkflowId, setGuidedUpgradeWorkflowId] = useState<string | null>(null);
@@ -1935,6 +1938,36 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     }
   };
 
+  const openAppSettingsView = (view: Exclude<AppSettingsView, null>) => {
+    if (view === "language") {
+      setSettingsLocale(getStoredLocale());
+    }
+    setAppSettingsView(view);
+  };
+
+  const handleApplyLanguage = () => {
+    setStoredLocale(settingsLocale);
+    setAppSettingsView(null);
+    toast({
+      title: "Language updated",
+      description: "PSForge is reloading with your selected language.",
+    });
+    window.setTimeout(() => window.location.reload(), 250);
+  };
+
+  const handleWorkspaceTabChange = (tab: string) => {
+    const nextTab = tab as DesktopWorkspaceTab;
+    setActiveWorkspaceTab(nextTab);
+    if (nextTab === "script" || nextTab === "gui" || nextTab === "ops") {
+      setVisitedWorkspaceTabs((current) => {
+        if (current.has(nextTab)) {
+          return current;
+        }
+        return new Set([...current, nextTab]);
+      });
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = subscribeToDesktopMenuActions((action) => {
       switch (action) {
@@ -1951,16 +1984,19 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
           void handleSaveAs();
           break;
         case "file:recent":
-          setAppSettingsView("recent");
+          openAppSettingsView("recent");
           break;
         case "settings:license":
-          setAppSettingsView("license");
+          openAppSettingsView("license");
           break;
         case "settings:subscription":
-          setAppSettingsView("subscription");
+          openAppSettingsView("subscription");
           break;
         case "settings:recovery":
-          setAppSettingsView("recovery");
+          openAppSettingsView("recovery");
+          break;
+        case "settings:language":
+          openAppSettingsView("language");
           break;
         case "settings:check-updates":
           void handleCheckForUpdates();
@@ -2081,6 +2117,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     recent: {
       title: "Recent Files",
       description: "Review the PowerShell files this desktop workspace has opened recently.",
+    },
+    language: {
+      title: "Language",
+      description: "Choose the language PSForge should use, then reload into that experience.",
     },
   };
 
@@ -2289,6 +2329,36 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               <RefreshCcw className="mr-2 h-4 w-4" />
               Clear Recovery Cache
             </Button>
+          </div>
+        );
+      case "language":
+        return (
+          <div className="space-y-4">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {supportedLocales.map((locale) => (
+                <button
+                  key={locale.code}
+                  type="button"
+                  className={`rounded-md border px-4 py-3 text-left transition ${
+                    settingsLocale === locale.code
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "bg-background/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
+                  onClick={() => setSettingsLocale(locale.code)}
+                >
+                  <div className="font-medium">{locale.nativeLabel}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{locale.label}</div>
+                </button>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAppSettingsView(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleApplyLanguage}>
+                Reload with Selected Language
+              </Button>
+            </DialogFooter>
           </div>
         );
       case "recent":
@@ -2600,14 +2670,14 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       recentFilesCount={recentFiles.length}
       recentFiles={recentFiles}
       runHistorySummary={runHistorySummary}
-      onAreaChange={setActiveWorkspaceTab}
+      onAreaChange={handleWorkspaceTabChange}
       onNewScript={createNewScriptTab}
       onOpenScript={() => void handleOpenScript()}
       onSaveScript={() => void handleSaveScript()}
       onSaveAs={() => void handleSaveAs()}
-      onManageLicense={() => setAppSettingsView("license")}
+      onManageLicense={() => openAppSettingsView("license")}
       onCheckForUpdates={() => void handleCheckForUpdates()}
-      onOpenRecentFiles={() => setAppSettingsView("recent")}
+      onOpenRecentFiles={() => openAppSettingsView("recent")}
       onOpenRunTools={() => triggerWorkbenchAction("run")}
       onRerunLastRun={() => triggerWorkbenchAction("rerun-last")}
       onRunPreflight={() => triggerWorkbenchAction("preflight")}
@@ -2689,8 +2759,8 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               </div>
             )}
           </div>
-          <Tabs value={activeWorkspaceTab} onValueChange={(value) => setActiveWorkspaceTab(value as DesktopWorkspaceTab)} className="flex h-full min-h-0 flex-col overflow-hidden">
-            <TabsContent value="script" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+          <Tabs value={activeWorkspaceTab} onValueChange={handleWorkspaceTabChange} className="flex h-full min-h-0 flex-col overflow-hidden">
+            <TabsContent forceMount value="script" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <div className="flex h-full min-h-0 flex-col overflow-hidden">
                 <div className="flex items-center justify-between gap-3 border-b px-4 py-2">
                   <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1">
@@ -2775,7 +2845,8 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               </div>
             </TabsContent>
 
-            <TabsContent value="gui" className="mt-0 h-full min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+            <TabsContent forceMount value="gui" className="mt-0 h-full min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+              {visitedWorkspaceTabs.has("gui") ? (
               <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
                 <div className="border-b px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2972,6 +3043,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                   </section>
                 </div>
               </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="wizard" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
@@ -2985,7 +3057,8 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               </div>
             </TabsContent>
 
-            <TabsContent value="ops" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+            <TabsContent forceMount value="ops" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+              {visitedWorkspaceTabs.has("ops") ? (
               <DesktopScriptWorkbench
                 script={currentScript}
                 setScript={setActiveScript}
@@ -2995,6 +3068,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                 pendingAction={pendingWorkbenchAction}
                 onRunHistorySummaryChange={setRunHistorySummary}
               />
+              ) : null}
             </TabsContent>
 
             <TabsContent value="git" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">

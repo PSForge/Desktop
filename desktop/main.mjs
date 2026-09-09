@@ -767,7 +767,7 @@ function createFirstRunLanguageWindow() {
             <main class="panel">
               <div class="mark">PSForge Desktop</div>
               <h1>Choose your language</h1>
-              <p>Select the language you want PSForge to use. You can change this later from the desktop header.</p>
+              <p>Select the language you want PSForge to use. You can change this later from App Settings.</p>
               <label for="locale">Language</label>
               <select id="locale">${options}</select>
               <div class="note">PSForge will continue loading after this choice is saved.</div>
@@ -1560,6 +1560,10 @@ function createApplicationMenu() {
         {
           label: "Workspace Recovery",
           click: () => sendMenuAction("settings:recovery"),
+        },
+        {
+          label: "Language",
+          click: () => sendMenuAction("settings:language"),
         },
         { type: "separator" },
         {

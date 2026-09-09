@@ -15,7 +15,6 @@ import {
   GitBranch,
   History,
   LayoutGrid,
-  Languages,
   ListChecks,
   PackageCheck,
   Replace,
@@ -48,8 +47,6 @@ import type { DesktopRunHistorySummary } from "@/components/desktop-script-workb
 import {
   getLocaleDirection,
   getStoredLocale,
-  setStoredLocale,
-  supportedLocales,
   translate,
   type LocaleCode,
   type TranslationKey,
@@ -279,10 +276,6 @@ export function DesktopWorkbenchShell({
     setBottomPanelTab(tab);
     setDetailsDrawerOpen(true);
   };
-  const changeLocale = (nextLocale: LocaleCode) => {
-    setLocale(nextLocale);
-    setStoredLocale(nextLocale);
-  };
   const commandGroups = useMemo(
     () => {
       const groups: Array<{ heading: string; actions: CommandPaletteAction[] }> = [
@@ -478,21 +471,6 @@ export function DesktopWorkbenchShell({
                   <Sparkles className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{t("aiReview")}</span>
                 </Button>
-                <label className="flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground" title={t("language")}>
-                  <Languages className="h-3.5 w-3.5" />
-                  <select
-                    className="h-6 max-w-28 bg-transparent text-foreground outline-none"
-                    value={locale}
-                    aria-label={t("language")}
-                    onChange={(event) => changeLocale(event.target.value as LocaleCode)}
-                  >
-                    {supportedLocales.map((item) => (
-                      <option key={item.code} value={item.code}>
-                        {item.nativeLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
             </div>
           </div>

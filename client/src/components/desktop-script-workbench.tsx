@@ -66,7 +66,6 @@ import {
   buildExportBundleArtifacts,
   detectCredentialLeaks,
   generateCommentHeader,
-  getTeamFavoriteCommandIds,
   inspectPipeline,
   parseCsvMapping,
   replacePlaceholders,
@@ -1847,7 +1846,6 @@ export function DesktopScriptWorkbench({
                 onAddCommand={handleAddCommand}
                 favoriteCommandIds={favoriteCommandIds}
                 onToggleFavorite={toggleFavoriteCommand}
-                teamFavoriteCommandIds={getTeamFavoriteCommandIds()}
               />
             </div>
           )}

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, type MouseEvent as ReactMouseEvent } from "react";
-import { 
+import {
   Search, ChevronDown, ChevronRight, Plus, FolderOpen, Terminal, Star,
   Database, Network, Shield, Users, Settings, Clock, Cog, Server,
   Cloud, Mail, Key, MonitorSmartphone, HardDrive, Globe,
@@ -15,7 +15,7 @@ import { powershellCommands, getCommandsByCategory, searchCommands } from "@/lib
 import { showDesktopEditContextMenu } from "@/lib/desktop";
 
 type LibraryViewMode = "compact" | "expanded";
-type LibrarySectionId = "favorites" | "recent" | "team-favorites";
+type LibrarySectionId = "favorites" | "recent";
 
 type LibraryContextMenuState =
   | {
@@ -138,14 +138,12 @@ interface CommandSidebarProps {
   onAddCommand: (command: Command) => void;
   favoriteCommandIds?: string[];
   onToggleFavorite?: (commandId: string) => void;
-  teamFavoriteCommandIds?: string[];
 }
 
 export function CommandSidebar({
   onAddCommand,
   favoriteCommandIds = [],
   onToggleFavorite,
-  teamFavoriteCommandIds = [],
 }: CommandSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<LibraryViewMode>(() => readCommandLibraryPreferences().viewMode || "compact");
@@ -184,13 +182,6 @@ export function CommandSidebar({
       .map((commandId) => powershellCommands.find((command) => command.id === commandId))
       .filter((command): command is Command => Boolean(command)),
     [favoriteCommandIds],
-  );
-
-  const teamFavoriteCommands = useMemo(
-    () => teamFavoriteCommandIds
-      .map((commandId) => powershellCommands.find((command) => command.id === commandId))
-      .filter((command): command is Command => Boolean(command)),
-    [teamFavoriteCommandIds],
   );
 
   const recentCommands = useMemo(
@@ -557,7 +548,7 @@ export function CommandSidebar({
                   <span>Hidden:</span>
                   {hiddenSections.map((sectionId) => (
                     <button key={sectionId} type="button" className="text-primary hover:underline" onClick={() => showSection(sectionId)}>
-                      {sectionId === "team-favorites" ? "Team favorites" : sectionId === "recent" ? "Recent commands" : "Favorites"}
+                      {sectionId === "recent" ? "Recent commands" : "Favorites"}
                     </button>
                   ))}
                 </div>
@@ -595,29 +586,6 @@ export function CommandSidebar({
                     {recentCommands.map((command) => (
                       <CommandCard
                         key={`recent-${command.id}`}
-                        command={command}
-                        onAdd={handleAddCommand}
-                        isFavorite={favoriteCommandIds.includes(command.id)}
-                        onToggleFavorite={onToggleFavorite}
-                        onContextMenu={showCommandContextMenu}
-                        viewMode={viewMode}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {teamFavoriteCommands.length > 0 && !isSectionHidden("team-favorites") && (
-                <div className="space-y-2 rounded-lg border bg-primary/5 p-3" onContextMenu={(event) => showSectionContextMenu(event, "team-favorites", "Team favorites")}>
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Star className="h-4 w-4 text-primary" />
-                    Team favorites
-                  </div>
-                  <div className="text-xs text-muted-foreground">Curated admin-friendly commands that come up often in support, remediation, and discovery workflows.</div>
-                  <div className="space-y-1">
-                    {teamFavoriteCommands.map((command) => (
-                      <CommandCard
-                        key={`team-${command.id}`}
                         command={command}
                         onAdd={handleAddCommand}
                         isFavorite={favoriteCommandIds.includes(command.id)}

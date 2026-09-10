@@ -1136,16 +1136,16 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             <div className="space-y-6">
               <Card data-testid="wizard-step-configure-params">
                 <CardHeader>
-                  <CardTitle>Configure Parameters</CardTitle>
+                  <CardTitle>{localize("Configure Parameters")}</CardTitle>
                   <CardDescription>
-                    Enter the values for each task's parameters
+                    {localize("Enter the values for each task's parameters")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Alert className="mb-4">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      Fill in the required parameters for each task. Fields marked with * are required.
+                      {localize("Fill in the required parameters for each task. Fields marked with * are required.")}
                     </AlertDescription>
                   </Alert>
 
@@ -1168,7 +1168,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                             </div>
 
                             {taskParams.length === 0 ? (
-                              <p className="text-sm text-muted-foreground italic">This task has no configurable parameters.</p>
+                              <p className="text-sm text-muted-foreground italic">{localize("This task has no configurable parameters.")}</p>
                             ) : (
                               <div className="space-y-4">
                                 {taskParams.map((param: any) => {
@@ -1177,7 +1177,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                   return (
                                     <div key={param.id} className="space-y-2">
                                       <Label htmlFor={`${task.id}-${param.id}`}>
-                                        {param.label}
+                                        {localize(param.label)}
                                         {param.required && <span className="text-destructive ml-1">*</span>}
                                       </Label>
                                       
@@ -1191,7 +1191,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                             className="h-4 w-4 rounded border-gray-300"
                                             data-testid={`input-${task.id}-${param.id}`}
                                           />
-                                          <span className="text-sm text-muted-foreground">{param.description || 'Enable/disable this option'}</span>
+                                          <span className="text-sm text-muted-foreground">{localize(param.description || "Enable/disable this option")}</span>
                                         </div>
                                       ) : param.type === 'select' ? (
                                         <select
@@ -1201,11 +1201,11 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                           data-testid={`input-${task.id}-${param.id}`}
                                         >
-                                          <option value="">Select {param.label}...</option>
+                                          <option value="">{localize("Select")} {localize(param.label)}...</option>
                                           {param.options?.map((opt: any) => {
                                             const optValue = typeof opt === 'string' ? opt : opt.value;
                                             const optLabel = typeof opt === 'string' ? opt : opt.label;
-                                            return <option key={optValue} value={optValue}>{optLabel}</option>;
+                                            return <option key={optValue} value={optValue}>{localize(optLabel)}</option>;
                                           })}
                                         </select>
                                       ) : param.type === 'textarea' ? (
@@ -1213,7 +1213,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                           id={`${task.id}-${param.id}`}
                                           value={value}
                                           onChange={(e) => handleTaskParameterChange(task.id, param.id, e.target.value)}
-                                          placeholder={param.placeholder || ''}
+                                          placeholder={localize(param.placeholder || '')}
                                           rows={3}
                                           data-testid={`input-${task.id}-${param.id}`}
                                         />
@@ -1223,14 +1223,14 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                           id={`${task.id}-${param.id}`}
                                           value={value}
                                           onChange={(e) => handleTaskParameterChange(task.id, param.id, param.type === 'number' ? parseInt(e.target.value) || '' : e.target.value)}
-                                          placeholder={param.placeholder || ''}
+                                          placeholder={localize(param.placeholder || '')}
                                           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                           data-testid={`input-${task.id}-${param.id}`}
                                         />
                                       )}
                                       
                                       {param.description && param.type !== 'boolean' && (
-                                        <p className="text-xs text-muted-foreground">{param.description}</p>
+                                        <p className="text-xs text-muted-foreground">{localize(param.description)}</p>
                                       )}
                                     </div>
                                   );

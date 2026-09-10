@@ -2517,20 +2517,20 @@ export function DesktopScriptWorkbench({
                                 <div>
                                   <CardTitle className="flex items-center gap-2">
                                     <Icon className="h-5 w-5" />
-                                    {item.title}
+                                    {localize(item.title)}
                                   </CardTitle>
-                                  <CardDescription>{item.description}</CardDescription>
+                                  <CardDescription>{localize(item.description)}</CardDescription>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                   {"action" in item && item.action ? (
                                     <Button size="sm" onClick={item.action}>
                                       <Play className="mr-2 h-4 w-4" />
-                                      {item.actionLabel}
+                                      {localize(item.actionLabel)}
                                     </Button>
                                   ) : null}
                                   <Button size="sm" variant="outline" onClick={() => handleCopyText(item.content, item.copy)}>
                                     <Copy className="mr-2 h-4 w-4" />
-                                    Copy
+                                    {t("copy")}
                                   </Button>
                                 </div>
                               </div>
@@ -2548,20 +2548,20 @@ export function DesktopScriptWorkbench({
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Search className="h-5 w-5" />
-                            Regex Lab
+                            {localize("Regex Lab")}
                           </CardTitle>
-                          <CardDescription>Build, explain, test, and preview PowerShell regex matches against sample text.</CardDescription>
+                          <CardDescription>{localize("Build, explain, test, and preview PowerShell regex matches against sample text.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <Input value={regexPattern} onChange={(event) => setRegexPattern(event.target.value)} placeholder="Regex pattern" />
-                          <Textarea value={regexSample} onChange={(event) => setRegexSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder="Sample text" />
+                          <Input value={regexPattern} onChange={(event) => setRegexPattern(event.target.value)} placeholder={localize("Regex pattern")} />
+                          <Textarea value={regexSample} onChange={(event) => setRegexSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder={localize("Sample text")} />
                           {regexLabResult.ok ? (
                             <div className="grid gap-2">
                               {regexLabResult.explanation.map((line) => (
                                 <div key={line} className="rounded-md border bg-background/60 px-3 py-2 text-sm text-muted-foreground">{line}</div>
                               ))}
                               <pre className="max-h-40 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
-                                <code>{regexLabResult.matches.map((match) => `${match.index}: ${match.value}${match.groups.length ? ` groups=${JSON.stringify(match.groups)}` : ""}`).join("\n") || "No matches."}</code>
+                                <code>{regexLabResult.matches.map((match) => `${match.index}: ${match.value}${match.groups.length ? ` ${localize("groups")}=${JSON.stringify(match.groups)}` : ""}`).join("\n") || localize("No matches.")}</code>
                               </pre>
                             </div>
                           ) : (
@@ -2574,22 +2574,22 @@ export function DesktopScriptWorkbench({
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Activity className="h-5 w-5" />
-                            Object/Pipeline Explorer
+                            {localize("Object/Pipeline Explorer")}
                           </CardTitle>
-                          <CardDescription>Inspect the likely object flow through each pipeline stage.</CardDescription>
+                          <CardDescription>{localize("Inspect the likely object flow through each pipeline stage.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {pipelineStages.length > 0 ? pipelineStages.map((stage) => (
                             <div key={`${stage.index}-${stage.command}`} className="rounded-md border bg-background/60 px-3 py-3">
                               <div className="font-mono text-sm text-primary">{stage.index}. {stage.command}</div>
                               <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
-                                <div>Input: {stage.likelyInput}</div>
-                                <div>Output: {stage.likelyOutput}</div>
-                                {stage.notes.map((note) => <div key={note}>Note: {note}</div>)}
+                                <div>{localize("Input")}: {localize(stage.likelyInput)}</div>
+                                <div>{localize("Output")}: {localize(stage.likelyOutput)}</div>
+                                {stage.notes.map((note) => <div key={note}>{localize("Note")}: {localize(note)}</div>)}
                               </div>
                             </div>
                           )) : (
-                            <div className="rounded-md border bg-background/60 px-3 py-3 text-sm text-muted-foreground">No pipeline stages were detected.</div>
+                            <div className="rounded-md border bg-background/60 px-3 py-3 text-sm text-muted-foreground">{localize("No pipeline stages were detected.")}</div>
                           )}
                         </CardContent>
                       </Card>
@@ -2600,13 +2600,13 @@ export function DesktopScriptWorkbench({
                             <div>
                               <CardTitle className="flex items-center gap-2">
                                 <List className="h-5 w-5" />
-                                Parameter Set Designer
+                                {localize("Parameter Set Designer")}
                               </CardTitle>
-                              <CardDescription>Create an advanced-function parameter block from detected parameters.</CardDescription>
+                              <CardDescription>{localize("Create an advanced-function parameter block from detected parameters.")}</CardDescription>
                             </div>
                             <Button size="sm" variant="outline" onClick={() => handleCopyText(parameterSetDraft, "Parameter set draft copied.")}>
                               <Copy className="mr-2 h-4 w-4" />
-                              Copy
+                              {t("copy")}
                             </Button>
                           </div>
                         </CardHeader>
@@ -2619,9 +2619,9 @@ export function DesktopScriptWorkbench({
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <KeyRound className="h-5 w-5" />
-                            Credential Leak Detector
+                            {localize("Credential Leak Detector")}
                           </CardTitle>
-                          <CardDescription>Detect hard-coded passwords, tokens, tenant values, and unsafe secret handling.</CardDescription>
+                          <CardDescription>{localize("Detect hard-coded passwords, tokens, tenant values, and unsafe secret handling.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {credentialFindings.length > 0 ? credentialFindings.map((finding) => (
@@ -2629,13 +2629,13 @@ export function DesktopScriptWorkbench({
                               <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant={finding.severity === "critical" ? "destructive" : "secondary"}>{finding.severity}</Badge>
                                 <div className="font-medium">{finding.title}</div>
-                                <Badge variant="outline">Line {finding.line}</Badge>
+                                <Badge variant="outline">{localize("Line")} {finding.line}</Badge>
                               </div>
                               <div className="mt-2 font-mono text-xs text-muted-foreground">{finding.evidence}</div>
                               <div className="mt-2 text-sm text-primary">{finding.recommendation}</div>
                             </div>
                           )) : (
-                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">No credential leak patterns detected.</div>
+                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">{localize("No credential leak patterns detected.")}</div>
                           )}
                         </CardContent>
                       </Card>
@@ -2646,13 +2646,13 @@ export function DesktopScriptWorkbench({
                             <div>
                               <CardTitle className="flex items-center gap-2">
                                 <Gauge className="h-5 w-5" />
-                                Performance Profiler
+                                {localize("Performance Profiler")}
                               </CardTitle>
-                              <CardDescription>Generate a wrapper that measures elapsed time, errors, and process memory.</CardDescription>
+                              <CardDescription>{localize("Generate a wrapper that measures elapsed time, errors, and process memory.")}</CardDescription>
                             </div>
                             <Button size="sm" variant="outline" onClick={() => handleCopyText(profilerScript, "Performance profiler copied.")}>
                               <Copy className="mr-2 h-4 w-4" />
-                              Copy
+                              {t("copy")}
                             </Button>
                           </div>
                         </CardHeader>
@@ -2688,15 +2688,15 @@ export function DesktopScriptWorkbench({
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Table2 className="h-5 w-5" />
-                            CSV Data Mapper
+                            {localize("CSV Data Mapper")}
                           </CardTitle>
-                          <CardDescription>Map CSV columns into script parameters and preview bulk input objects.</CardDescription>
+                          <CardDescription>{localize("Map CSV columns into script parameters and preview bulk input objects.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <Textarea value={csvSample} onChange={(event) => setCsvSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder="Paste CSV sample" />
+                          <Textarea value={csvSample} onChange={(event) => setCsvSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder={localize("Paste CSV sample")} />
                           <div className="rounded-md border bg-background/60 px-3 py-3 text-sm">
-                            <div className="font-medium">Detected headers</div>
-                            <div className="mt-1 text-muted-foreground">{csvMapping.headers.join(", ") || "No headers detected."}</div>
+                            <div className="font-medium">{localize("Detected headers")}</div>
+                            <div className="mt-1 text-muted-foreground">{csvMapping.headers.join(", ") || localize("No headers detected.")}</div>
                           </div>
                           <pre className="max-h-40 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
                             <code>{JSON.stringify({ suggestedParameterMap: csvMapping.suggestedParameterMap, previewObjects: csvMapping.previewObjects }, null, 2)}</code>
@@ -2710,18 +2710,18 @@ export function DesktopScriptWorkbench({
                             <div>
                               <CardTitle className="flex items-center gap-2">
                                 <FileJson className="h-5 w-5" />
-                                Error Reproduction Builder
+                                {localize("Error Reproduction Builder")}
                               </CardTitle>
-                              <CardDescription>Create a sanitized support bundle from an error, notes, and the relevant script.</CardDescription>
+                              <CardDescription>{localize("Create a sanitized support bundle from an error, notes, and the relevant script.")}</CardDescription>
                             </div>
                             <Button size="sm" variant="outline" onClick={() => handleCopyText(supportBundle, "Sanitized support bundle copied.")}>
                               <Copy className="mr-2 h-4 w-4" />
-                              Copy
+                              {t("copy")}
                             </Button>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <Textarea value={supportContext} onChange={(event) => setSupportContext(event.target.value)} className="min-h-28" placeholder="Paste the error message and environment context. PSForge will redact common sensitive values." />
+                          <Textarea value={supportContext} onChange={(event) => setSupportContext(event.target.value)} className="min-h-28" placeholder={localize("Paste the error message and environment context. PSForge will redact common sensitive values.")} />
                           <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{supportBundle}</code></pre>
                         </CardContent>
                       </Card>
@@ -2732,41 +2732,41 @@ export function DesktopScriptWorkbench({
                             <div>
                               <CardTitle className="flex items-center gap-2">
                                 <CalendarClock className="h-5 w-5" />
-                                Scheduled Task Builder
+                                {localize("Scheduled Task Builder")}
                               </CardTitle>
-                              <CardDescription>Configure triggers, run level, and deployment script for Task Scheduler.</CardDescription>
+                              <CardDescription>{localize("Configure triggers, run level, and deployment script for Task Scheduler.")}</CardDescription>
                             </div>
                             <Button size="sm" variant="outline" onClick={() => handleCopyText(scheduledTaskInstaller, "Scheduled task installer copied.")}>
                               <Copy className="mr-2 h-4 w-4" />
-                              Copy
+                              {t("copy")}
                             </Button>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
                           <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-1.5">
-                              <Label>Task name</Label>
+                              <Label>{localize("Task name")}</Label>
                               <Input value={scheduledTaskName} onChange={(event) => setScheduledTaskName(event.target.value)} />
                             </div>
                             <div className="space-y-1.5">
-                              <Label>Script path</Label>
+                              <Label>{localize("Script path")}</Label>
                               <Input value={scheduledTaskPath} onChange={(event) => setScheduledTaskPath(event.target.value)} />
                             </div>
                             <div className="space-y-1.5">
-                              <Label>Schedule</Label>
+                              <Label>{localize("Schedule")}</Label>
                               <select className="h-10 rounded-md border bg-background px-3 text-sm" value={scheduledTaskSchedule} onChange={(event) => setScheduledTaskSchedule(event.target.value as "Daily" | "Weekly" | "AtLogon")}>
-                                <option value="Daily">Daily</option>
-                                <option value="Weekly">Weekly</option>
-                                <option value="AtLogon">At logon</option>
+                                <option value="Daily">{localize("Daily")}</option>
+                                <option value="Weekly">{localize("Weekly")}</option>
+                                <option value="AtLogon">{localize("At logon")}</option>
                               </select>
                             </div>
                             <div className="space-y-1.5">
-                              <Label>Time</Label>
+                              <Label>{localize("Time")}</Label>
                               <Input value={scheduledTaskTime} onChange={(event) => setScheduledTaskTime(event.target.value)} disabled={scheduledTaskSchedule === "AtLogon"} />
                             </div>
                           </div>
                           <label className="flex items-center justify-between gap-3 rounded-md border bg-background/60 px-3 py-3 text-sm">
-                            <span>Run with highest privileges</span>
+                            <span>{localize("Run with highest privileges")}</span>
                             <Switch checked={scheduledTaskRunHighest} onCheckedChange={setScheduledTaskRunHighest} />
                           </label>
                           <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{scheduledTaskInstaller}</code></pre>
@@ -2779,18 +2779,18 @@ export function DesktopScriptWorkbench({
                             <div>
                               <CardTitle className="flex items-center gap-2">
                                 <ShieldAlert className="h-5 w-5" />
-                                Script Certification
+                                {localize("Script Certification")}
                               </CardTitle>
-                              <CardDescription>Create an approval manifest with hash, owner, issue counts, and expiration.</CardDescription>
+                              <CardDescription>{localize("Create an approval manifest with hash, owner, issue counts, and expiration.")}</CardDescription>
                             </div>
                             <Button size="sm" onClick={handleCalculateCertification} disabled={!script.trim()}>
                               <KeyRound className="mr-2 h-4 w-4" />
-                              Certify
+                              {localize("Certify")}
                             </Button>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <Textarea value={certificationNotes} onChange={(event) => setCertificationNotes(event.target.value)} className="min-h-20" placeholder="Approval notes" />
+                          <Textarea value={certificationNotes} onChange={(event) => setCertificationNotes(event.target.value)} className="min-h-20" placeholder={localize("Approval notes")} />
                           <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{certificationManifest}</code></pre>
                         </CardContent>
                       </Card>

@@ -12,6 +12,8 @@ import { ArrowLeft, Code, AlertCircle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useDesktopLocale } from "@/lib/i18n";
+import { localizeDesktopText } from "@/lib/desktop-localization";
 
 interface TaskDetailFormProps {
   task: ADTask;
@@ -21,6 +23,8 @@ interface TaskDetailFormProps {
 
 export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFormProps) {
   const { toast } = useToast();
+  const { locale } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const [formData, setFormData] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
     task.parameters.forEach(param => {
@@ -75,7 +79,7 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
               data-testid={`input-${param.id}`}
             />
             <Label htmlFor={param.id} className="cursor-pointer">
-              {param.label}
+              {localize(param.label)}
             </Label>
           </div>
         );
@@ -84,7 +88,7 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
         return (
           <div className="space-y-2">
             <Label htmlFor={param.id}>
-              {param.label}
+              {localize(param.label)}
               {param.required && <span className="text-destructive ml-1">*</span>}
             </Label>
             <Select
@@ -92,7 +96,7 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
               onValueChange={(val) => handleInputChange(param.id, val)}
             >
               <SelectTrigger id={param.id} data-testid={`input-${param.id}`}>
-                <SelectValue placeholder={`Select ${param.label}`} />
+                <SelectValue placeholder={`${localize("Select")} ${localize(param.label)}`} />
               </SelectTrigger>
               <SelectContent>
                 {param.options?.map(option => {
@@ -101,14 +105,14 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
                   const optionLabel = typeof option === 'string' ? option : option.label;
                   return (
                     <SelectItem key={optionValue} value={optionValue}>
-                      {optionLabel}
+                      {localize(optionLabel)}
                     </SelectItem>
                   );
                 })}
               </SelectContent>
             </Select>
             {param.description && (
-              <p className="text-xs text-muted-foreground">{param.description}</p>
+              <p className="text-xs text-muted-foreground">{localize(param.description)}</p>
             )}
           </div>
         );
@@ -117,20 +121,20 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
         return (
           <div className="space-y-2">
             <Label htmlFor={param.id}>
-              {param.label}
+              {localize(param.label)}
               {param.required && <span className="text-destructive ml-1">*</span>}
             </Label>
             <Textarea
               id={param.id}
               value={value}
               onChange={(e) => handleInputChange(param.id, e.target.value)}
-              placeholder={param.placeholder}
+              placeholder={localize(param.placeholder)}
               required={param.required}
               rows={3}
               data-testid={`input-${param.id}`}
             />
             {param.description && (
-              <p className="text-xs text-muted-foreground">{param.description}</p>
+              <p className="text-xs text-muted-foreground">{localize(param.description)}</p>
             )}
           </div>
         );
@@ -139,7 +143,7 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
         return (
           <div className="space-y-2">
             <Label htmlFor={param.id}>
-              {param.label}
+              {localize(param.label)}
               {param.required && <span className="text-destructive ml-1">*</span>}
             </Label>
             <Input
@@ -147,12 +151,12 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
               type="number"
               value={value}
               onChange={(e) => handleInputChange(param.id, parseInt(e.target.value) || '')}
-              placeholder={param.placeholder}
+              placeholder={localize(param.placeholder)}
               required={param.required}
               data-testid={`input-${param.id}`}
             />
             {param.description && (
-              <p className="text-xs text-muted-foreground">{param.description}</p>
+              <p className="text-xs text-muted-foreground">{localize(param.description)}</p>
             )}
           </div>
         );
@@ -161,7 +165,7 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
         return (
           <div className="space-y-2">
             <Label htmlFor={param.id}>
-              {param.label}
+              {localize(param.label)}
               {param.required && <span className="text-destructive ml-1">*</span>}
             </Label>
             <Input
@@ -169,12 +173,12 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
               type={param.type}
               value={value}
               onChange={(e) => handleInputChange(param.id, e.target.value)}
-              placeholder={param.placeholder}
+              placeholder={localize(param.placeholder)}
               required={param.required}
               data-testid={`input-${param.id}`}
             />
             {param.description && (
-              <p className="text-xs text-muted-foreground">{param.description}</p>
+              <p className="text-xs text-muted-foreground">{localize(param.description)}</p>
             )}
           </div>
         );
@@ -192,16 +196,16 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
           data-testid="button-back-to-tasks"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tasks
+          {localize("Back to Tasks")}
         </Button>
 
         <Card>
           <CardHeader>
-            <CardTitle>{task.name}</CardTitle>
-            <CardDescription>{task.description}</CardDescription>
+            <CardTitle>{localize(task.name)}</CardTitle>
+            <CardDescription>{localize(task.description)}</CardDescription>
             <div className="mt-2">
               <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
-                {task.category}
+                {localize(task.category)}
               </span>
             </div>
           </CardHeader>
@@ -212,7 +216,7 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
                 <Info className="h-4 w-4" />
                 <AlertDescription className="mt-2 text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {task.instructions}
+                    {localize(task.instructions)}
                   </ReactMarkdown>
                 </AlertDescription>
               </Alert>
@@ -231,7 +235,7 @@ export function TaskDetailForm({ task, onBack, onGenerateScript }: TaskDetailFor
             <CardFooter>
               <Button type="submit" className="w-full" data-testid="button-generate-script">
                 <Code className="h-4 w-4 mr-2" />
-                Generate PowerShell Script
+                {localize("Generate PowerShell Script")}
               </Button>
             </CardFooter>
           </form>

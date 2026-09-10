@@ -123,7 +123,7 @@ const railItems: Array<{
   { value: "ai", labelKey: "ai", icon: Bot },
   { value: "git", labelKey: "git", icon: GitBranch },
   { value: "wizard", labelKey: "wizard", icon: Wand2 },
-  { value: "ops", label: "Ops", icon: PackageCheck },
+  { value: "ops", labelKey: "ops", icon: PackageCheck },
 ];
 
 const WORKBENCH_PREFS_KEY = "psforge-workbench-preferences";

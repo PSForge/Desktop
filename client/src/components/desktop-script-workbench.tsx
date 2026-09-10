@@ -73,6 +73,7 @@ import {
   type ExecutionChecklistItem,
   type ParsedScriptParameter,
 } from "@/lib/script-workbench-utils";
+import { useDesktopLocale } from "@/lib/i18n";
 
 interface DesktopScriptWorkbenchProps {
   script: string;
@@ -331,6 +332,7 @@ export function DesktopScriptWorkbench({
 }: DesktopScriptWorkbenchProps) {
   const { toast } = useToast();
   const { featureAccess } = useAuth();
+  const { t } = useDesktopLocale();
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedText, setSelectedText] = useState("");
   const [validationResult, setValidationResult] = useState<ValidationResult>({ isValid: true, errors: [] });
@@ -2201,37 +2203,37 @@ export function DesktopScriptWorkbench({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="ops-suite" className="mt-0 min-h-0 flex-1 overflow-auto p-4">
-                  <div className="space-y-4">
-                    <Card>
+                <TabsContent value="ops-suite" className="mt-0 h-full min-h-0 flex-1 overflow-hidden p-4">
+                  <div className="flex h-full min-h-0 flex-col gap-4">
+                    <Card className="shrink-0">
                       <CardHeader>
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <CardTitle className="flex items-center gap-2">
                               <Rocket className="h-5 w-5" />
-                              Ops Suite
+                              {t("opsSuite")}
                             </CardTitle>
                             <CardDescription>
-                              Turn the active script into diagnostics, tests, deployment packages, documentation, safety reviews, data mapping, support bundles, and certification records.
+                              {t("opsSuiteDescription")}
                             </CardDescription>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant={operationsSuitePlan.readinessScore >= 80 ? "default" : operationsSuitePlan.readinessScore >= 60 ? "secondary" : "destructive"}>
-                              {operationsSuitePlan.readinessScore}% ready
+                              {t("readiness", { score: operationsSuitePlan.readinessScore })}
                             </Badge>
                             <Button size="sm" variant="outline" onClick={handleExportOpsSuiteBundle} disabled={opsExporting || !script.trim()}>
                               <FileArchive className="mr-2 h-4 w-4" />
-                              {opsExporting ? "Exporting..." : "Export Ops Bundle"}
+                              {opsExporting ? t("exporting") : t("exportOpsBundle")}
                             </Button>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="grid gap-3 lg:grid-cols-4">
                         {[
-                          { label: "Environment checks", value: operationsSuitePlan.environmentChecks.length, detail: "machine readiness signals" },
-                          { label: "Dependencies", value: analysis.moduleSuggestions.length, detail: "module hints found" },
-                          { label: "Impact items", value: operationsSuitePlan.impactPreview.length, detail: "predicted effects" },
-                          { label: "Safety notes", value: analysis.issues.length, detail: "review items" },
+                          { label: "Environment checks", value: operationsSuitePlan.environmentChecks.length, detail: t("machineReadinessSignals") },
+                          { label: "Dependencies", value: analysis.moduleSuggestions.length, detail: t("moduleHintsFound") },
+                          { label: "Impact items", value: operationsSuitePlan.impactPreview.length, detail: t("predictedEffects") },
+                          { label: t("safetyNotes"), value: analysis.issues.length, detail: t("reviewItems") },
                         ].map((metric) => (
                           <div key={metric.label} className="rounded-md border bg-background/60 px-3 py-3">
                             <div className="text-xs text-muted-foreground">{metric.label}</div>
@@ -2242,11 +2244,11 @@ export function DesktopScriptWorkbench({
                       </CardContent>
                     </Card>
 
-                    <div className="grid min-h-0 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+                    <div className="grid min-h-0 flex-1 gap-4 overflow-hidden xl:grid-cols-[18rem_minmax(0,1fr)]">
                       <Card className="flex min-h-0 flex-col xl:sticky xl:top-0 xl:h-[calc(100vh-18rem)] xl:max-h-[calc(100vh-18rem)]">
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-base">Ops tools</CardTitle>
-                          <CardDescription>Select one tool at a time to keep the review focused.</CardDescription>
+                          <CardTitle className="text-base">{t("opsTools")}</CardTitle>
+                          <CardDescription>{t("opsToolsDescription")}</CardDescription>
                         </CardHeader>
                         <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
                           <div className="h-full space-y-4 overflow-y-auto px-6 pb-6 pr-4">
@@ -2282,7 +2284,7 @@ export function DesktopScriptWorkbench({
                         </CardContent>
                       </Card>
 
-                      <div className="min-w-0 space-y-4">
+                      <div className="min-h-0 min-w-0 space-y-4 overflow-hidden">
                         <Card>
                           <CardHeader className="pb-3">
                             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2297,7 +2299,7 @@ export function DesktopScriptWorkbench({
                                 <Badge variant="outline">{selectedOpsTool.badge}</Badge>
                                 <Button size="sm" variant="outline" onClick={handleExportOpsSuiteBundle} disabled={opsExporting || !script.trim()}>
                                   <FileArchive className="mr-2 h-4 w-4" />
-                                  {opsExporting ? "Exporting..." : "Export Ops Bundle"}
+                                  {opsExporting ? t("exporting") : t("exportOpsBundle")}
                                 </Button>
                               </div>
                             </div>

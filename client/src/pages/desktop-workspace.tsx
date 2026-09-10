@@ -82,7 +82,7 @@ import {
   type SharedWorkflowDefinition,
   type WorkflowMappingResult,
 } from "@/lib/desktop-workflow-links";
-import { getStoredLocale, setStoredLocale, supportedLocales, type LocaleCode } from "@/lib/i18n";
+import { getStoredLocale, setStoredLocale, supportedLocales, useDesktopLocale, type LocaleCode } from "@/lib/i18n";
 
 const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
 const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
@@ -358,6 +358,7 @@ interface DesktopWorkspaceProps {
 
 export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspaceProps) {
   const { toast } = useToast();
+  const { t } = useDesktopLocale();
   const { user, isAuthenticated, featureAccess, logout, refetch } = useAuth();
   const [scriptTabs, setScriptTabs] = useState<ScriptWorkspaceTab[]>(() => [createWorkspaceTab()]);
   const [activeScriptTabId, setActiveScriptTabId] = useState("");
@@ -1949,8 +1950,8 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     setStoredLocale(settingsLocale);
     setAppSettingsView(null);
     toast({
-      title: "Language updated",
-      description: "PSForge is reloading with your selected language.",
+      title: t("languageUpdated"),
+      description: t("languageReloadDescription"),
     });
     window.setTimeout(() => window.location.reload(), 250);
   };
@@ -2353,10 +2354,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setAppSettingsView(null)}>
-                Cancel
+                {t("cancel")}
               </Button>
               <Button onClick={handleApplyLanguage}>
-                Reload with Selected Language
+                {t("reloadWithSelectedLanguage")}
               </Button>
             </DialogFooter>
           </div>
@@ -3093,9 +3094,9 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       <Dialog open={appSettingsView !== null} onOpenChange={(open) => !open && setAppSettingsView(null)}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{appSettingsView ? appSettingsDialogMeta[appSettingsView].title : "App Settings"}</DialogTitle>
+            <DialogTitle>{appSettingsView ? appSettingsDialogMeta[appSettingsView].title : t("appSettings")}</DialogTitle>
             <DialogDescription>
-              {appSettingsView ? appSettingsDialogMeta[appSettingsView].description : "Manage desktop settings."}
+              {appSettingsView ? appSettingsDialogMeta[appSettingsView].description : t("manageDesktopSettings")}
             </DialogDescription>
           </DialogHeader>
           {renderAppSettingsContent()}

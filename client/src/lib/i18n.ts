@@ -111,6 +111,7 @@ export type TranslationKey =
   | "switchCards"
   | "tryDifferentSearch"
   | "copySyntax"
+  | "buildReviewRunDescription"
   | "activeScript"
   | "additionalContext"
   | "aiAssistant"
@@ -147,6 +148,8 @@ export type TranslationKey =
   | "dismiss"
   | "duration"
   | "environmentChecks"
+  | "generatedScript"
+  | "generateScript"
   | "execute"
   | "failedAnalyzeLog"
   | "failed"
@@ -174,6 +177,7 @@ export type TranslationKey =
   | "logTroubleshooterDescription"
   | "newAnalysis"
   | "newScript"
+  | "noScriptGeneratedYet"
   | "optional"
   | "mode"
   | "modules"
@@ -220,6 +224,32 @@ export type TranslationKey =
   | "searchLibrary"
   | "shell"
   | "selectACategory"
+  | "selectTasks"
+  | "selectTasksDescription"
+  | "selectTasksHelp"
+  | "show"
+  | "hide"
+  | "basic"
+  | "full"
+  | "preview"
+  | "line"
+  | "lines"
+  | "tools"
+  | "format"
+  | "hideLibrary"
+  | "scriptEditorHelper"
+  | "scriptEditorPlaceholder"
+  | "powershellScriptEditor"
+  | "addCommandsGeneratedCode"
+  | "previous"
+  | "next"
+  | "startOver"
+  | "selected"
+  | "bulkOperationCsvRequired"
+  | "nextConfigureParameters"
+  | "runDoctor"
+  | "running"
+  | "copyCheck"
   | "selectPlatform"
   | "selectPlatforms"
   | "selectPlatformsDescription"
@@ -232,6 +262,7 @@ export type TranslationKey =
   | "sync"
   | "synced"
   | "tasks"
+  | "taskListHeading"
   | "tasksAddedSoon"
   | "transcript"
   | "totalRunsSummary"
@@ -343,6 +374,7 @@ const en: TranslationTable = {
   commandLibraryTitle: "Command Library 2.0",
   commandLibraryDescription: "Platform packs, favorites, and reusable PowerShell commands",
   commands: "commands",
+  buildReviewRunDescription: "Build, review, and run scripts from one focused workspace.",
   compactCommandCards: "Compact command cards",
   copySyntax: "Copy syntax",
   editMenu: "Edit menu",
@@ -407,6 +439,8 @@ const en: TranslationTable = {
   dismiss: "Dismiss",
   duration: "Duration",
   environmentChecks: "Environment checks",
+  generatedScript: "Generated Script",
+  generateScript: "Generate Script",
   execute: "Execute",
   failedAnalyzeLog: "Failed to analyze the log file. Please try again.",
   failed: "failed",
@@ -434,6 +468,7 @@ const en: TranslationTable = {
   logTroubleshooterDescription: "Upload a log file for AI-powered diagnosis and fix recommendations.",
   newAnalysis: "Start New Analysis",
   newScript: "New script",
+  noScriptGeneratedYet: "No script generated yet",
   optional: "optional",
   mode: "Mode",
   modules: "Modules",
@@ -480,6 +515,32 @@ const en: TranslationTable = {
   searchLibrary: "Search Library",
   shell: "Shell",
   selectACategory: "Select a Category",
+  selectTasks: "Select Tasks",
+  selectTasksDescription: "Choose automation tasks to include in your bulk script. Tasks will execute in the order selected.",
+  selectTasksHelp: "Select tasks in the order they should execute for each item in your bulk operation.",
+  show: "Show",
+  hide: "Hide",
+  basic: "Basic",
+  full: "Full",
+  preview: "Preview",
+  line: "line",
+  lines: "lines",
+  tools: "Tools",
+  format: "Format",
+  hideLibrary: "Hide Library",
+  scriptEditorHelper: "Type your script or click commands from the sidebar - Hover over cmdlets for help",
+  scriptEditorPlaceholder: "Start typing your PowerShell script here...",
+  powershellScriptEditor: "PowerShell Script Editor",
+  addCommandsGeneratedCode: "Add commands to see the generated PowerShell code",
+  previous: "Previous",
+  next: "Next",
+  startOver: "Start Over",
+  selected: "selected",
+  bulkOperationCsvRequired: "Bulk operation detected - CSV data will be required after parameter configuration",
+  nextConfigureParameters: "Next step: Configure parameters for your selected tasks",
+  runDoctor: "Run Doctor",
+  running: "Running...",
+  copyCheck: "Copy check",
   selectPlatform: "Select platform...",
   selectPlatforms: "Select Platforms",
   selectPlatformsDescription: "Choose one or more IT platforms for your bulk automation tasks",
@@ -492,6 +553,7 @@ const en: TranslationTable = {
   sync: "Sync",
   synced: "Synced",
   tasks: "tasks",
+  taskListHeading: "{category} tasks",
   tasksAddedSoon: "Tasks for {category} will be added soon",
   transcript: "Transcript",
   totalRunsSummary: "{total} total run{plural} - {failed} failed",
@@ -559,6 +621,7 @@ const translations: Record<LocaleCode, TranslationTable> = {
     commandLibraryTitle: "Biblioteca de comandos 2.0",
     commandLibraryDescription: "Paquetes de plataforma, favoritos y comandos de PowerShell reutilizables",
     commands: "comandos",
+    buildReviewRunDescription: "Crea, revisa y ejecuta scripts desde un espacio de trabajo enfocado.",
     copySyntax: "Copiar sintaxis",
     editMenu: "Menu de edicion",
     exportOpsBundle: "Exportar paquete de Ops",
@@ -568,7 +631,7 @@ const translations: Record<LocaleCode, TranslationTable> = {
     moduleHintsFound: "sugerencias de modulos encontradas",
     noCommandsFound: "No se encontraron comandos",
     opsSuite: "Ops Suite",
-    ops: "Operaciones",
+    ops: "Ops",
     opsSuiteDescription: "Convierte el script activo en diagnosticos, pruebas, paquetes de implementacion, documentacion, revisiones de seguridad, mapeo de datos, paquetes de soporte y registros de certificacion.",
     opsTools: "Herramientas de Ops",
     opsToolsDescription: "Selecciona una herramienta a la vez para mantener la revision enfocada.",
@@ -612,6 +675,8 @@ const translations: Record<LocaleCode, TranslationTable> = {
     dismiss: "Descartar",
     duration: "Duracion",
     environmentChecks: "Comprobaciones del entorno",
+    generatedScript: "Script generado",
+    generateScript: "Generar script",
     execute: "Ejecutar",
     failedAnalyzeLog: "No se pudo analizar el archivo de registro. Intentalo de nuevo.",
     failed: "fallidas",
@@ -639,6 +704,7 @@ const translations: Record<LocaleCode, TranslationTable> = {
     logTroubleshooterDescription: "Carga un archivo de registro para diagnostico con IA y recomendaciones de correccion.",
     newAnalysis: "Iniciar nuevo analisis",
     newScript: "Nuevo script",
+    noScriptGeneratedYet: "Aun no se genero ningun script",
     optional: "opcional",
     mode: "Modo",
     modules: "Modulos",
@@ -654,7 +720,7 @@ const translations: Record<LocaleCode, TranslationTable> = {
     openOrSaveScript: "Abre o guarda un script para iniciar la lista.",
     openRunFolder: "Carpeta de ejecucion",
     orPasteLogContent: "O pega el contenido del registro",
-    params: "Parametros",
+    params: "parametros",
     pastedLogContent: "Contenido de registro pegado",
     pasteLogContentHere: "Pega el contenido del registro aqui...",
     platform: "Plataforma",
@@ -685,6 +751,32 @@ const translations: Record<LocaleCode, TranslationTable> = {
     searchLibrary: "Buscar en la biblioteca",
     shell: "Shell",
     selectACategory: "Selecciona una categoria",
+    selectTasks: "Seleccionar tareas",
+    selectTasksDescription: "Elige las tareas de automatizacion que se incluiran en tu script masivo. Las tareas se ejecutaran en el orden seleccionado.",
+    selectTasksHelp: "Selecciona las tareas en el orden en que deben ejecutarse para cada elemento de la operacion masiva.",
+    show: "Mostrar",
+    hide: "Ocultar",
+    basic: "Basico",
+    full: "Completo",
+    preview: "Vista previa",
+    line: "linea",
+    lines: "lineas",
+    tools: "Herramientas",
+    format: "Formato",
+    hideLibrary: "Ocultar biblioteca",
+    scriptEditorHelper: "Escribe tu script o haz clic en comandos de la barra lateral - Pasa el cursor sobre los cmdlets para obtener ayuda",
+    scriptEditorPlaceholder: "Empieza a escribir tu script de PowerShell aqui...",
+    powershellScriptEditor: "Editor de scripts de PowerShell",
+    addCommandsGeneratedCode: "Agrega comandos para ver el codigo de PowerShell generado",
+    previous: "Anterior",
+    next: "Siguiente",
+    startOver: "Empezar de nuevo",
+    selected: "seleccionadas",
+    bulkOperationCsvRequired: "Se detecto una operacion masiva - se requeriran datos CSV despues de configurar los parametros",
+    nextConfigureParameters: "Siguiente paso: configura los parametros de las tareas seleccionadas",
+    runDoctor: "Ejecutar doctor",
+    running: "Ejecutando...",
+    copyCheck: "Copiar comprobacion",
     selectPlatform: "Seleccionar plataforma...",
     selectPlatforms: "Seleccionar plataformas",
     selectPlatformsDescription: "Elige una o mas plataformas de TI para tus tareas de automatizacion masiva",
@@ -697,6 +789,7 @@ const translations: Record<LocaleCode, TranslationTable> = {
     sync: "Sincronizar",
     synced: "Sincronizado",
     tasks: "tareas",
+    taskListHeading: "Tareas de {category}",
     tasksAddedSoon: "Las tareas de {category} se agregaran pronto",
     transcript: "Transcripcion",
     totalRunsSummary: "{total} ejecucion{plural} en total - {failed} fallidas",

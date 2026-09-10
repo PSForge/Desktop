@@ -18,6 +18,7 @@ import { trackDesktopAnalyticsEvent } from '@/lib/desktop-analytics';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useDesktopLocale } from '@/lib/i18n';
+import { localizeDesktopText } from '@/lib/desktop-localization';
 
 // Import all task libraries
 import { adTasks } from '@/lib/ad-tasks';
@@ -207,6 +208,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   const { featureAccess } = useAuth();
   const { toast } = useToast();
   const { locale, t } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -1013,12 +1015,12 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                         />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <Label className="font-medium cursor-pointer">{platform.name}</Label>
+                            <Label className="font-medium cursor-pointer">{localize(platform.name)}</Label>
                             {platform.isPremium && (
                               <Badge variant="secondary" className="text-xs">Pro</Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">{platform.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{localize(platform.description)}</p>
                           <p className="text-xs text-muted-foreground mt-1">{platform.tasks.length} {t("tasks")}</p>
                         </div>
                       </div>
@@ -1048,16 +1050,16 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             <div className="space-y-6">
               <Card data-testid="wizard-step-task-selection">
                 <CardHeader>
-                  <CardTitle>Select Tasks</CardTitle>
+                  <CardTitle>{t("selectTasks")}</CardTitle>
                   <CardDescription>
-                    Choose automation tasks to include in your bulk script. Tasks will execute in the order selected.
+                    {t("selectTasksDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Alert className="mb-4">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      Select tasks in the order they should execute for each item in your bulk operation.
+                      {t("selectTasksHelp")}
                     </AlertDescription>
                   </Alert>
 
@@ -1070,7 +1072,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
 
                       return (
                         <div key={platformId} className="mb-6">
-                          <h3 className="font-medium mb-3">{platform.name}</h3>
+                          <h3 className="font-medium mb-3">{localize(platform.name)}</h3>
                           <div className="space-y-2">
                             {platformTasks.map(task => (
                               <div
@@ -1090,12 +1092,12 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                 />
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
-                                    <Label className="font-medium cursor-pointer">{task.name}</Label>
+                                    <Label className="font-medium cursor-pointer">{localize(task.name)}</Label>
                                     {isBulkTask(task) && (
-                                      <Badge variant="secondary" className="text-xs">Bulk</Badge>
+                                      <Badge variant="secondary" className="text-xs">{localize("Bulk")}</Badge>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{localize(task.description)}</p>
                                 </div>
                               </div>
                             ))}
@@ -1110,14 +1112,14 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
                         <div className="space-y-1">
-                          <div>{selectedTasks.length} task{selectedTasks.length !== 1 ? 's' : ''} selected</div>
+                          <div>{selectedTasks.length} {t("tasks")} {t("selected")}</div>
                           {hasBulkTasks ? (
                             <div className="text-xs text-muted-foreground">
-                              Bulk operation detected - CSV data will be required after parameter configuration
+                              {t("bulkOperationCsvRequired")}
                             </div>
                           ) : (
                             <div className="text-xs text-green-600 dark:text-green-400">
-                              Next step: Configure parameters for your selected tasks
+                              {t("nextConfigureParameters")}
                             </div>
                           )}
                         </div>
@@ -1160,8 +1162,8 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                 {taskIndex + 1}
                               </div>
                               <div>
-                                <h4 className="font-medium">{task.name}</h4>
-                                <p className="text-xs text-muted-foreground">{task.platformName}</p>
+                                <h4 className="font-medium">{localize(task.name)}</h4>
+                                <p className="text-xs text-muted-foreground">{localize(task.platformName)}</p>
                               </div>
                             </div>
 
@@ -1446,7 +1448,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                               <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between">
                                   <div>
-                                    <CardTitle className="text-base">{task.name}</CardTitle>
+                                    <CardTitle className="text-base">{localize(task.name)}</CardTitle>
                                     <CardDescription className="text-xs mt-1">
                                       {task.platformName} • {taskParams.length} parameter{taskParams.length !== 1 ? 's' : ''}
                                     </CardDescription>
@@ -1671,7 +1673,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                 data-testid="button-wizard-previous"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
+                {t("previous")}
               </Button>
             )}
           </div>
@@ -1681,11 +1683,11 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
               onClick={handleReset}
               data-testid="button-wizard-reset"
             >
-              Start Over
+              {t("startOver")}
             </Button>
             {currentStep < totalSteps ? (
               <Button onClick={handleNext} data-testid="button-wizard-next">
-                {currentStep === 4 || (currentStep === 3 && !hasBulkTasks) ? 'Generate Script' : 'Next'}
+                {currentStep === 4 || (currentStep === 3 && !hasBulkTasks) ? t("generateScript") : t("next")}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (

@@ -74,6 +74,7 @@ import {
   type ParsedScriptParameter,
 } from "@/lib/script-workbench-utils";
 import { useDesktopLocale } from "@/lib/i18n";
+import { localizeDesktopText } from "@/lib/desktop-localization";
 
 interface DesktopScriptWorkbenchProps {
   script: string;
@@ -420,6 +421,7 @@ export function DesktopScriptWorkbench({
   const { toast } = useToast();
   const { featureAccess } = useAuth();
   const { locale, t } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedText, setSelectedText] = useState("");
   const [validationResult, setValidationResult] = useState<ValidationResult>({ isValid: true, errors: [] });
@@ -1856,7 +1858,7 @@ export function DesktopScriptWorkbench({
         <div className="border-b px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 text-sm text-muted-foreground">
-              <span className="line-clamp-1">Build, review, and run scripts from one focused workspace.</span>
+              <span className="line-clamp-1">{t("buildReviewRunDescription")}</span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button size="sm" onClick={() => setRunDialogOpen(true)} data-testid="button-run-script">
@@ -1870,7 +1872,7 @@ export function DesktopScriptWorkbench({
                 data-testid="button-toggle-command-library"
               >
                 {isCommandLibraryVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-                <span className="hidden sm:inline">{isCommandLibraryVisible ? "Hide Library" : "Library"}</span>
+                <span className="hidden sm:inline">{isCommandLibraryVisible ? t("hideLibrary") : t("library")}</span>
               </Button>
               <div className="relative">
                 <Button
@@ -1879,16 +1881,16 @@ export function DesktopScriptWorkbench({
                   aria-expanded={toolsMenuOpen}
                   onClick={() => setToolsMenuOpen((current) => !current)}
                 >
-                  Tools
+                  {t("tools")}
                   <ChevronDown className={`ml-2 h-4 w-4 transition ${toolsMenuOpen ? "rotate-180" : ""}`} />
                 </Button>
                 {toolsMenuOpen ? (
                   <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-                    <div className="px-2 py-1.5 text-sm font-semibold">Script Tools</div>
+                    <div className="px-2 py-1.5 text-sm font-semibold">{t("scriptTools")}</div>
                     {[
                       { label: "Header", icon: ScrollText, action: () => setHeaderDialogOpen(true) },
                       { label: "Explain", icon: Sparkles, action: () => setExplainDialogOpen(true) },
-                      { label: "AI Review", icon: Bot, action: handleRunAiReview, testId: "button-ai-review" },
+                      { label: t("aiReview"), icon: Bot, action: handleRunAiReview, testId: "button-ai-review" },
                       { label: "Placeholders", icon: Replace, action: () => setPlaceholderDialogOpen(true), disabled: analysis.placeholders.length === 0 },
                     ].map((item) => {
                       const Icon = item.icon;
@@ -1920,7 +1922,7 @@ export function DesktopScriptWorkbench({
                       }}
                     >
                       <FileArchive className="h-4 w-4 shrink-0" />
-                      {exportingBundle ? "Exporting..." : "Export Bundle"}
+                      {exportingBundle ? t("exporting") : t("exportOpsBundle")}
                     </button>
                   </div>
                 ) : null}
@@ -1963,19 +1965,19 @@ export function DesktopScriptWorkbench({
                   <TabsList className="flex w-auto shrink-0 overflow-hidden">
                     <TabsTrigger value="preview" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Eye className="h-4 w-4" />
-                      <span className="hidden sm:inline">Preview</span>
+                      <span className="hidden sm:inline">{t("preview")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="basic" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <List className="h-4 w-4" />
-                      <span className="hidden sm:inline">Basic</span>
+                      <span className="hidden sm:inline">{t("basic")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="comprehensive" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <FileCheck className="h-4 w-4" />
-                      <span className="hidden sm:inline">Full</span>
+                      <span className="hidden sm:inline">{t("full")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="workbench" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <ClipboardList className="h-4 w-4" />
-                      <span className="hidden sm:inline">Workbench</span>
+                      <span className="hidden sm:inline">{t("workbench")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="ai-review" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Bot className="h-4 w-4" />
@@ -1983,20 +1985,20 @@ export function DesktopScriptWorkbench({
                     </TabsTrigger>
                     <TabsTrigger value="runs" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Play className="h-4 w-4" />
-                      <span className="hidden sm:inline">Runs</span>
+                      <span className="hidden sm:inline">{t("runCenter")}</span>
                     </TabsTrigger>
                   </TabsList>
 
                   <div className="flex shrink-0 items-center gap-2">
                     <Badge variant={preflightSummary.critical > 0 ? "destructive" : "secondary"} className="hidden sm:inline-flex">
-                      {preflightSummary.critical} critical
+                      {preflightSummary.critical} {t("critical").toLowerCase()}
                     </Badge>
-                    <Badge variant="secondary" className="hidden sm:inline-flex">{preflightSummary.warning} warnings</Badge>
+                    <Badge variant="secondary" className="hidden sm:inline-flex">{preflightSummary.warning} {t("warnings").toLowerCase()}</Badge>
                     <Button size="sm" className="hidden md:inline-flex" onClick={runComprehensiveValidation} disabled={!script.trim() || comprehensiveValidationMutation.isPending}>
-                      {comprehensiveValidationMutation.isPending ? "Analyzing..." : "Run Pre-flight"}
+                      {comprehensiveValidationMutation.isPending ? t("analyzing") : t("runPreflight")}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setIsEditorDetailsVisible((current) => !current)}>
-                      <span className="hidden sm:inline">{isEditorDetailsVisible ? "Hide" : "Show"}</span>
+                      <span className="hidden sm:inline">{isEditorDetailsVisible ? t("hide") : t("show")}</span>
                       <ChevronDown className={`h-4 w-4 transition ${isEditorDetailsVisible ? "" : "rotate-180"}`} />
                     </Button>
                   </div>
@@ -2319,9 +2321,9 @@ export function DesktopScriptWorkbench({
                       </CardHeader>
                       <CardContent className="grid gap-3 lg:grid-cols-4">
                         {[
-                          { label: "Environment checks", value: operationsSuitePlan.environmentChecks.length, detail: t("machineReadinessSignals") },
-                          { label: "Dependencies", value: analysis.moduleSuggestions.length, detail: t("moduleHintsFound") },
-                          { label: "Impact items", value: operationsSuitePlan.impactPreview.length, detail: t("predictedEffects") },
+                          { label: t("environmentChecks"), value: operationsSuitePlan.environmentChecks.length, detail: t("machineReadinessSignals") },
+                          { label: localize("Dependencies"), value: analysis.moduleSuggestions.length, detail: t("moduleHintsFound") },
+                          { label: t("impactItems"), value: operationsSuitePlan.impactPreview.length, detail: t("predictedEffects") },
                           { label: t("safetyNotes"), value: analysis.issues.length, detail: t("reviewItems") },
                         ].map((metric) => (
                           <div key={metric.label} className="rounded-md border bg-background/60 px-3 py-3">
@@ -2402,13 +2404,13 @@ export function DesktopScriptWorkbench({
                             <div>
                               <CardTitle className="flex items-center gap-2">
                                 <ShieldAlert className="h-5 w-5" />
-                                Environment Doctor
+                                {localize("Environment Doctor")}
                               </CardTitle>
-                              <CardDescription>Run a local diagnostic and review prerequisites before the script is run.</CardDescription>
+                              <CardDescription>{localize("Run a local diagnostic and review prerequisites before the script is run.")}</CardDescription>
                             </div>
                             <Button size="sm" onClick={handleRunEnvironmentDoctor} disabled={environmentDoctorRunning}>
                               <Play className="mr-2 h-4 w-4" />
-                              {environmentDoctorRunning ? "Running..." : "Run Doctor"}
+                              {environmentDoctorRunning ? t("running") : t("runDoctor")}
                             </Button>
                           </div>
                         </CardHeader>
@@ -2417,22 +2419,22 @@ export function DesktopScriptWorkbench({
                             <div key={check.id} className="rounded-md border bg-background/60 px-3 py-3">
                               <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant={check.status === "action" ? "destructive" : check.status === "warning" ? "secondary" : "outline"}>
-                                  {check.status}
+                                  {localize(check.status)}
                                 </Badge>
-                                <div className="font-medium">{check.label}</div>
+                                <div className="font-medium">{localize(check.label)}</div>
                               </div>
-                              <div className="mt-2 text-sm text-muted-foreground">{check.detail}</div>
+                              <div className="mt-2 text-sm text-muted-foreground">{localize(check.detail)}</div>
                               {check.remediation ? (
                                 <Button size="sm" variant="ghost" className="mt-2 px-0" onClick={() => handleCopyText(check.remediation || "", `${check.label} command copied.`)}>
                                   <Copy className="mr-2 h-4 w-4" />
-                                  Copy check
+                                  {t("copyCheck")}
                                 </Button>
                               ) : null}
                             </div>
                           ))}
                           {environmentDoctorResult ? (
                             <pre className="max-h-48 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
-                              <code>{environmentDoctorResult.stdout || environmentDoctorResult.stderr || "Environment Doctor produced no console output."}</code>
+                              <code>{environmentDoctorResult.stdout || environmentDoctorResult.stderr || localize("Environment Doctor produced no console output.")}</code>
                             </pre>
                           ) : null}
                         </CardContent>
@@ -2442,14 +2444,14 @@ export function DesktopScriptWorkbench({
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <Eye className="h-5 w-5" />
-                            Change Impact Preview
+                            {localize("Change Impact Preview")}
                           </CardTitle>
-                          <CardDescription>Static prediction of what the script is likely to touch.</CardDescription>
+                          <CardDescription>{localize("Static prediction of what the script is likely to touch.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {operationsSuitePlan.impactPreview.map((impact) => (
                             <div key={impact} className="rounded-md border bg-background/60 px-3 py-3 text-sm text-muted-foreground">
-                              {impact}
+                              {localize(impact)}
                             </div>
                           ))}
                         </CardContent>
@@ -2663,19 +2665,19 @@ export function DesktopScriptWorkbench({
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             <FileCheck className="h-5 w-5" />
-                            Compatibility Matrix
+                            {localize("Compatibility Matrix")}
                           </CardTitle>
-                          <CardDescription>Review suitability for PowerShell 5.1, 7.x, Windows Server, Azure Automation, and constrained endpoints.</CardDescription>
+                          <CardDescription>{localize("Review suitability for PowerShell 5.1, 7.x, Windows Server, Azure Automation, and constrained endpoints.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {compatibilityMatrix.map((finding) => (
                             <div key={finding.target} className="rounded-md border bg-background/60 px-3 py-3">
                               <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant={finding.status === "unsupported" ? "destructive" : finding.status === "review" ? "secondary" : "outline"}>{finding.status}</Badge>
+                                <Badge variant={finding.status === "unsupported" ? "destructive" : finding.status === "review" ? "secondary" : "outline"}>{localize(finding.status)}</Badge>
                                 <div className="font-medium">{finding.target}</div>
                               </div>
                               <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                                {finding.notes.map((note) => <div key={note}>{note}</div>)}
+                                {finding.notes.map((note) => <div key={note}>{localize(note)}</div>)}
                               </div>
                             </div>
                           ))}

@@ -95,6 +95,7 @@ import {
   Landmark
 } from "lucide-react";
 import { useDesktopLocale } from "@/lib/i18n";
+import { localizeDesktopText } from "@/lib/desktop-localization";
 
 interface CategoryConfig {
   id: string;
@@ -569,6 +570,7 @@ interface GUIBuilderTabProps {
 export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript, highlightedTaskIds = [], autoSelectedTaskId = null }: GUIBuilderTabProps) {
   const { featureAccess } = useAuth();
   const { locale, t } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | SQLServerTask | null>(null);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -731,7 +733,7 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
           {selectedCategory && categoryTasks.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold mb-4">
-                {selectedCategoryDisplay?.name} {t("tasks")}
+                {t("taskListHeading", { category: selectedCategoryDisplay?.name || "" })}
                 <span className="text-sm font-normal text-muted-foreground ml-2">
                   ({categoryTasks.length} {t("available")})
                 </span>
@@ -750,13 +752,13 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <CardTitle className="text-base mb-1">{taskName}</CardTitle>
+                            <CardTitle className="text-base mb-1">{localize(taskName)}</CardTitle>
                             <CardDescription className="text-sm">
-                              {task.description}
+                              {localize(task.description)}
                             </CardDescription>
                             <div className="mt-2">
                               <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
-                                {task.category}
+                                {localize(task.category)}
                               </span>
                               {isWorkflowRequestedTask ? (
                                 <span className="ml-2 inline-block rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs text-primary">

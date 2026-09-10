@@ -14,6 +14,7 @@ import { Command, CommandCategory, commandCategories } from "@shared/schema";
 import { powershellCommands, getCommandsByCategory, searchCommands } from "@/lib/powershell-commands";
 import { showDesktopEditContextMenu } from "@/lib/desktop";
 import { useDesktopLocale } from "@/lib/i18n";
+import { localizeDesktopText } from "@/lib/desktop-localization";
 
 type LibraryViewMode = "compact" | "expanded";
 type LibrarySectionId = "favorites" | "recent";
@@ -146,7 +147,7 @@ export function CommandSidebar({
   favoriteCommandIds = [],
   onToggleFavorite,
 }: CommandSidebarProps) {
-  const { t } = useDesktopLocale();
+  const { locale, t } = useDesktopLocale();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<LibraryViewMode>(() => readCommandLibraryPreferences().viewMode || "compact");
   const [activePackId, setActivePackId] = useState<PlatformPackId>(() => readCommandLibraryPreferences().activePackId || "windows-core");
@@ -160,6 +161,7 @@ export function CommandSidebar({
   );
 
   const activePack = platformPacks.find((pack) => pack.id === activePackId) || platformPacks[0];
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
 
   const filteredCommands = useMemo(() => {
     if (!searchQuery.trim()) return null;
@@ -499,7 +501,7 @@ export function CommandSidebar({
               }`}
               onClick={() => selectPack(pack.id)}
             >
-              <div className={`text-xs font-medium ${pack.accent}`}>{pack.title}</div>
+              <div className={`text-xs font-medium ${pack.accent}`}>{localize(pack.title)}</div>
               <div className="mt-0.5 text-[10px] text-muted-foreground">
                 {pack.categories.reduce((total, category) => total + getCommandsByCategory(category).length, 0)} {t("commands")}
               </div>
@@ -519,7 +521,7 @@ export function CommandSidebar({
                 {groupedSearchResults.map(({ pack, commands }) => (
                   <div key={pack.id} className="space-y-1.5">
                     <div className="flex items-center justify-between px-2">
-                      <div className={`text-xs font-medium ${pack.accent}`}>{pack.title}</div>
+                      <div className={`text-xs font-medium ${pack.accent}`}>{localize(pack.title)}</div>
                       <Badge variant="outline">{commands.length}</Badge>
                     </div>
                     {commands.map((command) => (
@@ -531,6 +533,7 @@ export function CommandSidebar({
                         onToggleFavorite={onToggleFavorite}
                         onContextMenu={showCommandContextMenu}
                         viewMode={viewMode}
+                        locale={locale}
                       />
                     ))}
                   </div>
@@ -572,6 +575,7 @@ export function CommandSidebar({
                         onToggleFavorite={onToggleFavorite}
                         onContextMenu={showCommandContextMenu}
                         viewMode={viewMode}
+                        locale={locale}
                       />
                     ))}
                   </div>
@@ -594,6 +598,7 @@ export function CommandSidebar({
                         onToggleFavorite={onToggleFavorite}
                         onContextMenu={showCommandContextMenu}
                         viewMode={viewMode}
+                        locale={locale}
                       />
                     ))}
                   </div>
@@ -603,8 +608,8 @@ export function CommandSidebar({
               <div className="rounded-lg border bg-background/30 p-3">
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div>
-                    <div className={`text-sm font-medium ${activePack.accent}`}>{activePack.title}</div>
-                    <div className="text-xs text-muted-foreground">{activePack.description}</div>
+                    <div className={`text-sm font-medium ${activePack.accent}`}>{localize(activePack.title)}</div>
+                    <div className="text-xs text-muted-foreground">{localize(activePack.description)}</div>
                   </div>
                   <Badge variant="outline">{activePackCommandCount}</Badge>
                 </div>
@@ -630,7 +635,7 @@ export function CommandSidebar({
                           <ChevronRight className="h-4 w-4" />
                         )}
                         {getCategoryIcon(category)}
-                        <span className="flex-1 text-left text-sm font-medium">{category}</span>
+                        <span className="flex-1 text-left text-sm font-medium">{localize(category)}</span>
                         <Badge variant="secondary" className="text-xs">
                           {commands.length}
                         </Badge>
@@ -647,6 +652,7 @@ export function CommandSidebar({
                             onToggleFavorite={onToggleFavorite}
                             onContextMenu={showCommandContextMenu}
                             viewMode={viewMode}
+                            locale={locale}
                           />
                         ))}
                     </CollapsibleContent>
@@ -669,6 +675,7 @@ function CommandCard({
   onToggleFavorite,
   onContextMenu,
   viewMode,
+  locale,
 }: {
   command: Command;
   onAdd: (command: Command) => void;
@@ -676,11 +683,13 @@ function CommandCard({
   onToggleFavorite?: (commandId: string) => void;
   onContextMenu?: (event: ReactMouseEvent, command: Command, isFavorite: boolean) => void;
   viewMode: LibraryViewMode;
+  locale: ReturnType<typeof useDesktopLocale>["locale"];
 }) {
   const risk = getCommandRisk(command);
   const moduleHint = getModuleHint(command.category);
   const useCase = getUseCaseHint(command);
   const isCompact = viewMode === "compact";
+  const { t } = useDesktopLocale();
 
   return (
     <div
@@ -692,7 +701,7 @@ function CommandCard({
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-mono font-medium truncate">{command.name}</h3>
           <p className={`text-xs text-muted-foreground mt-1 ${isCompact ? "line-clamp-1" : "line-clamp-2"}`}>
-            {command.description}
+            {localizeDesktopText(locale, command.description)}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -722,10 +731,10 @@ function CommandCard({
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <Badge variant={risk.variant} className="gap-1 text-[10px]">
           {risk.level !== "Low" ? <AlertTriangle className="h-3 w-3" /> : null}
-          {risk.level}
+          {localizeDesktopText(locale, risk.level)}
         </Badge>
         <Badge variant="outline" className="text-[10px]">
-          {command.parameters.length} param{command.parameters.length === 1 ? "" : "s"}
+          {command.parameters.length} {command.parameters.length === 1 ? t("params").replace(/s$/i, "") : t("params").toLowerCase()}
         </Badge>
         {moduleHint ? (
           <Badge variant="secondary" className="max-w-full truncate text-[10px]">
@@ -736,7 +745,7 @@ function CommandCard({
 
       {!isCompact && (
         <div className="mt-2 rounded-md border bg-background/50 px-2 py-1.5 text-xs text-muted-foreground">
-          {useCase}
+          {localizeDesktopText(locale, useCase)}
         </div>
       )}
     </div>

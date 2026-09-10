@@ -478,7 +478,7 @@ export function DesktopWorkbenchShell({
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="flex w-16 shrink-0 flex-col items-center justify-between border-r bg-sidebar px-2 py-3 text-sidebar-foreground">
+        <aside className="flex w-[72px] shrink-0 flex-col items-center justify-between border-r bg-sidebar px-2 py-3 text-sidebar-foreground">
           <div className="grid gap-2">
             {railItems.map((item) => {
               const Icon = item.icon;
@@ -488,7 +488,7 @@ export function DesktopWorkbenchShell({
                 <button
                   key={item.value}
                   type="button"
-                  className={`flex h-12 w-12 flex-col items-center justify-center gap-1 rounded-md border text-[10px] transition ${
+                  className={`flex min-h-12 w-14 flex-col items-center justify-center gap-1 rounded-md border px-1 text-[10px] transition ${
                     isActive
                       ? "border-primary bg-primary/15 text-foreground"
                       : "border-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
@@ -497,7 +497,7 @@ export function DesktopWorkbenchShell({
                   title={item.labelKey ? t(item.labelKey) : item.label}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
+                  <span className="max-w-full truncate text-center leading-tight">{item.labelKey ? t(item.labelKey) : item.label}</span>
                 </button>
               );
             })}

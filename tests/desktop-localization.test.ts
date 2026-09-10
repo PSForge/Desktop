@@ -19,3 +19,13 @@ test("keeps English and unknown technical text stable", () => {
   assert.equal(localizeDesktopText("en", "Get-ChildItem"), "Get-ChildItem");
   assert.equal(localizeDesktopText("es", "Get-ChildItem"), "Get-ChildItem");
 });
+
+test("localizes remaining Spanish Git, Services, and Ops artifact strings", () => {
+  assert.equal(localizeDesktopText("es", "Desktop Git Workspace"), "Espacio de trabajo Git de escritorio");
+  assert.equal(localizeDesktopText("es", "No Git folder selected yet."), "Aun no se selecciono ninguna carpeta Git.");
+  assert.equal(localizeDesktopText("es", "Get Service Status Report"), "Informe de estado de servicios");
+  assert.equal(localizeDesktopText("es", "List Windows services with status, startup type, and account"), "Lista servicios de Windows con estado, tipo de inicio y cuenta");
+  assert.equal(localizeDesktopText("es", "PowerShell Script Packager"), "Empaquetador de scripts PowerShell");
+  assert.match(localizeDesktopText("es", "## Recommended outputs\n- No AzureAD/MSOnline modernization issue detected by static review."), /## Salidas recomendadas/);
+  assert.match(localizeDesktopText("es", "## Recommended outputs\n- No AzureAD/MSOnline modernization issue detected by static review."), /modernizacion/);
+});

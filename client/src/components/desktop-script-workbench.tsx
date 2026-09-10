@@ -309,7 +309,7 @@ const spanishOpsToolText: Record<string, { title?: string; description?: string;
 };
 
 function localizeOpsToolText(locale: string, id: string, field: "title" | "description" | "label" | "badge", fallback: string) {
-  return locale === "es" ? spanishOpsToolText[id]?.[field] || fallback : fallback;
+  return locale === "es" ? spanishOpsToolText[id]?.[field] || localizeDesktopText(locale as any, fallback) : localizeDesktopText(locale as any, fallback);
 }
 
 const COMMAND_FAVORITES_KEY = "psforge-desktop-command-favorites";
@@ -2510,6 +2510,7 @@ export function DesktopScriptWorkbench({
                         },
                       ].filter((item) => item.id === selectedOpsToolId).map((item) => {
                         const Icon = item.icon;
+                        const displayContent = item.id === "pester-generator" ? item.content : localize(item.content);
                         return (
                           <Card key={item.title}>
                             <CardHeader>
@@ -2528,7 +2529,7 @@ export function DesktopScriptWorkbench({
                                       {localize(item.actionLabel)}
                                     </Button>
                                   ) : null}
-                                  <Button size="sm" variant="outline" onClick={() => handleCopyText(item.content, item.copy)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleCopyText(displayContent, item.copy)}>
                                     <Copy className="mr-2 h-4 w-4" />
                                     {t("copy")}
                                   </Button>
@@ -2537,7 +2538,7 @@ export function DesktopScriptWorkbench({
                             </CardHeader>
                             <CardContent>
                               <pre className="max-h-56 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground">
-                                <code>{item.content}</code>
+                                <code>{displayContent}</code>
                               </pre>
                             </CardContent>
                           </Card>

@@ -22,6 +22,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useDesktopLocale } from "@/lib/i18n";
+import { localizeDesktopText } from "@/lib/desktop-localization";
 import {
   checkoutDesktopGitBranch,
   commitDesktopGitScript,
@@ -53,6 +55,8 @@ function buildDefaultRelativePath(scriptName?: string) {
 
 export function DesktopGitPanel({ scriptName, scriptContent }: DesktopGitPanelProps) {
   const { toast } = useToast();
+  const { locale } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const [repoPath, setRepoPath] = useState(() => getDesktopStorageItem(GIT_REPO_STORAGE_KEY) || "");
   const [repoState, setRepoState] = useState<DesktopGitRepoState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -255,8 +259,8 @@ export function DesktopGitPanel({ scriptName, scriptContent }: DesktopGitPanelPr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Git Integration</CardTitle>
-          <CardDescription>Desktop Git tools are available in the Windows app.</CardDescription>
+          <CardTitle>{localize("Git Integration")}</CardTitle>
+          <CardDescription>{localize("Desktop Git tools are available in the Windows app.")}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -268,16 +272,16 @@ export function DesktopGitPanel({ scriptName, scriptContent }: DesktopGitPanelPr
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-chart-3" />
-            Git for Windows Needed
+            {localize("Git for Windows Needed")}
           </CardTitle>
           <CardDescription>{repoState.error}</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-3">
           <Button onClick={() => openExternalUrl("https://git-scm.com/download/win")}>
-            Install Git
+            {localize("Install Git")}
           </Button>
           <Button variant="outline" onClick={chooseRepository}>
-            Choose Folder
+            {localize("Choose Folder")}
           </Button>
         </CardContent>
       </Card>
@@ -290,22 +294,22 @@ export function DesktopGitPanel({ scriptName, scriptContent }: DesktopGitPanelPr
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FolderGit2 className="h-5 w-5" />
-            Desktop Git Workspace
+            {localize("Desktop Git Workspace")}
           </CardTitle>
           <CardDescription>
-            Work with a real local repository, keep your scripts on disk, and commit changes directly from PSForge Desktop.
+            {localize("Work with a real local repository, keep your scripts on disk, and commit changes directly from PSForge Desktop.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
             <div className="rounded-lg border bg-muted/20 p-4">
-              <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Selected Folder</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{localize("Selected Folder")}</div>
               <div className="mt-2 break-all text-sm font-medium">
-                {repoPath || "No Git folder selected yet."}
+                {repoPath || localize("No Git folder selected yet.")}
               </div>
               {repoState?.rootPath && repoState.rootPath !== repoPath && (
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Repository root: {repoState.rootPath}
+                  {localize("Repository root")}: {repoState.rootPath}
                 </div>
               )}
             </div>
@@ -313,36 +317,36 @@ export function DesktopGitPanel({ scriptName, scriptContent }: DesktopGitPanelPr
             <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               <Button variant="outline" onClick={chooseRepository}>
                 <FolderOpen className="mr-2 h-4 w-4" />
-                Choose Folder
+                {localize("Choose Folder")}
               </Button>
               <Button variant="outline" onClick={() => refreshRepo()} disabled={!repoPath || loading}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                Refresh
+                {localize("Refresh")}
               </Button>
               <Button variant="outline" onClick={() => openDesktopPath(repoState?.rootPath || repoPath)} disabled={!repoPath}>
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Open Folder
+                {localize("Open Folder")}
               </Button>
             </div>
           </div>
 
           {!repoPath && (
             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              Choose a folder to connect the desktop Git workflow to a local repository.
+              {localize("Choose a folder to connect the desktop Git workflow to a local repository.")}
             </div>
           )}
 
           {repoPath && repoState && !repoState.isRepo && (
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
               <div>
-                <div className="font-medium">This folder is not a Git repository yet.</div>
+                <div className="font-medium">{localize("This folder is not a Git repository yet.")}</div>
                 <div className="text-sm text-muted-foreground">
-                  Initialize Git here and PSForge will start tracking script changes locally.
+                  {localize("Initialize Git here and PSForge will start tracking script changes locally.")}
                 </div>
               </div>
               <Button onClick={initializeRepo} disabled={initLoading}>
                 <GitBranch className="mr-2 h-4 w-4" />
-                {initLoading ? "Initializing..." : "Initialize Repository"}
+                {initLoading ? localize("Initializing...") : localize("Initialize Repository")}
               </Button>
             </div>
           )}

@@ -16,6 +16,7 @@ import { DesktopUpgradeDialog } from "@/components/desktop-upgrade-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useDesktopLocale } from "@/lib/i18n";
 import {
   AlertTriangle,
   AlertCircle,
@@ -167,10 +168,11 @@ const SEVERITY_CONFIG = {
 
 function CodeBlock({ code, onCopyToScript }: { code: string; onCopyToScript?: (code: string) => void }) {
   const { toast } = useToast();
+  const { locale, t } = useDesktopLocale();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
-    toast({ title: "Copied to clipboard", description: "PowerShell script copied." });
+    toast({ title: t("copyToClipboard"), description: t("copySyntax") });
   };
 
   return (
@@ -186,10 +188,10 @@ function CodeBlock({ code, onCopyToScript }: { code: string; onCopyToScript?: (c
               size="sm"
               variant="ghost"
               className="h-6 text-xs px-2"
-              onClick={() => { onCopyToScript(code); toast({ title: "Sent to Script Editor" }); }}
+              onClick={() => { onCopyToScript(code); toast({ title: t("sentToScriptEditor") }); }}
               data-testid="button-send-to-editor"
             >
-              Send to Editor
+              {t("sendToEditor")}
             </Button>
           )}
           <Button
@@ -212,6 +214,7 @@ function CodeBlock({ code, onCopyToScript }: { code: string; onCopyToScript?: (c
 
 function IssueCard({ issue, index, onCopyToScript }: { issue: TroubleshootIssue; index: number; onCopyToScript: (code: string) => void }) {
   const [expanded, setExpanded] = useState(index === 0);
+  const { locale, t } = useDesktopLocale();
   const config = SEVERITY_CONFIG[issue.severity];
   const IconComponent = config.icon;
 
@@ -235,11 +238,11 @@ function IssueCard({ issue, index, onCopyToScript }: { issue: TroubleshootIssue;
           <p className="text-sm text-muted-foreground">{issue.description}</p>
           {issue.location && (
             <p className="text-xs text-muted-foreground font-mono bg-muted/50 px-2 py-1 rounded">
-              Found at: {issue.location}
+              {t("foundAt")}: {issue.location}
             </p>
           )}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Recommended Fix</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t("recommendedFix")}</p>
             <p className="text-sm">{issue.fix}</p>
           </div>
           {issue.powershellFix && (
@@ -256,6 +259,7 @@ function IssueCard({ issue, index, onCopyToScript }: { issue: TroubleshootIssue;
 
 function WorkaroundCard({ workaround, index, onCopyToScript }: { workaround: TroubleshootWorkaround; index: number; onCopyToScript: (code: string) => void }) {
   const [expanded, setExpanded] = useState(index === 0);
+  const { t } = useDesktopLocale();
 
   return (
     <div className="rounded-md border overflow-hidden" data-testid={`workaround-card-${index}`}>
@@ -274,7 +278,7 @@ function WorkaroundCard({ workaround, index, onCopyToScript }: { workaround: Tro
           <p className="text-sm text-muted-foreground">{workaround.description}</p>
           {workaround.steps.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Steps</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("steps")}</p>
               <ol className="space-y-1">
                 {workaround.steps.map((step, i) => (
                   <li key={i} className="flex gap-2 text-sm">
@@ -304,6 +308,7 @@ interface TroubleshooterTabProps {
 export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
   const { user, featureAccess } = useAuth();
   const { toast } = useToast();
+  const { locale, t } = useDesktopLocale();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -321,6 +326,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
         logContent,
         platform,
         context: context.trim() || undefined,
+        locale,
       });
       return response.json();
     },
@@ -329,8 +335,8 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
     },
     onError: (error: any) => {
       toast({
-        title: "Analysis failed",
-        description: error?.message || "Failed to analyze the log file. Please try again.",
+        title: t("analysisFailed"),
+        description: error?.message || t("failedAnalyzeLog"),
         variant: "destructive",
       });
     },
@@ -371,7 +377,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
 
   const handleSendToEditor = (code: string) => {
     setScript(code);
-    toast({ title: "Script sent to editor", description: "The PowerShell script has been sent to the Script tab." });
+    toast({ title: t("useThisScript"), description: t("openScriptWorkspace") });
   };
 
   const canAnalyze = logContent.trim().length >= 20 && platform;
@@ -384,9 +390,9 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
             <Crown className="h-10 w-10 text-primary" />
           </div>
           <div className="max-w-md space-y-2">
-            <h2 className="text-2xl font-bold">AI Log Troubleshooter</h2>
+            <h2 className="text-2xl font-bold">{t("logTroubleshooter")}</h2>
             <p className="text-muted-foreground">
-              Upload log files from any IT platform and get instant AI-powered analysis with specific fix recommendations and PowerShell remediation scripts.
+              {t("logTroubleshooterDescription")}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full text-left">
@@ -454,19 +460,19 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Wrench className="h-5 w-5 text-primary" />
-            Log Troubleshooter
+            {t("logTroubleshooter")}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Upload a log file for AI-powered diagnosis and fix recommendations.
+            {t("logTroubleshooterDescription")}
           </p>
         </div>
 
         {/* Platform selector */}
         <div className="space-y-1.5">
-          <Label htmlFor="platform-select">Platform</Label>
+          <Label htmlFor="platform-select">{t("platform")}</Label>
           <Select value={platform} onValueChange={(v) => { setPlatform(v); setResult(null); }}>
             <SelectTrigger id="platform-select" data-testid="select-platform">
-              <SelectValue placeholder="Select platform..." />
+              <SelectValue placeholder={t("selectPlatform")} />
             </SelectTrigger>
             <SelectContent className="max-h-64">
               {PLATFORMS.map((group) => (
@@ -487,7 +493,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
 
         {/* File upload */}
         <div className="space-y-1.5">
-          <Label>Log File</Label>
+          <Label>{t("logFile")}</Label>
           <input
             ref={fileInputRef}
             type="file"
@@ -506,15 +512,15 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
             >
               <Upload className="h-8 w-8 text-muted-foreground" />
               <div className="text-center">
-                <p className="text-sm font-medium">Drop log file here</p>
-                <p className="text-xs text-muted-foreground mt-0.5">or click to browse (.log, .txt, .json, .xml, .csv)</p>
+                <p className="text-sm font-medium">{t("uploadLogFileHere")}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("clickToBrowseLog")}</p>
               </div>
             </div>
           ) : (
             <div className="rounded-md border bg-muted/30 p-3 flex items-start gap-3">
               <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{fileName || "Pasted log content"}</p>
+                <p className="text-sm font-medium truncate">{fileName || t("pastedLogContent")}</p>
                 <p className="text-xs text-muted-foreground">{logContent.split("\n").length} lines · {(logContent.length / 1024).toFixed(1)} KB</p>
               </div>
               <Button
@@ -531,12 +537,12 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
 
         {/* Paste log content */}
         <div className="space-y-1.5">
-          <Label htmlFor="log-textarea">Or paste log content</Label>
+          <Label htmlFor="log-textarea">{t("orPasteLogContent")}</Label>
           <Textarea
             id="log-textarea"
             value={logContent}
             onChange={(e) => { setLogContent(e.target.value); setFileName(null); setResult(null); }}
-            placeholder="Paste your log content here..."
+            placeholder={t("pasteLogContentHere")}
             className="font-mono text-xs resize-none h-40"
             data-testid="textarea-log-content"
           />
@@ -545,7 +551,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
         {/* Optional context */}
         <div className="space-y-1.5">
           <Label htmlFor="context-input">
-            Additional Context <span className="text-muted-foreground text-xs">(optional)</span>
+            {t("additionalContext")} <span className="text-muted-foreground text-xs">({t("optional")})</span>
           </Label>
           <Textarea
             id="context-input"
@@ -566,12 +572,12 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
           {analyzeMutation.isPending ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Analyzing...
+              {t("analyzing")}
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4 mr-2" />
-              Analyze Log
+              {t("analyzeLog")}
             </>
           )}
         </Button>
@@ -585,8 +591,8 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
               <FileText className="h-10 w-10 text-muted-foreground/60" />
             </div>
             <div>
-              <p className="font-medium">No analysis yet</p>
-              <p className="text-sm mt-1">Upload a log file and select a platform to get started.</p>
+              <p className="font-medium">{t("noAnalysisYet")}</p>
+              <p className="text-sm mt-1">{t("uploadLogAndSelectPlatform")}</p>
             </div>
           </div>
         )}
@@ -595,8 +601,8 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center text-muted-foreground">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <div>
-              <p className="font-medium">Analyzing your log file...</p>
-              <p className="text-sm mt-1">The AI is examining issues and preparing recommendations.</p>
+              <p className="font-medium">{t("analyzingLogFile")}</p>
+              <p className="text-sm mt-1">{t("uploadLogForAi")}</p>
             </div>
           </div>
         )}
@@ -607,7 +613,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle className="text-base">Analysis Results</CardTitle>
+                  <CardTitle className="text-base">{t("analysisResults")}</CardTitle>
                   <Badge variant="secondary">{result.platform}</Badge>
                   <Badge variant="outline">{result.logType}</Badge>
                 </div>
@@ -615,7 +621,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
               </CardHeader>
               <CardContent>
                 <div className="rounded-md bg-muted/50 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Root Cause</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("rootCause")}</p>
                   <p className="text-sm">{result.rootCause}</p>
                 </div>
               </CardContent>
@@ -644,7 +650,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
-                  Issues Found ({result.issues.length})
+                  {t("issuesFound")} ({result.issues.length})
                 </h3>
                 <div className="space-y-2">
                   {result.issues.map((issue, i) => (
@@ -664,7 +670,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Wrench className="h-4 w-4" />
-                  Workarounds ({result.workarounds.length})
+                  {t("workarounds")} ({result.workarounds.length})
                 </h3>
                 <div className="space-y-2">
                   {result.workarounds.map((w, i) => (
@@ -684,7 +690,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Lightbulb className="h-4 w-4" />
-                  Prevention Tips
+                  {t("preventionTips")}
                 </h3>
                 <ul className="space-y-1.5">
                   {result.preventionTips.map((tip, i) => (
@@ -705,7 +711,7 @@ export function TroubleshooterTab({ setScript }: TroubleshooterTabProps) {
               data-testid="button-new-analysis"
             >
               <X className="h-4 w-4 mr-2" />
-              Start New Analysis
+              {t("newAnalysis")}
             </Button>
           </div>
         )}

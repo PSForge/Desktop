@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useDesktopLocale } from "@/lib/i18n";
 
 export type DesktopWorkspaceTab = "script" | "ai" | "gui" | "wizard" | "git" | "troubleshooter" | "ops";
 
@@ -542,6 +543,8 @@ type DesktopFocusPanelProps = {
 };
 
 export function DesktopFocusPanel({ profile, hasProAccess, onChangeFocus, onStartWorkflow }: DesktopFocusPanelProps) {
+  const { t } = useDesktopLocale();
+
   if (!profile) {
     return (
       <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
@@ -550,11 +553,11 @@ export function DesktopFocusPanel({ profile, hasProAccess, onChangeFocus, onStar
             <Shield className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">No workflow focus selected</div>
-            <div className="truncate text-xs text-muted-foreground">Pick a focus once and we'll keep one useful next step close to the editor.</div>
+            <div className="truncate text-sm font-semibold">{t("workflowFocusNone")}</div>
+            <div className="truncate text-xs text-muted-foreground">{t("workflowFocusHint")}</div>
           </div>
         </div>
-        <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={onChangeFocus}>Choose Focus</Button>
+        <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={onChangeFocus}>{t("chooseFocus")}</Button>
       </div>
     );
   }

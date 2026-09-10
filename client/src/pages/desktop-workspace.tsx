@@ -532,18 +532,18 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const showLocalLibrary = webLibraryFilter === "all" || webLibraryFilter === "local" || webLibraryFilter === "recent";
   const libraryFilters: Array<[LibraryFilter, string]> = cloudStorageEnabled
     ? [
-      ["all", "All"],
-      ["web", "Web"],
-      ["starters", "Starters"],
-      ["local", "Local"],
-      ["favorites", "Favorites"],
-      ["recent", "Recent"],
+      ["all", t("all")],
+      ["web", t("web")],
+      ["starters", t("starters")],
+      ["local", t("local")],
+      ["favorites", t("favorites")],
+      ["recent", t("recentCommands")],
     ]
     : [
-      ["all", "All"],
-      ["starters", "Starters"],
-      ["local", "Local"],
-      ["recent", "Recent"],
+      ["all", t("all")],
+      ["starters", t("starters")],
+      ["local", t("local")],
+      ["recent", t("recentCommands")],
     ];
 
   const accessLabel = useMemo(() => {
@@ -2698,7 +2698,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               />
               <Button size="sm" variant="outline" className="shrink-0" onClick={() => setStarterGalleryOpen((current) => !current)}>
                 <LayoutGrid className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Starters</span>
+                <span className="hidden sm:inline">{t("starters")}</span>
                 <ChevronDown className={`ml-1 h-4 w-4 transition sm:ml-2 ${starterGalleryOpen ? "rotate-180" : ""}`} />
               </Button>
             </div>
@@ -2714,7 +2714,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                     {desktopConversionBanner.cta}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setConversionBannerDismissed(true)}>
-                    Dismiss
+                    {t("dismiss")}
                   </Button>
                 </div>
               </div>
@@ -2727,7 +2727,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                     <Input
                       value={starterGalleryQuery}
                       onChange={(event) => setStarterGalleryQuery(event.target.value)}
-                      placeholder="Search starters"
+                      placeholder={t("searchCommands")}
                       className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
                     />
                   </div>
@@ -2835,7 +2835,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
 
             <TabsContent value="ai" className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden">
               <div className="h-full min-h-0">
-                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading AI workspace...</div>}>
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{t("loadingAiWorkspace")}</div>}>
                   <AIAssistantTab
                     scriptCommands={scriptCommands}
                     setScriptCommands={setScriptCommands}
@@ -2854,18 +2854,18 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-sm font-semibold">
                         <LayoutGrid className="h-4 w-4 text-primary" />
-                        Library
+                        {t("library")}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {cloudStorageEnabled
-                          ? "Open synced scripts, local recents, and starter building blocks from one place."
-                          : "Open local recents and starter building blocks from one place."}
+                          ? t("commandLibraryDescription")
+                          : t("commandLibraryDescription")}
                       </div>
                     </div>
                     {cloudStorageEnabled ? (
                       <Button size="sm" variant="outline" onClick={() => void loadWebLibraryScripts()} disabled={webLibraryLoading}>
                         <RefreshCcw className={`mr-2 h-4 w-4 ${webLibraryLoading ? "animate-spin" : ""}`} />
-                        Sync
+                        {t("sync")}
                       </Button>
                     ) : null}
                   </div>
@@ -2880,7 +2880,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                           <Input
                             value={webLibraryQuery}
                             onChange={(event) => setWebLibraryQuery(event.target.value)}
-                            placeholder="Search Library"
+                            placeholder={t("searchLibrary")}
                             className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
                           />
                         </div>
@@ -2901,23 +2901,23 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                           <span>
                             {cloudStorageEnabled
-                              ? `${webLibraryScripts.length} web - ${STARTER_WORKFLOWS.length} starters - ${recentFiles.length} local`
-                              : `${STARTER_WORKFLOWS.length} starters - ${recentFiles.length} local`}
+                              ? `${webLibraryScripts.length} ${t("web").toLowerCase()} - ${STARTER_WORKFLOWS.length} ${t("starters").toLowerCase()} - ${recentFiles.length} local`
+                              : `${STARTER_WORKFLOWS.length} ${t("starters").toLowerCase()} - ${recentFiles.length} local`}
                           </span>
-                          {cloudStorageEnabled && webLibraryFromCache ? <span>Cached</span> : null}
+                          {cloudStorageEnabled && webLibraryFromCache ? <span>{t("cached")}</span> : null}
                         </div>
                       </div>
 
                       <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain p-3 [scrollbar-gutter:stable]">
                         {webLibraryLoading && showWebLibrary ? (
                           <div className="rounded-md border bg-background/70 p-4 text-sm text-muted-foreground">
-                            Loading scripts from your PSForge web account...
+                            {t("loadingScripts")}
                           </div>
                         ) : webLibraryError && showWebLibrary && webLibraryScripts.length === 0 ? (
                           <div className="rounded-md border border-dashed bg-background/70 p-4 text-sm text-muted-foreground">
                             <div>{webLibraryError}</div>
                             <Button className="mt-3" size="sm" variant="outline" onClick={() => setAccountDialogOpen(true)}>
-                              Connect Account
+                              {t("connectAccount")}
                             </Button>
                           </div>
                         ) : (
@@ -2938,14 +2938,14 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                           <div className="flex items-center gap-2">
                                             <FileCode className="h-4 w-4 shrink-0 text-primary" />
                                             <div className="truncate text-sm font-medium">{script.name}</div>
-                                            {script.isFavorite ? <Badge variant="outline" className="text-[10px]">Favorite</Badge> : null}
+                                            {script.isFavorite ? <Badge variant="outline" className="text-[10px]">{t("favorites")}</Badge> : null}
                                           </div>
                                           <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                                             {script.description || script.taskName || "Saved from PSForge web."}
                                           </div>
                                         </div>
                                         <Button size="sm" onClick={() => openWebLibraryScript(script)}>
-                                          Open
+                                          {t("open")}
                                         </Button>
                                       </div>
                                       <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
@@ -2960,7 +2960,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                   ))
                                 ) : (
                                   <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
-                                    No web scripts match this view.
+                                    {t("noWebScriptsMatchView")}
                                   </div>
                                 )}
                               </div>
@@ -2984,7 +2984,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                 ))}
                                 {filteredStarterLibrary.length === 0 ? (
                                   <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
-                                    No starters match this search.
+                                    {t("noStartersMatchSearch")}
                                   </div>
                                 ) : null}
                               </div>
@@ -2997,17 +2997,17 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0">
                                         <div className="truncate text-sm font-medium">{file.fileName}</div>
-                                        <div className="mt-1 truncate text-xs text-muted-foreground">{file.filePath || "Local recent file"}</div>
+                                        <div className="mt-1 truncate text-xs text-muted-foreground">{file.filePath || t("localRecentFile")}</div>
                                       </div>
                                       <Button size="sm" variant="outline" onClick={() => setAppSettingsView("recent")}>
-                                        Open
+                                        {t("open")}
                                       </Button>
                                     </div>
                                   </div>
                                 ))}
                                 {filteredRecentLibrary.length === 0 ? (
                                   <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
-                                    No local recent scripts match this view.
+                                    {t("noLocalRecentScripts")}
                                   </div>
                                 ) : null}
                               </div>
@@ -3025,12 +3025,12 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                           <div className="flex items-center justify-between gap-3">
                             <span>{workflowLaunchNotice}</span>
                             <Button size="sm" variant="ghost" onClick={() => setWorkflowLaunchNotice(null)}>
-                              Dismiss
+                              {t("dismiss")}
                             </Button>
                           </div>
                         </div>
                       ) : null}
-                      <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading builder library...</div>}>
+                      <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{t("loadingBuilderLibrary")}</div>}>
                         <GUIBuilderTab
                           selectedCategory={selectedGuiCategory}
                           onCategorySelect={setSelectedGuiCategory}
@@ -3049,7 +3049,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
 
             <TabsContent value="wizard" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <div className="h-full overflow-auto">
-                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading wizard...</div>}>
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{t("loadingWizard")}</div>}>
                   <ScriptWizardTab
                     script={currentScript}
                     setScript={setActiveScript}

@@ -129,7 +129,7 @@ test("3.0 operations suite exposes review-first workflow features", () => {
   assert.match(workbench, /Ops Suite/);
   assert.match(workbench, /displayMode === "ops"/);
   assert.match(shell, /value: "ops"/);
-  assert.match(shell, /label: "Ops"/);
+  assert.match(shell, /labelKey: "ops"/);
   assert.match(workspace, /value="ops"/);
   assert.doesNotMatch(workbench, /TabsTrigger value="ops-suite"/);
   assert.match(workbench, /handleRunEnvironmentDoctor/);
@@ -157,7 +157,7 @@ test("desktop right-click menus support native editing and command library secti
   assert.match(commandSidebar, /command-library-context-menu/);
   assert.doesNotMatch(commandSidebar, /team-favorites/);
   assert.doesNotMatch(commandSidebar, /Team favorites/);
-  assert.match(commandSidebar, /Hide \{contextMenu\.label\}/);
-  assert.match(commandSidebar, /Show hidden sections/);
-  assert.match(commandSidebar, /Copy syntax/);
+  assert.match(commandSidebar, /t\("hideSection", \{ section: contextMenu\.label \}\)/);
+  assert.match(commandSidebar, /t\("showHiddenSections"\)/);
+  assert.match(commandSidebar, /t\("copySyntax"\)/);
 });

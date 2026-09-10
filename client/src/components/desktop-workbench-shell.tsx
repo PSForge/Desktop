@@ -148,9 +148,9 @@ function readWorkbenchPreferences(): WorkbenchPreferences {
   return safeJsonParse<WorkbenchPreferences>(window.localStorage.getItem(WORKBENCH_PREFS_KEY), {});
 }
 
-function formatRunTimestamp(value?: string) {
+function formatRunTimestamp(value?: string, fallback = "No runs yet") {
   if (!value) {
-    return "No runs yet";
+    return fallback;
   }
 
   const date = new Date(value);
@@ -166,9 +166,9 @@ function formatRunTimestamp(value?: string) {
   });
 }
 
-function formatRunDuration(durationMs?: number) {
+function formatRunDuration(durationMs?: number, fallback = "Unknown") {
   if (typeof durationMs !== "number" || !Number.isFinite(durationMs) || durationMs < 0) {
-    return "Unknown";
+    return fallback;
   }
 
   if (durationMs < 1000) {
@@ -185,20 +185,20 @@ function formatRunDuration(durationMs?: number) {
   return `${minutes}m ${remainder}s`;
 }
 
-function getRiskLabel(analysis: ScriptWorkbenchAnalysis) {
+function getRiskLabel(analysis: ScriptWorkbenchAnalysis, t: (key: TranslationKey, replacements?: Record<string, string | number>) => string) {
   if (analysis.issues.some((issue) => issue.severity === "critical")) {
-    return { label: "High attention", variant: "destructive" as const };
+    return { label: t("appHealthHighAttention"), variant: "destructive" as const };
   }
 
   if (analysis.issues.some((issue) => issue.severity === "warning")) {
-    return { label: "Review suggested", variant: "secondary" as const };
+    return { label: t("appHealthReviewSuggested"), variant: "secondary" as const };
   }
 
   if (analysis.issues.length > 0) {
-    return { label: "Notes available", variant: "outline" as const };
+    return { label: t("appHealthNotesAvailable"), variant: "outline" as const };
   }
 
-  return { label: "Looks calm", variant: "default" as const };
+  return { label: t("appHealthLooksCalm"), variant: "default" as const };
 }
 
 function formatUpdateLabel(updateState: UpdateState, t: (key: TranslationKey, replacements?: Record<string, string | number>) => string) {
@@ -265,7 +265,7 @@ export function DesktopWorkbenchShell({
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(() => readWorkbenchPreferences().detailsDrawerOpen ?? false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const t = (key: TranslationKey, replacements?: Record<string, string | number>) => translate(locale, key, replacements);
-  const risk = getRiskLabel(analysis);
+  const risk = getRiskLabel(analysis, t);
   const lastRun = runHistorySummary.lastRun;
   const criticalIssues = analysis.issues.filter((issue) => issue.severity === "critical").length;
   const warningIssues = analysis.issues.filter((issue) => issue.severity === "warning").length;
@@ -326,8 +326,8 @@ export function DesktopWorkbenchShell({
           { label: t("openWizard"), icon: Wand2, run: () => onAreaChange("wizard") },
           { label: t("openAiWorkspace"), icon: Bot, run: () => onAreaChange("ai") },
           { label: t("openGitWorkspace"), icon: GitBranch, run: () => onAreaChange("git") },
-          { label: "Open Log Troubleshooter", icon: Wrench, run: () => onAreaChange("troubleshooter") },
-          { label: "Open Ops Suite", icon: PackageCheck, run: () => onAreaChange("ops") },
+          { label: t("logTroubleshooter"), icon: Wrench, run: () => onAreaChange("troubleshooter") },
+          { label: t("opsSuite"), icon: PackageCheck, run: () => onAreaChange("ops") },
           { label: t("showWorkspaceDetails"), icon: BriefcaseBusiness, run: () => openBottomPanelTab("workspace") },
           { label: t("showProblems"), icon: ShieldAlert, run: () => openBottomPanelTab("problems") },
           { label: t("showScriptIntelligence"), icon: Sparkles, run: () => openBottomPanelTab("ai") },
@@ -557,7 +557,7 @@ export function DesktopWorkbenchShell({
                   </Badge>
                   <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setDetailsDrawerOpen((current) => !current)}>
                     <span className="hidden sm:inline">{detailsDrawerOpen ? t("collapse") : t("details")}</span>
-                    <span className="sm:hidden">{detailsDrawerOpen ? "Less" : "More"}</span>
+                    <span className="sm:hidden">{detailsDrawerOpen ? t("collapse") : t("details")}</span>
                     <ChevronDown className={`ml-1 h-4 w-4 transition ${detailsDrawerOpen ? "" : "rotate-180"}`} />
                   </Button>
                 </div>
@@ -599,18 +599,18 @@ export function DesktopWorkbenchShell({
                         <div className="flex h-full items-center justify-center p-4 text-center text-muted-foreground">
                           <div>
                             <CheckCircle2 className="mx-auto mb-2 h-7 w-7 text-emerald-400" />
-                            <div className="font-medium text-foreground">No quick-analysis problems</div>
-                            <div className="mt-1">Run preflight for deeper dependency, impact, and readiness checks.</div>
+                            <div className="font-medium text-foreground">{t("noQuickAnalysisProblems")}</div>
+                            <div className="mt-1">{t("runPreflightDeeper")}</div>
                           </div>
                         </div>
                       )}
                     </div>
 
                     <div className="rounded-md border bg-background/60 p-3">
-                      <div className="font-medium">Problem Actions</div>
+                      <div className="font-medium">{t("problemActions")}</div>
                       <div className="mt-2 grid gap-2">
-                        <Button size="sm" variant="outline" onClick={onOpenWorkbenchReview}>Open review</Button>
-                        <Button size="sm" variant="outline" onClick={onRunPreflight}>Run preflight</Button>
+                        <Button size="sm" variant="outline" onClick={onOpenWorkbenchReview}>{t("openReview")}</Button>
+                        <Button size="sm" variant="outline" onClick={onRunPreflight}>{t("runPreflight")}</Button>
                       </div>
                     </div>
                   </div>
@@ -621,35 +621,35 @@ export function DesktopWorkbenchShell({
                     <div className="min-h-0 overflow-hidden rounded-md border bg-background/60">
                       <div className="flex items-center justify-between gap-3 border-b px-3 py-2">
                         <div>
-                          <div className="font-medium">Project Workspace 2.0</div>
-                          <div className="text-muted-foreground">Recent files, active draft, and recovery context.</div>
+                          <div className="font-medium">{t("projectWorkspaceTitle")}</div>
+                          <div className="text-muted-foreground">{t("projectWorkspaceDescription")}</div>
                         </div>
-                        <Badge variant={isDirty ? "secondary" : "outline"}>{isDirty ? "Unsaved draft" : "Saved state"}</Badge>
+                        <Badge variant={isDirty ? "secondary" : "outline"}>{isDirty ? t("unsavedDraft") : t("savedState")}</Badge>
                       </div>
                       <div className="grid h-[calc(100%-41px)] min-h-0 grid-cols-3 gap-3 p-3 max-lg:grid-cols-1">
                         <div className="rounded-md border bg-background/70 p-3">
-                          <div className="text-muted-foreground">Active script</div>
+                          <div className="text-muted-foreground">{t("activeScript")}</div>
                           <div className="mt-1 truncate font-mono text-sm">{currentFileName}{isDirty ? " *" : ""}</div>
                           <div className="mt-2 text-muted-foreground">{analysis.issues.length} issue{analysis.issues.length === 1 ? "" : "s"} tracked in this workspace.</div>
                         </div>
                         <div className="rounded-md border bg-background/70 p-3">
-                          <div className="text-muted-foreground">Recent files</div>
+                          <div className="text-muted-foreground">{t("recentFilesLabel")}</div>
                           <div className="mt-1 text-lg font-semibold">{recentFiles.length}</div>
-                          <div className="mt-2 text-muted-foreground">Quick access is available from the Recent Files dialog.</div>
+                          <div className="mt-2 text-muted-foreground">{t("quickAccessRecentFiles")}</div>
                         </div>
                         <div className="rounded-md border bg-background/70 p-3">
-                          <div className="text-muted-foreground">Latest recent</div>
-                          <div className="mt-1 truncate font-mono text-sm">{recentFiles[0]?.fileName || "No recent files"}</div>
-                          <div className="mt-2 truncate text-muted-foreground">{recentFiles[0]?.filePath || "Open or save a script to start the list."}</div>
+                          <div className="text-muted-foreground">{t("latestRecent")}</div>
+                          <div className="mt-1 truncate font-mono text-sm">{recentFiles[0]?.fileName || t("noRecentFiles")}</div>
+                          <div className="mt-2 truncate text-muted-foreground">{recentFiles[0]?.filePath || t("openOrSaveScript")}</div>
                         </div>
                       </div>
                     </div>
                     <div className="rounded-md border bg-background/60 p-3">
-                      <div className="font-medium">Workspace Actions</div>
+                      <div className="font-medium">{t("workspaceActions")}</div>
                       <div className="mt-2 grid gap-2">
-                        <Button size="sm" onClick={onOpenRecentFiles}>Open recent files</Button>
-                        <Button size="sm" variant="outline" onClick={onNewScript}>New script</Button>
-                        <Button size="sm" variant="outline" onClick={onOpenScript}>Open script</Button>
+                        <Button size="sm" onClick={onOpenRecentFiles}>{t("openRecentFiles")}</Button>
+                        <Button size="sm" variant="outline" onClick={onNewScript}>{t("newScript")}</Button>
+                        <Button size="sm" variant="outline" onClick={onOpenScript}>{t("openScript")}</Button>
                       </div>
                     </div>
                   </div>
@@ -661,8 +661,8 @@ export function DesktopWorkbenchShell({
                       <div className="border-b px-3 py-2">
                         <div className="flex items-center justify-between gap-2">
                           <div>
-                            <div className="font-medium">Prepare</div>
-                            <div className="text-muted-foreground">Check the script before execution.</div>
+                            <div className="font-medium">{t("prepare")}</div>
+                            <div className="text-muted-foreground">{t("prepareDescription")}</div>
                           </div>
                           <Badge variant="outline">{checkedItems}/{totalChecklistItems}</Badge>
                         </div>
@@ -670,15 +670,15 @@ export function DesktopWorkbenchShell({
                       <div className="grid gap-3 p-3">
                         <div className="grid grid-cols-3 gap-2">
                           <div className="rounded-md border bg-background/70 p-2">
-                            <div className="text-muted-foreground">Params</div>
+                            <div className="text-muted-foreground">{t("params")}</div>
                             <div className="text-base font-semibold">{analysis.parameters.length}</div>
                           </div>
                           <div className="rounded-md border bg-background/70 p-2">
-                            <div className="text-muted-foreground">Modules</div>
+                            <div className="text-muted-foreground">{t("modules")}</div>
                             <div className="text-base font-semibold">{analysis.moduleSuggestions.length}</div>
                           </div>
                           <div className="rounded-md border bg-background/70 p-2">
-                            <div className="text-muted-foreground">Issues</div>
+                            <div className="text-muted-foreground">{t("problems")}</div>
                             <div className="text-base font-semibold">{analysis.issues.length}</div>
                           </div>
                         </div>
@@ -692,7 +692,7 @@ export function DesktopWorkbenchShell({
                         </div>
                         <Button size="sm" variant="outline" onClick={onRunPreflight}>
                           <ShieldCheck className="mr-2 h-3.5 w-3.5" />
-                          Run preflight
+                          {t("runPreflight")}
                         </Button>
                       </div>
                     </div>
@@ -700,8 +700,8 @@ export function DesktopWorkbenchShell({
                     <div className="min-h-0 overflow-hidden rounded-md border bg-background/60">
                       <div className="border-b px-3 py-2">
                         <div>
-                          <div className="font-medium">Execute</div>
-                          <div className="text-muted-foreground">Choose mode and launch PowerShell.</div>
+                          <div className="font-medium">{t("execute")}</div>
+                          <div className="text-muted-foreground">{t("chooseModeLaunchPowerShell")}</div>
                         </div>
                       </div>
                       <div className="grid gap-3 p-3">
@@ -711,22 +711,22 @@ export function DesktopWorkbenchShell({
                               key={mode}
                               className="rounded-md border bg-background/70 px-2 py-2 text-left text-muted-foreground"
                             >
-                              <div className="font-medium capitalize">{mode.replace("-", " ")}</div>
+                              <div className="font-medium capitalize">{mode === "standard" ? t("standard") : mode === "dry-run" ? t("dryRun") : t("reportOnly")}</div>
                               <div className="mt-0.5 text-[10px]">
-                                {mode === "standard" ? "As written" : mode === "dry-run" ? "WhatIf-first" : "Read-only bias"}
+                                {mode === "standard" ? t("asWritten") : mode === "dry-run" ? "WhatIf-first" : t("readOnlyBias")}
                               </div>
                             </div>
                           ))}
                         </div>
                         <Button size="sm" onClick={onOpenRunTools}>
                           <TerminalSquare className="mr-2 h-3.5 w-3.5" />
-                          Run setup
+                          {t("runSetup")}
                         </Button>
                         <Button size="sm" variant="outline" disabled={!lastRun} onClick={onRerunLastRun}>
-                          Rerun last setup
+                          {t("rerunLastSetup")}
                         </Button>
                         <div className="rounded-md border bg-background/70 p-2 text-muted-foreground">
-                          Set parameters, transcript capture, notes, and elevation before execution.
+                          {t("setParametersBeforeExecution")}
                         </div>
                       </div>
                     </div>
@@ -735,37 +735,37 @@ export function DesktopWorkbenchShell({
                       <div className="border-b px-3 py-2">
                         <div className="flex items-center justify-between gap-2">
                           <div>
-                            <div className="font-medium">Review</div>
-                            <div className="text-muted-foreground">Last run evidence and follow-up.</div>
+                            <div className="font-medium">{t("review")}</div>
+                            <div className="text-muted-foreground">{t("lastRunEvidence")}</div>
                           </div>
                           <Badge variant={lastRun ? (lastRun.ok && lastRun.exitCode === 0 ? "default" : "destructive") : "outline"}>
-                            {lastRun ? `Exit ${lastRun.exitCode}` : "Ready"}
+                            {lastRun ? `Exit ${lastRun.exitCode}` : t("ready")}
                           </Badge>
                         </div>
                       </div>
                       <div className="grid gap-2 p-3">
                         <div className="rounded-md border bg-background/70 p-2">
-                          <div className="font-medium">Last Run</div>
+                          <div className="font-medium">{t("lastRun")}</div>
                           <div className="mt-0.5 truncate text-muted-foreground">
-                            {lastRun ? `${lastRun.fileName} at ${formatRunTimestamp(lastRun.finishedAt)}` : "No desktop runs yet."}
+                            {lastRun ? `${lastRun.fileName} at ${formatRunTimestamp(lastRun.finishedAt, "")}` : t("noDesktopRunsYet")}
                           </div>
                         </div>
                         {lastRun ? (
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="rounded-md border bg-background/70 p-2">
-                              <div className="text-muted-foreground">Duration</div>
-                              <div className="mt-1 font-medium">{formatRunDuration(lastRun.durationMs)}</div>
+                              <div className="text-muted-foreground">{t("duration")}</div>
+                              <div className="mt-1 font-medium">{formatRunDuration(lastRun.durationMs, t("unknown"))}</div>
                             </div>
                             <div className="rounded-md border bg-background/70 p-2">
-                              <div className="text-muted-foreground">Mode</div>
+                              <div className="text-muted-foreground">{t("mode")}</div>
                               <div className="mt-1 font-medium capitalize">{lastRun.runMode.replace("-", " ")}</div>
                             </div>
                             <div className="rounded-md border bg-background/70 p-2">
-                              <div className="text-muted-foreground">Shell</div>
+                              <div className="text-muted-foreground">{t("shell")}</div>
                               <div className="mt-1 truncate font-medium">{lastRun.shell || "PowerShell"}</div>
                             </div>
                             <div className="rounded-md border bg-background/70 p-2">
-                              <div className="text-muted-foreground">Parameters</div>
+                              <div className="text-muted-foreground">{t("params")}</div>
                               <div className="mt-1 font-medium">{Object.keys(lastRun.parameters || {}).length}</div>
                             </div>
                           </div>
@@ -773,11 +773,11 @@ export function DesktopWorkbenchShell({
                         <div className="grid grid-cols-2 gap-2">
                           <Button size="sm" variant="outline" disabled={!lastRun?.transcriptPath} onClick={() => void openLastRunPath(lastRun?.transcriptPath, "transcript")}>
                             <FileOutput className="mr-2 h-3.5 w-3.5" />
-                            Transcript
+                            {t("transcript")}
                           </Button>
-                          <Button size="sm" variant="outline" disabled={!lastRun?.runDirectory} onClick={() => void openLastRunPath(lastRun?.runDirectory, "run folder")}>
+                          <Button size="sm" variant="outline" disabled={!lastRun?.runDirectory} onClick={() => void openLastRunPath(lastRun?.runDirectory, t("openRunFolder"))}>
                             <FolderOpen className="mr-2 h-3.5 w-3.5" />
-                            Folder
+                            {t("folder")}
                           </Button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -791,18 +791,22 @@ export function DesktopWorkbenchShell({
                           </Button>
                         </div>
                         {lastRun && (!lastRun.ok || lastRun.exitCode !== 0) ? (
-                          <Button size="sm" variant="outline" onClick={onRunAiReview}>Explain failure with AI</Button>
+                          <Button size="sm" variant="outline" onClick={onRunAiReview}>{t("explainFailureWithAi")}</Button>
                         ) : (
-                          <Button size="sm" variant="outline" onClick={onOpenWorkbenchReview}>Review risks</Button>
+                          <Button size="sm" variant="outline" onClick={onOpenWorkbenchReview}>{t("reviewRisks")}</Button>
                         )}
                         {lastRun?.beforeNotes || lastRun?.afterNotes ? (
                           <div className="max-h-20 overflow-auto rounded-md border bg-background/70 p-2 text-xs text-muted-foreground">
-                            {lastRun.beforeNotes ? <div><span className="font-medium text-foreground">Before:</span> {lastRun.beforeNotes}</div> : null}
-                            {lastRun.afterNotes ? <div className="mt-1"><span className="font-medium text-foreground">After:</span> {lastRun.afterNotes}</div> : null}
+                            {lastRun.beforeNotes ? <div><span className="font-medium text-foreground">{t("before")}:</span> {lastRun.beforeNotes}</div> : null}
+                            {lastRun.afterNotes ? <div className="mt-1"><span className="font-medium text-foreground">{t("after")}:</span> {lastRun.afterNotes}</div> : null}
                           </div>
                         ) : null}
                         <div className="rounded-md border bg-background/70 p-2 text-muted-foreground">
-                          {runHistorySummary.totalRuns} total run{runHistorySummary.totalRuns === 1 ? "" : "s"} - {runHistorySummary.failedRuns} failed
+                          {t("totalRunsSummary", {
+                            total: runHistorySummary.totalRuns,
+                            plural: runHistorySummary.totalRuns === 1 ? "" : "s",
+                            failed: runHistorySummary.failedRuns,
+                          })}
                         </div>
                       </div>
                     </div>
@@ -814,8 +818,8 @@ export function DesktopWorkbenchShell({
                     <div className="min-h-0 overflow-hidden rounded-md border bg-background/60">
                       <div className="flex items-center justify-between gap-3 border-b px-3 py-2">
                         <div>
-                          <div className="font-medium">Script Intelligence</div>
-                          <div className="text-muted-foreground">Live read on the active script.</div>
+                          <div className="font-medium">{t("scriptIntelligence")}</div>
+                          <div className="text-muted-foreground">{t("liveReadActiveScript")}</div>
                         </div>
                         <Badge variant={risk.variant}>{risk.label}</Badge>
                       </div>
@@ -829,19 +833,19 @@ export function DesktopWorkbenchShell({
                         </div>
                         <div className="grid grid-cols-4 gap-2 max-sm:grid-cols-2">
                           <div className="rounded-md border bg-background/70 p-2">
-                            <div className="text-muted-foreground">Params</div>
+                            <div className="text-muted-foreground">{t("params")}</div>
                             <div className="text-base font-semibold">{analysis.parameters.length}</div>
                           </div>
                           <div className="rounded-md border bg-background/70 p-2">
-                            <div className="text-muted-foreground">Modules</div>
+                            <div className="text-muted-foreground">{t("modules")}</div>
                             <div className="text-base font-semibold">{analysis.moduleSuggestions.length}</div>
                           </div>
                           <div className="rounded-md border bg-background/70 p-2">
-                            <div className="text-muted-foreground">Critical</div>
+                            <div className="text-muted-foreground">{t("critical")}</div>
                             <div className="text-base font-semibold text-destructive">{criticalIssues}</div>
                           </div>
                           <div className="rounded-md border bg-background/70 p-2">
-                            <div className="text-muted-foreground">Warnings</div>
+                            <div className="text-muted-foreground">{t("warnings")}</div>
                             <div className="text-base font-semibold text-amber-400">{warningIssues}</div>
                           </div>
                         </div>
@@ -851,8 +855,8 @@ export function DesktopWorkbenchShell({
                     <div className="min-h-0 overflow-hidden rounded-md border bg-background/60">
                       <div className="flex items-center justify-between gap-3 border-b px-3 py-2">
                         <div>
-                          <div className="font-medium">Risks And Readiness</div>
-                          <div className="text-muted-foreground">Fast review before deeper AI or preflight checks.</div>
+                          <div className="font-medium">{t("risksAndReadiness")}</div>
+                          <div className="text-muted-foreground">{t("fastReviewBeforeChecks")}</div>
                         </div>
                         <Badge variant="outline">{checkedItems}/{totalChecklistItems}</Badge>
                       </div>
@@ -862,7 +866,7 @@ export function DesktopWorkbenchShell({
                             <div className="flex h-full items-center justify-center p-4 text-center text-emerald-200">
                               <div>
                                 <CheckCircle2 className="mx-auto mb-2 h-6 w-6 text-emerald-400" />
-                                <div className="font-medium">No quick-analysis issues</div>
+                                <div className="font-medium">{t("noQuickAnalysisIssues")}</div>
                               </div>
                             </div>
                           ) : (
@@ -917,20 +921,20 @@ export function DesktopWorkbenchShell({
                 {bottomPanelTab === "git" && (
                   <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_240px] gap-3 max-lg:grid-cols-1">
                     <div className="rounded-md border bg-background/60 p-3">
-                      <div className="font-medium">Current Script</div>
+                      <div className="font-medium">{t("currentScript")}</div>
                       <div className="mt-2 flex items-center gap-2">
                         <FileCode className="h-4 w-4 text-primary" />
                         <span className="font-mono">{currentFileName}{isDirty ? " *" : ""}</span>
                       </div>
                       <div className="mt-2 text-muted-foreground">
-                        Git tools can package, diff, and commit the active script from the dedicated Git workspace.
+                        {t("gitToolsDescription")}
                       </div>
                     </div>
                     <div className="rounded-md border bg-background/60 p-3">
                       <div className="font-medium">{t("gitActions")}</div>
                       <div className="mt-2 grid gap-2">
                         <Button size="sm" onClick={() => onAreaChange("git")}>{t("openGitWorkspace")}</Button>
-                        <Button size="sm" variant="outline" onClick={onSaveScript}>Save script first</Button>
+                        <Button size="sm" variant="outline" onClick={onSaveScript}>{t("saveScriptFirst")}</Button>
                       </div>
                     </div>
                   </div>
@@ -961,7 +965,7 @@ export function DesktopWorkbenchShell({
                     <Icon className="h-4 w-4" />
                     <span>{action.label}</span>
                     {action.shortcut ? <CommandShortcut>{action.shortcut}</CommandShortcut> : null}
-                    {action.disabled && !action.shortcut ? <CommandShortcut>Unavailable</CommandShortcut> : null}
+                    {action.disabled && !action.shortcut ? <CommandShortcut>{t("unavailable")}</CommandShortcut> : null}
                   </CommandItem>
                 );
               })}

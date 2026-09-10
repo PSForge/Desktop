@@ -17,6 +17,7 @@ import { generateBulkScript, BulkTaskConfig } from '@/lib/bulk-script-generator'
 import { trackDesktopAnalyticsEvent } from '@/lib/desktop-analytics';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useDesktopLocale } from '@/lib/i18n';
 
 // Import all task libraries
 import { adTasks } from '@/lib/ad-tasks';
@@ -132,6 +133,71 @@ const platforms: PlatformConfig[] = [
   { id: 'sql-server', name: 'SQL Server', description: 'Database administration and maintenance', isPremium: true, tasks: sqlServerTasks },
 ];
 
+const spanishPlatformDisplay: Record<string, { name?: string; description: string }> = {
+  'file-system': { name: 'Sistema de archivos', description: 'Administra archivos y carpetas' },
+  network: { name: 'Red', description: 'Configuracion y diagnostico de red' },
+  services: { name: 'Servicios', description: 'Administracion de servicios de Windows' },
+  'process-management': { name: 'Gestion de procesos', description: 'Controla procesos en ejecucion' },
+  'event-logs': { name: 'Registros de eventos', description: 'Consulta y administra registros del sistema' },
+  'active-directory': { description: 'Administracion de usuarios y grupos' },
+  registry: { name: 'Registro', description: 'Operaciones del registro de Windows' },
+  security: { name: 'Seguridad', description: 'Seguridad y permisos' },
+  'exchange-online': { description: 'Administracion de buzones de Office 365' },
+  'azure-ad': { description: 'Identidad de Azure Active Directory' },
+  'azure-resources': { description: 'Infraestructura en la nube de Azure' },
+  'sharepoint-online': { description: 'Administracion de SharePoint Online' },
+  'sharepoint-onprem': { description: 'SharePoint local' },
+  mecm: { description: 'Configuration Manager' },
+  'exchange-server': { description: 'Exchange local' },
+  'hyper-v': { description: 'Administracion de maquinas virtuales' },
+  intune: { description: 'Administracion de dispositivos' },
+  'power-platform': { description: 'Power Apps y Automate' },
+  teams: { description: 'Colaboracion en Teams' },
+  office365: { description: 'Tenant de Office 365' },
+  onedrive: { description: 'Almacenamiento en la nube de OneDrive' },
+  windows365: { description: 'Administracion de Cloud PC' },
+  'windows-server': { description: 'Configuracion y caracteristicas de servidor' },
+  vmware: { description: 'Automatizacion de infraestructura VMware' },
+  veeam: { description: 'Operaciones de copia de seguridad y recuperacion' },
+  nutanix: { description: 'Infraestructura hiperconvergente Nutanix' },
+  citrix: { description: 'Citrix XenApp y XenDesktop' },
+  pdq: { description: 'Implementacion de software e inventario' },
+  chocolatey: { description: 'Automatizacion de administracion de paquetes' },
+  servicenow: { description: 'Automatizacion de ITSM y tickets' },
+  connectwise: { description: 'Automatizacion de RMM y PSA' },
+  aws: { description: 'Administracion de recursos en la nube de AWS' },
+  gcp: { description: 'Automatizacion de infraestructura GCP' },
+  crowdstrike: { description: 'Automatizacion de seguridad de endpoints' },
+  sophos: { description: 'Administracion de proteccion de endpoints' },
+  okta: { description: 'Administracion de identidad y acceso' },
+  duo: { description: 'Autenticacion multifactor' },
+  fortinet: { description: 'Firewall y seguridad de red' },
+  cisco: { description: 'Administracion de red e inalambrica' },
+  netapp: { description: 'Administracion de almacenamiento empresarial' },
+  jamf: { description: 'Administracion de dispositivos Apple' },
+  slack: { description: 'Automatizacion de colaboracion de equipo' },
+  zoom: { description: 'Automatizacion de videoconferencias' },
+  github: { description: 'Automatizacion de DevOps y repositorios' },
+  splunk: { description: 'Monitoreo y analitica' },
+  docker: { description: 'Orquestacion de contenedores' },
+  jira: { description: 'Automatizacion de gestion de proyectos' },
+  salesforce: { description: 'Automatizacion de CRM' },
+  'sql-server': { description: 'Administracion y mantenimiento de bases de datos' },
+};
+
+function getLocalizedPlatform(platform: PlatformConfig, locale: string): PlatformConfig {
+  if (locale !== 'es') {
+    return platform;
+  }
+
+  const display = spanishPlatformDisplay[platform.id];
+  return {
+    ...platform,
+    name: display?.name || platform.name,
+    description: display?.description || platform.description,
+  };
+}
+
 interface ScriptWizardTabProps {
   script: string;
   setScript: (script: string) => void;
@@ -140,6 +206,7 @@ interface ScriptWizardTabProps {
 export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   const { featureAccess } = useAuth();
   const { toast } = useToast();
+  const { locale, t } = useDesktopLocale();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -183,7 +250,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   // AI Review mutation
   const aiReviewMutation = useMutation({
     mutationFn: async (code: string) => {
-      const response = await apiRequest('/api/ai/optimize', 'POST', { code });
+      const response = await apiRequest('/api/ai/optimize', 'POST', { code, locale });
       return await response.json();
     },
     onSuccess: (data) => {
@@ -245,7 +312,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   // Apply AI optimizations mutation
   const applyOptimizationsMutation = useMutation({
     mutationFn: async ({ code, recommendations }: { code: string; recommendations: any[] }) => {
-      const response = await apiRequest('/api/ai/apply-optimizations', 'POST', { code, recommendations });
+      const response = await apiRequest('/api/ai/apply-optimizations', 'POST', { code, recommendations, locale });
       return await response.json();
     },
     onSuccess: (data) => {
@@ -282,8 +349,10 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
 
   // Filter platforms based on subscription
   const availablePlatforms = useMemo(() => {
-    return platforms.filter(p => !p.isPremium || featureAccess?.hasPremiumCategories);
-  }, [featureAccess]);
+    return platforms
+      .filter(p => !p.isPremium || featureAccess?.hasPremiumCategories)
+      .map((platform) => getLocalizedPlatform(platform, locale));
+  }, [featureAccess, locale]);
 
   // Get tasks from selected platforms
   const availableTasks = useMemo(() => {
@@ -291,17 +360,18 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     selectedPlatforms.forEach(platformId => {
       const platform = platforms.find(p => p.id === platformId);
       if (platform) {
-        platform.tasks.forEach(task => {
+        const localizedPlatform = getLocalizedPlatform(platform, locale);
+        localizedPlatform.tasks.forEach(task => {
           tasks.push({
             ...task,
             platformId,
-            platformName: platform.name
+            platformName: localizedPlatform.name
           });
         });
       }
     });
     return tasks;
-  }, [selectedPlatforms]);
+  }, [selectedPlatforms, locale]);
 
   // Helper function to detect if a task is a bulk operation
   const isBulkTask = (task: any): boolean => {
@@ -901,7 +971,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             ))}
           </div>
           <div className="text-sm text-muted-foreground">
-            Step {currentStep} of {totalSteps}
+            {t("stepOf", { current: currentStep, total: totalSteps })}
           </div>
         </div>
       </div>
@@ -913,15 +983,15 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             <div className="space-y-6">
               <Card data-testid="wizard-step-platform-selection">
                 <CardHeader>
-                  <CardTitle>Select Platforms</CardTitle>
+                  <CardTitle>{t("selectPlatforms")}</CardTitle>
                   <CardDescription>
-                    Choose one or more IT platforms for your bulk automation tasks
+                    {t("selectPlatformsDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Alert className="mb-4">
                     <Info className="h-4 w-4" />
-                    <AlertDescription>Select the platforms where you want to perform operations. You can combine tasks from multiple platforms in a single script.</AlertDescription>
+                    <AlertDescription>{t("selectPlatformsHelp")}</AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -949,7 +1019,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">{platform.description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{platform.tasks.length} tasks</p>
+                          <p className="text-xs text-muted-foreground mt-1">{platform.tasks.length} {t("tasks")}</p>
                         </div>
                       </div>
                     ))}
@@ -959,7 +1029,12 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                     <Alert className="mt-4">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? 's' : ''} selected • {availableTasks.length} tasks available
+                        {t("platformSelectionSummary", {
+                          platforms: selectedPlatforms.length,
+                          platformPlural: selectedPlatforms.length !== 1 ? "s" : "",
+                          tasks: availableTasks.length,
+                          taskPlural: availableTasks.length !== 1 ? "s" : "",
+                        })}
                       </AlertDescription>
                     </Alert>
                   )}

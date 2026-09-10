@@ -110,7 +110,151 @@ export type TranslationKey =
   | "showHiddenSections"
   | "switchCards"
   | "tryDifferentSearch"
-  | "copySyntax";
+  | "copySyntax"
+  | "activeScript"
+  | "additionalContext"
+  | "aiAssistant"
+  | "aiAssistantDescription"
+  | "aiWelcomeMessage"
+  | "after"
+  | "all"
+  | "analysisFailed"
+  | "analysisResults"
+  | "analyzeLog"
+  | "analyzing"
+  | "analyzingLogFile"
+  | "appHealthLooksCalm"
+  | "appHealthNotesAvailable"
+  | "appHealthReviewSuggested"
+  | "appHealthHighAttention"
+  | "available"
+  | "asWritten"
+  | "before"
+  | "cached"
+  | "categories"
+  | "chooseCategoryLeft"
+  | "chooseFocus"
+  | "chooseModeLaunchPowerShell"
+  | "clickToBrowseLog"
+  | "comingSoon"
+  | "connectAccount"
+  | "copy"
+  | "copyToClipboard"
+  | "couldNotPreselectWorkflow"
+  | "critical"
+  | "currentScript"
+  | "dryRun"
+  | "dismiss"
+  | "duration"
+  | "environmentChecks"
+  | "execute"
+  | "failedAnalyzeLog"
+  | "failed"
+  | "explainFailureWithAi"
+  | "fastReviewBeforeChecks"
+  | "foundAt"
+  | "gitToolsDescription"
+  | "guiBuilderDescription"
+  | "guiScriptBuilder"
+  | "impactItems"
+  | "issuesFound"
+  | "latestRecent"
+  | "lastRun"
+  | "lastRunEvidence"
+  | "loadingAiWorkspace"
+  | "loadingBuilderLibrary"
+  | "loadingScripts"
+  | "loadingWizard"
+  | "local"
+  | "localEdits"
+  | "localRecentFile"
+  | "liveReadActiveScript"
+  | "logFile"
+  | "logTroubleshooter"
+  | "logTroubleshooterDescription"
+  | "newAnalysis"
+  | "newScript"
+  | "optional"
+  | "mode"
+  | "modules"
+  | "noAnalysisYet"
+  | "noDesktopRunsYet"
+  | "noQuickAnalysisIssues"
+  | "noQuickAnalysisProblems"
+  | "noRecentFiles"
+  | "noLocalRecentScripts"
+  | "noStartersMatchSearch"
+  | "noWebScriptsMatchView"
+  | "open"
+  | "openOrSaveScript"
+  | "openRunFolder"
+  | "orPasteLogContent"
+  | "params"
+  | "pastedLogContent"
+  | "pasteLogContentHere"
+  | "platform"
+  | "platformSelectionSummary"
+  | "prepare"
+  | "prepareDescription"
+  | "problemActions"
+  | "projectWorkspaceDescription"
+  | "projectWorkspaceTitle"
+  | "quickAccessRecentFiles"
+  | "preventionTips"
+  | "ready"
+  | "recentFilesLabel"
+  | "reportOnly"
+  | "readOnlyBias"
+  | "recommendedFix"
+  | "review"
+  | "rootCause"
+  | "reviewRisks"
+  | "risksAndReadiness"
+  | "runPreflightDeeper"
+  | "runSetup"
+  | "savedState"
+  | "saveScriptFirst"
+  | "scriptIntelligence"
+  | "sendToEditor"
+  | "sentToScriptEditor"
+  | "searchLibrary"
+  | "shell"
+  | "selectACategory"
+  | "selectPlatform"
+  | "selectPlatforms"
+  | "selectPlatformsDescription"
+  | "selectPlatformsHelp"
+  | "setParametersBeforeExecution"
+  | "standard"
+  | "steps"
+  | "starters"
+  | "stepOf"
+  | "sync"
+  | "synced"
+  | "tasks"
+  | "tasksAddedSoon"
+  | "transcript"
+  | "totalRunsSummary"
+  | "unavailable"
+  | "unsavedDraft"
+  | "unknown"
+  | "uploadLogAndSelectPlatform"
+  | "uploadLogFileHere"
+  | "uploadLogForAi"
+  | "useThisScript"
+  | "web"
+  | "warnings"
+  | "workarounds"
+  | "workflow"
+  | "workflowFocusHint"
+  | "workflowFocusNone"
+  | "workspaceActions"
+  | "add"
+  | "askPowerShellCommands"
+  | "copied"
+  | "customPowerShellScript"
+  | "suggestedCommands"
+  | "you";
 
 type TranslationTable = Record<TranslationKey, string>;
 
@@ -227,6 +371,150 @@ const en: TranslationTable = {
   showHiddenSections: "Show hidden sections",
   switchCards: "Switch to {mode} cards",
   tryDifferentSearch: "Try a different search term",
+  activeScript: "Active script",
+  additionalContext: "Additional Context",
+  aiAssistant: "AI Assistant",
+  aiAssistantDescription: "Describe your automation needs in plain English",
+  aiWelcomeMessage: "Hi, I'm your PSForge AI assistant. Ask me to build, explain, troubleshoot, or improve a PowerShell script.",
+  after: "After",
+  all: "All",
+  analysisFailed: "Analysis failed",
+  analysisResults: "Analysis Results",
+  analyzeLog: "Analyze Log",
+  analyzing: "Analyzing...",
+  analyzingLogFile: "Analyzing your log file...",
+  appHealthLooksCalm: "Looks calm",
+  appHealthNotesAvailable: "Notes available",
+  appHealthReviewSuggested: "Review suggested",
+  appHealthHighAttention: "High attention",
+  available: "available",
+  asWritten: "As written",
+  before: "Before",
+  cached: "Cached",
+  categories: "Categories",
+  chooseCategoryLeft: "Choose a category from the list on the left to view available automation tasks",
+  chooseFocus: "Choose Focus",
+  chooseModeLaunchPowerShell: "Choose mode and launch PowerShell.",
+  clickToBrowseLog: "or click to browse (.log, .txt, .json, .xml, .csv)",
+  comingSoon: "Coming Soon",
+  connectAccount: "Connect Account",
+  copy: "Copy",
+  copyToClipboard: "Copied to clipboard",
+  couldNotPreselectWorkflow: "We couldn't preselect this workflow - pick your platform below.",
+  critical: "Critical",
+  currentScript: "Current Script",
+  dryRun: "Dry Run",
+  dismiss: "Dismiss",
+  duration: "Duration",
+  environmentChecks: "Environment checks",
+  execute: "Execute",
+  failedAnalyzeLog: "Failed to analyze the log file. Please try again.",
+  failed: "failed",
+  explainFailureWithAi: "Explain failure with AI",
+  fastReviewBeforeChecks: "Fast review before deeper AI or preflight checks.",
+  foundAt: "Found at",
+  gitToolsDescription: "Git tools can package, diff, and commit the active script from the dedicated Git workspace.",
+  guiBuilderDescription: "Select a category to build configuration scripts with an easy-to-use interface",
+  guiScriptBuilder: "GUI Script Builder",
+  impactItems: "Impact items",
+  issuesFound: "Issues Found",
+  latestRecent: "Latest recent",
+  lastRun: "Last Run",
+  lastRunEvidence: "Last run evidence and follow-up.",
+  loadingAiWorkspace: "Loading AI workspace...",
+  loadingBuilderLibrary: "Loading builder library...",
+  loadingScripts: "Loading scripts from your PSForge web account...",
+  loadingWizard: "Loading wizard...",
+  local: "Local",
+  localEdits: "Local edits",
+  localRecentFile: "Local recent file",
+  liveReadActiveScript: "Live read on the active script.",
+  logFile: "Log File",
+  logTroubleshooter: "Log Troubleshooter",
+  logTroubleshooterDescription: "Upload a log file for AI-powered diagnosis and fix recommendations.",
+  newAnalysis: "Start New Analysis",
+  newScript: "New script",
+  optional: "optional",
+  mode: "Mode",
+  modules: "Modules",
+  noAnalysisYet: "No analysis yet",
+  noDesktopRunsYet: "No desktop runs yet.",
+  noQuickAnalysisIssues: "No quick-analysis issues",
+  noQuickAnalysisProblems: "No quick-analysis problems",
+  noRecentFiles: "No recent files",
+  noLocalRecentScripts: "No local recent scripts match this view.",
+  noStartersMatchSearch: "No starters match this search.",
+  noWebScriptsMatchView: "No web scripts match this view.",
+  open: "Open",
+  openOrSaveScript: "Open or save a script to start the list.",
+  openRunFolder: "Run folder",
+  orPasteLogContent: "Or paste log content",
+  params: "Params",
+  pastedLogContent: "Pasted log content",
+  pasteLogContentHere: "Paste your log content here...",
+  platform: "Platform",
+  platformSelectionSummary: "{platforms} platform{platformPlural} selected - {tasks} task{taskPlural} available",
+  prepare: "Prepare",
+  prepareDescription: "Check the script before execution.",
+  problemActions: "Problem Actions",
+  projectWorkspaceDescription: "Recent files, active draft, and recovery context.",
+  projectWorkspaceTitle: "Project Workspace 2.0",
+  quickAccessRecentFiles: "Quick access is available from the Recent Files dialog.",
+  preventionTips: "Prevention Tips",
+  ready: "Ready",
+  recentFilesLabel: "Recent files",
+  reportOnly: "Report Only",
+  readOnlyBias: "Read-only bias",
+  recommendedFix: "Recommended Fix",
+  review: "Review",
+  rootCause: "Root Cause",
+  reviewRisks: "Review risks",
+  risksAndReadiness: "Risks And Readiness",
+  runPreflightDeeper: "Run preflight for deeper dependency, impact, and readiness checks.",
+  runSetup: "Run setup",
+  savedState: "Saved state",
+  saveScriptFirst: "Save script first",
+  scriptIntelligence: "Script Intelligence",
+  sendToEditor: "Send to Editor",
+  sentToScriptEditor: "Sent to Script Editor",
+  searchLibrary: "Search Library",
+  shell: "Shell",
+  selectACategory: "Select a Category",
+  selectPlatform: "Select platform...",
+  selectPlatforms: "Select Platforms",
+  selectPlatformsDescription: "Choose one or more IT platforms for your bulk automation tasks",
+  selectPlatformsHelp: "Select the platforms where you want to perform operations. You can combine tasks from multiple platforms in a single script.",
+  setParametersBeforeExecution: "Set parameters, transcript capture, notes, and elevation before execution.",
+  standard: "Standard",
+  steps: "Steps",
+  starters: "Starters",
+  stepOf: "Step {current} of {total}",
+  sync: "Sync",
+  synced: "Synced",
+  tasks: "tasks",
+  tasksAddedSoon: "Tasks for {category} will be added soon",
+  transcript: "Transcript",
+  totalRunsSummary: "{total} total run{plural} - {failed} failed",
+  unavailable: "Unavailable",
+  unsavedDraft: "Unsaved draft",
+  unknown: "Unknown",
+  uploadLogAndSelectPlatform: "Upload a log file and select a platform to get started.",
+  uploadLogFileHere: "Drop log file here",
+  uploadLogForAi: "The AI is examining issues and preparing recommendations.",
+  useThisScript: "Use This Script",
+  web: "Web",
+  warnings: "Warnings",
+  workarounds: "Workarounds",
+  workflow: "Workflow",
+  workflowFocusHint: "Pick a focus once and we'll keep one useful next step close to the editor.",
+  workflowFocusNone: "No workflow focus selected",
+  workspaceActions: "Workspace Actions",
+  add: "Add",
+  askPowerShellCommands: "Ask about PowerShell commands...",
+  copied: "Copied",
+  customPowerShellScript: "Custom PowerShell Script",
+  suggestedCommands: "Suggested commands:",
+  you: "You",
 };
 
 const translations: Record<LocaleCode, TranslationTable> = {
@@ -288,6 +576,150 @@ const translations: Record<LocaleCode, TranslationTable> = {
     removeFavorite: "Quitar favorito",
     searchCommands: "Buscar comandos...",
     tryDifferentSearch: "Prueba con otro termino de busqueda",
+    activeScript: "Script activo",
+    additionalContext: "Contexto adicional",
+    aiAssistant: "Asistente de IA",
+    aiAssistantDescription: "Describe tus necesidades de automatizacion en lenguaje natural",
+    aiWelcomeMessage: "Hola, soy tu asistente de IA de PSForge. Pideme que cree, explique, solucione o mejore un script de PowerShell.",
+    after: "Despues",
+    all: "Todos",
+    analysisFailed: "Error en el analisis",
+    analysisResults: "Resultados del analisis",
+    analyzeLog: "Analizar registro",
+    analyzing: "Analizando...",
+    analyzingLogFile: "Analizando el archivo de registro...",
+    appHealthLooksCalm: "Todo tranquilo",
+    appHealthNotesAvailable: "Notas disponibles",
+    appHealthReviewSuggested: "Revision sugerida",
+    appHealthHighAttention: "Alta atencion",
+    available: "disponibles",
+    asWritten: "Tal como esta escrito",
+    before: "Antes",
+    cached: "En cache",
+    categories: "Categorias",
+    chooseCategoryLeft: "Elige una categoria de la lista de la izquierda para ver las tareas de automatizacion disponibles",
+    chooseFocus: "Elegir enfoque",
+    chooseModeLaunchPowerShell: "Elige el modo e inicia PowerShell.",
+    clickToBrowseLog: "o haz clic para buscar (.log, .txt, .json, .xml, .csv)",
+    comingSoon: "Proximamente",
+    connectAccount: "Conectar cuenta",
+    copy: "Copiar",
+    copyToClipboard: "Copiado al portapapeles",
+    couldNotPreselectWorkflow: "No pudimos preseleccionar este flujo de trabajo - elige tu plataforma abajo.",
+    critical: "Critico",
+    currentScript: "Script actual",
+    dryRun: "Simulacion",
+    dismiss: "Descartar",
+    duration: "Duracion",
+    environmentChecks: "Comprobaciones del entorno",
+    execute: "Ejecutar",
+    failedAnalyzeLog: "No se pudo analizar el archivo de registro. Intentalo de nuevo.",
+    failed: "fallidas",
+    explainFailureWithAi: "Explicar error con IA",
+    fastReviewBeforeChecks: "Revision rapida antes de comprobaciones mas profundas de IA o preflight.",
+    foundAt: "Encontrado en",
+    gitToolsDescription: "Las herramientas de Git pueden empaquetar, comparar y confirmar el script activo desde el espacio de Git dedicado.",
+    guiBuilderDescription: "Selecciona una categoria para crear scripts de configuracion con una interfaz facil de usar",
+    guiScriptBuilder: "Constructor visual de scripts",
+    impactItems: "Elementos de impacto",
+    issuesFound: "Problemas encontrados",
+    latestRecent: "Mas reciente",
+    lastRun: "Ultima ejecucion",
+    lastRunEvidence: "Evidencia de la ultima ejecucion y seguimiento.",
+    loadingAiWorkspace: "Cargando espacio de IA...",
+    loadingBuilderLibrary: "Cargando biblioteca del constructor...",
+    loadingScripts: "Cargando scripts desde tu cuenta web de PSForge...",
+    loadingWizard: "Cargando asistente...",
+    local: "Local",
+    localEdits: "Ediciones locales",
+    localRecentFile: "Archivo local reciente",
+    liveReadActiveScript: "Lectura en vivo del script activo.",
+    logFile: "Archivo de registro",
+    logTroubleshooter: "Solucionador de registros",
+    logTroubleshooterDescription: "Carga un archivo de registro para diagnostico con IA y recomendaciones de correccion.",
+    newAnalysis: "Iniciar nuevo analisis",
+    newScript: "Nuevo script",
+    optional: "opcional",
+    mode: "Modo",
+    modules: "Modulos",
+    noAnalysisYet: "Sin analisis todavia",
+    noDesktopRunsYet: "Aun no hay ejecuciones de escritorio.",
+    noQuickAnalysisIssues: "Sin problemas de analisis rapido",
+    noQuickAnalysisProblems: "Sin problemas de analisis rapido",
+    noRecentFiles: "Sin archivos recientes",
+    noLocalRecentScripts: "Ningun script reciente local coincide con esta vista.",
+    noStartersMatchSearch: "Ningun inicial coincide con esta busqueda.",
+    noWebScriptsMatchView: "Ningun script web coincide con esta vista.",
+    open: "Abrir",
+    openOrSaveScript: "Abre o guarda un script para iniciar la lista.",
+    openRunFolder: "Carpeta de ejecucion",
+    orPasteLogContent: "O pega el contenido del registro",
+    params: "Parametros",
+    pastedLogContent: "Contenido de registro pegado",
+    pasteLogContentHere: "Pega el contenido del registro aqui...",
+    platform: "Plataforma",
+    platformSelectionSummary: "{platforms} plataforma{platformPlural} seleccionada{platformPlural} - {tasks} tarea{taskPlural} disponible{taskPlural}",
+    prepare: "Preparar",
+    prepareDescription: "Comprueba el script antes de ejecutarlo.",
+    problemActions: "Acciones de problemas",
+    projectWorkspaceDescription: "Archivos recientes, borrador activo y contexto de recuperacion.",
+    projectWorkspaceTitle: "Espacio de proyecto 2.0",
+    quickAccessRecentFiles: "El acceso rapido esta disponible desde el cuadro de archivos recientes.",
+    preventionTips: "Consejos de prevencion",
+    ready: "Listo",
+    recentFilesLabel: "Archivos recientes",
+    reportOnly: "Solo informe",
+    readOnlyBias: "Preferencia de solo lectura",
+    recommendedFix: "Correccion recomendada",
+    review: "Revisar",
+    rootCause: "Causa raiz",
+    reviewRisks: "Revisar riesgos",
+    risksAndReadiness: "Riesgos y preparacion",
+    runPreflightDeeper: "Ejecuta preflight para comprobaciones mas profundas de dependencias, impacto y preparacion.",
+    runSetup: "Configurar ejecucion",
+    savedState: "Estado guardado",
+    saveScriptFirst: "Guardar script primero",
+    scriptIntelligence: "Inteligencia del script",
+    sendToEditor: "Enviar al editor",
+    sentToScriptEditor: "Enviado al editor de scripts",
+    searchLibrary: "Buscar en la biblioteca",
+    shell: "Shell",
+    selectACategory: "Selecciona una categoria",
+    selectPlatform: "Seleccionar plataforma...",
+    selectPlatforms: "Seleccionar plataformas",
+    selectPlatformsDescription: "Elige una o mas plataformas de TI para tus tareas de automatizacion masiva",
+    selectPlatformsHelp: "Selecciona las plataformas donde quieres realizar operaciones. Puedes combinar tareas de varias plataformas en un solo script.",
+    setParametersBeforeExecution: "Configura parametros, transcripcion, notas y elevacion antes de ejecutar.",
+    standard: "Estandar",
+    steps: "Pasos",
+    starters: "Iniciales",
+    stepOf: "Paso {current} de {total}",
+    sync: "Sincronizar",
+    synced: "Sincronizado",
+    tasks: "tareas",
+    tasksAddedSoon: "Las tareas de {category} se agregaran pronto",
+    transcript: "Transcripcion",
+    totalRunsSummary: "{total} ejecucion{plural} en total - {failed} fallidas",
+    unavailable: "No disponible",
+    unsavedDraft: "Borrador sin guardar",
+    unknown: "Desconocido",
+    uploadLogAndSelectPlatform: "Carga un archivo de registro y selecciona una plataforma para empezar.",
+    uploadLogFileHere: "Suelta el archivo de registro aqui",
+    uploadLogForAi: "La IA esta examinando problemas y preparando recomendaciones.",
+    useThisScript: "Usar este script",
+    web: "Web",
+    warnings: "Advertencias",
+    workarounds: "Soluciones alternativas",
+    workflow: "Flujo de trabajo",
+    workflowFocusHint: "Elige un enfoque y mantendremos un siguiente paso util cerca del editor.",
+    workflowFocusNone: "No se selecciono ningun enfoque de flujo de trabajo",
+    workspaceActions: "Acciones del espacio de trabajo",
+    add: "Agregar",
+    askPowerShellCommands: "Pregunta sobre comandos de PowerShell...",
+    copied: "Copiado",
+    customPowerShellScript: "Script de PowerShell personalizado",
+    suggestedCommands: "Comandos sugeridos:",
+    you: "Tu",
   },
   fr: {
     ...en,

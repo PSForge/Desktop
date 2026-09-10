@@ -278,6 +278,55 @@ function getStoredLocale() {
   return normalizeLocale(storage[localeStorageKey] || app.getLocale());
 }
 
+function getMenuLabel(key) {
+  const locale = getStoredLocale();
+  const labels = {
+    en: {
+      file: "File",
+      newScript: "New Script",
+      open: "Open",
+      saveLocal: "Save Local",
+      saveAs: "Save As",
+      recentFiles: "Recent Files",
+      exit: "Exit",
+      edit: "Edit",
+      view: "View",
+      window: "Window",
+      appSettings: "App Settings",
+      accountLicense: "Account & License",
+      subscriptionBilling: "Subscription & Billing",
+      workspaceRecovery: "Workspace Recovery",
+      language: "Language",
+      checkUpdates: "Check for Updates",
+      help: "Help",
+      website: "PSForge Website",
+      quit: "Quit PSForge",
+    },
+    es: {
+      file: "Archivo",
+      newScript: "Nuevo script",
+      open: "Abrir",
+      saveLocal: "Guardar local",
+      saveAs: "Guardar como",
+      recentFiles: "Archivos recientes",
+      exit: "Salir",
+      edit: "Editar",
+      view: "Ver",
+      window: "Ventana",
+      appSettings: "Configuracion de la aplicacion",
+      accountLicense: "Cuenta y licencia",
+      subscriptionBilling: "Suscripcion y facturacion",
+      workspaceRecovery: "Recuperacion del espacio de trabajo",
+      language: "Idioma",
+      checkUpdates: "Buscar actualizaciones",
+      help: "Ayuda",
+      website: "Sitio web de PSForge",
+      quit: "Salir de PSForge",
+    },
+  };
+  return labels[locale]?.[key] || labels.en[key] || key;
+}
+
 function setStoredLocale(locale) {
   const storage = readDesktopStorage();
   storage[localeStorageKey] = normalizeLocale(locale);
@@ -1472,7 +1521,7 @@ function createApplicationMenu() {
             { role: "unhide" },
             { type: "separator" },
             {
-              label: "Quit PSForge",
+              label: getMenuLabel("quit"),
               accelerator: "CmdOrCtrl+Q",
               click: () => {
                 isQuitting = true;
@@ -1483,38 +1532,38 @@ function createApplicationMenu() {
         }]
       : []),
     {
-      label: "File",
+      label: getMenuLabel("file"),
       submenu: [
         {
-          label: "New Script",
+          label: getMenuLabel("newScript"),
           accelerator: "CmdOrCtrl+N",
           click: () => sendMenuAction("file:new"),
         },
         {
-          label: "Open",
+          label: getMenuLabel("open"),
           accelerator: "CmdOrCtrl+O",
           click: () => sendMenuAction("file:open"),
         },
         {
-          label: "Save Local",
+          label: getMenuLabel("saveLocal"),
           accelerator: "CmdOrCtrl+S",
           click: () => sendMenuAction("file:save"),
         },
         {
-          label: "Save As",
+          label: getMenuLabel("saveAs"),
           accelerator: "CmdOrCtrl+Shift+S",
           click: () => sendMenuAction("file:save-as"),
         },
         { type: "separator" },
         {
-          label: "Recent Files",
+          label: getMenuLabel("recentFiles"),
           click: () => sendMenuAction("file:recent"),
         },
-        ...(isMac ? [] : [{ type: "separator" }, { role: "quit", label: "Exit" }]),
+        ...(isMac ? [] : [{ type: "separator" }, { role: "quit", label: getMenuLabel("exit") }]),
       ],
     },
     {
-      label: "Edit",
+      label: getMenuLabel("edit"),
       submenu: [
         { role: "undo" },
         { role: "redo" },
@@ -1526,7 +1575,7 @@ function createApplicationMenu() {
       ],
     },
     {
-      label: "View",
+      label: getMenuLabel("view"),
       submenu: [
         { role: "reload" },
         { role: "forceReload" },
@@ -1540,43 +1589,43 @@ function createApplicationMenu() {
       ],
     },
     {
-      label: "Window",
+      label: getMenuLabel("window"),
       submenu: [
         { role: "minimize" },
         { role: "close" },
       ],
     },
     {
-      label: "App Settings",
+      label: getMenuLabel("appSettings"),
       submenu: [
         {
-          label: "Account & License",
+          label: getMenuLabel("accountLicense"),
           click: () => sendMenuAction("settings:license"),
         },
         {
-          label: "Subscription & Billing",
+          label: getMenuLabel("subscriptionBilling"),
           click: () => sendMenuAction("settings:subscription"),
         },
         {
-          label: "Workspace Recovery",
+          label: getMenuLabel("workspaceRecovery"),
           click: () => sendMenuAction("settings:recovery"),
         },
         {
-          label: "Language",
+          label: getMenuLabel("language"),
           click: () => sendMenuAction("settings:language"),
         },
         { type: "separator" },
         {
-          label: "Check for Updates",
+          label: getMenuLabel("checkUpdates"),
           click: () => sendMenuAction("settings:check-updates"),
         },
       ],
     },
     {
-      label: "Help",
+      label: getMenuLabel("help"),
       submenu: [
         {
-          label: "PSForge Website",
+          label: getMenuLabel("website"),
           click: () => shell.openExternal("https://psforge.app"),
         },
       ],

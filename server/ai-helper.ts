@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getAiLanguageInstruction } from "./ai-locale";
 
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
@@ -178,11 +179,12 @@ Response Guidelines:
 
 export async function getAIHelperResponse(
   userMessage: string,
-  conversationHistory: Message[]
+  conversationHistory: Message[],
+  locale?: string
 ): Promise<AIHelperResponse> {
   const openai = getOpenAIClient();
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: `${SYSTEM_PROMPT}\n\nLanguage:\n${getAiLanguageInstruction(locale)}` },
   ];
 
   conversationHistory.slice(-5).forEach((msg) => {

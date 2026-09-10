@@ -224,6 +224,93 @@ type OpsToolId =
   | "scheduled-task-builder"
   | "script-certification";
 
+const spanishOpsToolText: Record<string, { title?: string; description?: string; label?: string; badge?: string }> = {
+  prepare: { label: "Preparar" },
+  build: { label: "Crear" },
+  document: { label: "Documentar" },
+  ship: { label: "Publicar" },
+  "environment-doctor": {
+    title: "Doctor del entorno",
+    description: "Puntuacion de preparacion, comprobaciones del equipo y comandos de correccion.",
+  },
+  "impact-preview": {
+    title: "Vista previa del impacto",
+    description: "Cambios previstos y sistemas afectados antes de ejecutar.",
+  },
+  "credential-leak-detector": {
+    title: "Detector de filtracion de credenciales",
+    description: "Contrasenas, tokens, IDs de tenant y manejo inseguro de secretos.",
+  },
+  "compatibility-matrix": {
+    title: "Matriz de compatibilidad",
+    description: "Compatibilidad con PowerShell, Server, Azure Automation y endpoints restringidos.",
+  },
+  "pester-generator": {
+    title: "Generador de pruebas Pester",
+    description: "Genera y ejecuta pruebas iniciales para el script activo.",
+    badge: "Pruebas",
+  },
+  "parameter-set-designer": {
+    title: "Disenador de conjuntos de parametros",
+    description: "Convierte parametros detectados en una estructura de funcion avanzada.",
+  },
+  "regex-lab": {
+    title: "Laboratorio Regex",
+    description: "Crea, explica y prueba expresiones regulares de PowerShell.",
+  },
+  "csv-data-mapper": {
+    title: "Mapeador de datos CSV",
+    description: "Asocia columnas CSV con parametros y previsualiza objetos masivos.",
+  },
+  "runbook-generator": {
+    title: "Generador de runbooks",
+    description: "Documentacion operativa con requisitos, validacion y rollback.",
+  },
+  "dependency-manager": {
+    title: "Administrador de dependencias y modulos",
+    description: "Sugerencias de modulos, comandos referenciados y declaraciones #Requires.",
+  },
+  "pipeline-explorer": {
+    title: "Explorador de objetos/pipeline",
+    description: "Inspecciona el flujo probable de objetos en cada etapa del pipeline.",
+  },
+  "error-reproduction-builder": {
+    title: "Constructor de reproduccion de errores",
+    description: "Crea un paquete de soporte sanitizado desde errores y contexto.",
+    badge: "Seguro",
+  },
+  "script-packager": {
+    title: "Empaquetador de scripts PowerShell",
+    description: "Plan de paquete de implementacion y exportacion del paquete de Ops.",
+  },
+  "scheduled-task-builder": {
+    title: "Constructor de tareas programadas",
+    description: "Configura disparadores, cuentas y script instalador de Task Scheduler.",
+  },
+  "rollback-builder": {
+    title: "Constructor de rollback",
+    description: "Guia de rollback con operaciones irreversibles claramente marcadas.",
+  },
+  "script-modernizer": {
+    title: "Modernizador de scripts",
+    description: "Guia de migracion y endurecimiento para scripts PowerShell antiguos.",
+  },
+  "performance-profiler": {
+    title: "Perfilador de rendimiento",
+    description: "Genera un contenedor de tiempos para analizar la ejecucion del script.",
+    badge: "Tiempo",
+  },
+  "script-certification": {
+    title: "Certificacion de scripts",
+    description: "Crea manifiestos de aprobacion con hashes, propietarios y expiracion.",
+    badge: "Hash",
+  },
+};
+
+function localizeOpsToolText(locale: string, id: string, field: "title" | "description" | "label" | "badge", fallback: string) {
+  return locale === "es" ? spanishOpsToolText[id]?.[field] || fallback : fallback;
+}
+
 const COMMAND_FAVORITES_KEY = "psforge-desktop-command-favorites";
 const COMMAND_LIBRARY_VISIBLE_KEY = "psforge-desktop-command-library-visible-v2";
 const EDITOR_DETAILS_VISIBLE_KEY = "psforge-desktop-editor-details-visible";
@@ -332,7 +419,7 @@ export function DesktopScriptWorkbench({
 }: DesktopScriptWorkbenchProps) {
   const { toast } = useToast();
   const { featureAccess } = useAuth();
-  const { t } = useDesktopLocale();
+  const { locale, t } = useDesktopLocale();
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedText, setSelectedText] = useState("");
   const [validationResult, setValidationResult] = useState<ValidationResult>({ isValid: true, errors: [] });
@@ -598,6 +685,7 @@ export function DesktopScriptWorkbench({
       const response = await apiRequest("/cli/explain", "POST", {
         input,
         inputType: "script",
+        locale,
       });
       return response.json() as Promise<{ ok: true; data: AIExplainResult }>;
     },
@@ -615,7 +703,7 @@ export function DesktopScriptWorkbench({
 
   const optimizeMutation = useMutation({
     mutationFn: async (code: string) => {
-      const response = await apiRequest("/api/ai/optimize", "POST", { code });
+      const response = await apiRequest("/api/ai/optimize", "POST", { code, locale });
       return response.json() as Promise<AIOptimizationResult>;
     },
     onSuccess: (result) => {
@@ -640,6 +728,7 @@ export function DesktopScriptWorkbench({
       const response = await apiRequest("/api/ai/apply-optimizations", "POST", {
         code: script,
         recommendations,
+        locale,
       });
       return response.json() as Promise<{ optimizedScript: string }>;
     },
@@ -1526,148 +1615,148 @@ export function DesktopScriptWorkbench({
   );
   const opsToolGroups = [
     {
-      label: "Prepare",
+      label: localizeOpsToolText(locale, "prepare", "label", "Prepare"),
       tools: [
         {
           id: "environment-doctor" as OpsToolId,
-          title: "Environment Doctor",
-          description: "Readiness score, machine checks, and remediation commands.",
+          title: localizeOpsToolText(locale, "environment-doctor", "title", "Environment Doctor"),
+          description: localizeOpsToolText(locale, "environment-doctor", "description", "Readiness score, machine checks, and remediation commands."),
           icon: ShieldAlert,
           badge: `${operationsSuitePlan.readinessScore}%`,
         },
         {
           id: "impact-preview" as OpsToolId,
-          title: "Change Impact Preview",
-          description: "Predicted changes and touched systems before execution.",
+          title: localizeOpsToolText(locale, "impact-preview", "title", "Change Impact Preview"),
+          description: localizeOpsToolText(locale, "impact-preview", "description", "Predicted changes and touched systems before execution."),
           icon: Eye,
           badge: `${operationsSuitePlan.impactPreview.length}`,
         },
         {
           id: "credential-leak-detector" as OpsToolId,
-          title: "Credential Leak Detector",
-          description: "Hard-coded passwords, tokens, tenant IDs, and unsafe secret handling.",
+          title: localizeOpsToolText(locale, "credential-leak-detector", "title", "Credential Leak Detector"),
+          description: localizeOpsToolText(locale, "credential-leak-detector", "description", "Hard-coded passwords, tokens, tenant IDs, and unsafe secret handling."),
           icon: KeyRound,
           badge: `${credentialFindings.length}`,
         },
         {
           id: "compatibility-matrix" as OpsToolId,
-          title: "Compatibility Matrix",
-          description: "PowerShell, Server, Azure Automation, and constrained endpoint fit.",
+          title: localizeOpsToolText(locale, "compatibility-matrix", "title", "Compatibility Matrix"),
+          description: localizeOpsToolText(locale, "compatibility-matrix", "description", "PowerShell, Server, Azure Automation, and constrained endpoint fit."),
           icon: FileCheck,
           badge: `${compatibilityMatrix.filter((item) => item.status !== "compatible").length}`,
         },
       ],
     },
     {
-      label: "Build",
+      label: localizeOpsToolText(locale, "build", "label", "Build"),
       tools: [
         {
           id: "pester-generator" as OpsToolId,
-          title: "Pester Test Generator",
-          description: "Generate and run starter tests for the active script.",
+          title: localizeOpsToolText(locale, "pester-generator", "title", "Pester Test Generator"),
+          description: localizeOpsToolText(locale, "pester-generator", "description", "Generate and run starter tests for the active script."),
           icon: FlaskConical,
-          badge: "Tests",
+          badge: localizeOpsToolText(locale, "pester-generator", "badge", "Tests"),
         },
         {
           id: "parameter-set-designer" as OpsToolId,
-          title: "Parameter Set Designer",
-          description: "Turn detected parameters into an advanced function scaffold.",
+          title: localizeOpsToolText(locale, "parameter-set-designer", "title", "Parameter Set Designer"),
+          description: localizeOpsToolText(locale, "parameter-set-designer", "description", "Turn detected parameters into an advanced function scaffold."),
           icon: List,
           badge: `${analysis.parameters.length}`,
         },
         {
           id: "regex-lab" as OpsToolId,
-          title: "Regex Lab",
-          description: "Build, explain, and test PowerShell regular expressions.",
+          title: localizeOpsToolText(locale, "regex-lab", "title", "Regex Lab"),
+          description: localizeOpsToolText(locale, "regex-lab", "description", "Build, explain, and test PowerShell regular expressions."),
           icon: Search,
           badge: `${regexLabResult.matches.length}`,
         },
         {
           id: "csv-data-mapper" as OpsToolId,
-          title: "CSV Data Mapper",
-          description: "Map CSV columns into parameters and preview bulk objects.",
+          title: localizeOpsToolText(locale, "csv-data-mapper", "title", "CSV Data Mapper"),
+          description: localizeOpsToolText(locale, "csv-data-mapper", "description", "Map CSV columns into parameters and preview bulk objects."),
           icon: Table2,
           badge: `${csvMapping.headers.length}`,
         },
       ],
     },
     {
-      label: "Document",
+      label: localizeOpsToolText(locale, "document", "label", "Document"),
       tools: [
         {
           id: "runbook-generator" as OpsToolId,
-          title: "Runbook Generator",
-          description: "Operational documentation with prerequisites, validation, and rollback.",
+          title: localizeOpsToolText(locale, "runbook-generator", "title", "Runbook Generator"),
+          description: localizeOpsToolText(locale, "runbook-generator", "description", "Operational documentation with prerequisites, validation, and rollback."),
           icon: BookOpen,
           badge: "MD",
         },
         {
           id: "dependency-manager" as OpsToolId,
-          title: "Dependency and Module Manager",
-          description: "Module hints, referenced commands, and #Requires suggestions.",
+          title: localizeOpsToolText(locale, "dependency-manager", "title", "Dependency and Module Manager"),
+          description: localizeOpsToolText(locale, "dependency-manager", "description", "Module hints, referenced commands, and #Requires suggestions."),
           icon: ClipboardList,
           badge: `${analysis.moduleSuggestions.length}`,
         },
         {
           id: "pipeline-explorer" as OpsToolId,
-          title: "Object/Pipeline Explorer",
-          description: "Inspect likely object flow through each pipeline stage.",
+          title: localizeOpsToolText(locale, "pipeline-explorer", "title", "Object/Pipeline Explorer"),
+          description: localizeOpsToolText(locale, "pipeline-explorer", "description", "Inspect likely object flow through each pipeline stage."),
           icon: Activity,
           badge: `${pipelineStages.length}`,
         },
         {
           id: "error-reproduction-builder" as OpsToolId,
-          title: "Error Reproduction Builder",
-          description: "Create a sanitized support bundle from errors and context.",
+          title: localizeOpsToolText(locale, "error-reproduction-builder", "title", "Error Reproduction Builder"),
+          description: localizeOpsToolText(locale, "error-reproduction-builder", "description", "Create a sanitized support bundle from errors and context."),
           icon: FileJson,
-          badge: "Safe",
+          badge: localizeOpsToolText(locale, "error-reproduction-builder", "badge", "Safe"),
         },
       ],
     },
     {
-      label: "Ship",
+      label: localizeOpsToolText(locale, "ship", "label", "Ship"),
       tools: [
         {
           id: "script-packager" as OpsToolId,
-          title: "PowerShell Script Packager",
-          description: "Deployment package plan and one-click Ops bundle export.",
+          title: localizeOpsToolText(locale, "script-packager", "title", "PowerShell Script Packager"),
+          description: localizeOpsToolText(locale, "script-packager", "description", "Deployment package plan and one-click Ops bundle export."),
           icon: FileArchive,
           badge: "ZIP",
         },
         {
           id: "scheduled-task-builder" as OpsToolId,
-          title: "Scheduled Task Builder",
-          description: "Configure Task Scheduler triggers, accounts, and installer script.",
+          title: localizeOpsToolText(locale, "scheduled-task-builder", "title", "Scheduled Task Builder"),
+          description: localizeOpsToolText(locale, "scheduled-task-builder", "description", "Configure Task Scheduler triggers, accounts, and installer script."),
           icon: CalendarClock,
           badge: scheduledTaskSchedule,
         },
         {
           id: "rollback-builder" as OpsToolId,
-          title: "Rollback Builder",
-          description: "Rollback guidance with irreversible operations called out.",
+          title: localizeOpsToolText(locale, "rollback-builder", "title", "Rollback Builder"),
+          description: localizeOpsToolText(locale, "rollback-builder", "description", "Rollback guidance with irreversible operations called out."),
           icon: ShieldAlert,
           badge: `${operationsSuitePlan.rollbackPlan.length}`,
         },
         {
           id: "script-modernizer" as OpsToolId,
-          title: "Script Modernizer",
-          description: "Migration and hardening guidance for older PowerShell scripts.",
+          title: localizeOpsToolText(locale, "script-modernizer", "title", "Script Modernizer"),
+          description: localizeOpsToolText(locale, "script-modernizer", "description", "Migration and hardening guidance for older PowerShell scripts."),
           icon: WandSparkles,
           badge: `${operationsSuitePlan.modernizationPlan.length}`,
         },
         {
           id: "performance-profiler" as OpsToolId,
-          title: "Performance Profiler",
-          description: "Generate a timing wrapper for script execution analysis.",
+          title: localizeOpsToolText(locale, "performance-profiler", "title", "Performance Profiler"),
+          description: localizeOpsToolText(locale, "performance-profiler", "description", "Generate a timing wrapper for script execution analysis."),
           icon: Gauge,
-          badge: "Time",
+          badge: localizeOpsToolText(locale, "performance-profiler", "badge", "Time"),
         },
         {
           id: "script-certification" as OpsToolId,
-          title: "Script Certification",
-          description: "Create approval manifests with hashes, owners, and expiration.",
+          title: localizeOpsToolText(locale, "script-certification", "title", "Script Certification"),
+          description: localizeOpsToolText(locale, "script-certification", "description", "Create approval manifests with hashes, owners, and expiration."),
           icon: FileCheck,
-          badge: certificationHash ? "Signed" : "Hash",
+          badge: certificationHash ? "Signed" : localizeOpsToolText(locale, "script-certification", "badge", "Hash"),
         },
       ],
     },

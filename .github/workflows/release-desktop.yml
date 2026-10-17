@@ -162,15 +162,19 @@ jobs:
           $locationKey = ($account.location -replace "\s", "").ToLowerInvariant()
           $expectedEndpoint = $endpointByLocation[$locationKey]
 
-          Write-Host "Artifact Signing account location: $($account.location)"
-          Write-Host "Artifact Signing account provisioning state: $($account.properties.provisioningState)"
-          Write-Host "Certificate profile provisioning state: $($profile.properties.provisioningState)"
-          Write-Host "Certificate profile type: $($profile.properties.profileType)"
+          # Azure CLI flattens ARM properties; also accept the raw ARM shape.
+          $accountProperties = if ($null -ne $account.properties) { $account.properties } else { $account }
+          $profileProperties = if ($null -ne $profile.properties) { $profile.properties } else { $profile }
 
-          if ($account.properties.provisioningState -ne "Succeeded" -or $profile.properties.provisioningState -ne "Succeeded") {
+          Write-Host "Artifact Signing account location: $($account.location)"
+          Write-Host "Artifact Signing account provisioning state: $($accountProperties.provisioningState)"
+          Write-Host "Certificate profile provisioning state: $($profileProperties.provisioningState)"
+          Write-Host "Certificate profile type: $($profileProperties.profileType)"
+
+          if ($accountProperties.provisioningState -ne "Succeeded" -or $profileProperties.provisioningState -ne "Succeeded") {
             throw "Artifact Signing account and certificate profile must both be successfully provisioned."
           }
-          if ($profile.properties.profileType -ne "PublicTrust") {
+          if ($profileProperties.profileType -ne "PublicTrust") {
             throw "Release signing requires a Public Trust certificate profile."
           }
           if ($env:MIGRATION_TEST -eq "true" -and (

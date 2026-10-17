@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Copy, CreditCard, ExternalLink, FileCode, History, LayoutGrid, Plus, RefreshCcw, Search, ShieldCheck, UserPlus, X } from "lucide-react";
+import { ChevronDown, Copy, CreditCard, ExternalLink, FileCode, History, KeyRound, LayoutGrid, Plus, RefreshCcw, Search, ShieldCheck, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,12 @@ import {
   removeDesktopStorageItem,
   saveDesktopScript,
   setDesktopStorageItem,
+  getPendingDesktopWorkflowLink,
   subscribeToDesktopMenuActions,
   subscribeToDesktopUpdates,
+  subscribeToDesktopWorkflowLinks,
   writeDesktopScriptFile,
+  type DesktopWorkflowDeepLinkPayload,
 } from "@/lib/desktop";
 import {
   createDesktopBillingCheckout,
@@ -38,6 +41,18 @@ import {
   getDesktopRequestUrl,
   hasStoredDesktopSession,
 } from "@/lib/desktop-auth";
+import {
+  activateEnterpriseLicense,
+  clearEnterpriseLicenseRecord,
+  getEnterpriseAuthHeader,
+  getEnterpriseLicenseRecord,
+  getEnterpriseLicenseServerUrl,
+  getEnterpriseRequestUrl,
+  isEnterpriseEdition,
+  isEnterpriseLicenseActive,
+  validateEnterpriseLicense,
+  type EnterpriseInstallOptions,
+} from "@/lib/enterprise-license";
 import { queryClient } from "@/lib/queryClient";
 import type { ScriptCommand } from "@shared/schema";
 import { DesktopScriptWorkbench, type DesktopWorkbenchActionType, type DesktopWorkbenchAction, type DesktopRunHistorySummary } from "@/components/desktop-script-workbench";
@@ -59,6 +74,21 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import logoImage from "@assets/psforge-2-logo-transparent.png";
 import { analyzeScriptWorkbench } from "@/lib/script-workbench-utils";
+import {
+  DESKTOP_WORKFLOW_CONTEXT_KEY,
+  fetchPublicWorkflowDefinition,
+  getWorkflowDisplayTitle,
+  mapWorkflowToLocalRegistry,
+  type SharedWorkflowDefinition,
+  type WorkflowMappingResult,
+} from "@/lib/desktop-workflow-links";
+import { getStoredLocale, setStoredLocale, supportedLocales, useDesktopLocale, type LocaleCode } from "@/lib/i18n";
+
+const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
+const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
+const ScriptWizardTab = lazy(() => import("@/components/script-wizard-tab").then((module) => ({ default: module.ScriptWizardTab })));
+const DesktopGitPanel = lazy(() => import("@/components/desktop-git-panel").then((module) => ({ default: module.DesktopGitPanel })));
+const TroubleshooterTab = lazy(() => import("@/components/troubleshooter-tab").then((module) => ({ default: module.TroubleshooterTab })));
 
 const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
 const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
@@ -86,7 +116,7 @@ type ScriptWorkspaceTab = {
   webScriptLastSyncedAt?: string;
 };
 
-type AppSettingsView = "license" | "subscription" | "recovery" | "recent" | null;
+type AppSettingsView = "license" | "subscription" | "recovery" | "language" | "recent" | null;
 
 type DesktopConversionState = {
   appLaunches: number;
@@ -120,6 +150,11 @@ type LibraryFilter = "all" | "web" | "favorites" | "recent" | "starters" | "loca
 type WebScriptConflict = {
   tabId: string;
   remoteScript: WebLibraryScript;
+};
+
+type WorkflowReviewState = {
+  workflow: SharedWorkflowDefinition;
+  mapping: WorkflowMappingResult;
 };
 
 const RECOVERY_KEY = "psforge-desktop-recovery";
@@ -329,10 +364,12 @@ interface DesktopWorkspaceProps {
 
 export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspaceProps) {
   const { toast } = useToast();
+  const { t } = useDesktopLocale();
   const { user, isAuthenticated, featureAccess, logout, refetch } = useAuth();
   const [scriptTabs, setScriptTabs] = useState<ScriptWorkspaceTab[]>(() => [createWorkspaceTab()]);
   const [activeScriptTabId, setActiveScriptTabId] = useState("");
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<DesktopWorkspaceTab>("script");
+  const [visitedWorkspaceTabs, setVisitedWorkspaceTabs] = useState<Set<DesktopWorkspaceTab>>(() => new Set(["script"]));
   const [scriptCommands, setScriptCommands] = useState<ScriptCommand[]>([]);
   const [pendingWorkbenchAction, setPendingWorkbenchAction] = useState<DesktopWorkbenchAction | null>(null);
   const [runHistorySummary, setRunHistorySummary] = useState<DesktopRunHistorySummary>({ totalRuns: 0, failedRuns: 0 });
@@ -348,6 +385,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const [webLibraryFilter, setWebLibraryFilter] = useState<LibraryFilter>("all");
   const [webLibraryFromCache, setWebLibraryFromCache] = useState(false);
   const [webScriptConflict, setWebScriptConflict] = useState<WebScriptConflict | null>(null);
+  const [workflowLaunchNotice, setWorkflowLaunchNotice] = useState<string | null>(null);
+  const [workflowTaskHighlights, setWorkflowTaskHighlights] = useState<string[]>([]);
+  const [workflowSelectedTaskId, setWorkflowSelectedTaskId] = useState<string | null>(null);
+  const [workflowUpgradeContext, setWorkflowUpgradeContext] = useState<WorkflowReviewState | null>(null);
   const [desktopSignInLoading, setDesktopSignInLoading] = useState(false);
   const [desktopSignOutLoading, setDesktopSignOutLoading] = useState(false);
   const [desktopRegisterLoading, setDesktopRegisterLoading] = useState(false);
@@ -365,6 +406,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const [recoveryFound, setRecoveryFound] = useState(false);
   const [pendingTabCloseId, setPendingTabCloseId] = useState<string | null>(null);
   const [appSettingsView, setAppSettingsView] = useState<AppSettingsView>(null);
+  const [settingsLocale, setSettingsLocale] = useState<LocaleCode>(() => getStoredLocale());
   const [guidedProfile, setGuidedProfile] = useState<DesktopGuidedProfile | null>(null);
   const [guidedOnboardingOpen, setGuidedOnboardingOpen] = useState(false);
   const [guidedUpgradeWorkflowId, setGuidedUpgradeWorkflowId] = useState<string | null>(null);
@@ -374,13 +416,23 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   const [conversionBannerDismissed, setConversionBannerDismissed] = useState(false);
   const [trialCodeCopied, setTrialCodeCopied] = useState(false);
   const [desktopSession, setDesktopSession] = useState(() => getDesktopAuthState());
+  const [enterpriseInstallOptions, setEnterpriseInstallOptions] = useState<EnterpriseInstallOptions | null>(null);
+  const [enterpriseLicenseKey, setEnterpriseLicenseKey] = useState("");
+  const [enterpriseLicenseServerUrl, setEnterpriseLicenseServerUrl] = useState(() => getEnterpriseLicenseServerUrl());
+  const [enterpriseActivationLoading, setEnterpriseActivationLoading] = useState(false);
+  const [enterpriseActivationMessage, setEnterpriseActivationMessage] = useState<string | null>(null);
+  const [enterpriseLicense, setEnterpriseLicense] = useState(() => getEnterpriseLicenseRecord());
   const [desktopVersion, setDesktopVersion] = useState("1.0.0");
   const [updateState, setUpdateState] = useState<{ state: string; version?: string; percent?: number; message?: string }>({ state: "idle" });
   const pollTimerRef = useRef<number | null>(null);
   const checkoutRefreshTimerRef = useRef<number | null>(null);
   const analyticsHeartbeatRef = useRef<number | null>(null);
+  const enterpriseRefreshTimerRef = useRef<number | null>(null);
   const appOpenedTrackedRef = useRef(false);
   const cachedLicense = desktopSession.license || getDesktopCachedLicense();
+  const enterpriseMode = isEnterpriseEdition();
+  const enterpriseActive = enterpriseMode && isEnterpriseLicenseActive(enterpriseLicense);
+  const cloudStorageEnabled = !enterpriseMode;
   const cachedUser = desktopSession.user || null;
   const previewUser = previewMode
     ? {
@@ -390,7 +442,15 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       role: "admin" as const,
     }
     : null;
-  const visibleUser = user || cachedUser || previewUser;
+  const enterpriseUser = enterpriseActive
+    ? {
+      id: enterpriseLicense?.licenseId || "enterprise-license",
+      email: "enterprise@psforge.local",
+      name: enterpriseLicense?.organizationName || "PSForge Enterprise",
+      role: "admin" as const,
+    }
+    : null;
+  const visibleUser = enterpriseUser || user || cachedUser || previewUser;
   const activeScriptTab = useMemo(
     () => scriptTabs.find((tab) => tab.id === activeScriptTabId) || scriptTabs[0] || null,
     [activeScriptTabId, scriptTabs],
@@ -402,7 +462,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     ? activeScriptTab.script !== (activeScriptTab.webScriptSyncedContent || "")
     : false;
   const currentScriptAnalysis = useMemo(() => analyzeScriptWorkbench(currentScript), [currentScript]);
-  const hasProAccess = previewMode || user?.role === "admin" || !!featureAccess?.hasPremiumCategories || !!cachedLicense?.isPro;
+  const hasProAccess = enterpriseActive || previewMode || user?.role === "admin" || !!featureAccess?.hasPremiumCategories || !!cachedLicense?.isPro;
   const isRevalidatingStoredSession = !!desktopSession.token && !visibleUser;
   const currentGuidedProfile = guidedProfile ? guidedProfile : null;
   const currentGuidedFocus = currentGuidedProfile ? getDesktopGuidedFocus(currentGuidedProfile.focusId) : null;
@@ -425,6 +485,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     );
   }, [starterGalleryQuery]);
   const filteredWebLibraryScripts = useMemo(() => {
+    if (!cloudStorageEnabled) {
+      return [];
+    }
+
     const query = webLibraryQuery.trim().toLowerCase();
     const baseScripts = webLibraryFilter === "favorites"
       ? webLibraryScripts.filter((script) => script.isFavorite)
@@ -447,7 +511,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
         script.taskName || "",
       ].some((value) => value.toLowerCase().includes(query)),
     );
-  }, [webLibraryFilter, webLibraryQuery, webLibraryScripts]);
+  }, [cloudStorageEnabled, webLibraryFilter, webLibraryQuery, webLibraryScripts]);
   const filteredStarterLibrary = useMemo(() => {
     const query = webLibraryQuery.trim().toLowerCase();
     if (!query) {
@@ -468,11 +532,32 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       [file.fileName, file.filePath || ""].some((value) => value.toLowerCase().includes(query)),
     );
   }, [recentFiles, webLibraryQuery]);
-  const showWebLibrary = webLibraryFilter === "all" || webLibraryFilter === "web" || webLibraryFilter === "favorites" || webLibraryFilter === "recent";
+  const showWebLibrary = cloudStorageEnabled
+    && (webLibraryFilter === "all" || webLibraryFilter === "web" || webLibraryFilter === "favorites" || webLibraryFilter === "recent");
   const showStarterLibrary = webLibraryFilter === "all" || webLibraryFilter === "starters";
   const showLocalLibrary = webLibraryFilter === "all" || webLibraryFilter === "local" || webLibraryFilter === "recent";
+  const libraryFilters: Array<[LibraryFilter, string]> = cloudStorageEnabled
+    ? [
+      ["all", t("all")],
+      ["web", t("web")],
+      ["starters", t("starters")],
+      ["local", t("local")],
+      ["favorites", t("favorites")],
+      ["recent", t("recentCommands")],
+    ]
+    : [
+      ["all", t("all")],
+      ["starters", t("starters")],
+      ["local", t("local")],
+      ["recent", t("recentCommands")],
+    ];
 
   const accessLabel = useMemo(() => {
+    if (enterpriseActive) {
+      return enterpriseLicense?.organizationName
+        ? `${enterpriseLicense.organizationName} Enterprise`
+        : "Enterprise activated";
+    }
     if (hasProAccess) {
       return "Pro access enabled";
     }
@@ -480,7 +565,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       return "Free access";
     }
     return "License not connected";
-  }, [hasProAccess, isAuthenticated, visibleUser]);
+  }, [enterpriseActive, enterpriseLicense?.organizationName, hasProAccess, isAuthenticated, visibleUser]);
 
   const desktopConversionBanner = useMemo(() => {
     if (hasProAccess || !visibleUser || conversionBannerDismissed) {
@@ -562,6 +647,9 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       if (analyticsHeartbeatRef.current) {
         window.clearInterval(analyticsHeartbeatRef.current);
       }
+      if (enterpriseRefreshTimerRef.current) {
+        window.clearTimeout(enterpriseRefreshTimerRef.current);
+      }
     };
   }, []);
 
@@ -636,17 +724,111 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   }, [desktopSession.token]);
 
   useEffect(() => {
+    if (!enterpriseMode || !enterpriseActive) {
+      return;
+    }
+
+    void validateEnterpriseLicense(enterpriseLicenseServerUrl)
+      .then((record) => {
+        if (record) {
+          setEnterpriseLicense(record);
+          void queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+        }
+      })
+      .catch((error: any) => {
+        if (error?.status === 401 || error?.status === 403) {
+          clearEnterpriseLicenseRecord();
+          setEnterpriseLicense(null);
+          void queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+        }
+        setEnterpriseActivationMessage(error?.message || "Enterprise license validation failed.");
+      });
+  }, [enterpriseActive, enterpriseLicenseServerUrl, enterpriseMode]);
+
+  useEffect(() => {
+    if (enterpriseRefreshTimerRef.current) {
+      window.clearTimeout(enterpriseRefreshTimerRef.current);
+      enterpriseRefreshTimerRef.current = null;
+    }
+
+    if (!enterpriseMode || !enterpriseActive || !enterpriseLicense) {
+      return;
+    }
+
+    const refreshAt = enterpriseLicense.refreshAfter
+      ? new Date(enterpriseLicense.refreshAfter).getTime()
+      : Date.now() + 24 * 60 * 60 * 1000;
+    const refreshDelay = Math.max(60_000, refreshAt - Date.now());
+
+    enterpriseRefreshTimerRef.current = window.setTimeout(async () => {
+      try {
+        const record = await validateEnterpriseLicense(enterpriseLicenseServerUrl);
+        if (record) {
+          setEnterpriseLicense(record);
+          setEnterpriseActivationMessage(null);
+          await queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+        }
+      } catch (error: any) {
+        if (error?.status === 401 || error?.status === 403) {
+          clearEnterpriseLicenseRecord();
+          setEnterpriseLicense(null);
+          setEnterpriseActivationMessage(error?.message || "Enterprise license is no longer active.");
+          await queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+          return;
+        }
+
+        setEnterpriseActivationMessage(error?.message || "Enterprise license validation failed. The app will retry after restart.");
+      }
+    }, refreshDelay);
+
+    return () => {
+      if (enterpriseRefreshTimerRef.current) {
+        window.clearTimeout(enterpriseRefreshTimerRef.current);
+        enterpriseRefreshTimerRef.current = null;
+      }
+    };
+  }, [enterpriseActive, enterpriseLicense, enterpriseLicenseServerUrl, enterpriseMode]);
+
+  useEffect(() => {
+    if (!enterpriseMode || enterpriseActive || !enterpriseInstallOptions?.licenseKey) {
+      return;
+    }
+
+    void handleEnterpriseActivation(enterpriseInstallOptions.licenseKey, enterpriseInstallOptions.licenseServerUrl);
+  }, [enterpriseActive, enterpriseInstallOptions, enterpriseMode]);
+
+  useEffect(() => {
+    if (!cloudStorageEnabled && (webLibraryFilter === "web" || webLibraryFilter === "favorites")) {
+      setWebLibraryFilter("all");
+    }
+  }, [cloudStorageEnabled, webLibraryFilter]);
+
+  useEffect(() => {
     if (activeWorkspaceTab === "gui") {
       void loadWebLibraryScripts();
     }
-  }, [activeWorkspaceTab, desktopSession.token]);
+  }, [activeWorkspaceTab, cloudStorageEnabled, desktopSession.token]);
 
   useEffect(() => {
     let mounted = true;
 
     getDesktopContext().then((context) => {
-      if (mounted && context?.version) {
+      if (!mounted) {
+        return;
+      }
+
+      if (context?.version) {
         setDesktopVersion(context.version);
+      }
+
+      if (context?.enterpriseInstallOptions) {
+        setEnterpriseInstallOptions(context.enterpriseInstallOptions);
+        if (context.enterpriseInstallOptions.licenseKey) {
+          setEnterpriseLicenseKey(context.enterpriseInstallOptions.licenseKey);
+        }
+        if (context.enterpriseInstallOptions.licenseServerUrl) {
+          setEnterpriseLicenseServerUrl(getEnterpriseLicenseServerUrl(context.enterpriseInstallOptions.licenseServerUrl));
+        }
       }
     }).catch(() => undefined);
 
@@ -821,10 +1003,116 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     });
   };
 
+  const openWorkflowChooserFallback = (notice = "We couldn't preselect this workflow - pick your platform below.") => {
+    setSelectedGuiCategory(null);
+    setWorkflowTaskHighlights([]);
+    setWorkflowSelectedTaskId(null);
+    setWorkflowLaunchNotice(notice);
+    setWebLibraryFilter("starters");
+    setActiveWorkspaceTab("gui");
+  };
+
+  const launchWorkflowToBuilder = async (workflowId: string) => {
+    if (!visibleUser) {
+      setDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY, JSON.stringify({ workflowId }));
+      setLicenseStatusTone("default");
+      setLicenseStatusMessage("Sign in to continue opening this PSForge workflow in the desktop builder.");
+      return;
+    }
+
+    const result = await fetchPublicWorkflowDefinition(workflowId);
+    if (!result.ok) {
+      removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+      openWorkflowChooserFallback();
+      return;
+    }
+
+    const mapping = mapWorkflowToLocalRegistry(result.workflow, hasProAccess);
+    const hasPreselectableWorkflow = !!mapping.platform && mapping.validTasks.length > 0;
+
+    if (!hasPreselectableWorkflow) {
+      removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+      openWorkflowChooserFallback();
+      return;
+    }
+
+    setSelectedGuiCategory(mapping.platform!.id);
+    setWorkflowTaskHighlights(mapping.validTasks.map((task) => task.id));
+    setWorkflowSelectedTaskId(mapping.requiresUpgrade ? null : mapping.validTasks[0].id);
+    setWorkflowLaunchNotice(
+      mapping.validTasks.length > 1
+        ? `${getWorkflowDisplayTitle(result.workflow)} opened. The first task is selected; remaining workflow tasks are highlighted as suggestions.`
+        : `${getWorkflowDisplayTitle(result.workflow)} opened in the builder.`,
+    );
+    setWebLibraryFilter("starters");
+    setActiveWorkspaceTab("gui");
+    removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+
+    if (mapping.requiresUpgrade) {
+      setWorkflowUpgradeContext({ workflow: result.workflow, mapping });
+      setDesktopStorageItem(DESKTOP_POST_UPGRADE_CONTEXT_KEY, JSON.stringify({
+        label: getWorkflowDisplayTitle(result.workflow),
+      }));
+      return;
+    }
+
+    toast({
+      title: "Workflow opened",
+      description: "Review the selected task before generating or running any PowerShell.",
+    });
+  };
+
+  const handleWorkflowDeepLink = async (payload: DesktopWorkflowDeepLinkPayload) => {
+    if (!payload.ok) {
+      return;
+    }
+
+    await launchWorkflowToBuilder(payload.workflowId);
+  };
+
+  useEffect(() => {
+    const unsubscribe = subscribeToDesktopWorkflowLinks((payload) => {
+      void handleWorkflowDeepLink(payload);
+    });
+
+    void getPendingDesktopWorkflowLink().then((payload) => {
+      if (payload) {
+        void handleWorkflowDeepLink(payload);
+      }
+    });
+
+    return unsubscribe;
+  }, [hasProAccess, visibleUser]);
+
+  useEffect(() => {
+    if (!visibleUser) {
+      return;
+    }
+
+    const storedWorkflowContext = getDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+    if (!storedWorkflowContext) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedWorkflowContext) as { workflowId?: string };
+      if (parsed.workflowId) {
+        void launchWorkflowToBuilder(parsed.workflowId);
+      }
+    } catch {
+      removeDesktopStorageItem(DESKTOP_WORKFLOW_CONTEXT_KEY);
+    }
+  }, [hasProAccess, visibleUser]);
+
   const runWebLibraryRequest = async <T,>(path: string, init: { method?: string; body?: string; headers?: Record<string, string> } = {}) => {
-    const url = getDesktopRequestUrl(path);
+    if (!cloudStorageEnabled) {
+      throw new Error("Cloud storage is not available in PSForge Enterprise.");
+    }
+
+    const enterpriseRemoteAuth = enterpriseMode && enterpriseActive;
+    const url = enterpriseRemoteAuth ? getEnterpriseRequestUrl(path) : getDesktopRequestUrl(path);
     const headers = {
-      ...getDesktopAuthHeader(),
+      ...(enterpriseRemoteAuth ? getEnterpriseAuthHeader() : getDesktopAuthHeader()),
       ...(init.body ? { "Content-Type": "application/json" } : {}),
       ...(init.headers || {}),
     };
@@ -872,6 +1160,13 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   };
 
   const loadWebLibraryScripts = async () => {
+    if (!cloudStorageEnabled) {
+      setWebLibraryScripts([]);
+      setWebLibraryFromCache(false);
+      setWebLibraryError(null);
+      return;
+    }
+
     if (!getDesktopAuthState().token) {
       const cachedScripts = readCachedWebLibraryScripts();
       setWebLibraryScripts(cachedScripts);
@@ -908,6 +1203,10 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
   };
 
   const recordWebLibraryAccess = async (scriptId: string) => {
+    if (!cloudStorageEnabled) {
+      return;
+    }
+
     try {
       await runWebLibraryRequest(`/api/scripts/${scriptId}/access`, { method: "PATCH" });
     } catch {
@@ -942,6 +1241,15 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
 
   const saveActiveWebScript = async (force = false) => {
     if (!activeScriptTab?.webScriptId) {
+      return;
+    }
+
+    if (!cloudStorageEnabled) {
+      toast({
+        title: "Cloud storage unavailable",
+        description: "PSForge Enterprise keeps scripts local and disables web Library sync.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -1334,6 +1642,38 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     });
   };
 
+  const handleEnterpriseActivation = async (keyOverride?: string, serverOverride?: string | null) => {
+    const licenseKey = keyOverride || enterpriseLicenseKey;
+    const licenseServerUrl = serverOverride || enterpriseLicenseServerUrl;
+
+    setEnterpriseActivationLoading(true);
+    setEnterpriseActivationMessage(null);
+    try {
+      const record = await activateEnterpriseLicense({
+        licenseKey,
+        licenseServerUrl,
+      });
+      setEnterpriseLicense(record);
+      setEnterpriseLicenseKey("");
+      setEnterpriseActivationMessage(`Activated ${record.plan || "PSForge Enterprise"}${record.organizationName ? ` for ${record.organizationName}` : ""}.`);
+      await queryClient.invalidateQueries({ queryKey: ["/auth/me"] });
+      toast({
+        title: "Enterprise activated",
+        description: "PSForge Enterprise is ready with all desktop features enabled.",
+      });
+    } catch (error: any) {
+      const message = error?.message || "Enterprise activation failed.";
+      setEnterpriseActivationMessage(message);
+      toast({
+        title: "Enterprise activation failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setEnterpriseActivationLoading(false);
+    }
+  };
+
   const handleDesktopSignIn = async () => {
     setDesktopSignInLoading(true);
     setLicenseStatusMessage(null);
@@ -1605,6 +1945,36 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
     }
   };
 
+  const openAppSettingsView = (view: Exclude<AppSettingsView, null>) => {
+    if (view === "language") {
+      setSettingsLocale(getStoredLocale());
+    }
+    setAppSettingsView(view);
+  };
+
+  const handleApplyLanguage = () => {
+    setStoredLocale(settingsLocale);
+    setAppSettingsView(null);
+    toast({
+      title: t("languageUpdated"),
+      description: t("languageReloadDescription"),
+    });
+    window.setTimeout(() => window.location.reload(), 250);
+  };
+
+  const handleWorkspaceTabChange = (tab: string) => {
+    const nextTab = tab as DesktopWorkspaceTab;
+    setActiveWorkspaceTab(nextTab);
+    if (nextTab === "script" || nextTab === "gui" || nextTab === "ops") {
+      setVisitedWorkspaceTabs((current) => {
+        if (current.has(nextTab)) {
+          return current;
+        }
+        return new Set([...current, nextTab]);
+      });
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = subscribeToDesktopMenuActions((action) => {
       switch (action) {
@@ -1621,16 +1991,19 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
           void handleSaveAs();
           break;
         case "file:recent":
-          setAppSettingsView("recent");
+          openAppSettingsView("recent");
           break;
         case "settings:license":
-          setAppSettingsView("license");
+          openAppSettingsView("license");
           break;
         case "settings:subscription":
-          setAppSettingsView("subscription");
+          openAppSettingsView("subscription");
           break;
         case "settings:recovery":
-          setAppSettingsView("recovery");
+          openAppSettingsView("recovery");
+          break;
+        case "settings:language":
+          openAppSettingsView("language");
           break;
         case "settings:check-updates":
           void handleCheckForUpdates();
@@ -1733,12 +2106,16 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
 
   const appSettingsDialogMeta: Record<Exclude<AppSettingsView, null>, { title: string; description: string }> = {
     license: {
-      title: "Account & License",
-      description: "Connect this Windows app to your PSForge account and refresh desktop access.",
+      title: enterpriseMode ? "Enterprise License" : "Account & License",
+      description: enterpriseMode
+        ? "Review the activated Enterprise product key for this Windows app."
+        : "Connect this Windows app to your PSForge account and refresh desktop access.",
     },
     subscription: {
-      title: "Subscription & Billing",
-      description: "Manage PSForge Pro access and secure Stripe-hosted billing actions.",
+      title: enterpriseMode ? "Enterprise Plan" : "Subscription & Billing",
+      description: enterpriseMode
+        ? "Enterprise builds unlock the full PSForge desktop feature set through product-key activation."
+        : "Manage PSForge Pro access and secure Stripe-hosted billing actions.",
     },
     recovery: {
       title: "Workspace Recovery",
@@ -1748,11 +2125,51 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       title: "Recent Files",
       description: "Review the PowerShell files this desktop workspace has opened recently.",
     },
+    language: {
+      title: "Language",
+      description: "Choose the language PSForge should use, then reload into that experience.",
+    },
   };
 
   const renderAppSettingsContent = () => {
     switch (appSettingsView) {
       case "license":
+        if (enterpriseMode) {
+          return (
+            <div className="space-y-4">
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
+                <div className="font-medium text-foreground">PSForge Enterprise is activated</div>
+                <div className="mt-1 text-muted-foreground">
+                  {enterpriseLicense?.organizationName || "Enterprise license"} has access to every desktop workflow and capability in this 2.0.2 build.
+                </div>
+              </div>
+              <div className="grid gap-2 text-sm text-muted-foreground">
+                <div>Plan: {enterpriseLicense?.plan || "PSForge Enterprise"}</div>
+                <div>Status: {enterpriseLicense?.status || "active"}</div>
+                {enterpriseLicense?.licenseKeySuffix ? <div>Product key ending: {enterpriseLicense.licenseKeySuffix}</div> : null}
+                {enterpriseLicense?.validUntil ? <div>Valid until: {new Date(enterpriseLicense.validUntil).toLocaleString()}</div> : null}
+              </div>
+              {enterpriseActivationMessage && (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  {enterpriseActivationMessage}
+                </div>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => void validateEnterpriseLicense(enterpriseLicenseServerUrl).then((record) => {
+                  if (record) {
+                    setEnterpriseLicense(record);
+                    setEnterpriseActivationMessage("Enterprise license refreshed.");
+                  }
+                }).catch((error: any) => setEnterpriseActivationMessage(error?.message || "Enterprise license refresh failed."))}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Refresh Enterprise License
+              </Button>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
@@ -1840,6 +2257,19 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
           </div>
         );
       case "subscription":
+        if (enterpriseMode) {
+          return (
+            <div className="space-y-4">
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                This Enterprise build removes PSForge account sign-in and Stripe billing from the desktop app. Product-key activation grants access to all local desktop features.
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                License renewals, seat limits, revocation, offline grace periods, and audit history should be managed by the Enterprise license service endpoint.
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -1908,6 +2338,36 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
             </Button>
           </div>
         );
+      case "language":
+        return (
+          <div className="space-y-4">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {supportedLocales.map((locale) => (
+                <button
+                  key={locale.code}
+                  type="button"
+                  className={`rounded-md border px-4 py-3 text-left transition ${
+                    settingsLocale === locale.code
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "bg-background/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
+                  onClick={() => setSettingsLocale(locale.code)}
+                >
+                  <div className="font-medium">{locale.nativeLabel}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{locale.label}</div>
+                </button>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAppSettingsView(null)}>
+                {t("cancel")}
+              </Button>
+              <Button onClick={handleApplyLanguage}>
+                {t("reloadWithSelectedLanguage")}
+              </Button>
+            </DialogFooter>
+          </div>
+        );
       case "recent":
         return (
           <div className="space-y-3">
@@ -1943,6 +2403,90 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
         return null;
     }
   };
+
+  if (enterpriseMode && !enterpriseActive) {
+    const silentActivation = enterpriseInstallOptions?.silent && enterpriseInstallOptions.licenseKey;
+
+    return (
+      <div className="min-h-screen bg-background p-6 text-foreground">
+        <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl items-center justify-center">
+          <div className="grid w-full gap-6 lg:grid-cols-[1fr_420px]">
+            <div className="flex flex-col justify-center">
+              <img src={logoImage} alt="PSForge" className="mb-8 h-16 w-fit" />
+              <Badge variant="outline" className="mb-4 w-fit">
+                PSForge Enterprise 2.0.2
+              </Badge>
+              <h1 className="max-w-2xl text-4xl font-bold tracking-tight">
+                Activate your Enterprise license to open PSForge.
+              </h1>
+              <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+                This build removes PSForge account sign-in and unlocks every desktop workflow after product-key activation.
+              </p>
+              <div className="mt-6 grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
+                <div className="rounded-md border bg-muted/20 p-3">All 2.0.2 features retained</div>
+                <div className="rounded-md border bg-muted/20 p-3">No user sign-in required</div>
+                <div className="rounded-md border bg-muted/20 p-3">Silent deployment ready</div>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5 text-primary" />
+                  <CardTitle>Product Key Activation</CardTitle>
+                </div>
+                <CardDescription>
+                  Enter a PSForge Enterprise product key. IT deployments can pass the same key with installation or launch parameters.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {silentActivation ? (
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                    Silent activation is running from enterprise deployment parameters.
+                  </div>
+                ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="enterprise-license-key">Enterprise Product Key</Label>
+                  <Input
+                    id="enterprise-license-key"
+                    value={enterpriseLicenseKey}
+                    onChange={(event) => setEnterpriseLicenseKey(event.target.value)}
+                    placeholder="PSF-ENT-XXXX-XXXX-XXXX"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="enterprise-license-server">License Server URL</Label>
+                  <Input
+                    id="enterprise-license-server"
+                    value={enterpriseLicenseServerUrl}
+                    onChange={(event) => setEnterpriseLicenseServerUrl(event.target.value)}
+                    placeholder="https://psforge.app"
+                  />
+                </div>
+                {enterpriseActivationMessage ? (
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                    {enterpriseActivationMessage}
+                  </div>
+                ) : null}
+                <Button
+                  className="w-full"
+                  onClick={() => void handleEnterpriseActivation()}
+                  disabled={enterpriseActivationLoading || !enterpriseLicenseKey.trim()}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  {enterpriseActivationLoading ? "Activating..." : "Activate Enterprise"}
+                </Button>
+                <div className="text-xs text-muted-foreground">
+                  Deployment example: <code>PSForge Enterprise.exe --enterprise-license-key=PSF-ENT-... --enterprise-silent</code>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!visibleUser) {
     return (
@@ -2133,14 +2677,14 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       recentFilesCount={recentFiles.length}
       recentFiles={recentFiles}
       runHistorySummary={runHistorySummary}
-      onAreaChange={setActiveWorkspaceTab}
+      onAreaChange={handleWorkspaceTabChange}
       onNewScript={createNewScriptTab}
       onOpenScript={() => void handleOpenScript()}
       onSaveScript={() => void handleSaveScript()}
       onSaveAs={() => void handleSaveAs()}
-      onManageLicense={() => setAppSettingsView("license")}
+      onManageLicense={() => openAppSettingsView("license")}
       onCheckForUpdates={() => void handleCheckForUpdates()}
-      onOpenRecentFiles={() => setAppSettingsView("recent")}
+      onOpenRecentFiles={() => openAppSettingsView("recent")}
       onOpenRunTools={() => triggerWorkbenchAction("run")}
       onRerunLastRun={() => triggerWorkbenchAction("rerun-last")}
       onRunPreflight={() => triggerWorkbenchAction("preflight")}
@@ -2160,7 +2704,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               />
               <Button size="sm" variant="outline" className="shrink-0" onClick={() => setStarterGalleryOpen((current) => !current)}>
                 <LayoutGrid className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Starters</span>
+                <span className="hidden sm:inline">{t("starters")}</span>
                 <ChevronDown className={`ml-1 h-4 w-4 transition sm:ml-2 ${starterGalleryOpen ? "rotate-180" : ""}`} />
               </Button>
             </div>
@@ -2176,7 +2720,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                     {desktopConversionBanner.cta}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setConversionBannerDismissed(true)}>
-                    Dismiss
+                    {t("dismiss")}
                   </Button>
                 </div>
               </div>
@@ -2189,7 +2733,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                     <Input
                       value={starterGalleryQuery}
                       onChange={(event) => setStarterGalleryQuery(event.target.value)}
-                      placeholder="Search starters"
+                      placeholder={t("searchCommands")}
                       className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
                     />
                   </div>
@@ -2222,8 +2766,8 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               </div>
             )}
           </div>
-          <Tabs value={activeWorkspaceTab} onValueChange={(value) => setActiveWorkspaceTab(value as DesktopWorkspaceTab)} className="flex h-full min-h-0 flex-col overflow-hidden">
-            <TabsContent value="script" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+          <Tabs value={activeWorkspaceTab} onValueChange={handleWorkspaceTabChange} className="flex h-full min-h-0 flex-col overflow-hidden">
+            <TabsContent forceMount value="script" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <div className="flex h-full min-h-0 flex-col overflow-hidden">
                 <div className="flex items-center justify-between gap-3 border-b px-4 py-2">
                   <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1">
@@ -2246,7 +2790,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                             {tab.fileName}
                             {isDirty ? " *" : ""}
                           </button>
-                          {tab.webScriptId ? (
+                          {cloudStorageEnabled && tab.webScriptId ? (
                             <Badge variant="outline" className="ml-1 border-primary/30 px-1.5 py-0 text-[10px] text-primary">
                               Web
                             </Badge>
@@ -2265,7 +2809,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    {activeScriptTab?.webScriptId ? (
+                    {cloudStorageEnabled && activeScriptTab?.webScriptId ? (
                       <>
                         <Badge variant={activeWebSyncDirty ? "secondary" : "outline"} className="hidden text-[11px] sm:inline-flex">
                           {activeWebSyncDirty ? "Local edits" : "Synced"}
@@ -2297,7 +2841,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
 
             <TabsContent value="ai" className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden">
               <div className="h-full min-h-0">
-                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading AI workspace...</div>}>
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{t("loadingAiWorkspace")}</div>}>
                   <AIAssistantTab
                     scriptCommands={scriptCommands}
                     setScriptCommands={setScriptCommands}
@@ -2308,23 +2852,28 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               </div>
             </TabsContent>
 
-            <TabsContent value="gui" className="mt-0 h-full min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+            <TabsContent forceMount value="gui" className="mt-0 h-full min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+              {visitedWorkspaceTabs.has("gui") ? (
               <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
                 <div className="border-b px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-sm font-semibold">
                         <LayoutGrid className="h-4 w-4 text-primary" />
-                        Library
+                        {t("library")}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Open synced scripts, local recents, and starter building blocks from one place.
+                        {cloudStorageEnabled
+                          ? t("commandLibraryDescription")
+                          : t("commandLibraryDescription")}
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => void loadWebLibraryScripts()} disabled={webLibraryLoading}>
-                      <RefreshCcw className={`mr-2 h-4 w-4 ${webLibraryLoading ? "animate-spin" : ""}`} />
-                      Sync
-                    </Button>
+                    {cloudStorageEnabled ? (
+                      <Button size="sm" variant="outline" onClick={() => void loadWebLibraryScripts()} disabled={webLibraryLoading}>
+                        <RefreshCcw className={`mr-2 h-4 w-4 ${webLibraryLoading ? "animate-spin" : ""}`} />
+                        {t("sync")}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -2337,19 +2886,12 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                           <Input
                             value={webLibraryQuery}
                             onChange={(event) => setWebLibraryQuery(event.target.value)}
-                            placeholder="Search Library"
+                            placeholder={t("searchLibrary")}
                             className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
                           />
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {([
-                            ["all", "All"],
-                            ["web", "Web"],
-                            ["starters", "Starters"],
-                            ["local", "Local"],
-                            ["favorites", "Favorites"],
-                            ["recent", "Recent"],
-                          ] as Array<[LibraryFilter, string]>).map(([value, label]) => (
+                          {libraryFilters.map(([value, label]) => (
                             <Button
                               key={value}
                               type="button"
@@ -2363,21 +2905,25 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                           ))}
                         </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{webLibraryScripts.length} web - {STARTER_WORKFLOWS.length} starters - {recentFiles.length} local</span>
-                          {webLibraryFromCache ? <span>Cached</span> : null}
+                          <span>
+                            {cloudStorageEnabled
+                              ? `${webLibraryScripts.length} ${t("web").toLowerCase()} - ${STARTER_WORKFLOWS.length} ${t("starters").toLowerCase()} - ${recentFiles.length} local`
+                              : `${STARTER_WORKFLOWS.length} ${t("starters").toLowerCase()} - ${recentFiles.length} local`}
+                          </span>
+                          {cloudStorageEnabled && webLibraryFromCache ? <span>{t("cached")}</span> : null}
                         </div>
                       </div>
 
                       <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain p-3 [scrollbar-gutter:stable]">
                         {webLibraryLoading && showWebLibrary ? (
                           <div className="rounded-md border bg-background/70 p-4 text-sm text-muted-foreground">
-                            Loading scripts from your PSForge web account...
+                            {t("loadingScripts")}
                           </div>
                         ) : webLibraryError && showWebLibrary && webLibraryScripts.length === 0 ? (
                           <div className="rounded-md border border-dashed bg-background/70 p-4 text-sm text-muted-foreground">
                             <div>{webLibraryError}</div>
                             <Button className="mt-3" size="sm" variant="outline" onClick={() => setAccountDialogOpen(true)}>
-                              Connect Account
+                              {t("connectAccount")}
                             </Button>
                           </div>
                         ) : (
@@ -2398,14 +2944,14 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                           <div className="flex items-center gap-2">
                                             <FileCode className="h-4 w-4 shrink-0 text-primary" />
                                             <div className="truncate text-sm font-medium">{script.name}</div>
-                                            {script.isFavorite ? <Badge variant="outline" className="text-[10px]">Favorite</Badge> : null}
+                                            {script.isFavorite ? <Badge variant="outline" className="text-[10px]">{t("favorites")}</Badge> : null}
                                           </div>
                                           <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                                             {script.description || script.taskName || "Saved from PSForge web."}
                                           </div>
                                         </div>
                                         <Button size="sm" onClick={() => openWebLibraryScript(script)}>
-                                          Open
+                                          {t("open")}
                                         </Button>
                                       </div>
                                       <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
@@ -2420,7 +2966,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                   ))
                                 ) : (
                                   <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
-                                    No web scripts match this view.
+                                    {t("noWebScriptsMatchView")}
                                   </div>
                                 )}
                               </div>
@@ -2444,7 +2990,7 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                 ))}
                                 {filteredStarterLibrary.length === 0 ? (
                                   <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
-                                    No starters match this search.
+                                    {t("noStartersMatchSearch")}
                                   </div>
                                 ) : null}
                               </div>
@@ -2457,17 +3003,17 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0">
                                         <div className="truncate text-sm font-medium">{file.fileName}</div>
-                                        <div className="mt-1 truncate text-xs text-muted-foreground">{file.filePath || "Local recent file"}</div>
+                                        <div className="mt-1 truncate text-xs text-muted-foreground">{file.filePath || t("localRecentFile")}</div>
                                       </div>
                                       <Button size="sm" variant="outline" onClick={() => setAppSettingsView("recent")}>
-                                        Open
+                                        {t("open")}
                                       </Button>
                                     </div>
                                   </div>
                                 ))}
                                 {filteredRecentLibrary.length === 0 ? (
                                   <div className="rounded-md border border-dashed bg-background/70 p-3 text-sm text-muted-foreground">
-                                    No local recent scripts match this view.
+                                    {t("noLocalRecentScripts")}
                                   </div>
                                 ) : null}
                               </div>
@@ -2479,30 +3025,57 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
                   </section>
 
                   <section className="flex h-full min-h-0 overflow-hidden">
-                    <div className="h-full min-h-0 w-full overflow-hidden">
-                      <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading builder library...</div>}>
+                    <div className="grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
+                      {workflowLaunchNotice ? (
+                        <div className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-sm text-muted-foreground">
+                          <div className="flex items-center justify-between gap-3">
+                            <span>{workflowLaunchNotice}</span>
+                            <Button size="sm" variant="ghost" onClick={() => setWorkflowLaunchNotice(null)}>
+                              {t("dismiss")}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+                      <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{t("loadingBuilderLibrary")}</div>}>
                         <GUIBuilderTab
                           selectedCategory={selectedGuiCategory}
                           onCategorySelect={setSelectedGuiCategory}
                           script={currentScript}
                           setScript={setActiveScript}
+                          highlightedTaskIds={workflowTaskHighlights}
+                          autoSelectedTaskId={workflowSelectedTaskId}
                         />
                       </Suspense>
                     </div>
                   </section>
                 </div>
               </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="wizard" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
               <div className="h-full overflow-auto">
-                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading wizard...</div>}>
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">{t("loadingWizard")}</div>}>
                   <ScriptWizardTab
                     script={currentScript}
                     setScript={setActiveScript}
                   />
                 </Suspense>
               </div>
+            </TabsContent>
+
+            <TabsContent forceMount value="ops" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
+              {visitedWorkspaceTabs.has("ops") ? (
+              <DesktopScriptWorkbench
+                script={currentScript}
+                setScript={setActiveScript}
+                currentFileName={currentFileName}
+                authorName={visibleUser?.name || visibleUser?.email || "PSForge User"}
+                displayMode="ops"
+                pendingAction={pendingWorkbenchAction}
+                onRunHistorySummaryChange={setRunHistorySummary}
+              />
+              ) : null}
             </TabsContent>
 
             <TabsContent value="git" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden">
@@ -2527,9 +3100,9 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
       <Dialog open={appSettingsView !== null} onOpenChange={(open) => !open && setAppSettingsView(null)}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{appSettingsView ? appSettingsDialogMeta[appSettingsView].title : "App Settings"}</DialogTitle>
+            <DialogTitle>{appSettingsView ? appSettingsDialogMeta[appSettingsView].title : t("appSettings")}</DialogTitle>
             <DialogDescription>
-              {appSettingsView ? appSettingsDialogMeta[appSettingsView].description : "Manage desktop settings."}
+              {appSettingsView ? appSettingsDialogMeta[appSettingsView].description : t("manageDesktopSettings")}
             </DialogDescription>
           </DialogHeader>
           {renderAppSettingsContent()}
@@ -2614,6 +3187,23 @@ export default function DesktopWorkspace({ previewMode = false }: DesktopWorkspa
               : "Open the premium task pack and generate repeatable automation faster.",
         ] : []}
         contextLabel={guidedUpgradeWorkflow?.title || "guided workflow"}
+      />
+
+      <DesktopUpgradeDialog
+        open={!!workflowUpgradeContext}
+        onOpenChange={(open) => !open && setWorkflowUpgradeContext(null)}
+        feature={workflowUpgradeContext ? getWorkflowDisplayTitle(workflowUpgradeContext.workflow) : "workflow"}
+        title="Unlock this workflow with Pro"
+        description="This PSForge workflow is marked as Pro. Upgrade or connect a Pro account to continue without losing the workflow context."
+        previewTitle="What will stay ready after upgrade"
+        previewItems={workflowUpgradeContext ? [
+          `${getWorkflowDisplayTitle(workflowUpgradeContext.workflow)} from psforge.app.`,
+          workflowUpgradeContext.mapping.platform
+            ? `${workflowUpgradeContext.mapping.platform.name} will stay selected in the builder.`
+            : "The general workflow chooser will open when no local platform mapping is available.",
+          `${workflowUpgradeContext.mapping.validTasks.length} mapped task${workflowUpgradeContext.mapping.validTasks.length === 1 ? "" : "s"} will remain highlighted for review.`,
+        ] : []}
+        contextLabel={workflowUpgradeContext ? getWorkflowDisplayTitle(workflowUpgradeContext.workflow) : "workflow"}
       />
 
       <Dialog open={!!pendingCloseTab} onOpenChange={(open) => !open && setPendingTabCloseId(null)}>

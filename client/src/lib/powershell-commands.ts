@@ -2045,7 +2045,7 @@ export const powershellCommands: Command[] = [
     example: 'Get-Hotfix -Id "KB5001234"'
   },
   {
-    id: "test-netconnection",
+    id: "test-netconnection-diagnostics",
     name: "Test-NetConnection",
     category: "Windows Server",
     description: "Displays diagnostic information for a connection",
@@ -2469,7 +2469,7 @@ export const powershellCommands: Command[] = [
     example: 'Test-NetConnection -ComputerName "google.com" -Port 443'
   },
   {
-    id: "resolve-dnsname",
+    id: "resolve-dnsname-lookup",
     name: "Resolve-DnsName",
     category: "Network",
     description: "Performs a DNS query for the specified name",
@@ -8702,6 +8702,391 @@ export const powershellCommands: Command[] = [
       { id: "devicetype", name: "DeviceType", type: "select", description: "Device type", required: false, options: ["computer", "mobiledevice"] }
     ],
     example: 'Invoke-JamfCommand -DeviceId 100 -Command "UpdateInventory" -DeviceType "computer"'
+  },
+  {
+    id: "test-netconnection",
+    name: "Test-NetConnection",
+    category: "Network",
+    description: "Runs TCP, route, and network connectivity diagnostics against a destination",
+    syntax: "Test-NetConnection [-ComputerName] <string> [-Port <int>] [-InformationLevel <string>]",
+    parameters: [
+      { id: "computername", name: "ComputerName", type: "string", description: "Target host or address", required: true },
+      { id: "port", name: "Port", type: "int", description: "TCP port to test", required: false, defaultValue: 443 },
+      { id: "informationlevel", name: "InformationLevel", type: "select", description: "Diagnostic detail level", required: false, options: ["Quiet", "Detailed"] }
+    ],
+    example: 'Test-NetConnection -ComputerName "graph.microsoft.com" -Port 443 -InformationLevel Detailed'
+  },
+  {
+    id: "resolve-dnsname",
+    name: "Resolve-DnsName",
+    category: "Network",
+    description: "Performs DNS name resolution with record type selection",
+    syntax: "Resolve-DnsName -Name <string> [-Type <string>] [-Server <string[]>]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "DNS name to resolve", required: true },
+      { id: "type", name: "Type", type: "select", description: "DNS record type", required: false, options: ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SRV"] },
+      { id: "server", name: "Server", type: "string", description: "Optional DNS server", required: false }
+    ],
+    example: 'Resolve-DnsName -Name "psforge.app" -Type A'
+  },
+  {
+    id: "get-nettcpconnection",
+    name: "Get-NetTCPConnection",
+    category: "Network",
+    description: "Lists current TCP connections and listening ports",
+    syntax: "Get-NetTCPConnection [-State <string>] [-LocalPort <int[]>] [-RemoteAddress <string[]>]",
+    parameters: [
+      { id: "state", name: "State", type: "select", description: "TCP state filter", required: false, options: ["Listen", "Established", "TimeWait", "CloseWait"] },
+      { id: "localport", name: "LocalPort", type: "int", description: "Local port filter", required: false },
+      { id: "remoteaddress", name: "RemoteAddress", type: "string", description: "Remote address filter", required: false }
+    ],
+    example: "Get-NetTCPConnection -State Listen"
+  },
+  {
+    id: "get-netadapter-inventory",
+    name: "Get-NetAdapter",
+    category: "Network",
+    description: "Gets physical and virtual network adapters",
+    syntax: "Get-NetAdapter [[-Name] <string[]>] [-Physical]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "Adapter name filter", required: false, defaultValue: "*" },
+      { id: "physical", name: "Physical", type: "switch", description: "Show physical adapters only", required: false, defaultValue: false }
+    ],
+    example: "Get-NetAdapter -Physical"
+  },
+  {
+    id: "get-netipconfiguration",
+    name: "Get-NetIPConfiguration",
+    category: "Network",
+    description: "Shows IP address, gateway, DNS, and adapter configuration",
+    syntax: "Get-NetIPConfiguration [[-InterfaceAlias] <string[]>] [-Detailed]",
+    parameters: [
+      { id: "interfacealias", name: "InterfaceAlias", type: "string", description: "Network interface alias", required: false },
+      { id: "detailed", name: "Detailed", type: "switch", description: "Show detailed configuration", required: false, defaultValue: false }
+    ],
+    example: 'Get-NetIPConfiguration -InterfaceAlias "Ethernet" -Detailed'
+  },
+  {
+    id: "set-dnsclientserveraddress-adapter",
+    name: "Set-DnsClientServerAddress",
+    category: "Network",
+    description: "Sets DNS server addresses on a network adapter",
+    syntax: "Set-DnsClientServerAddress -InterfaceAlias <string> -ServerAddresses <string[]>",
+    parameters: [
+      { id: "interfacealias", name: "InterfaceAlias", type: "string", description: "Network interface alias", required: true },
+      { id: "serveraddresses", name: "ServerAddresses", type: "array", description: "DNS server addresses", required: true }
+    ],
+    example: 'Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses "1.1.1.1","8.8.8.8"'
+  },
+  {
+    id: "new-item-filesystem",
+    name: "New-Item",
+    category: "File System",
+    description: "Creates files, directories, or other provider items",
+    syntax: "New-Item -Path <string> -ItemType <string> [-Force]",
+    parameters: [
+      { id: "path", name: "Path", type: "path", description: "Path to create", required: true },
+      { id: "itemtype", name: "ItemType", type: "select", description: "Type of item", required: true, options: ["File", "Directory"] },
+      { id: "force", name: "Force", type: "switch", description: "Create parent path or overwrite existing item when allowed", required: false, defaultValue: false }
+    ],
+    example: 'New-Item -Path "C:\\Reports" -ItemType Directory -Force'
+  },
+  {
+    id: "get-content-tail",
+    name: "Get-Content",
+    category: "File System",
+    description: "Reads content from a file",
+    syntax: "Get-Content -Path <string> [-Tail <int>] [-Raw]",
+    parameters: [
+      { id: "path", name: "Path", type: "path", description: "File path to read", required: true },
+      { id: "tail", name: "Tail", type: "int", description: "Read the last N lines", required: false },
+      { id: "raw", name: "Raw", type: "switch", description: "Return content as one string", required: false, defaultValue: false }
+    ],
+    example: 'Get-Content -Path "C:\\Logs\\app.log" -Tail 100'
+  },
+  {
+    id: "set-content-file",
+    name: "Set-Content",
+    category: "File System",
+    description: "Writes or replaces file content",
+    syntax: "Set-Content -Path <string> -Value <string> [-Encoding <string>]",
+    parameters: [
+      { id: "path", name: "Path", type: "path", description: "File path to write", required: true },
+      { id: "value", name: "Value", type: "string", description: "Content to write", required: true },
+      { id: "encoding", name: "Encoding", type: "select", description: "Text encoding", required: false, options: ["utf8", "ascii", "unicode"] }
+    ],
+    example: 'Set-Content -Path "C:\\Reports\\status.txt" -Value "Complete" -Encoding utf8'
+  },
+  {
+    id: "new-itemproperty",
+    name: "New-ItemProperty",
+    category: "Registry",
+    description: "Creates a registry value or other provider property",
+    syntax: "New-ItemProperty -Path <string> -Name <string> -Value <object> -PropertyType <string> [-Force]",
+    parameters: [
+      { id: "path", name: "Path", type: "path", description: "Registry key path", required: true },
+      { id: "name", name: "Name", type: "string", description: "Property name", required: true },
+      { id: "value", name: "Value", type: "string", description: "Property value", required: true },
+      { id: "propertytype", name: "PropertyType", type: "select", description: "Registry value type", required: false, options: ["String", "DWord", "QWord", "MultiString", "ExpandString"] }
+    ],
+    example: 'New-ItemProperty -Path "HKLM:\\Software\\Contoso" -Name "Enabled" -Value 1 -PropertyType DWord -Force'
+  },
+  {
+    id: "set-itemproperty",
+    name: "Set-ItemProperty",
+    category: "Registry",
+    description: "Changes an existing registry value or provider property",
+    syntax: "Set-ItemProperty -Path <string> -Name <string> -Value <object>",
+    parameters: [
+      { id: "path", name: "Path", type: "path", description: "Registry key path", required: true },
+      { id: "name", name: "Name", type: "string", description: "Property name", required: true },
+      { id: "value", name: "Value", type: "string", description: "New value", required: true }
+    ],
+    example: 'Set-ItemProperty -Path "HKLM:\\Software\\Contoso" -Name "Enabled" -Value 0'
+  },
+  {
+    id: "get-windowsfeature-server",
+    name: "Get-WindowsFeature",
+    category: "Windows Server",
+    description: "Gets Windows Server roles, role services, and features",
+    syntax: "Get-WindowsFeature [[-Name] <string[]>]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "Feature name filter", required: false, defaultValue: "*" }
+    ],
+    example: "Get-WindowsFeature -Name Web-Server"
+  },
+  {
+    id: "install-windowsfeature-server",
+    name: "Install-WindowsFeature",
+    category: "Windows Server",
+    description: "Installs Windows Server roles, role services, or features",
+    syntax: "Install-WindowsFeature -Name <string[]> [-IncludeManagementTools] [-Restart]",
+    parameters: [
+      { id: "name", name: "Name", type: "array", description: "Feature names to install", required: true },
+      { id: "includemanagementtools", name: "IncludeManagementTools", type: "switch", description: "Install management tools", required: false, defaultValue: true },
+      { id: "restart", name: "Restart", type: "switch", description: "Restart automatically if required", required: false, defaultValue: false }
+    ],
+    example: "Install-WindowsFeature -Name Web-Server -IncludeManagementTools"
+  },
+  {
+    id: "restart-service-managed",
+    name: "Restart-Service",
+    category: "Services",
+    description: "Stops and starts one or more services",
+    syntax: "Restart-Service [-Name] <string[]> [-Force] [-PassThru]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "Service name", required: true },
+      { id: "force", name: "Force", type: "switch", description: "Force dependent services when supported", required: false, defaultValue: false },
+      { id: "passthru", name: "PassThru", type: "switch", description: "Return service objects", required: false, defaultValue: false }
+    ],
+    example: 'Restart-Service -Name "Spooler" -Force'
+  },
+  {
+    id: "set-service-state",
+    name: "Set-Service",
+    category: "Services",
+    description: "Changes service status, startup type, or description",
+    syntax: "Set-Service -Name <string> [-StartupType <string>] [-Status <string>]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "Service name", required: true },
+      { id: "startuptype", name: "StartupType", type: "select", description: "Startup type", required: false, options: ["Automatic", "Manual", "Disabled"] },
+      { id: "status", name: "Status", type: "select", description: "Desired status", required: false, options: ["Running", "Stopped", "Paused"] }
+    ],
+    example: 'Set-Service -Name "Spooler" -StartupType Automatic -Status Running'
+  },
+  {
+    id: "get-sposite-online",
+    name: "Get-SPOSite",
+    category: "SharePoint",
+    description: "Gets SharePoint Online site collections",
+    syntax: "Get-SPOSite [-Identity <string>] [-Limit <string>]",
+    parameters: [
+      { id: "identity", name: "Identity", type: "string", description: "Site URL", required: false },
+      { id: "limit", name: "Limit", type: "string", description: "Maximum results or All", required: false, defaultValue: "All" }
+    ],
+    example: "Get-SPOSite -Limit All"
+  },
+  {
+    id: "set-sposite-sharing",
+    name: "Set-SPOSite",
+    category: "SharePoint",
+    description: "Updates SharePoint Online site collection settings",
+    syntax: "Set-SPOSite -Identity <string> [-StorageQuota <int>] [-SharingCapability <string>]",
+    parameters: [
+      { id: "identity", name: "Identity", type: "string", description: "Site URL", required: true },
+      { id: "storagequota", name: "StorageQuota", type: "int", description: "Storage quota in MB", required: false },
+      { id: "sharingcapability", name: "SharingCapability", type: "select", description: "External sharing mode", required: false, options: ["Disabled", "ExistingExternalUserSharingOnly", "ExternalUserSharingOnly", "ExternalUserAndGuestSharing"] }
+    ],
+    example: 'Set-SPOSite -Identity "https://contoso.sharepoint.com/sites/Finance" -SharingCapability Disabled'
+  },
+  {
+    id: "get-pdqcomputer-targets",
+    name: "Get-PDQComputer",
+    category: "PDQ Deploy",
+    description: "Gets PDQ Inventory computers for deployment targeting",
+    syntax: "Get-PDQComputer [-Name <string>] [-Collection <string>]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "Computer name filter", required: false },
+      { id: "collection", name: "Collection", type: "string", description: "Collection name", required: false }
+    ],
+    example: 'Get-PDQComputer -Collection "Windows Workstations"'
+  },
+  {
+    id: "invoke-pdqdeployment",
+    name: "Invoke-PDQDeployment",
+    category: "PDQ Deploy",
+    description: "Starts a PDQ package deployment to selected targets",
+    syntax: "Invoke-PDQDeployment -PackageName <string> -Targets <string[]>",
+    parameters: [
+      { id: "packagename", name: "PackageName", type: "string", description: "PDQ package name", required: true },
+      { id: "targets", name: "Targets", type: "array", description: "Target computer names", required: true }
+    ],
+    example: 'Invoke-PDQDeployment -PackageName "Chrome Enterprise" -Targets "PC-001","PC-002"'
+  },
+  {
+    id: "get-intunemanageddevice-inventory",
+    name: "Get-IntuneManagedDevice",
+    category: "Intune",
+    description: "Gets Intune managed device records for endpoint review",
+    syntax: "Get-IntuneManagedDevice [-Filter <string>] [-Top <int>]",
+    parameters: [
+      { id: "filter", name: "Filter", type: "string", description: "OData filter", required: false },
+      { id: "top", name: "Top", type: "int", description: "Maximum records", required: false, defaultValue: 50 }
+    ],
+    example: 'Get-IntuneManagedDevice -Filter "operatingSystem eq \'Windows\'" -Top 50'
+  },
+  {
+    id: "get-mguserlicensedetail",
+    name: "Get-MgUserLicenseDetail",
+    category: "Office 365",
+    description: "Gets license details assigned to a Microsoft 365 user",
+    syntax: "Get-MgUserLicenseDetail -UserId <string>",
+    parameters: [
+      { id: "userid", name: "UserId", type: "string", description: "User principal name or object ID", required: true }
+    ],
+    example: 'Get-MgUserLicenseDetail -UserId "alex@contoso.com"'
+  },
+  {
+    id: "get-computerinfo-summary",
+    name: "Get-ComputerInfo",
+    category: "System Administration",
+    description: "Collects operating system, BIOS, hardware, and Windows configuration details",
+    syntax: "Get-ComputerInfo [-Property <string[]>]",
+    parameters: [
+      { id: "property", name: "Property", type: "string", description: "Optional property filter such as OsName or CsName", required: false, defaultValue: "*" }
+    ],
+    example: 'Get-ComputerInfo -Property "OsName","OsVersion","CsName"'
+  },
+  {
+    id: "get-executionpolicy-scope",
+    name: "Get-ExecutionPolicy",
+    category: "System Administration",
+    description: "Reviews PowerShell execution policy by scope for startup readiness checks",
+    syntax: "Get-ExecutionPolicy [-List] [-Scope <string>]",
+    parameters: [
+      { id: "list", name: "List", type: "switch", description: "Show all execution policy scopes", required: false, defaultValue: true },
+      { id: "scope", name: "Scope", type: "select", description: "Execution policy scope", required: false, options: ["MachinePolicy", "UserPolicy", "Process", "CurrentUser", "LocalMachine"] }
+    ],
+    example: "Get-ExecutionPolicy -List"
+  },
+  {
+    id: "set-executionpolicy-scope",
+    name: "Set-ExecutionPolicy",
+    category: "System Administration",
+    description: "Sets PowerShell execution policy for a selected scope",
+    syntax: "Set-ExecutionPolicy -ExecutionPolicy <string> [-Scope <string>] [-Force]",
+    parameters: [
+      { id: "executionpolicy", name: "ExecutionPolicy", type: "select", description: "Execution policy value", required: true, options: ["Restricted", "RemoteSigned", "AllSigned", "Unrestricted", "Bypass"] },
+      { id: "scope", name: "Scope", type: "select", description: "Target policy scope", required: false, options: ["Process", "CurrentUser", "LocalMachine"] },
+      { id: "force", name: "Force", type: "switch", description: "Suppress confirmation prompt", required: false, defaultValue: false }
+    ],
+    example: "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force"
+  },
+  {
+    id: "get-module-available",
+    name: "Get-Module",
+    category: "System Administration",
+    description: "Lists loaded or available PowerShell modules for dependency review",
+    syntax: "Get-Module [-Name <string[]>] [-ListAvailable]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "Module name filter", required: false, defaultValue: "*" },
+      { id: "listavailable", name: "ListAvailable", type: "switch", description: "Search installed modules instead of only loaded modules", required: false, defaultValue: true }
+    ],
+    example: 'Get-Module -Name "Microsoft.Graph*" -ListAvailable'
+  },
+  {
+    id: "get-command-source",
+    name: "Get-Command",
+    category: "System Administration",
+    description: "Finds commands and their source modules before a script is run",
+    syntax: "Get-Command -Name <string[]> [-CommandType <string[]>]",
+    parameters: [
+      { id: "name", name: "Name", type: "string", description: "Command name or wildcard", required: true },
+      { id: "commandtype", name: "CommandType", type: "select", description: "Command type filter", required: false, options: ["Alias", "Function", "Cmdlet", "ExternalScript", "Application"] }
+    ],
+    example: 'Get-Command -Name "Connect-MgGraph","Get-ADUser"'
+  },
+  {
+    id: "select-object-properties",
+    name: "Select-Object",
+    category: "Variables & Data",
+    description: "Selects, renames, or calculates properties from pipeline objects",
+    syntax: "Select-Object [-Property] <object[]> [-First <int>] [-ExpandProperty <string>]",
+    parameters: [
+      { id: "property", name: "Property", type: "array", description: "Properties to keep or calculate", required: false },
+      { id: "first", name: "First", type: "int", description: "Limit output to the first N objects", required: false },
+      { id: "expandproperty", name: "ExpandProperty", type: "string", description: "Expand a property value", required: false }
+    ],
+    example: 'Get-Process | Select-Object -Property Name,Id,CPU -First 10'
+  },
+  {
+    id: "where-object-filter",
+    name: "Where-Object",
+    category: "Variables & Data",
+    description: "Filters pipeline objects with a script block condition",
+    syntax: "Where-Object { <scriptblock> }",
+    parameters: [
+      { id: "condition", name: "Condition", type: "string", description: "Filter expression", required: true, defaultValue: "$_.Status -eq 'Running'" }
+    ],
+    example: "Get-Service | Where-Object { $_.Status -eq 'Running' }"
+  },
+  {
+    id: "convertto-json-depth",
+    name: "ConvertTo-Json",
+    category: "Variables & Data",
+    description: "Serializes PowerShell objects to JSON with depth control",
+    syntax: "ConvertTo-Json [-Depth <int>] [-Compress]",
+    parameters: [
+      { id: "depth", name: "Depth", type: "int", description: "Maximum object depth", required: false, defaultValue: 3 },
+      { id: "compress", name: "Compress", type: "switch", description: "Omit whitespace from the JSON output", required: false, defaultValue: false }
+    ],
+    example: "$Report | ConvertTo-Json -Depth 5"
+  },
+  {
+    id: "import-csv-data",
+    name: "Import-Csv",
+    category: "Variables & Data",
+    description: "Imports structured CSV data for bulk script operations",
+    syntax: "Import-Csv -Path <string> [-Delimiter <char>] [-Encoding <string>]",
+    parameters: [
+      { id: "path", name: "Path", type: "path", description: "CSV file path", required: true },
+      { id: "delimiter", name: "Delimiter", type: "string", description: "Column delimiter", required: false, defaultValue: "," },
+      { id: "encoding", name: "Encoding", type: "select", description: "Text encoding", required: false, options: ["utf8", "ascii", "unicode"] }
+    ],
+    example: 'Import-Csv -Path "C:\\Data\\users.csv"'
+  },
+  {
+    id: "export-csv-report",
+    name: "Export-Csv",
+    category: "Variables & Data",
+    description: "Exports objects to CSV for reporting or handoff",
+    syntax: "Export-Csv -Path <string> [-NoTypeInformation] [-Encoding <string>]",
+    parameters: [
+      { id: "path", name: "Path", type: "path", description: "Output CSV path", required: true },
+      { id: "notypeinformation", name: "NoTypeInformation", type: "switch", description: "Omit type information header", required: false, defaultValue: true },
+      { id: "encoding", name: "Encoding", type: "select", description: "Text encoding", required: false, options: ["utf8", "ascii", "unicode"] }
+    ],
+    example: '$Report | Export-Csv -Path "C:\\Reports\\results.csv" -NoTypeInformation'
   }
 ];
 

@@ -19,6 +19,15 @@ contextBridge.exposeInMainWorld("psforgeDesktop", {
       ipcRenderer.removeListener("desktop:menu-action", listener);
     };
   },
+  onWorkflowDeepLink: (callback: (payload: any) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: any) => callback(payload);
+    ipcRenderer.on("desktop:workflow-deeplink", listener);
+    return () => {
+      ipcRenderer.removeListener("desktop:workflow-deeplink", listener);
+    };
+  },
+  getPendingWorkflowDeepLink: () => ipcRenderer.invoke("desktop:get-pending-workflow-deeplink"),
+  rendererReady: (payload?: { elapsedMs?: number; route?: string }) => ipcRenderer.send("desktop:renderer-ready", payload || {}),
   openScript: () => ipcRenderer.invoke("desktop:open-script"),
   saveScript: (payload: { content: string; defaultFileName?: string }) =>
     ipcRenderer.invoke("desktop:save-script", payload),
@@ -30,6 +39,7 @@ contextBridge.exposeInMainWorld("psforgeDesktop", {
   request: (payload: { url: string; method?: string; headers?: Record<string, string>; body?: string }) =>
     ipcRenderer.invoke("desktop:http-request", payload),
   debugLog: (message: string) => ipcRenderer.invoke("desktop:debug-log", message),
+  showEditContextMenu: () => ipcRenderer.invoke("desktop:show-edit-context-menu"),
   gitStatus: (payload: { repoPath: string }) => ipcRenderer.invoke("desktop:git-status", payload),
   gitInit: (payload: { repoPath: string; branchName?: string }) => ipcRenderer.invoke("desktop:git-init", payload),
   gitCreateBranch: (payload: { repoPath: string; branchName: string; fromBranch?: string }) =>

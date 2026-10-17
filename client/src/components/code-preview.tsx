@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useDesktopLocale } from "@/lib/i18n";
 
 interface CodePreviewProps {
   code: string;
@@ -14,6 +15,7 @@ interface CodePreviewProps {
 export function CodePreview({ code, validationErrors = [] }: CodePreviewProps) {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const { t } = useDesktopLocale();
   const preRef = useRef<HTMLPreElement>(null);
 
   const handleCopy = async () => {
@@ -21,13 +23,13 @@ export function CodePreview({ code, validationErrors = [] }: CodePreviewProps) {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       toast({
-        title: "Copied to clipboard",
+        title: t("copyToClipboard"),
         description: "PowerShell script copied successfully",
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast({
-        title: "Failed to copy",
+        title: t("failed"),
         description: "Could not copy to clipboard",
         variant: "destructive",
       });
@@ -42,10 +44,10 @@ export function CodePreview({ code, validationErrors = [] }: CodePreviewProps) {
     <div className="flex flex-col h-full" data-testid="panel-code-preview">
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium" data-testid="text-preview-title">Generated Script</h3>
+          <h3 className="text-sm font-medium" data-testid="text-preview-title">{t("generatedScript")}</h3>
           {lines.length > 0 && (
             <Badge variant="secondary" className="text-xs" data-testid="badge-line-count">
-              {lines.length} line{lines.length !== 1 ? 's' : ''}
+              {lines.length} {lines.length === 1 ? t("line") : t("lines")}
             </Badge>
           )}
           {errorCount > 0 && (
@@ -55,7 +57,7 @@ export function CodePreview({ code, validationErrors = [] }: CodePreviewProps) {
           )}
           {warningCount > 0 && (
             <Badge className="text-xs bg-chart-3 text-chart-3-foreground" data-testid="badge-warning-count">
-              {warningCount} warning{warningCount !== 1 ? 's' : ''}
+              {warningCount} {t("warnings").toLowerCase()}
             </Badge>
           )}
         </div>
@@ -73,7 +75,7 @@ export function CodePreview({ code, validationErrors = [] }: CodePreviewProps) {
           ) : (
             <Copy className="h-4 w-4 mr-2" />
           )}
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? t("copied") : t("copy")}
         </Button>
       </div>
 
@@ -110,8 +112,8 @@ export function CodePreview({ code, validationErrors = [] }: CodePreviewProps) {
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
-              <p className="text-sm">No script generated yet</p>
-              <p className="text-xs mt-1">Add commands to see the generated PowerShell code</p>
+              <p className="text-sm">{t("noScriptGeneratedYet")}</p>
+              <p className="text-xs mt-1">{t("addCommandsGeneratedCode")}</p>
             </div>
           </div>
         )}

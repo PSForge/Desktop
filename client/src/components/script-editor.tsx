@@ -6,6 +6,7 @@ import { FileCode, Wand2 } from "lucide-react";
 import { getCmdletReference, formatCmdletDocumentation } from "@/lib/powershell-cmdlet-reference";
 import { useToast } from "@/hooks/use-toast";
 import { isDesktopApp } from "@/lib/desktop";
+import { useDesktopLocale } from "@/lib/i18n";
 import type * as monaco from 'monaco-editor';
 
 interface ScriptEditorProps {
@@ -20,6 +21,7 @@ export function ScriptEditor({ script, onScriptChange, onCursorPositionChange, o
   const monacoRef = useRef<Monaco | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { toast } = useToast();
+  const { t } = useDesktopLocale();
   const desktopMode = isDesktopApp();
   const [desktopScrollTop, setDesktopScrollTop] = useState(0);
 
@@ -247,10 +249,10 @@ export function ScriptEditor({ script, onScriptChange, onCursorPositionChange, o
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 truncate text-base font-medium sm:text-lg" data-testid="text-editor-title">
             <FileCode className="h-5 w-5 shrink-0" />
-            PowerShell Script Editor
+            {t("powershellScriptEditor")}
           </h2>
           <p className="mt-1 hidden truncate text-xs text-muted-foreground sm:block">
-            Type your script or click commands from the sidebar • Hover over cmdlets for help
+            {t("scriptEditorHelper")}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -261,10 +263,10 @@ export function ScriptEditor({ script, onScriptChange, onCursorPositionChange, o
             data-testid="button-format-script"
           >
             <Wand2 className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Format</span>
+            <span className="hidden sm:inline">{t("format")}</span>
           </Button>
           <Badge variant="secondary" className="hidden text-xs sm:inline-flex" data-testid="badge-line-count">
-            {lineCount} line{lineCount !== 1 ? 's' : ''}
+            {lineCount} {lineCount === 1 ? t("line") : t("lines")}
           </Badge>
         </div>
       </div>
@@ -295,7 +297,7 @@ export function ScriptEditor({ script, onScriptChange, onCursorPositionChange, o
               onScroll={syncDesktopScroll}
               spellCheck={false}
               wrap="off"
-              placeholder="Start typing your PowerShell script here..."
+              placeholder={t("scriptEditorPlaceholder")}
               className="h-full min-h-0 w-full flex-1 resize-none border-0 bg-transparent px-4 py-4 font-mono text-[15px] leading-6 text-[#E5ECF6] caret-[#F8FAFC] outline-none placeholder:text-[#6B778C]"
               style={{ scrollbarGutter: "stable both-edges" }}
               data-testid="desktop-script-textarea"

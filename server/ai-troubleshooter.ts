@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getAiLanguageInstruction } from "./ai-locale";
 
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
@@ -40,7 +41,8 @@ export interface TroubleshootResult {
 export async function analyzeLogFile(
   logContent: string,
   platform: string,
-  context?: string
+  context?: string,
+  locale?: string
 ): Promise<TroubleshootResult> {
   const openai = getOpenAIClient();
 
@@ -79,6 +81,9 @@ Always respond with valid JSON matching this exact schema:
   ],
   "preventionTips": ["string - Tip 1", "string - Tip 2"]
 }
+
+Language:
+${getAiLanguageInstruction(locale)}
 
 Guidelines:
 - If a PowerShell fix is not applicable for an issue, omit the powershellFix field

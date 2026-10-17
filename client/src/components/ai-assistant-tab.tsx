@@ -11,6 +11,7 @@ import { Sparkles, Lock, CheckCircle, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
+import { useDesktopLocale } from "@/lib/i18n";
 
 interface AIAssistantTabProps {
   scriptCommands: ScriptCommand[];
@@ -23,6 +24,7 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
   const { featureAccess } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { toast } = useToast();
+  const { t } = useDesktopLocale();
   
   const handleGenerateScript = () => {
     if (scriptCommands.length === 0) {
@@ -234,9 +236,9 @@ export function AIAssistantTab({ scriptCommands, setScriptCommands, script, setS
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="p-4 sm:p-6 border-b flex items-center justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">AI Assistant</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">{t("aiAssistant")}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Describe your automation needs in plain English
+            {t("aiAssistantDescription")}
           </p>
         </div>
         {scriptCommands.length > 0 && (

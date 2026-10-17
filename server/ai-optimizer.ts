@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getAiLanguageInstruction } from "./ai-locale";
 
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
@@ -33,7 +34,7 @@ export interface ScriptOptimizationResult {
   summary: string;
 }
 
-export async function generateScriptDocumentation(code: string): Promise<string> {
+export async function generateScriptDocumentation(code: string, locale?: string): Promise<string> {
   try {
     const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
@@ -50,7 +51,10 @@ Format your response as PowerShell comment-based help with:
 4. .EXAMPLE - Usage examples
 5. .NOTES - Additional information
 
-Keep it professional, concise, and actionable.`
+Keep it professional, concise, and actionable.
+
+Language:
+${getAiLanguageInstruction(locale)}`
         },
         {
           role: "user",
@@ -70,7 +74,8 @@ Keep it professional, concise, and actionable.`
 
 export async function applyScriptOptimizations(
   code: string, 
-  recommendations: OptimizationRecommendation[]
+  recommendations: OptimizationRecommendation[],
+  locale?: string
 ): Promise<string> {
   try {
     const openai = getOpenAIClient();
@@ -95,7 +100,10 @@ Instructions:
 5. Preserve existing comments and add new ones where helpful
 6. Return ONLY the modified PowerShell script, no explanations
 
-Output the complete, optimized PowerShell script ready for use.`
+Output the complete, optimized PowerShell script ready for use.
+
+Language:
+${getAiLanguageInstruction(locale)}`
         },
         {
           role: "user",
@@ -134,7 +142,7 @@ Return the optimized script with all recommendations applied:`
   }
 }
 
-export async function analyzeScriptOptimization(code: string): Promise<ScriptOptimizationResult> {
+export async function analyzeScriptOptimization(code: string, locale?: string): Promise<ScriptOptimizationResult> {
   try {
     const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
@@ -158,7 +166,10 @@ Return your analysis as a JSON object with this structure:
   "summary": "Overall assessment..."
 }
 
-Be specific, actionable, and reference line numbers when possible. Focus on real improvements, not nitpicks.`
+Be specific, actionable, and reference line numbers when possible. Focus on real improvements, not nitpicks.
+
+Language:
+${getAiLanguageInstruction(locale)}`
         },
         {
           role: "user",

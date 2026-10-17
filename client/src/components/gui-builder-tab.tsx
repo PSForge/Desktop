@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TaskDetailForm } from "@/components/task-detail-form";
@@ -6,6 +6,7 @@ import { ExportDialog } from "@/components/export-dialog";
 import { DesktopUpgradeDialog } from "@/components/desktop-upgrade-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
+import { getGuiBuilderTasks } from "@/lib/gui-builder-registry";
 import { apiRequest } from "@/lib/queryClient";
 import { adTasks, ADTask } from "@/lib/ad-tasks";
 import { mecmTasks, MECMTask } from "@/lib/mecm-tasks";
@@ -93,6 +94,8 @@ import {
   BarChart3,
   Landmark
 } from "lucide-react";
+import { useDesktopLocale } from "@/lib/i18n";
+import { localizeDesktopText } from "@/lib/desktop-localization";
 
 interface CategoryConfig {
   id: string;
@@ -490,15 +493,84 @@ const categories: CategoryConfig[] = [
   }
 ];
 
+const spanishCategoryDisplay: Record<string, { name?: string; description: string }> = {
+  "file-system": { name: "Sistema de archivos", description: "Administra archivos y carpetas" },
+  network: { name: "Red", description: "Configuracion y diagnostico de red" },
+  services: { name: "Servicios", description: "Administracion de servicios de Windows" },
+  "process-management": { name: "Gestion de procesos", description: "Controla procesos en ejecucion" },
+  "event-logs": { name: "Registros de eventos", description: "Consulta y administra registros del sistema" },
+  "active-directory": { description: "Administracion de usuarios y grupos" },
+  registry: { name: "Registro", description: "Operaciones del registro de Windows" },
+  security: { name: "Seguridad", description: "Seguridad y permisos" },
+  "exchange-online": { description: "Administracion de buzones de Office 365" },
+  "azure-ad": { description: "Identidad de Azure Active Directory" },
+  "azure-resources": { description: "Infraestructura en la nube de Azure" },
+  "sharepoint-online": { description: "Administracion de SharePoint Online" },
+  "sharepoint-onprem": { description: "SharePoint local" },
+  mecm: { description: "Configuration Manager" },
+  "exchange-server": { description: "Exchange local" },
+  "hyper-v": { description: "Administracion de maquinas virtuales" },
+  intune: { description: "Administracion de dispositivos" },
+  "power-platform": { description: "Power Apps y Automate" },
+  teams: { description: "Colaboracion en Teams" },
+  office365: { description: "Tenant de Office 365" },
+  onedrive: { description: "Almacenamiento en la nube de OneDrive" },
+  windows365: { description: "Administracion de Cloud PC" },
+  "windows-server": { description: "Configuracion y caracteristicas de servidor" },
+  vmware: { description: "Automatizacion de infraestructura VMware" },
+  veeam: { description: "Operaciones de copia de seguridad y recuperacion" },
+  nutanix: { description: "Infraestructura hiperconvergente Nutanix" },
+  citrix: { description: "Citrix XenApp y XenDesktop" },
+  pdq: { description: "Implementacion de software e inventario" },
+  chocolatey: { description: "Automatizacion de administracion de paquetes" },
+  servicenow: { description: "Automatizacion de ITSM y tickets" },
+  connectwise: { description: "Automatizacion de RMM y PSA" },
+  aws: { description: "Administracion de recursos en la nube de AWS" },
+  gcp: { description: "Automatizacion de infraestructura GCP" },
+  crowdstrike: { description: "Automatizacion de seguridad de endpoints" },
+  sophos: { description: "Administracion de proteccion de endpoints" },
+  okta: { description: "Administracion de identidad y acceso" },
+  duo: { description: "Autenticacion multifactor" },
+  fortinet: { description: "Firewall y seguridad de red" },
+  cisco: { description: "Administracion de red e inalambrica" },
+  netapp: { description: "Administracion de almacenamiento empresarial" },
+  jamf: { description: "Administracion de dispositivos Apple" },
+  slack: { description: "Automatizacion de colaboracion de equipo" },
+  zoom: { description: "Automatizacion de videoconferencias" },
+  github: { description: "Automatizacion de DevOps y repositorios" },
+  splunk: { description: "Monitoreo y analitica" },
+  docker: { description: "Orquestacion de contenedores" },
+  jira: { description: "Automatizacion de gestion de proyectos" },
+  salesforce: { description: "Automatizacion de CRM" },
+  "sql-server": { description: "Administracion y mantenimiento de bases de datos" },
+};
+
+function getLocalizedCategory(category: CategoryConfig, locale: string) {
+  if (locale !== "es") {
+    return category;
+  }
+
+  const display = spanishCategoryDisplay[category.id];
+  return {
+    ...category,
+    name: display?.name || category.name,
+    description: display?.description || category.description,
+  };
+}
+
 interface GUIBuilderTabProps {
   selectedCategory: string | null;
   onCategorySelect: (categoryId: string) => void;
   script: string;
   setScript: (script: string) => void;
+  highlightedTaskIds?: string[];
+  autoSelectedTaskId?: string | null;
 }
 
-export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript }: GUIBuilderTabProps) {
+export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setScript, highlightedTaskIds = [], autoSelectedTaskId = null }: GUIBuilderTabProps) {
   const { featureAccess } = useAuth();
+  const { locale, t } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const [selectedTask, setSelectedTask] = useState<ADTask | MECMTask | ExchangeOnlineTask | ExchangeServerTask | AzureAdTask | AzureResourceTask | HyperVTask | IntuneTask | PowerPlatformTask | TeamsTask | Office365Task | OneDriveTask | SharePointOnlineTask | SharePointOnPremTask | Windows365Task | WindowsServerTask | EventLogTask | FileSystemTask | NetworkingTask | ProcessManagementTask | RegistryTask | SecurityManagementTask | ServicesTask | SQLServerTask | null>(null);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -544,106 +616,23 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
     setScriptDialogOpen(true);
   };
 
-  // Get tasks for selected category
-  const categoryTasks = selectedCategory === 'active-directory' 
-    ? adTasks 
-    : selectedCategory === 'mecm'
-    ? mecmTasks
-    : selectedCategory === 'exchange-online'
-    ? exchangeOnlineTasks
-    : selectedCategory === 'exchange-server'
-    ? exchangeServerTasks
-    : selectedCategory === 'azure-ad'
-    ? azureAdTasks
-    : selectedCategory === 'azure-resources'
-    ? azureResourceTasks
-    : selectedCategory === 'hyper-v'
-    ? hyperVTasks
-    : selectedCategory === 'intune'
-    ? intuneTasks
-    : selectedCategory === 'power-platform'
-    ? powerPlatformTasks
-    : selectedCategory === 'teams'
-    ? teamsTasks
-    : selectedCategory === 'office365'
-    ? office365Tasks
-    : selectedCategory === 'onedrive'
-    ? oneDriveTasks
-    : selectedCategory === 'sharepoint-online'
-    ? sharePointOnlineTasks
-    : selectedCategory === 'sharepoint-onprem'
-    ? sharePointOnPremTasks
-    : selectedCategory === 'windows365'
-    ? windows365Tasks
-    : selectedCategory === 'windows-server'
-    ? windowsServerTasks
-    : selectedCategory === 'vmware'
-    ? vmwareTasks
-    : selectedCategory === 'veeam'
-    ? veeamTasks
-    : selectedCategory === 'nutanix'
-    ? nutanixTasks
-    : selectedCategory === 'citrix'
-    ? citrixTasks
-    : selectedCategory === 'pdq'
-    ? pdqTasks
-    : selectedCategory === 'chocolatey'
-    ? chocolateyTasks
-    : selectedCategory === 'servicenow'
-    ? servicenowTasks
-    : selectedCategory === 'connectwise'
-    ? connectwiseTasks
-    : selectedCategory === 'aws'
-    ? awsTasks
-    : selectedCategory === 'gcp'
-    ? gcpTasks
-    : selectedCategory === 'crowdstrike'
-    ? crowdstrikeTasks
-    : selectedCategory === 'sophos'
-    ? sophosTasks
-    : selectedCategory === 'okta'
-    ? oktaTasks
-    : selectedCategory === 'duo'
-    ? duoTasks
-    : selectedCategory === 'fortinet'
-    ? fortinetTasks
-    : selectedCategory === 'cisco'
-    ? ciscoTasks
-    : selectedCategory === 'netapp'
-    ? netappTasks
-    : selectedCategory === 'jamf'
-    ? jamfTasks
-    : selectedCategory === 'slack'
-    ? slackTasks
-    : selectedCategory === 'zoom'
-    ? zoomTasks
-    : selectedCategory === 'github'
-    ? githubTasks
-    : selectedCategory === 'splunk'
-    ? splunkTasks
-    : selectedCategory === 'docker'
-    ? dockerTasks
-    : selectedCategory === 'jira'
-    ? jiraTasks
-    : selectedCategory === 'salesforce'
-    ? salesforceTasks
-    : selectedCategory === 'sql-server'
-    ? sqlServerTasks
-    : selectedCategory === 'event-logs'
-    ? eventLogTasks
-    : selectedCategory === 'file-system'
-    ? fileSystemTasks
-    : selectedCategory === 'network'
-    ? networkingTasks
-    : selectedCategory === 'process-management'
-    ? processManagementTasks
-    : selectedCategory === 'registry'
-    ? registryTasks
-    : selectedCategory === 'security'
-    ? securityManagementTasks
-    : selectedCategory === 'services'
-    ? servicesTasks
-    : [];
+  const categoryTasks = getGuiBuilderTasks(selectedCategory);
+  const localizedCategories = categories.map((category) => getLocalizedCategory(category, locale));
+  const selectedCategoryDisplay = selectedCategory
+    ? localizedCategories.find((category) => category.id === selectedCategory)
+    : null;
+  const highlightedTaskSet = new Set(highlightedTaskIds);
+
+  useEffect(() => {
+    if (!autoSelectedTaskId) {
+      return;
+    }
+
+    const task = categoryTasks.find((item: any) => item.id === autoSelectedTaskId);
+    if (task) {
+      setSelectedTask(task as any);
+    }
+  }, [autoSelectedTaskId, categoryTasks]);
 
   // If a task is selected, show the task detail form
   if (selectedTask) {
@@ -673,9 +662,9 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="p-4 sm:p-6 border-b">
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground">GUI Script Builder</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">{t("guiScriptBuilder")}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Select a category to build configuration scripts with an easy-to-use interface
+          {t("guiBuilderDescription")}
         </p>
       </div>
 
@@ -683,9 +672,9 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
         {/* Categories Panel - Left Side */}
         <div className="min-h-0 w-64 flex-shrink-0 overflow-y-scroll overscroll-contain border-r bg-muted/30 [scrollbar-gutter:stable] lg:w-72">
           <div className="p-3 pb-6">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Categories</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2">{t("categories")}</h3>
             <div className="space-y-1">
-              {categories.map((category) => {
+            {localizedCategories.map((category) => {
                 const Icon = category.icon;
                 const isSelected = selectedCategory === category.id;
                 const isLocked = category.isPremium && !featureAccess?.hasPremiumCategories;
@@ -734,9 +723,9 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <ChevronRight className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Select a Category</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t("selectACategory")}</h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                Choose a category from the list on the left to view available automation tasks
+                {t("chooseCategoryLeft")}
               </p>
             </div>
           )}
@@ -744,32 +733,38 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
           {selectedCategory && categoryTasks.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold mb-4">
-                {categories.find(c => c.id === selectedCategory)?.name} Tasks
+                {t("taskListHeading", { category: selectedCategoryDisplay?.name || "" })}
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ({categoryTasks.length} available)
+                  ({categoryTasks.length} {t("available")})
                 </span>
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {categoryTasks.map((task: any) => {
                   const taskName = task.name || task.title;
+                  const isWorkflowRequestedTask = highlightedTaskSet.has(task.id);
                   return (
                     <Card
                       key={task.id}
-                      className="cursor-pointer hover-elevate active-elevate-2"
+                      className={`cursor-pointer hover-elevate active-elevate-2 ${isWorkflowRequestedTask ? "border-primary/70 bg-primary/5" : ""}`}
                       onClick={() => handleTaskSelect(task)}
                       data-testid={`task-card-${task.id}`}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <CardTitle className="text-base mb-1">{taskName}</CardTitle>
+                            <CardTitle className="text-base mb-1">{localize(taskName)}</CardTitle>
                             <CardDescription className="text-sm">
-                              {task.description}
+                              {localize(task.description)}
                             </CardDescription>
                             <div className="mt-2">
                               <span className="inline-block px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
-                                {task.category}
+                                {localize(task.category)}
                               </span>
+                              {isWorkflowRequestedTask ? (
+                                <span className="ml-2 inline-block rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs text-primary">
+                                  {t("workflow")}
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                           <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
@@ -787,11 +782,9 @@ export function GUIBuilderTab({ selectedCategory, onCategorySelect, script, setS
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <Settings className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t("comingSoon")}</h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                Tasks for <span className="font-semibold text-foreground">
-                  {categories.find(c => c.id === selectedCategory)?.name}
-                </span> will be added soon
+                {t("tasksAddedSoon", { category: selectedCategoryDisplay?.name || "" })}
               </p>
             </div>
           )}

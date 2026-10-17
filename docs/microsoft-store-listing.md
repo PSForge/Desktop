@@ -5,12 +5,12 @@ This file is the working source of truth for the PSForge Desktop Microsoft Store
 ## Submission Basics
 
 - Product name: `PSForge Desktop`
-- Version: `3.0.0`
+- Version: `3.0.1`
 - Package type: `MSI`
 - Architecture: `x64`
 - Category recommendation: `Developer tools`
 - Supported language: `English (United States)` with in-app language selection foundation
-- Package URL: `https://psforgedownloads01.blob.core.windows.net/store-packages/psforge/3.0.0/PSForge-Desktop-Store-3.0.0-x64.msi`
+- Package URL: `https://psforgedownloads02.blob.core.windows.net/store-packages/psforge/3.0.1/PSForge-Desktop-Store-3.0.1-x64.msi`
 - Silent install: Microsoft Store uses MSI silent install behavior.
 
 ## Short Description
@@ -39,7 +39,7 @@ PSForge is built for people who want the speed of PowerShell with a cleaner, saf
 
 ## What's New In This Version
 
-Version 3.0 adds the full PSForge Ops Suite: Environment Doctor, Pester Test Generator, PowerShell Script Packager, Runbook Generator, Change Impact Preview, Rollback Builder, Script Modernizer, Dependency and Module Manager, Regex Lab, Object/Pipeline Explorer, Parameter Set Designer, Credential Leak Detector, Performance Profiler, Compatibility Matrix, CSV Data Mapper, Error Reproduction Builder, Scheduled Task Builder, and Script Certification. It also fixes first-run language selection so Continue immediately advances into startup loading, keeps the loading screen visible until the workspace is ready, and preserves secure `psforge://` workflow deep links, updated sign-in, refreshed branding, and Microsoft Store analytics readiness.
+Version 3.0.1 is a maintenance release with updated Windows installer signing and download verification. It retains the PSForge Ops Suite introduced in 3.0: Environment Doctor, Pester Test Generator, PowerShell Script Packager, Runbook Generator, Change Impact Preview, Rollback Builder, Script Modernizer, Dependency and Module Manager, Regex Lab, Object/Pipeline Explorer, Parameter Set Designer, Credential Leak Detector, Performance Profiler, Compatibility Matrix, CSV Data Mapper, Error Reproduction Builder, Scheduled Task Builder, and Script Certification. Version 3.0 also introduced first-run language selection, secure `psforge://` workflow deep links, updated sign-in, refreshed branding, and Microsoft Store analytics readiness.
 
 ## Product Features
 

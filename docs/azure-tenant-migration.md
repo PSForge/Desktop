@@ -20,7 +20,11 @@ Validation found and corrected two workflow compatibility issues: Azure CLI flat
 
 Passed: OIDC login, signing-profile validation, signed Windows build, EXE/MSI signature verification, MSI upload, anonymous download/hash verification, update metadata validation, and workflow artifact upload. GitHub release publication was skipped as intended. Existing release paths and old Azure resources were not changed.
 
-This validates the standard release pipeline, not a Store submission or installed-app smoke test. Enterprise packaging and clean-install/upgrade checks remain separate release checks. The tested workflow is on the release branch; `main` was not updated by this work.
+[Enterprise-edition isolated test #30](https://github.com/PSForge/Desktop/actions/runs/39041581138) also succeeded on 2026-10-17 using commit `5cd4a21` on `codex-release-2.0.2-store-rc`, with `edition = enterprise`, `test_only = true`, and `migration_test = false`.
+
+The Enterprise run passed OIDC login, signing-profile validation, signed Windows packaging, EXE/MSI signature verification, MSI upload, anonymous download/hash verification, Enterprise update artifact checks, and workflow artifact upload. GitHub release publication was skipped. Its MSI upload uses the isolated `migration-tests/39041581138/1/psforge-enterprise/3.0.0/` path.
+
+Both editions' release pipelines are now validated against the new Azure account. This is not a Store submission or installed-app smoke test: clean-install/upgrade checks remain separate release checks. The tested workflow is on the release branch; `main` was not updated by this work.
 
 ## Current boundary
 

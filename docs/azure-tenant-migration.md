@@ -1,6 +1,26 @@
 # Azure release tenant migration
 
-Prepared 2026-10-13; updated 2026-10-16 after the owner confirmed Azure migration completion. Live credentials and signing have not been independently tested in this update.
+Prepared 2026-10-13; updated 2026-10-17 during live workflow validation.
+
+## Configured release identity
+
+- Application: `psforge-desktop-github-actions`
+- Client ID: `1f6d5df5-3654-493c-8584-2771fd87c416`
+- Service principal object ID: `7a6d7fab-c751-49fd-94ee-4a786226d152`
+- GitHub `production` environment contains the new client ID and secret. No secret value is stored in this repository.
+- Federated credential `github-production` uses subject `repo:PSForge/Desktop:environment:production`, issuer `https://token.actions.githubusercontent.com`, and audience `api://AzureADTokenExchange`.
+- Reader is assigned on `psforgedesktopsigning`; Artifact Signing Certificate Profile Signer is assigned on its `PSForgeDesktopSigning` profile; Storage Blob Data Contributor is assigned on `psforgedownloads02/blobServices/default/containers/store-packages`.
+- The Public Trust profile is active. OIDC login and live signing-resource checks have passed in GitHub Actions.
+
+Validation found and corrected two workflow compatibility issues: Azure CLI flattens resource properties, and `Invoke-TrustedSigning` does not accept the combined `ExcludeCredentials` parameter. Signing now uses the standard credential chain with the configured application credentials available.
+
+## Validation result
+
+[Standard-edition isolated test #29](https://github.com/PSForge/Desktop/actions/runs/39034676242) succeeded on 2026-10-17 using commit `8e603d7` on `codex-release-2.0.2-store-rc`, with `test_only = true` and `migration_test = false`.
+
+Passed: OIDC login, signing-profile validation, signed Windows build, EXE/MSI signature verification, MSI upload, anonymous download/hash verification, update metadata validation, and workflow artifact upload. GitHub release publication was skipped as intended. Existing release paths and old Azure resources were not changed.
+
+This validates the standard release pipeline, not a Store submission or installed-app smoke test. Enterprise packaging and clean-install/upgrade checks remain separate release checks. The tested workflow is on the release branch; `main` was not updated by this work.
 
 ## Current boundary
 

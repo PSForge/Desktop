@@ -60,7 +60,11 @@ The Enterprise MSI is intended for SCCM, Intune, and other deployment tools. The
 
 ## GitHub workflow
 
+For the Azure migration configuration, see [Azure tenant migration](azure-tenant-migration.md). The workflow now explicitly targets the new tenant and `psforgedownloads02` storage. The optional manual `migration_test` input selects `production-migration` and isolates uploaded packages without publishing GitHub release assets. Production uses the new application's client ID and client secret from its GitHub environment.
+
 Workflow file:
+
+To test the production credentials without publishing a release or overwriting a versioned MSI, manually select `test_only = true` and leave `migration_test = false`. The MSI goes under a run-specific test path; GitHub release publication is disabled.
 
 `/.github/workflows/release-desktop.yml`
 
@@ -80,14 +84,9 @@ What it does:
 For Azure login and Artifact Signing:
 
 - `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
 - `AZURE_CLIENT_SECRET`
-- `AZURE_TRUSTED_SIGNING_RESOURCE_GROUP`
-- `AZURE_TRUSTED_SIGNING_ENDPOINT`
-- `AZURE_TRUSTED_SIGNING_ACCOUNT`
-- `AZURE_TRUSTED_SIGNING_CERT_PROFILE`
-- `AZURE_TRUSTED_SIGNING_PUBLISHER_NAME`
+
+Only `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET` are read from GitHub secrets after migration. Tenant, subscription, resource group, endpoint, signing account, certificate profile, and publisher are defined explicitly in the workflow job environment. Legacy secrets for these configuration values are no longer consumed.
 
 The workflow uses the GitHub environment named `production`. The release job still logs in to Azure with OIDC, but `electron-builder`'s Trusted Signing integration also needs an EnvironmentCredential-compatible secret, so `AZURE_CLIENT_SECRET` must be created on the `psforge-desktop-github-actions` app registration and stored as a GitHub Actions secret. The signing command excludes other runner-provided credentials so the Trusted Signing client uses the intended app registration rather than an Azure CLI or workload identity fallback. The workflow also validates the Artifact Signing account location before signing so the endpoint secret matches the required region-specific signing URL.
 

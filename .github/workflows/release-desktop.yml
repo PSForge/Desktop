@@ -11,6 +11,16 @@ on:
         options:
           - standard
           - enterprise
+      migration_test:
+        description: "Test the new Azure tenant using production-migration without publishing a release"
+        required: true
+        default: false
+        type: boolean
+      test_only:
+        description: "Test production credentials with isolated uploads and no GitHub release publication"
+        required: true
+        default: false
+        type: boolean
   push:
     tags:
       - "v*"
@@ -18,7 +28,7 @@ on:
 jobs:
   windows-release:
     runs-on: windows-latest
-    environment: production
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.migration_test && 'production-migration' || 'production' }}
     permissions:
       contents: write
       id-token: write
@@ -26,18 +36,40 @@ jobs:
     env:
       DESKTOP_OUTPUT_DIR: release-publish
       DESKTOP_EDITION: ${{ github.event_name == 'workflow_dispatch' && inputs.edition || 'standard' }}
-      AZURE_STORE_STORAGE_ACCOUNT: psforgedownloads01
+      MIGRATION_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.migration_test && 'true' || 'false' }}
+      TEST_ONLY: ${{ github.event_name == 'workflow_dispatch' && (inputs.test_only || inputs.migration_test) && 'true' || 'false' }}
+      AZURE_STORE_STORAGE_ACCOUNT: psforgedownloads02
       AZURE_STORE_STORAGE_CONTAINER: store-packages
       AZURE_STORE_STORAGE_PREFIX: psforge
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: 450dfae7-02af-4d2b-8c83-0b2a1e2bcd05
+      AZURE_SUBSCRIPTION_ID: 306ed9ad-e561-4c31-ae43-5d1267d263cf
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TRUSTED_SIGNING_RESOURCE_GROUP: ${{ secrets.AZURE_TRUSTED_SIGNING_RESOURCE_GROUP }}
+      AZURE_TRUSTED_SIGNING_RESOURCE_GROUP: PSForge_Desktop
+      AZURE_TRUSTED_SIGNING_ENDPOINT: https://eus.codesigning.azure.net
+      AZURE_TRUSTED_SIGNING_ACCOUNT: psforgedesktopsigning
+      AZURE_TRUSTED_SIGNING_CERT_PROFILE: PSForgeDesktopSigning
+      AZURE_TRUSTED_SIGNING_PUBLISHER_NAME: IsaiahBlacknall LLC
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Guard migration target
+        if: env.MIGRATION_TEST == 'true'
+        shell: pwsh
+        run: |
+          $expected = @{
+            AZURE_TENANT_ID = "450dfae7-02af-4d2b-8c83-0b2a1e2bcd05"
+            AZURE_SUBSCRIPTION_ID = "306ed9ad-e561-4c31-ae43-5d1267d263cf"
+            AZURE_STORE_STORAGE_ACCOUNT = "psforgedownloads02"
+            AZURE_TRUSTED_SIGNING_RESOURCE_GROUP = "PSForge_Desktop"
+          }
+          foreach ($name in $expected.Keys) {
+            if ([Environment]::GetEnvironmentVariable($name) -ne $expected[$name]) {
+              throw "Migration test requires the target tenant configuration for $name in production-migration."
+            }
+          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -68,15 +100,11 @@ jobs:
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Verify Artifact Signing configuration
         shell: pwsh
-        env:
-          AZURE_TRUSTED_SIGNING_ENDPOINT: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
-          AZURE_TRUSTED_SIGNING_ACCOUNT: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
-          AZURE_TRUSTED_SIGNING_CERT_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
         run: |
           $ErrorActionPreference = "Stop"
           $PSNativeCommandUseErrorActionPreference = $true
@@ -139,6 +167,19 @@ jobs:
           Write-Host "Certificate profile provisioning state: $($profile.properties.provisioningState)"
           Write-Host "Certificate profile type: $($profile.properties.profileType)"
 
+          if ($account.properties.provisioningState -ne "Succeeded" -or $profile.properties.provisioningState -ne "Succeeded") {
+            throw "Artifact Signing account and certificate profile must both be successfully provisioned."
+          }
+          if ($profile.properties.profileType -ne "PublicTrust") {
+            throw "Release signing requires a Public Trust certificate profile."
+          }
+          if ($env:MIGRATION_TEST -eq "true" -and (
+            $env:AZURE_TRUSTED_SIGNING_ACCOUNT -ne "psforgedesktopsigning" -or
+            $env:AZURE_TRUSTED_SIGNING_CERT_PROFILE -ne "PSForgeDesktopSigning"
+          )) {
+            throw "Migration test requires the new signing account and certificate profile."
+          }
+
           if (!$expectedEndpoint) {
             throw "No expected Artifact Signing endpoint mapping is configured for account location '$($account.location)'."
           }
@@ -149,12 +190,9 @@ jobs:
 
       - name: Build signed Windows release
         shell: pwsh
-        env:
-          AZURE_TRUSTED_SIGNING_ENDPOINT: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
-          AZURE_TRUSTED_SIGNING_ACCOUNT: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
-          AZURE_TRUSTED_SIGNING_CERT_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
-          AZURE_TRUSTED_SIGNING_PUBLISHER_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_PUBLISHER_NAME }}
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $requiredSecrets = @(
             "AZURE_CLIENT_SECRET",
             "AZURE_TRUSTED_SIGNING_ENDPOINT",
@@ -200,6 +238,23 @@ jobs:
               --config.win.azureSignOptions.timestampDigest=SHA256
           }
 
+      - name: Verify installer signatures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installers = @(Get-ChildItem -Path "$env:DESKTOP_OUTPUT_DIR/*" -Include *.exe,*.msi -File)
+          if ($installers.Count -lt 2) { throw "Expected signed EXE and MSI installers." }
+          foreach ($installer in $installers) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+            if ($signature.Status -ne "Valid") {
+              throw "Invalid signature on $($installer.Name): $($signature.Status)"
+            }
+            if ($signature.SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false) -ne "IsaiahBlacknall LLC") {
+              throw "Unexpected publisher on $($installer.Name)."
+            }
+            Write-Host "$($installer.Name): valid signature; publisher $($signature.SignerCertificate.Subject)"
+          }
+
       - name: Resolve release metadata
         id: release_meta
         shell: pwsh
@@ -218,6 +273,9 @@ jobs:
 
           $editionPrefix = if ($env:DESKTOP_EDITION -eq "enterprise") { "psforge-enterprise" } else { $env:AZURE_STORE_STORAGE_PREFIX.Trim('/') }
           $blobName = "$editionPrefix/$version/$($msi.Name)"
+          if ($env:TEST_ONLY -eq "true") {
+            $blobName = "migration-tests/$env:GITHUB_RUN_ID/$env:GITHUB_RUN_ATTEMPT/$blobName"
+          }
           $blobUrl = "https://$($env:AZURE_STORE_STORAGE_ACCOUNT).blob.core.windows.net/$($env:AZURE_STORE_STORAGE_CONTAINER)/$blobName"
 
           "release_version=$version" >> $env:GITHUB_OUTPUT
@@ -229,6 +287,8 @@ jobs:
       - name: Upload MSI to Azure Blob Storage
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           az storage blob upload `
             --auth-mode login `
             --account-name $env:AZURE_STORE_STORAGE_ACCOUNT `
@@ -236,6 +296,19 @@ jobs:
             --name "${{ steps.release_meta.outputs.msi_blob_name }}" `
             --file "${{ steps.release_meta.outputs.msi_path }}" `
             --overwrite true
+
+      - name: Verify anonymous MSI download
+        shell: pwsh
+        env:
+          MSI_URL: ${{ steps.release_meta.outputs.msi_blob_url }}
+          MSI_PATH: ${{ steps.release_meta.outputs.msi_path }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $download = Join-Path $env:RUNNER_TEMP "store-download-verification.msi"
+          Invoke-WebRequest -Uri $env:MSI_URL -OutFile $download
+          if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $env:MSI_PATH -Algorithm SHA256).Hash) {
+            throw "Public MSI download does not match the signed build."
+          }
 
       - name: Publish Azure MSI URL
         shell: pwsh
@@ -283,7 +356,7 @@ jobs:
             ${{ env.DESKTOP_OUTPUT_DIR }}/*.blockmap
 
       - name: Publish GitHub release assets
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && env.TEST_ONLY != 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: |

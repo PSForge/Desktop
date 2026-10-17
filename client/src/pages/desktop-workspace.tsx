@@ -90,12 +90,6 @@ const ScriptWizardTab = lazy(() => import("@/components/script-wizard-tab").then
 const DesktopGitPanel = lazy(() => import("@/components/desktop-git-panel").then((module) => ({ default: module.DesktopGitPanel })));
 const TroubleshooterTab = lazy(() => import("@/components/troubleshooter-tab").then((module) => ({ default: module.TroubleshooterTab })));
 
-const AIAssistantTab = lazy(() => import("@/components/ai-assistant-tab").then((module) => ({ default: module.AIAssistantTab })));
-const GUIBuilderTab = lazy(() => import("@/components/gui-builder-tab").then((module) => ({ default: module.GUIBuilderTab })));
-const ScriptWizardTab = lazy(() => import("@/components/script-wizard-tab").then((module) => ({ default: module.ScriptWizardTab })));
-const DesktopGitPanel = lazy(() => import("@/components/desktop-git-panel").then((module) => ({ default: module.DesktopGitPanel })));
-const TroubleshooterTab = lazy(() => import("@/components/troubleshooter-tab").then((module) => ({ default: module.TroubleshooterTab })));
-
 type RecentFile = {
   fileName: string;
   filePath?: string;

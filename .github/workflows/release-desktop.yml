@@ -257,23 +257,6 @@ jobs:
             Write-Host "$($installer.Name): valid signature; publisher $($signature.SignerCertificate.Subject)"
           }
 
-      - name: Verify installer signatures
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $installers = @(Get-ChildItem -Path "$env:DESKTOP_OUTPUT_DIR/*" -Include *.exe,*.msi -File)
-          if ($installers.Count -lt 2) { throw "Expected signed EXE and MSI installers." }
-          foreach ($installer in $installers) {
-            $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
-            if ($signature.Status -ne "Valid") {
-              throw "Invalid signature on $($installer.Name): $($signature.Status)"
-            }
-            if ($signature.SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false) -ne "IsaiahBlacknall LLC") {
-              throw "Unexpected publisher on $($installer.Name)."
-            }
-            Write-Host "$($installer.Name): valid signature; publisher $($signature.SignerCertificate.Subject)"
-          }
-
       - name: Resolve release metadata
         id: release_meta
         shell: pwsh

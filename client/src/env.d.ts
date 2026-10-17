@@ -3,6 +3,10 @@
 interface ImportMetaEnv {
   readonly VITE_GA_MEASUREMENT_ID: string;
   readonly VITE_PSFORGE_DESKTOP_ANALYTICS_KEY?: string;
+  readonly VITE_PSFORGE_EDITION?: string;
+  readonly VITE_PSFORGE_ENTERPRISE?: string;
+  readonly VITE_PSFORGE_ENTERPRISE_LICENSE_URL?: string;
+  readonly VITE_PSFORGE_WEB_URL?: string;
 }
 
 interface ImportMeta {
@@ -83,7 +87,18 @@ interface DesktopPowerShellRunResult {
 
 interface Window {
   psforgeDesktop?: {
-    getContext: () => Promise<{ isDesktop: boolean; platform: string; version: string; osVersion?: string }>;
+    getContext: () => Promise<{
+      isDesktop: boolean;
+      platform: string;
+      version: string;
+      osVersion?: string;
+      edition?: "standard" | "enterprise";
+      enterpriseInstallOptions?: {
+        licenseKey?: string;
+        licenseServerUrl?: string;
+        silent?: boolean;
+      };
+    }>;
     getUpdateState: () => Promise<DesktopUpdateState>;
     checkForUpdates: () => Promise<DesktopUpdateState>;
     installUpdate: () => Promise<{ ok: boolean }>;
@@ -99,9 +114,20 @@ interface Window {
           | "settings:license"
           | "settings:subscription"
           | "settings:recovery"
+          | "settings:language"
           | "settings:check-updates",
       ) => void,
     ) => () => void;
+    onWorkflowDeepLink?: (callback: (payload:
+      | { ok: true; workflowId: string; source: "protocol"; receivedAt: string }
+      | { ok: false; reason: string; source: "protocol"; receivedAt: string }
+    ) => void) => () => void;
+    getPendingWorkflowDeepLink?: () => Promise<
+      | { ok: true; workflowId: string; source: "protocol"; receivedAt: string }
+      | { ok: false; reason: string; source: "protocol"; receivedAt: string }
+      | null
+    >;
+    rendererReady?: (payload?: { elapsedMs?: number; route?: string }) => void;
     openScript: () => Promise<DesktopScriptFileResult>;
     saveScript: (payload: { content: string; defaultFileName?: string }) => Promise<DesktopScriptFileResult>;
     writeScriptFile: (payload: { filePath: string; content: string }) => Promise<DesktopScriptFileResult>;
@@ -115,6 +141,7 @@ interface Window {
       text: string;
     }>;
     debugLog: (message: string) => Promise<{ ok: boolean }>;
+    showEditContextMenu?: () => Promise<{ ok: boolean }>;
     gitStatus: (payload: { repoPath: string }) => Promise<DesktopGitRepoState>;
     gitInit: (payload: { repoPath: string; branchName?: string }) => Promise<DesktopGitRepoState>;
     gitCreateBranch: (payload: { repoPath: string; branchName: string; fromBranch?: string }) => Promise<DesktopGitRepoState>;

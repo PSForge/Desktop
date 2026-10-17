@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { getDesktopStorageItem, setDesktopStorageItem, writeDesktopDebugLog } from "@/lib/desktop";
 import { trackDesktopAnalyticsEvent } from "@/lib/desktop-analytics";
+import { useDesktopLocale } from "@/lib/i18n";
 
 interface Message {
   id: string;
@@ -33,14 +34,17 @@ interface AIHelperBotProps {
 }
 
 const AI_CHAT_HISTORY_KEY = "psforge-desktop-ai-chat-history";
-const DEFAULT_WELCOME_MESSAGE: Message = {
+function createWelcomeMessage(content: string): Message {
+  return {
   id: "welcome",
   role: "assistant",
-  content: "Hi! I'm your PowerShell assistant. Ask me anything about building scripts, and I'll suggest the right commands for your task.",
+    content,
   timestamp: new Date(),
-};
+  };
+}
 
 export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle }: AIHelperBotProps) {
+  const { locale, t } = useDesktopLocale();
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = getDesktopStorageItem(AI_CHAT_HISTORY_KEY);
     if (saved) {
@@ -58,7 +62,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
         console.error('Failed to load AI messages:', err);
       }
     }
-    return [DEFAULT_WELCOME_MESSAGE];
+    return [createWelcomeMessage(t("aiWelcomeMessage"))];
   });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -69,6 +73,16 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
   useEffect(() => {
     setDesktopStorageItem(AI_CHAT_HISTORY_KEY, JSON.stringify(messages));
   }, [messages]);
+
+  useEffect(() => {
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === "welcome"
+          ? { ...message, content: t("aiWelcomeMessage") }
+          : message,
+      ),
+    );
+  }, [locale]);
 
   useEffect(() => {
     if (messageListRef.current) {
@@ -184,6 +198,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
       const response = await apiRequest("/api/ai-helper", "POST", {
         message: messageContent,
         conversationHistory,
+        locale,
       });
       const data = await response.json();
 
@@ -256,7 +271,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
       <div className="flex items-center justify-between border-b bg-background px-4 py-3">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold text-sm">AI Assistant</h2>
+          <h2 className="font-semibold text-sm">{t("aiAssistant")}</h2>
         </div>
         <Button
           variant="ghost"
@@ -305,7 +320,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
                 </div>
                 {message.suggestions && message.suggestions.length > 0 && (
                   <div className="space-y-2 w-full">
-                    <p className="text-xs text-muted-foreground">Suggested commands:</p>
+                    <p className="text-xs text-muted-foreground">{t("suggestedCommands")}</p>
                     {message.suggestions.map((suggestion, idx) => (
                       <Card key={idx} className="p-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
@@ -325,7 +340,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
                             data-testid={`button-add-suggestion-${suggestion.commandId}`}
                           >
                             <Plus className="h-3 w-3 mr-1" />
-                            Add
+                            {t("add")}
                           </Button>
                         </div>
                       </Card>
@@ -337,7 +352,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Code2 className="h-3 w-3" />
-                        Custom PowerShell Script
+                        {t("customPowerShellScript")}
                       </p>
                       <Button
                         variant="ghost"
@@ -346,9 +361,9 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
                         data-testid={`button-copy-script-${message.id}`}
                       >
                         {copiedScriptId === message.id ? (
-                          <><Check className="h-3 w-3 mr-1" />Copied</>
+                          <><Check className="h-3 w-3 mr-1" />{t("copied")}</>
                         ) : (
-                          <><Copy className="h-3 w-3 mr-1" />Copy</>
+                          <><Copy className="h-3 w-3 mr-1" />{t("copy")}</>
                         )}
                       </Button>
                     </div>
@@ -365,7 +380,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
                         data-testid={`button-use-custom-script-${message.id}`}
                       >
                         <Code2 className="h-3 w-3" />
-                        Use This Script
+                        {t("useThisScript")}
                       </Button>
                     )}
                   </div>
@@ -373,7 +388,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
               </div>
               {message.role === "user" && (
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-xs font-medium">You</span>
+                  <span className="text-xs font-medium">{t("you")}</span>
                 </div>
               )}
             </div>
@@ -397,7 +412,7 @@ export function AIHelperBot({ onAddCommand, onUseCustomScript, isOpen, onToggle 
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about PowerShell commands..."
+            placeholder={t("askPowerShellCommands")}
             disabled={isLoading}
             rows={3}
             className="min-h-[72px] flex-1 resize-none"

@@ -1,5 +1,12 @@
 import { getDesktopContext, getDesktopStorageItem, isDesktopApp, setDesktopStorageItem } from "@/lib/desktop";
 import { getDesktopAuthState, getDesktopCachedLicense, getDesktopRequestUrl } from "@/lib/desktop-auth";
+import {
+  getEnterpriseAuthHeader,
+  getEnterpriseLicenseRecord,
+  getEnterpriseRequestUrl,
+  isEnterpriseEdition,
+  isEnterpriseLicenseActive,
+} from "@/lib/enterprise-license";
 
 export type DesktopAnalyticsEventType =
   | "desktop_app_opened"
@@ -66,6 +73,10 @@ function getInstallationId() {
 }
 
 function getPlanLabel() {
+  if (isEnterpriseEdition() && isEnterpriseLicenseActive()) {
+    return getEnterpriseLicenseRecord()?.plan || "PSForge Enterprise";
+  }
+
   const license = getDesktopCachedLicense();
   if (license?.plan) {
     return license.plan;
@@ -109,6 +120,10 @@ function getAnalyticsAuthHeader() {
     return { Authorization: `Bearer ${configuredApiKey}` };
   }
 
+  if (isEnterpriseEdition() && isEnterpriseLicenseActive()) {
+    return getEnterpriseAuthHeader();
+  }
+
   const token = getDesktopAuthState().token;
   return token ? { Authorization: `Bearer ${token}` } : null;
 }
@@ -147,7 +162,10 @@ export async function flushDesktopAnalytics() {
   flushInFlight = true;
   try {
     const batch = queuedEvents.slice(0, DEFAULT_BATCH_SIZE);
-    const response = await desktopAwareRequest(getDesktopRequestUrl("/api/desktop/analytics/batch"), {
+    const requestUrl = isEnterpriseEdition() && isEnterpriseLicenseActive()
+      ? getEnterpriseRequestUrl("/api/desktop/analytics/batch")
+      : getDesktopRequestUrl("/api/desktop/analytics/batch");
+    const response = await desktopAwareRequest(requestUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

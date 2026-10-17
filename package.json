@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "PSForge Desktop is a Windows PowerShell scripting workspace connected to PSForge web services.",
   "type": "module",
   "main": "desktop/main.mjs",
@@ -19,11 +19,13 @@
     "desktop:icons": "node ./scripts/generate-icons.mjs",
     "desktop:patch-msi": "node ./scripts/patch-msi-template.mjs",
     "desktop:dist": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
+    "desktop:dist:enterprise": "npm run desktop:icons && cross-env VITE_PSFORGE_EDITION=enterprise PSFORGE_EDITION=enterprise npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip msi --config.productName=\"PSForge Enterprise\" --config.artifactName=\"PSForge-Enterprise-${version}-${arch}.${ext}\" --config.nsis.artifactName=\"PSForge-Enterprise-Setup-${version}-${arch}.${ext}\" --config.msi.artifactName=\"PSForge-Enterprise-${version}-${arch}.${ext}\" --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:msi": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win msi --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:dir": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win dir --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:publish": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip --publish never --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "desktop:dist:store": "npm run desktop:icons && npm run build && npm run desktop:patch-msi && electron-builder --win nsis zip msi --publish never --config.win.verifyUpdateCodeSignature=false --config.win.signAndEditExecutable=false",
     "check": "tsc",
+    "test:desktop-deeplink": "node --import tsx --test tests/desktop-deeplink.test.ts",
     "db:push": "drizzle-kit push"
   },
   "build": {
@@ -40,6 +42,8 @@
       "dist/**/*",
       "dist-electron/**/*",
       "desktop/main.mjs",
+      "desktop/deeplink.mjs",
+      "desktop/language-preload.cjs",
       "node_modules/**/*",
       "package.json"
     ],
@@ -50,7 +54,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://www.psforge.app/api/desktop/updates",
+        "url": "https://psforge.app/api/desktop/updates",
         "channel": "latest"
       }
     ],
@@ -72,6 +76,14 @@
     "extraMetadata": {
       "main": "desktop/main.mjs"
     },
+    "protocols": [
+      {
+        "name": "PSForge Workflow Link",
+        "schemes": [
+          "psforge"
+        ]
+      }
+    ],
     "win": {
       "target": [
         {

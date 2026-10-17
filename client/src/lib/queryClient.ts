@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { fetchDesktopLicense, getDesktopAuthHeader, getDesktopRequestUrl, isDesktopRemoteAuthEnabled, mapDesktopLicenseToAuthPayload } from "@/lib/desktop-auth";
+import { getEnterpriseAuthHeader, getEnterpriseAuthPayload, getEnterpriseRequestUrl, isEnterpriseEdition, isEnterpriseLicenseActive } from "@/lib/enterprise-license";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -38,15 +39,17 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const desktopRemoteAuth = isDesktopRemoteAuthEnabled();
-  const requestUrl = desktopRemoteAuth ? getDesktopRequestUrl(url) : url;
+  const enterpriseRemoteAuth = isEnterpriseEdition() && isEnterpriseLicenseActive();
+  const requestUrl = enterpriseRemoteAuth ? getEnterpriseRequestUrl(url) : desktopRemoteAuth ? getDesktopRequestUrl(url) : url;
   const res = await desktopBridgeFetch(requestUrl, {
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
+      ...(enterpriseRemoteAuth ? getEnterpriseAuthHeader() : {}),
       ...(desktopRemoteAuth ? getDesktopAuthHeader() : {}),
     },
     body: data ? JSON.stringify(data) : undefined,
-    credentials: desktopRemoteAuth ? "omit" : "include",
+    credentials: desktopRemoteAuth || enterpriseRemoteAuth ? "omit" : "include",
   });
 
   await throwIfResNotOk(res);
@@ -61,6 +64,11 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const queryPath = queryKey.join("/") as string;
     const desktopRemoteAuth = isDesktopRemoteAuthEnabled();
+    const enterpriseRemoteAuth = isEnterpriseEdition() && isEnterpriseLicenseActive();
+
+    if (enterpriseRemoteAuth && queryPath === "/auth/me") {
+      return getEnterpriseAuthPayload();
+    }
 
     if (desktopRemoteAuth && queryPath === "/auth/me") {
       try {
@@ -74,10 +82,13 @@ export const getQueryFn: <T>(options: {
       }
     }
 
-    const res = await desktopBridgeFetch(desktopRemoteAuth ? getDesktopRequestUrl(queryPath) : queryPath, {
-      method: "GET",
-      headers: desktopRemoteAuth ? getDesktopAuthHeader() : undefined,
-    });
+    const res = await desktopBridgeFetch(
+      enterpriseRemoteAuth ? getEnterpriseRequestUrl(queryPath) : desktopRemoteAuth ? getDesktopRequestUrl(queryPath) : queryPath,
+      {
+        method: "GET",
+        headers: enterpriseRemoteAuth ? getEnterpriseAuthHeader() : desktopRemoteAuth ? getDesktopAuthHeader() : undefined,
+      },
+    );
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

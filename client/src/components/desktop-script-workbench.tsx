@@ -2,16 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  Activity,
   Bot,
   BookOpen,
+  CalendarClock,
   ChevronDown,
   CheckCircle2,
   ClipboardList,
   Copy,
   Eye,
+  FileJson,
   FileArchive,
   FileCheck,
   FlaskConical,
+  Gauge,
+  KeyRound,
   List,
   MoreHorizontal,
   PanelLeftClose,
@@ -23,6 +28,7 @@ import {
   Search,
   ShieldAlert,
   Sparkles,
+  Table2,
   WandSparkles,
   Wand2,
   X,
@@ -49,20 +55,33 @@ import { isDesktopApp, openDesktopDirectory, openDesktopPath, runDesktopPowerShe
 import type { Command, ValidationResult, ComprehensiveValidationResult } from "@shared/schema";
 import {
   analyzeScriptWorkbench,
+  buildCertificationManifest,
+  buildCompatibilityMatrix,
+  buildOperationsSuitePlan,
+  buildParameterSetDesignerDraft,
+  buildPerformanceProfilerScript,
+  buildSanitizedSupportBundle,
+  buildScheduledTaskInstaller,
   buildWorkbenchProfileKey,
   buildExportBundleArtifacts,
+  detectCredentialLeaks,
   generateCommentHeader,
-  getTeamFavoriteCommandIds,
+  inspectPipeline,
+  parseCsvMapping,
   replacePlaceholders,
+  runRegexLab,
   type ExecutionChecklistItem,
   type ParsedScriptParameter,
 } from "@/lib/script-workbench-utils";
+import { useDesktopLocale } from "@/lib/i18n";
+import { localizeDesktopText } from "@/lib/desktop-localization";
 
 interface DesktopScriptWorkbenchProps {
   script: string;
   setScript: (script: string) => void;
   currentFileName?: string;
   authorName?: string;
+  displayMode?: "editor" | "ops";
   pendingAction?: DesktopWorkbenchAction | null;
   onRunHistorySummaryChange?: (summary: DesktopRunHistorySummary) => void;
 }
@@ -186,6 +205,113 @@ type UpgradeDialogState = {
   contextLabel?: string;
 };
 
+type OpsToolId =
+  | "environment-doctor"
+  | "impact-preview"
+  | "pester-generator"
+  | "script-packager"
+  | "runbook-generator"
+  | "dependency-manager"
+  | "rollback-builder"
+  | "script-modernizer"
+  | "regex-lab"
+  | "pipeline-explorer"
+  | "parameter-set-designer"
+  | "credential-leak-detector"
+  | "performance-profiler"
+  | "compatibility-matrix"
+  | "csv-data-mapper"
+  | "error-reproduction-builder"
+  | "scheduled-task-builder"
+  | "script-certification";
+
+const spanishOpsToolText: Record<string, { title?: string; description?: string; label?: string; badge?: string }> = {
+  prepare: { label: "Preparar" },
+  build: { label: "Crear" },
+  document: { label: "Documentar" },
+  ship: { label: "Publicar" },
+  "environment-doctor": {
+    title: "Doctor del entorno",
+    description: "Puntuacion de preparacion, comprobaciones del equipo y comandos de correccion.",
+  },
+  "impact-preview": {
+    title: "Vista previa del impacto",
+    description: "Cambios previstos y sistemas afectados antes de ejecutar.",
+  },
+  "credential-leak-detector": {
+    title: "Detector de filtracion de credenciales",
+    description: "Contrasenas, tokens, IDs de tenant y manejo inseguro de secretos.",
+  },
+  "compatibility-matrix": {
+    title: "Matriz de compatibilidad",
+    description: "Compatibilidad con PowerShell, Server, Azure Automation y endpoints restringidos.",
+  },
+  "pester-generator": {
+    title: "Generador de pruebas Pester",
+    description: "Genera y ejecuta pruebas iniciales para el script activo.",
+    badge: "Pruebas",
+  },
+  "parameter-set-designer": {
+    title: "Disenador de conjuntos de parametros",
+    description: "Convierte parametros detectados en una estructura de funcion avanzada.",
+  },
+  "regex-lab": {
+    title: "Laboratorio Regex",
+    description: "Crea, explica y prueba expresiones regulares de PowerShell.",
+  },
+  "csv-data-mapper": {
+    title: "Mapeador de datos CSV",
+    description: "Asocia columnas CSV con parametros y previsualiza objetos masivos.",
+  },
+  "runbook-generator": {
+    title: "Generador de runbooks",
+    description: "Documentacion operativa con requisitos, validacion y rollback.",
+  },
+  "dependency-manager": {
+    title: "Administrador de dependencias y modulos",
+    description: "Sugerencias de modulos, comandos referenciados y declaraciones #Requires.",
+  },
+  "pipeline-explorer": {
+    title: "Explorador de objetos/pipeline",
+    description: "Inspecciona el flujo probable de objetos en cada etapa del pipeline.",
+  },
+  "error-reproduction-builder": {
+    title: "Constructor de reproduccion de errores",
+    description: "Crea un paquete de soporte sanitizado desde errores y contexto.",
+    badge: "Seguro",
+  },
+  "script-packager": {
+    title: "Empaquetador de scripts PowerShell",
+    description: "Plan de paquete de implementacion y exportacion del paquete de Ops.",
+  },
+  "scheduled-task-builder": {
+    title: "Constructor de tareas programadas",
+    description: "Configura disparadores, cuentas y script instalador de Task Scheduler.",
+  },
+  "rollback-builder": {
+    title: "Constructor de rollback",
+    description: "Guia de rollback con operaciones irreversibles claramente marcadas.",
+  },
+  "script-modernizer": {
+    title: "Modernizador de scripts",
+    description: "Guia de migracion y endurecimiento para scripts PowerShell antiguos.",
+  },
+  "performance-profiler": {
+    title: "Perfilador de rendimiento",
+    description: "Genera un contenedor de tiempos para analizar la ejecucion del script.",
+    badge: "Tiempo",
+  },
+  "script-certification": {
+    title: "Certificacion de scripts",
+    description: "Crea manifiestos de aprobacion con hashes, propietarios y expiracion.",
+    badge: "Hash",
+  },
+};
+
+function localizeOpsToolText(locale: string, id: string, field: "title" | "description" | "label" | "badge", fallback: string) {
+  return locale === "es" ? spanishOpsToolText[id]?.[field] || localizeDesktopText(locale as any, fallback) : localizeDesktopText(locale as any, fallback);
+}
+
 const COMMAND_FAVORITES_KEY = "psforge-desktop-command-favorites";
 const COMMAND_LIBRARY_VISIBLE_KEY = "psforge-desktop-command-library-visible-v2";
 const EDITOR_DETAILS_VISIBLE_KEY = "psforge-desktop-editor-details-visible";
@@ -269,16 +395,33 @@ function buildRecommendationKey(recommendation: AIOptimizationRecommendation) {
   return `${recommendation.type}:${recommendation.priority}:${recommendation.title}:${recommendation.line ?? "na"}`;
 }
 
+function encodeUtf8Base64(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function sanitizePowerShellFileName(fileName: string) {
+  const sanitized = fileName.replace(/[^A-Za-z0-9_.-]/g, "-").replace(/^-+|-+$/g, "");
+  return sanitized || "script.ps1";
+}
+
 export function DesktopScriptWorkbench({
   script,
   setScript,
   currentFileName = "script.ps1",
   authorName = "PSForge User",
+  displayMode = "editor",
   pendingAction = null,
   onRunHistorySummaryChange,
 }: DesktopScriptWorkbenchProps) {
   const { toast } = useToast();
   const { featureAccess } = useAuth();
+  const { locale, t } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedText, setSelectedText] = useState("");
   const [validationResult, setValidationResult] = useState<ValidationResult>({ isValid: true, errors: [] });
@@ -334,6 +477,21 @@ export function DesktopScriptWorkbench({
   const [aiExplanation, setAiExplanation] = useState<AIExplainResult | null>(null);
   const [aiOptimization, setAiOptimization] = useState<AIOptimizationResult | null>(null);
   const [selectedRecommendationKeys, setSelectedRecommendationKeys] = useState<string[]>([]);
+  const [environmentDoctorResult, setEnvironmentDoctorResult] = useState<DesktopPowerShellRunResult | null>(null);
+  const [environmentDoctorRunning, setEnvironmentDoctorRunning] = useState(false);
+  const [regexPattern, setRegexPattern] = useState("\\b[A-Z][A-Za-z]+-[A-Z][A-Za-z]+\\b");
+  const [regexSample, setRegexSample] = useState(script.slice(0, 4000));
+  const [csvSample, setCsvSample] = useState(() => "Name,Path,Enabled\nExample,C:\\Temp,true");
+  const [supportContext, setSupportContext] = useState("");
+  const [scheduledTaskName, setScheduledTaskName] = useState("PSForge Script Task");
+  const [scheduledTaskPath, setScheduledTaskPath] = useState(`C:\\Scripts\\${currentFileName}`);
+  const [scheduledTaskSchedule, setScheduledTaskSchedule] = useState<"Daily" | "Weekly" | "AtLogon">("Daily");
+  const [scheduledTaskTime, setScheduledTaskTime] = useState("09:00");
+  const [scheduledTaskRunHighest, setScheduledTaskRunHighest] = useState(false);
+  const [certificationNotes, setCertificationNotes] = useState("Reviewed and approved in PSForge Desktop 3.0.");
+  const [certificationHash, setCertificationHash] = useState("");
+  const [opsExporting, setOpsExporting] = useState(false);
+  const [selectedOpsToolId, setSelectedOpsToolId] = useState<OpsToolId>("environment-doctor");
   const [upgradeDialogState, setUpgradeDialogState] = useState<UpgradeDialogState>({
     open: false,
     feature: "PSForge Pro",
@@ -472,6 +630,21 @@ export function DesktopScriptWorkbench({
     setSelectedRecommendationKeys([]);
   }, [script, selectedText]);
 
+  useEffect(() => {
+    if (!regexSample.trim() && script.trim()) {
+      setRegexSample(script.slice(0, 4000));
+    }
+  }, [regexSample, script]);
+
+  useEffect(() => {
+    setScheduledTaskPath((current) => {
+      if (!current || /\\script\.ps1$/i.test(current) || current.endsWith(currentFileName)) {
+        return `C:\\Scripts\\${currentFileName}`;
+      }
+      return current;
+    });
+  }, [currentFileName]);
+
   const validationMutation = useMutation({
     mutationFn: async (code: string) => {
       const response = await apiRequest("/api/validate", "POST", { code });
@@ -514,6 +687,7 @@ export function DesktopScriptWorkbench({
       const response = await apiRequest("/cli/explain", "POST", {
         input,
         inputType: "script",
+        locale,
       });
       return response.json() as Promise<{ ok: true; data: AIExplainResult }>;
     },
@@ -531,7 +705,7 @@ export function DesktopScriptWorkbench({
 
   const optimizeMutation = useMutation({
     mutationFn: async (code: string) => {
-      const response = await apiRequest("/api/ai/optimize", "POST", { code });
+      const response = await apiRequest("/api/ai/optimize", "POST", { code, locale });
       return response.json() as Promise<AIOptimizationResult>;
     },
     onSuccess: (result) => {
@@ -556,6 +730,7 @@ export function DesktopScriptWorkbench({
       const response = await apiRequest("/api/ai/apply-optimizations", "POST", {
         code: script,
         recommendations,
+        locale,
       });
       return response.json() as Promise<{ optimizedScript: string }>;
     },
@@ -1120,6 +1295,207 @@ export function DesktopScriptWorkbench({
     }
   };
 
+  const buildEnvironmentDoctorScript = () => [
+    "$ErrorActionPreference = 'Continue'",
+    "$checks = [ordered]@{}",
+    "$checks.PowerShellVersion = $PSVersionTable.PSVersion.ToString()",
+    "$checks.Edition = $PSVersionTable.PSEdition",
+    "$checks.ExecutionPolicy = (Get-ExecutionPolicy -List | Out-String).Trim()",
+    "$identity = [Security.Principal.WindowsIdentity]::GetCurrent()",
+    "$principal = [Security.Principal.WindowsPrincipal]::new($identity)",
+    "$checks.IsAdministrator = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)",
+    "$checks.Network = Test-Connection -ComputerName 'psforge.app' -Count 1 -Quiet -ErrorAction SilentlyContinue",
+    "$checks.Dns = [bool](Resolve-DnsName 'psforge.app' -ErrorAction SilentlyContinue)",
+    "$checks.Domain = try { (Get-CimInstance Win32_ComputerSystem).Domain } catch { 'Unavailable' }",
+    "$checks.EntraJoin = try { (dsregcmd /status | Select-String 'AzureAdJoined|DomainJoined' | ForEach-Object { $_.Line.Trim() }) -join '; ' } catch { 'Unavailable' }",
+    "$checks.WinRM = try { Test-WSMan -ComputerName localhost -ErrorAction Stop | Out-Null; 'Available' } catch { 'Unavailable' }",
+    "$checks.Modules = @(",
+    ...operationsSuitePlan.environmentChecks
+      .find((check) => check.id === "modules")
+      ?.remediation?.split(/\r?\n/)
+      .filter(Boolean)
+      .map((command) => {
+        const moduleMatch = /Install-Module\s+([A-Za-z0-9_.-]+)/i.exec(command);
+        return moduleMatch ? `  '${moduleMatch[1]}'` : "";
+      })
+      .filter(Boolean) || [],
+    ") | ForEach-Object { [pscustomobject]@{ Name = $_; Available = [bool](Get-Module -ListAvailable -Name $_) } }",
+    "[pscustomobject]$checks | Format-List",
+  ].join("\n");
+
+  const handleRunEnvironmentDoctor = async () => {
+    if (!isDesktopApp()) {
+      toast({
+        title: "Desktop-only action",
+        description: "Environment Doctor needs the Windows desktop runtime.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEnvironmentDoctorRunning(true);
+    try {
+      const result = await runDesktopPowerShellScript({
+        scriptContent: buildEnvironmentDoctorScript(),
+        fileName: "psforge-environment-doctor.ps1",
+        captureTranscript: true,
+        runMode: "report-only",
+      });
+      setEnvironmentDoctorResult(result);
+      toast({
+        title: "Environment Doctor complete",
+        description: "Machine readiness output was captured for review.",
+        variant: result.exitCode === 0 ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Environment Doctor failed",
+        description: error?.message || "Could not run the local diagnostic script.",
+        variant: "destructive",
+      });
+    } finally {
+      setEnvironmentDoctorRunning(false);
+    }
+  };
+
+  const handleRunGeneratedPesterTests = async () => {
+    if (!isDesktopApp()) {
+      toast({
+        title: "Desktop-only action",
+        description: "Pester execution needs the Windows desktop runtime.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const safeScriptFileName = sanitizePowerShellFileName(currentFileName);
+      const safeTestFileName = `${safeScriptFileName.replace(/\.[^.]+$/, "") || "script"}.Tests.ps1`;
+      const encodedScript = encodeUtf8Base64(script);
+      const encodedTest = encodeUtf8Base64(operationsSuitePlan.pesterTestDraft);
+      const runnerScript = [
+        "$ErrorActionPreference = 'Stop'",
+        `$ScriptBytes = [Convert]::FromBase64String("${encodedScript}")`,
+        `$TestBytes = [Convert]::FromBase64String("${encodedTest}")`,
+        "$ScriptText = [Text.Encoding]::UTF8.GetString($ScriptBytes)",
+        "$TestText = [Text.Encoding]::UTF8.GetString($TestBytes)",
+        "$TempRoot = Join-Path $env:TEMP ('psforge-pester-' + [guid]::NewGuid().ToString('N'))",
+        "New-Item -ItemType Directory -Path $TempRoot -Force | Out-Null",
+        `$ScriptPath = Join-Path $TempRoot "${safeScriptFileName}"`,
+        `$TestPath = Join-Path $TempRoot "${safeTestFileName}"`,
+        "Set-Content -Path $ScriptPath -Value $ScriptText -Encoding UTF8",
+        "Set-Content -Path $TestPath -Value $TestText -Encoding UTF8",
+        "if (Get-Module -ListAvailable -Name Pester) {",
+        "  Import-Module Pester",
+        "  Invoke-Pester -Path $TestPath -Output Detailed",
+        "} else {",
+        "  Write-Warning 'Pester is not installed. Running PSForge syntax fallback only.'",
+        "  [scriptblock]::Create($ScriptText) | Out-Null",
+        "  Write-Host '[PASS] Script syntax parsed successfully.'",
+        "  Write-Host 'Install-Module Pester -Scope CurrentUser to run the generated .Tests.ps1 file.'",
+        "}",
+      ].join("\n");
+
+      const result = await runDesktopPowerShellScript({
+        scriptContent: runnerScript,
+        fileName: `${safeScriptFileName.replace(/\.[^.]+$/, "") || "script"}-pester-runner.ps1`,
+        captureTranscript: true,
+        runMode: "report-only",
+      });
+      const nextEntry: RunHistoryEntry = {
+        ...result,
+        id: `${Date.now()}`,
+        parameters: {},
+        runMode: "report-only",
+        beforeNotes: "Generated Pester starter test run.",
+      };
+      setRunHistory((current) => [nextEntry, ...current].slice(0, 12));
+      showEditorDetailsTab("runs");
+      toast({
+        title: result.exitCode === 0 ? "Pester run captured" : "Pester run needs review",
+        description: "The generated test output is available in Runs.",
+        variant: result.exitCode === 0 ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Could not run Pester tests",
+        description: error?.message || "Install Pester or export the test file to run it manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCalculateCertification = async () => {
+    try {
+      const bytes = new TextEncoder().encode(script);
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const hash = Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
+      setCertificationHash(hash);
+      toast({
+        title: "Certification hash calculated",
+        description: "A SHA-256 script fingerprint is ready for the manifest.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Certification failed",
+        description: error?.message || "Could not calculate the SHA-256 hash.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportOpsSuiteBundle = async () => {
+    const targetDirectory = await openDesktopDirectory();
+    if (!targetDirectory || targetDirectory.canceled || !targetDirectory.filePath) {
+      return;
+    }
+
+    setOpsExporting(true);
+    try {
+      const baseName = currentFileName.replace(/\.[^.]+$/, "") || "psforge-script";
+      const bundleRoot = `${targetDirectory.filePath}\\${baseName}-psforge-ops-suite`;
+      const artifacts = [
+        { name: currentFileName, content: script },
+        { name: `${baseName}.Tests.ps1`, content: operationsSuitePlan.pesterTestDraft },
+        { name: "environment-doctor.ps1", content: buildEnvironmentDoctorScript() },
+        { name: "dependency-manifest.md", content: operationsSuitePlan.dependencyManifest },
+        { name: "package-plan.md", content: operationsSuitePlan.packagePlan },
+        { name: "runbook.md", content: operationsSuitePlan.runbookDraft },
+        { name: "rollback-plan.md", content: operationsSuitePlan.rollbackPlan.map((item) => `- ${item}`).join("\n") },
+        { name: "modernization-plan.md", content: operationsSuitePlan.modernizationPlan.map((item) => `- ${item}`).join("\n") },
+        { name: "compatibility-matrix.json", content: JSON.stringify(compatibilityMatrix, null, 2) },
+        { name: "credential-leak-report.json", content: JSON.stringify(credentialFindings, null, 2) },
+        { name: "pipeline-explorer.json", content: JSON.stringify(pipelineStages, null, 2) },
+        { name: "performance-profiler.ps1", content: profilerScript },
+        { name: "scheduled-task-installer.ps1", content: scheduledTaskInstaller },
+        { name: "sanitized-support-bundle.md", content: supportBundle },
+        { name: "script-certification.json", content: certificationManifest },
+      ];
+
+      for (const artifact of artifacts) {
+        await writeDesktopScriptFile(`${bundleRoot}\\${artifact.name}`, artifact.content);
+      }
+
+      const zipPath = `${bundleRoot}.zip`;
+      await zipDesktopDirectory(bundleRoot, zipPath);
+      await openDesktopPath(zipPath);
+      toast({
+        title: "Ops Suite bundle exported",
+        description: "The script, diagnostics, tests, package plan, runbook, rollback plan, and support artifacts were zipped.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Ops Suite export failed",
+        description: error?.message || "Could not create the Ops Suite bundle.",
+        variant: "destructive",
+      });
+    } finally {
+      setOpsExporting(false);
+    }
+  };
+
   const handleRunScript = async () => {
     if (!isDesktopApp()) {
       toast({
@@ -1186,6 +1562,209 @@ export function DesktopScriptWorkbench({
     () => analysis.checklist.map((item) => ({ ...item, checked: checklistState[item.id] ?? item.checked })),
     [analysis.checklist, checklistState],
   );
+  const operationsSuitePlan = useMemo(
+    () => displayMode === "ops"
+      ? buildOperationsSuitePlan(script, {
+        fileName: currentFileName,
+        author: authorName,
+        checklist: checklistItems,
+      })
+      : {
+        readinessScore: 0,
+        environmentChecks: [],
+        dependencyManifest: "",
+        impactPreview: [],
+        rollbackPlan: [],
+        modernizationPlan: [],
+        pesterTestDraft: "",
+        packagePlan: "",
+        runbookDraft: "",
+      },
+    [authorName, checklistItems, currentFileName, displayMode, script],
+  );
+  const regexLabResult = useMemo(
+    () => displayMode === "ops" ? runRegexLab(regexPattern, regexSample) : { ok: true, matches: [], explanation: [] },
+    [displayMode, regexPattern, regexSample],
+  );
+  const pipelineStages = useMemo(() => displayMode === "ops" ? inspectPipeline(script) : [], [displayMode, script]);
+  const parameterSetDraft = useMemo(() => displayMode === "ops" ? buildParameterSetDesignerDraft(analysis.parameters) : "", [analysis.parameters, displayMode]);
+  const credentialFindings = useMemo(() => displayMode === "ops" ? detectCredentialLeaks(script) : [], [displayMode, script]);
+  const compatibilityMatrix = useMemo(() => displayMode === "ops" ? buildCompatibilityMatrix(script) : [], [displayMode, script]);
+  const csvMapping = useMemo(
+    () => displayMode === "ops" ? parseCsvMapping(csvSample, analysis.parameters) : { headers: [], suggestedParameterMap: {}, previewObjects: [] },
+    [analysis.parameters, csvSample, displayMode],
+  );
+  const profilerScript = useMemo(() => displayMode === "ops" ? buildPerformanceProfilerScript(script, currentFileName) : "", [currentFileName, displayMode, script]);
+  const supportBundle = useMemo(() => displayMode === "ops" ? buildSanitizedSupportBundle(script, supportContext, currentFileName) : "", [currentFileName, displayMode, script, supportContext]);
+  const scheduledTaskInstaller = useMemo(
+    () => displayMode === "ops" ? buildScheduledTaskInstaller({
+      taskName: scheduledTaskName,
+      scriptPath: scheduledTaskPath,
+      schedule: scheduledTaskSchedule,
+      time: scheduledTaskTime,
+      runAsHighest: scheduledTaskRunHighest,
+    }) : "",
+    [displayMode, scheduledTaskName, scheduledTaskPath, scheduledTaskRunHighest, scheduledTaskSchedule, scheduledTaskTime],
+  );
+  const certificationManifest = useMemo(
+    () => displayMode === "ops" ? buildCertificationManifest(script, {
+      fileName: currentFileName,
+      hash: certificationHash || "Run certification to calculate SHA-256",
+      owner: authorName,
+      notes: certificationNotes,
+    }) : "",
+    [authorName, certificationHash, certificationNotes, currentFileName, displayMode, script],
+  );
+  const opsToolGroups = [
+    {
+      label: localizeOpsToolText(locale, "prepare", "label", "Prepare"),
+      tools: [
+        {
+          id: "environment-doctor" as OpsToolId,
+          title: localizeOpsToolText(locale, "environment-doctor", "title", "Environment Doctor"),
+          description: localizeOpsToolText(locale, "environment-doctor", "description", "Readiness score, machine checks, and remediation commands."),
+          icon: ShieldAlert,
+          badge: `${operationsSuitePlan.readinessScore}%`,
+        },
+        {
+          id: "impact-preview" as OpsToolId,
+          title: localizeOpsToolText(locale, "impact-preview", "title", "Change Impact Preview"),
+          description: localizeOpsToolText(locale, "impact-preview", "description", "Predicted changes and touched systems before execution."),
+          icon: Eye,
+          badge: `${operationsSuitePlan.impactPreview.length}`,
+        },
+        {
+          id: "credential-leak-detector" as OpsToolId,
+          title: localizeOpsToolText(locale, "credential-leak-detector", "title", "Credential Leak Detector"),
+          description: localizeOpsToolText(locale, "credential-leak-detector", "description", "Hard-coded passwords, tokens, tenant IDs, and unsafe secret handling."),
+          icon: KeyRound,
+          badge: `${credentialFindings.length}`,
+        },
+        {
+          id: "compatibility-matrix" as OpsToolId,
+          title: localizeOpsToolText(locale, "compatibility-matrix", "title", "Compatibility Matrix"),
+          description: localizeOpsToolText(locale, "compatibility-matrix", "description", "PowerShell, Server, Azure Automation, and constrained endpoint fit."),
+          icon: FileCheck,
+          badge: `${compatibilityMatrix.filter((item) => item.status !== "compatible").length}`,
+        },
+      ],
+    },
+    {
+      label: localizeOpsToolText(locale, "build", "label", "Build"),
+      tools: [
+        {
+          id: "pester-generator" as OpsToolId,
+          title: localizeOpsToolText(locale, "pester-generator", "title", "Pester Test Generator"),
+          description: localizeOpsToolText(locale, "pester-generator", "description", "Generate and run starter tests for the active script."),
+          icon: FlaskConical,
+          badge: localizeOpsToolText(locale, "pester-generator", "badge", "Tests"),
+        },
+        {
+          id: "parameter-set-designer" as OpsToolId,
+          title: localizeOpsToolText(locale, "parameter-set-designer", "title", "Parameter Set Designer"),
+          description: localizeOpsToolText(locale, "parameter-set-designer", "description", "Turn detected parameters into an advanced function scaffold."),
+          icon: List,
+          badge: `${analysis.parameters.length}`,
+        },
+        {
+          id: "regex-lab" as OpsToolId,
+          title: localizeOpsToolText(locale, "regex-lab", "title", "Regex Lab"),
+          description: localizeOpsToolText(locale, "regex-lab", "description", "Build, explain, and test PowerShell regular expressions."),
+          icon: Search,
+          badge: `${regexLabResult.matches.length}`,
+        },
+        {
+          id: "csv-data-mapper" as OpsToolId,
+          title: localizeOpsToolText(locale, "csv-data-mapper", "title", "CSV Data Mapper"),
+          description: localizeOpsToolText(locale, "csv-data-mapper", "description", "Map CSV columns into parameters and preview bulk objects."),
+          icon: Table2,
+          badge: `${csvMapping.headers.length}`,
+        },
+      ],
+    },
+    {
+      label: localizeOpsToolText(locale, "document", "label", "Document"),
+      tools: [
+        {
+          id: "runbook-generator" as OpsToolId,
+          title: localizeOpsToolText(locale, "runbook-generator", "title", "Runbook Generator"),
+          description: localizeOpsToolText(locale, "runbook-generator", "description", "Operational documentation with prerequisites, validation, and rollback."),
+          icon: BookOpen,
+          badge: "MD",
+        },
+        {
+          id: "dependency-manager" as OpsToolId,
+          title: localizeOpsToolText(locale, "dependency-manager", "title", "Dependency and Module Manager"),
+          description: localizeOpsToolText(locale, "dependency-manager", "description", "Module hints, referenced commands, and #Requires suggestions."),
+          icon: ClipboardList,
+          badge: `${analysis.moduleSuggestions.length}`,
+        },
+        {
+          id: "pipeline-explorer" as OpsToolId,
+          title: localizeOpsToolText(locale, "pipeline-explorer", "title", "Object/Pipeline Explorer"),
+          description: localizeOpsToolText(locale, "pipeline-explorer", "description", "Inspect likely object flow through each pipeline stage."),
+          icon: Activity,
+          badge: `${pipelineStages.length}`,
+        },
+        {
+          id: "error-reproduction-builder" as OpsToolId,
+          title: localizeOpsToolText(locale, "error-reproduction-builder", "title", "Error Reproduction Builder"),
+          description: localizeOpsToolText(locale, "error-reproduction-builder", "description", "Create a sanitized support bundle from errors and context."),
+          icon: FileJson,
+          badge: localizeOpsToolText(locale, "error-reproduction-builder", "badge", "Safe"),
+        },
+      ],
+    },
+    {
+      label: localizeOpsToolText(locale, "ship", "label", "Ship"),
+      tools: [
+        {
+          id: "script-packager" as OpsToolId,
+          title: localizeOpsToolText(locale, "script-packager", "title", "PowerShell Script Packager"),
+          description: localizeOpsToolText(locale, "script-packager", "description", "Deployment package plan and one-click Ops bundle export."),
+          icon: FileArchive,
+          badge: "ZIP",
+        },
+        {
+          id: "scheduled-task-builder" as OpsToolId,
+          title: localizeOpsToolText(locale, "scheduled-task-builder", "title", "Scheduled Task Builder"),
+          description: localizeOpsToolText(locale, "scheduled-task-builder", "description", "Configure Task Scheduler triggers, accounts, and installer script."),
+          icon: CalendarClock,
+          badge: scheduledTaskSchedule,
+        },
+        {
+          id: "rollback-builder" as OpsToolId,
+          title: localizeOpsToolText(locale, "rollback-builder", "title", "Rollback Builder"),
+          description: localizeOpsToolText(locale, "rollback-builder", "description", "Rollback guidance with irreversible operations called out."),
+          icon: ShieldAlert,
+          badge: `${operationsSuitePlan.rollbackPlan.length}`,
+        },
+        {
+          id: "script-modernizer" as OpsToolId,
+          title: localizeOpsToolText(locale, "script-modernizer", "title", "Script Modernizer"),
+          description: localizeOpsToolText(locale, "script-modernizer", "description", "Migration and hardening guidance for older PowerShell scripts."),
+          icon: WandSparkles,
+          badge: `${operationsSuitePlan.modernizationPlan.length}`,
+        },
+        {
+          id: "performance-profiler" as OpsToolId,
+          title: localizeOpsToolText(locale, "performance-profiler", "title", "Performance Profiler"),
+          description: localizeOpsToolText(locale, "performance-profiler", "description", "Generate a timing wrapper for script execution analysis."),
+          icon: Gauge,
+          badge: localizeOpsToolText(locale, "performance-profiler", "badge", "Time"),
+        },
+        {
+          id: "script-certification" as OpsToolId,
+          title: localizeOpsToolText(locale, "script-certification", "title", "Script Certification"),
+          description: localizeOpsToolText(locale, "script-certification", "description", "Create approval manifests with hashes, owners, and expiration."),
+          icon: FileCheck,
+          badge: certificationHash ? "Signed" : localizeOpsToolText(locale, "script-certification", "badge", "Hash"),
+        },
+      ],
+    },
+  ];
+  const selectedOpsTool = opsToolGroups.flatMap((group) => group.tools).find((tool) => tool.id === selectedOpsToolId) || opsToolGroups[0].tools[0];
+  const SelectedOpsIcon = selectedOpsTool.icon;
 
   const filteredRunHistory = useMemo(() => {
     const query = runHistoryFilter.trim().toLowerCase();
@@ -1275,10 +1854,11 @@ export function DesktopScriptWorkbench({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        {displayMode === "editor" ? (
         <div className="border-b px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 text-sm text-muted-foreground">
-              <span className="line-clamp-1">Build, review, and run scripts from one focused workspace.</span>
+              <span className="line-clamp-1">{t("buildReviewRunDescription")}</span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button size="sm" onClick={() => setRunDialogOpen(true)} data-testid="button-run-script">
@@ -1292,7 +1872,7 @@ export function DesktopScriptWorkbench({
                 data-testid="button-toggle-command-library"
               >
                 {isCommandLibraryVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-                <span className="hidden sm:inline">{isCommandLibraryVisible ? "Hide Library" : "Library"}</span>
+                <span className="hidden sm:inline">{isCommandLibraryVisible ? t("hideLibrary") : t("library")}</span>
               </Button>
               <div className="relative">
                 <Button
@@ -1301,16 +1881,16 @@ export function DesktopScriptWorkbench({
                   aria-expanded={toolsMenuOpen}
                   onClick={() => setToolsMenuOpen((current) => !current)}
                 >
-                  Tools
+                  {t("tools")}
                   <ChevronDown className={`ml-2 h-4 w-4 transition ${toolsMenuOpen ? "rotate-180" : ""}`} />
                 </Button>
                 {toolsMenuOpen ? (
                   <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-                    <div className="px-2 py-1.5 text-sm font-semibold">Script Tools</div>
+                    <div className="px-2 py-1.5 text-sm font-semibold">{t("scriptTools")}</div>
                     {[
                       { label: "Header", icon: ScrollText, action: () => setHeaderDialogOpen(true) },
                       { label: "Explain", icon: Sparkles, action: () => setExplainDialogOpen(true) },
-                      { label: "AI Review", icon: Bot, action: handleRunAiReview, testId: "button-ai-review" },
+                      { label: t("aiReview"), icon: Bot, action: handleRunAiReview, testId: "button-ai-review" },
                       { label: "Placeholders", icon: Replace, action: () => setPlaceholderDialogOpen(true), disabled: analysis.placeholders.length === 0 },
                     ].map((item) => {
                       const Icon = item.icon;
@@ -1342,7 +1922,7 @@ export function DesktopScriptWorkbench({
                       }}
                     >
                       <FileArchive className="h-4 w-4 shrink-0" />
-                      {exportingBundle ? "Exporting..." : "Export Bundle"}
+                      {exportingBundle ? t("exporting") : t("exportOpsBundle")}
                     </button>
                   </div>
                 ) : null}
@@ -1350,23 +1930,24 @@ export function DesktopScriptWorkbench({
             </div>
           </div>
         </div>
+        ) : null}
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          {isCommandLibraryVisible && (
+          {displayMode === "editor" && isCommandLibraryVisible && (
             <div className="hidden min-h-0 lg:block">
               <CommandSidebar
                 onAddCommand={handleAddCommand}
                 favoriteCommandIds={favoriteCommandIds}
                 onToggleFavorite={toggleFavoriteCommand}
-                teamFavoriteCommandIds={getTeamFavoriteCommandIds()}
               />
             </div>
           )}
 
           <div
             className="grid min-w-0 flex-1 min-h-0 overflow-hidden"
-            style={{ gridTemplateRows: isEditorDetailsVisible ? "minmax(0, 1fr) clamp(220px, 30vh, 380px)" : "minmax(0, 1fr) 42px" }}
+            style={{ gridTemplateRows: displayMode === "ops" ? "minmax(0, 1fr)" : isEditorDetailsVisible ? "minmax(0, 1fr) clamp(220px, 30vh, 380px)" : "minmax(0, 1fr) 42px" }}
           >
+            {displayMode === "editor" ? (
             <div className="min-h-0 overflow-hidden border-b">
               <ScriptEditor
                 script={script}
@@ -1375,26 +1956,28 @@ export function DesktopScriptWorkbench({
                 onSelectionChange={setSelectedText}
               />
             </div>
+            ) : null}
 
             <div className="min-h-0 overflow-hidden">
-              <Tabs value={detailsTab} onValueChange={showEditorDetailsTab} className="flex h-full min-h-0 flex-col overflow-hidden">
+              <Tabs value={displayMode === "ops" ? "ops-suite" : detailsTab} onValueChange={showEditorDetailsTab} className="flex h-full min-h-0 flex-col overflow-hidden">
+                {displayMode === "editor" ? (
                 <div className="flex h-[42px] shrink-0 items-center justify-between gap-3 border-b px-3 py-1.5">
                   <TabsList className="flex w-auto shrink-0 overflow-hidden">
                     <TabsTrigger value="preview" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Eye className="h-4 w-4" />
-                      <span className="hidden sm:inline">Preview</span>
+                      <span className="hidden sm:inline">{t("preview")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="basic" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <List className="h-4 w-4" />
-                      <span className="hidden sm:inline">Basic</span>
+                      <span className="hidden sm:inline">{t("basic")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="comprehensive" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <FileCheck className="h-4 w-4" />
-                      <span className="hidden sm:inline">Full</span>
+                      <span className="hidden sm:inline">{t("full")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="workbench" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <ClipboardList className="h-4 w-4" />
-                      <span className="hidden sm:inline">Workbench</span>
+                      <span className="hidden sm:inline">{t("workbench")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="ai-review" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Bot className="h-4 w-4" />
@@ -1402,17 +1985,21 @@ export function DesktopScriptWorkbench({
                     </TabsTrigger>
                     <TabsTrigger value="runs" className="flex h-8 w-8 items-center justify-center gap-1 px-0 sm:w-auto sm:px-3">
                       <Play className="h-4 w-4" />
-                      <span className="hidden sm:inline">Runs</span>
+                      <span className="hidden sm:inline">{t("runCenter")}</span>
                     </TabsTrigger>
                   </TabsList>
 
                   <div className="flex shrink-0 items-center gap-2">
                     <Badge variant={preflightSummary.critical > 0 ? "destructive" : "secondary"} className="hidden sm:inline-flex">
-                      {preflightSummary.critical} critical
+                      {preflightSummary.critical} {t("critical").toLowerCase()}
                     </Badge>
-                    <Badge variant="secondary" className="hidden sm:inline-flex">{preflightSummary.warning} warnings</Badge>
+                    <Badge variant="secondary" className="hidden sm:inline-flex">{preflightSummary.warning} {t("warnings").toLowerCase()}</Badge>
                     <Button size="sm" className="hidden md:inline-flex" onClick={runComprehensiveValidation} disabled={!script.trim() || comprehensiveValidationMutation.isPending}>
-                      {comprehensiveValidationMutation.isPending ? "Analyzing..." : "Run Pre-flight"}
+                      {comprehensiveValidationMutation.isPending ? t("analyzing") : t("runPreflight")}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditorDetailsVisible((current) => !current)}>
+                      <span className="hidden sm:inline">{isEditorDetailsVisible ? t("hide") : t("show")}</span>
+                      <ChevronDown className={`h-4 w-4 transition ${isEditorDetailsVisible ? "" : "rotate-180"}`} />
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setIsEditorDetailsVisible((current) => !current)}>
                       <span className="hidden sm:inline">{isEditorDetailsVisible ? "Hide" : "Show"}</span>
@@ -1420,8 +2007,9 @@ export function DesktopScriptWorkbench({
                     </Button>
                   </div>
                 </div>
+                ) : null}
 
-                {isEditorDetailsVisible && (
+                {(displayMode === "ops" || isEditorDetailsVisible) && (
                   <>
                 <TabsContent value="preview" className="mt-0 min-h-0 flex-1 overflow-hidden">
                   <CodePreview code={script} validationErrors={validationResult.errors || []} />
@@ -1707,6 +2295,513 @@ export function DesktopScriptWorkbench({
                         </Button>
                       </CardContent>
                     </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ops-suite" className="mt-0 h-full min-h-0 flex-1 overflow-hidden p-4">
+                  <div className="flex h-full min-h-0 flex-col gap-4">
+                    <Card className="shrink-0">
+                      <CardHeader>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              <Rocket className="h-5 w-5" />
+                              {t("opsSuite")}
+                            </CardTitle>
+                            <CardDescription>
+                              {t("opsSuiteDescription")}
+                            </CardDescription>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={operationsSuitePlan.readinessScore >= 80 ? "default" : operationsSuitePlan.readinessScore >= 60 ? "secondary" : "destructive"}>
+                              {t("readiness", { score: operationsSuitePlan.readinessScore })}
+                            </Badge>
+                            <Button size="sm" variant="outline" onClick={handleExportOpsSuiteBundle} disabled={opsExporting || !script.trim()}>
+                              <FileArchive className="mr-2 h-4 w-4" />
+                              {opsExporting ? t("exporting") : t("exportOpsBundle")}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="grid gap-3 lg:grid-cols-4">
+                        {[
+                          { label: t("environmentChecks"), value: operationsSuitePlan.environmentChecks.length, detail: t("machineReadinessSignals") },
+                          { label: localize("Dependencies"), value: analysis.moduleSuggestions.length, detail: t("moduleHintsFound") },
+                          { label: t("impactItems"), value: operationsSuitePlan.impactPreview.length, detail: t("predictedEffects") },
+                          { label: t("safetyNotes"), value: analysis.issues.length, detail: t("reviewItems") },
+                        ].map((metric) => (
+                          <div key={metric.label} className="rounded-md border bg-background/60 px-3 py-3">
+                            <div className="text-xs text-muted-foreground">{metric.label}</div>
+                            <div className="mt-1 text-2xl font-semibold">{metric.value}</div>
+                            <div className="text-xs text-muted-foreground">{metric.detail}</div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+
+                    <div className="grid min-h-0 flex-1 gap-4 overflow-hidden xl:grid-cols-[18rem_minmax(0,1fr)]">
+                      <Card className="flex min-h-0 flex-col xl:sticky xl:top-0 xl:h-[calc(100vh-18rem)] xl:max-h-[calc(100vh-18rem)]">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">{t("opsTools")}</CardTitle>
+                          <CardDescription>{t("opsToolsDescription")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
+                          <div className="h-full space-y-4 overflow-y-auto px-6 pb-6 pr-4">
+                            {opsToolGroups.map((group) => (
+                              <div key={group.label} className="space-y-2">
+                                <div className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{group.label}</div>
+                                <div className="space-y-1">
+                                  {group.tools.map((tool) => {
+                                    const Icon = tool.icon;
+                                    const selected = selectedOpsToolId === tool.id;
+                                    return (
+                                      <button
+                                        key={tool.id}
+                                        type="button"
+                                        onClick={() => setSelectedOpsToolId(tool.id)}
+                                        className={`flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition ${
+                                          selected ? "border-primary bg-primary/10 text-foreground" : "border-transparent bg-background/40 text-muted-foreground hover:border-border hover:bg-background/70 hover:text-foreground"
+                                        }`}
+                                      >
+                                        <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${selected ? "text-primary" : ""}`} />
+                                        <span className="min-w-0 flex-1">
+                                          <span className="block truncate text-sm font-medium">{tool.title}</span>
+                                          <span className="mt-0.5 line-clamp-2 block text-xs">{tool.description}</span>
+                                        </span>
+                                        <Badge variant={selected ? "default" : "outline"} className="shrink-0 text-[10px]">{tool.badge}</Badge>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <div className="min-h-0 min-w-0 space-y-4 overflow-hidden">
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <CardTitle className="flex items-center gap-2">
+                                  <SelectedOpsIcon className="h-5 w-5" />
+                                  {selectedOpsTool.title}
+                                </CardTitle>
+                                <CardDescription>{selectedOpsTool.description}</CardDescription>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline">{selectedOpsTool.badge}</Badge>
+                                <Button size="sm" variant="outline" onClick={handleExportOpsSuiteBundle} disabled={opsExporting || !script.trim()}>
+                                  <FileArchive className="mr-2 h-4 w-4" />
+                                  {opsExporting ? t("exporting") : t("exportOpsBundle")}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+
+                        <div className="grid gap-4">
+                      <Card className={selectedOpsToolId === "environment-doctor" ? "" : "hidden"}>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <ShieldAlert className="h-5 w-5" />
+                                {localize("Environment Doctor")}
+                              </CardTitle>
+                              <CardDescription>{localize("Run a local diagnostic and review prerequisites before the script is run.")}</CardDescription>
+                            </div>
+                            <Button size="sm" onClick={handleRunEnvironmentDoctor} disabled={environmentDoctorRunning}>
+                              <Play className="mr-2 h-4 w-4" />
+                              {environmentDoctorRunning ? t("running") : t("runDoctor")}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {operationsSuitePlan.environmentChecks.map((check) => (
+                            <div key={check.id} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={check.status === "action" ? "destructive" : check.status === "warning" ? "secondary" : "outline"}>
+                                  {localize(check.status)}
+                                </Badge>
+                                <div className="font-medium">{localize(check.label)}</div>
+                              </div>
+                              <div className="mt-2 text-sm text-muted-foreground">{localize(check.detail)}</div>
+                              {check.remediation ? (
+                                <Button size="sm" variant="ghost" className="mt-2 px-0" onClick={() => handleCopyText(check.remediation || "", `${check.label} command copied.`)}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  {t("copyCheck")}
+                                </Button>
+                              ) : null}
+                            </div>
+                          ))}
+                          {environmentDoctorResult ? (
+                            <pre className="max-h-48 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
+                              <code>{environmentDoctorResult.stdout || environmentDoctorResult.stderr || localize("Environment Doctor produced no console output.")}</code>
+                            </pre>
+                          ) : null}
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "impact-preview" ? "" : "hidden"}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Eye className="h-5 w-5" />
+                            {localize("Change Impact Preview")}
+                          </CardTitle>
+                          <CardDescription>{localize("Static prediction of what the script is likely to touch.")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {operationsSuitePlan.impactPreview.map((impact) => (
+                            <div key={impact} className="rounded-md border bg-background/60 px-3 py-3 text-sm text-muted-foreground">
+                              {localize(impact)}
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+
+                      {[
+                        {
+                          id: "pester-generator" as OpsToolId,
+                          title: "Pester Test Generator",
+                          description: "Companion .Tests.ps1 starter for syntax, parameter, and safety discovery tests.",
+                          icon: FlaskConical,
+                          content: operationsSuitePlan.pesterTestDraft,
+                          copy: "Pester test draft copied.",
+                          action: handleRunGeneratedPesterTests,
+                          actionLabel: "Run Tests",
+                        },
+                        {
+                          id: "script-packager" as OpsToolId,
+                          title: "PowerShell Script Packager",
+                          description: "Deployment packaging plan for ZIP, Intune, scheduled task, and install/uninstall outputs.",
+                          icon: FileArchive,
+                          content: operationsSuitePlan.packagePlan,
+                          copy: "Package plan copied.",
+                        },
+                        {
+                          id: "runbook-generator" as OpsToolId,
+                          title: "Runbook Generator",
+                          description: "Operational documentation with prerequisites, validation, and rollback sections.",
+                          icon: BookOpen,
+                          content: operationsSuitePlan.runbookDraft,
+                          copy: "Runbook draft copied.",
+                        },
+                        {
+                          id: "dependency-manager" as OpsToolId,
+                          title: "Dependency and Module Manager",
+                          description: "Module, cmdlet, and #Requires manifest based on the current script.",
+                          icon: ClipboardList,
+                          content: operationsSuitePlan.dependencyManifest,
+                          copy: "Dependency manifest copied.",
+                        },
+                        {
+                          id: "rollback-builder" as OpsToolId,
+                          title: "Rollback Builder",
+                          description: "Honest rollback guidance with non-reversible operations called out for review.",
+                          icon: ShieldAlert,
+                          content: operationsSuitePlan.rollbackPlan.map((item) => `- ${item}`).join("\n"),
+                          copy: "Rollback plan copied.",
+                        },
+                        {
+                          id: "script-modernizer" as OpsToolId,
+                          title: "Script Modernizer",
+                          description: "Modernization guidance for deprecated modules, secrets, output style, and strict mode.",
+                          icon: WandSparkles,
+                          content: operationsSuitePlan.modernizationPlan.map((item) => `- ${item}`).join("\n"),
+                          copy: "Modernization plan copied.",
+                        },
+                      ].filter((item) => item.id === selectedOpsToolId).map((item) => {
+                        const Icon = item.icon;
+                        const displayContent = item.id === "pester-generator" ? item.content : localize(item.content);
+                        return (
+                          <Card key={item.title}>
+                            <CardHeader>
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <CardTitle className="flex items-center gap-2">
+                                    <Icon className="h-5 w-5" />
+                                    {localize(item.title)}
+                                  </CardTitle>
+                                  <CardDescription>{localize(item.description)}</CardDescription>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {"action" in item && item.action ? (
+                                    <Button size="sm" onClick={item.action}>
+                                      <Play className="mr-2 h-4 w-4" />
+                                      {localize(item.actionLabel)}
+                                    </Button>
+                                  ) : null}
+                                  <Button size="sm" variant="outline" onClick={() => handleCopyText(displayContent, item.copy)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    {t("copy")}
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <pre className="max-h-56 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground">
+                                <code>{displayContent}</code>
+                              </pre>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+
+                      <Card className={selectedOpsToolId === "regex-lab" ? "" : "hidden"}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Search className="h-5 w-5" />
+                            {localize("Regex Lab")}
+                          </CardTitle>
+                          <CardDescription>{localize("Build, explain, test, and preview PowerShell regex matches against sample text.")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Input value={regexPattern} onChange={(event) => setRegexPattern(event.target.value)} placeholder={localize("Regex pattern")} />
+                          <Textarea value={regexSample} onChange={(event) => setRegexSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder={localize("Sample text")} />
+                          {regexLabResult.ok ? (
+                            <div className="grid gap-2">
+                              {regexLabResult.explanation.map((line) => (
+                                <div key={line} className="rounded-md border bg-background/60 px-3 py-2 text-sm text-muted-foreground">{line}</div>
+                              ))}
+                              <pre className="max-h-40 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
+                                <code>{regexLabResult.matches.map((match) => `${match.index}: ${match.value}${match.groups.length ? ` ${localize("groups")}=${JSON.stringify(match.groups)}` : ""}`).join("\n") || localize("No matches.")}</code>
+                              </pre>
+                            </div>
+                          ) : (
+                            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-3 text-sm text-destructive">{regexLabResult.error}</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "pipeline-explorer" ? "" : "hidden"}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Activity className="h-5 w-5" />
+                            {localize("Object/Pipeline Explorer")}
+                          </CardTitle>
+                          <CardDescription>{localize("Inspect the likely object flow through each pipeline stage.")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {pipelineStages.length > 0 ? pipelineStages.map((stage) => (
+                            <div key={`${stage.index}-${stage.command}`} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="font-mono text-sm text-primary">{stage.index}. {stage.command}</div>
+                              <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                                <div>{localize("Input")}: {localize(stage.likelyInput)}</div>
+                                <div>{localize("Output")}: {localize(stage.likelyOutput)}</div>
+                                {stage.notes.map((note) => <div key={note}>{localize("Note")}: {localize(note)}</div>)}
+                              </div>
+                            </div>
+                          )) : (
+                            <div className="rounded-md border bg-background/60 px-3 py-3 text-sm text-muted-foreground">{localize("No pipeline stages were detected.")}</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "parameter-set-designer" ? "" : "hidden"}>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <List className="h-5 w-5" />
+                                {localize("Parameter Set Designer")}
+                              </CardTitle>
+                              <CardDescription>{localize("Create an advanced-function parameter block from detected parameters.")}</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(parameterSetDraft, "Parameter set draft copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              {t("copy")}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="max-h-56 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{parameterSetDraft}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "credential-leak-detector" ? "" : "hidden"}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <KeyRound className="h-5 w-5" />
+                            {localize("Credential Leak Detector")}
+                          </CardTitle>
+                          <CardDescription>{localize("Detect hard-coded passwords, tokens, tenant values, and unsafe secret handling.")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {credentialFindings.length > 0 ? credentialFindings.map((finding) => (
+                            <div key={finding.id} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={finding.severity === "critical" ? "destructive" : "secondary"}>{finding.severity}</Badge>
+                                <div className="font-medium">{finding.title}</div>
+                                <Badge variant="outline">{localize("Line")} {finding.line}</Badge>
+                              </div>
+                              <div className="mt-2 font-mono text-xs text-muted-foreground">{finding.evidence}</div>
+                              <div className="mt-2 text-sm text-primary">{finding.recommendation}</div>
+                            </div>
+                          )) : (
+                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">{localize("No credential leak patterns detected.")}</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "performance-profiler" ? "" : "hidden"}>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <Gauge className="h-5 w-5" />
+                                {localize("Performance Profiler")}
+                              </CardTitle>
+                              <CardDescription>{localize("Generate a wrapper that measures elapsed time, errors, and process memory.")}</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(profilerScript, "Performance profiler copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              {t("copy")}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="max-h-56 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{profilerScript}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "compatibility-matrix" ? "" : "hidden"}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileCheck className="h-5 w-5" />
+                            {localize("Compatibility Matrix")}
+                          </CardTitle>
+                          <CardDescription>{localize("Review suitability for PowerShell 5.1, 7.x, Windows Server, Azure Automation, and constrained endpoints.")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {compatibilityMatrix.map((finding) => (
+                            <div key={finding.target} className="rounded-md border bg-background/60 px-3 py-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={finding.status === "unsupported" ? "destructive" : finding.status === "review" ? "secondary" : "outline"}>{localize(finding.status)}</Badge>
+                                <div className="font-medium">{finding.target}</div>
+                              </div>
+                              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                                {finding.notes.map((note) => <div key={note}>{localize(note)}</div>)}
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "csv-data-mapper" ? "" : "hidden"}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Table2 className="h-5 w-5" />
+                            {localize("CSV Data Mapper")}
+                          </CardTitle>
+                          <CardDescription>{localize("Map CSV columns into script parameters and preview bulk input objects.")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Textarea value={csvSample} onChange={(event) => setCsvSample(event.target.value)} className="min-h-28 font-mono text-xs" placeholder={localize("Paste CSV sample")} />
+                          <div className="rounded-md border bg-background/60 px-3 py-3 text-sm">
+                            <div className="font-medium">{localize("Detected headers")}</div>
+                            <div className="mt-1 text-muted-foreground">{csvMapping.headers.join(", ") || localize("No headers detected.")}</div>
+                          </div>
+                          <pre className="max-h-40 overflow-auto rounded-md border bg-background px-3 py-3 text-xs text-muted-foreground">
+                            <code>{JSON.stringify({ suggestedParameterMap: csvMapping.suggestedParameterMap, previewObjects: csvMapping.previewObjects }, null, 2)}</code>
+                          </pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "error-reproduction-builder" ? "" : "hidden"}>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <FileJson className="h-5 w-5" />
+                                {localize("Error Reproduction Builder")}
+                              </CardTitle>
+                              <CardDescription>{localize("Create a sanitized support bundle from an error, notes, and the relevant script.")}</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(supportBundle, "Sanitized support bundle copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              {t("copy")}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Textarea value={supportContext} onChange={(event) => setSupportContext(event.target.value)} className="min-h-28" placeholder={localize("Paste the error message and environment context. PSForge will redact common sensitive values.")} />
+                          <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{supportBundle}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "scheduled-task-builder" ? "" : "hidden"}>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <CalendarClock className="h-5 w-5" />
+                                {localize("Scheduled Task Builder")}
+                              </CardTitle>
+                              <CardDescription>{localize("Configure triggers, run level, and deployment script for Task Scheduler.")}</CardDescription>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleCopyText(scheduledTaskInstaller, "Scheduled task installer copied.")}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              {t("copy")}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <Label>{localize("Task name")}</Label>
+                              <Input value={scheduledTaskName} onChange={(event) => setScheduledTaskName(event.target.value)} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>{localize("Script path")}</Label>
+                              <Input value={scheduledTaskPath} onChange={(event) => setScheduledTaskPath(event.target.value)} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>{localize("Schedule")}</Label>
+                              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={scheduledTaskSchedule} onChange={(event) => setScheduledTaskSchedule(event.target.value as "Daily" | "Weekly" | "AtLogon")}>
+                                <option value="Daily">{localize("Daily")}</option>
+                                <option value="Weekly">{localize("Weekly")}</option>
+                                <option value="AtLogon">{localize("At logon")}</option>
+                              </select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>{localize("Time")}</Label>
+                              <Input value={scheduledTaskTime} onChange={(event) => setScheduledTaskTime(event.target.value)} disabled={scheduledTaskSchedule === "AtLogon"} />
+                            </div>
+                          </div>
+                          <label className="flex items-center justify-between gap-3 rounded-md border bg-background/60 px-3 py-3 text-sm">
+                            <span>{localize("Run with highest privileges")}</span>
+                            <Switch checked={scheduledTaskRunHighest} onCheckedChange={setScheduledTaskRunHighest} />
+                          </label>
+                          <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{scheduledTaskInstaller}</code></pre>
+                        </CardContent>
+                      </Card>
+
+                      <Card className={selectedOpsToolId === "script-certification" ? "" : "hidden"}>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                <ShieldAlert className="h-5 w-5" />
+                                {localize("Script Certification")}
+                              </CardTitle>
+                              <CardDescription>{localize("Create an approval manifest with hash, owner, issue counts, and expiration.")}</CardDescription>
+                            </div>
+                            <Button size="sm" onClick={handleCalculateCertification} disabled={!script.trim()}>
+                              <KeyRound className="mr-2 h-4 w-4" />
+                              {localize("Certify")}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Textarea value={certificationNotes} onChange={(event) => setCertificationNotes(event.target.value)} className="min-h-20" placeholder={localize("Approval notes")} />
+                          <pre className="max-h-52 overflow-auto rounded-md border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"><code>{certificationManifest}</code></pre>
+                        </CardContent>
+                      </Card>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </TabsContent>
 

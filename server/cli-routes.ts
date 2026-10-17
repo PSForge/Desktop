@@ -3,6 +3,7 @@ import { storage } from "./storage";
 import { validatePowerShellScript } from "./validation";
 import type { ValidationResult } from "@shared/schema";
 import OpenAI from "openai";
+import { getAiLanguageInstruction, normalizeAiLocale } from "./ai-locale";
 import { searchTasks, getTaskById, getPlatforms, type TaskSummary, type TaskParameter } from "./task-registry";
 
 // ── OpenAI ───────────────────────────────────────────────────────────────────
@@ -252,6 +253,7 @@ Guidelines:
   app.post("/cli/explain", cliRequireSubscriber, async (req, res) => {
     try {
       const { input, inputType } = req.body as { input?: string; inputType?: "script" | "error" | "log" };
+      const locale = normalizeAiLocale(req.body?.locale);
       if (!input || typeof input !== "string") {
         res.status(400).json(errResponse("input (string) is required"));
         return;
@@ -272,7 +274,10 @@ Always respond with valid JSON:
   "potentialRisks": ["string - risk or caveat (omit array if none)"]
 }
 
-Keep explanations practical and concise. Focus on what IT admins need to know to act.`;
+Keep explanations practical and concise. Focus on what IT admins need to know to act.
+
+Language:
+${getAiLanguageInstruction(locale)}`;
 
       const typeHint =
         type === "script" ? "PowerShell script" : type === "error" ? "error message or code" : "log excerpt";

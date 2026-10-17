@@ -3,6 +3,12 @@ export interface DesktopContext {
   platform: string;
   version: string;
   osVersion?: string;
+  edition?: "standard" | "enterprise";
+  enterpriseInstallOptions?: {
+    licenseKey?: string;
+    licenseServerUrl?: string;
+    silent?: boolean;
+  };
 }
 
 export interface DesktopScriptFile {
@@ -86,7 +92,22 @@ export type DesktopMenuAction =
   | "settings:license"
   | "settings:subscription"
   | "settings:recovery"
+  | "settings:language"
   | "settings:check-updates";
+
+export type DesktopWorkflowDeepLinkPayload =
+  | {
+    ok: true;
+    workflowId: string;
+    source: "protocol";
+    receivedAt: string;
+  }
+  | {
+    ok: false;
+    reason: string;
+    source: "protocol";
+    receivedAt: string;
+  };
 
 const desktopApi = () => window.psforgeDesktop;
 
@@ -145,6 +166,42 @@ export function subscribeToDesktopMenuActions(callback: (action: DesktopMenuActi
   }
 
   return desktopApi()!.onMenuAction(callback);
+}
+
+export function subscribeToDesktopWorkflowLinks(callback: (payload: DesktopWorkflowDeepLinkPayload) => void) {
+  const api = desktopApi();
+  if (!isDesktopApp() || typeof api?.onWorkflowDeepLink !== "function") {
+    return () => undefined;
+  }
+
+  return api.onWorkflowDeepLink(callback);
+}
+
+export async function getPendingDesktopWorkflowLink(): Promise<DesktopWorkflowDeepLinkPayload | null> {
+  const api = desktopApi();
+  if (!isDesktopApp() || typeof api?.getPendingWorkflowDeepLink !== "function") {
+    return null;
+  }
+
+  return api.getPendingWorkflowDeepLink();
+}
+
+export function reportDesktopRendererReady(payload?: { elapsedMs?: number; route?: string }) {
+  const api = desktopApi();
+  if (!isDesktopApp() || typeof api?.rendererReady !== "function") {
+    return;
+  }
+
+  api.rendererReady(payload);
+}
+
+export async function showDesktopEditContextMenu() {
+  const api = desktopApi();
+  if (!isDesktopApp() || typeof api?.showEditContextMenu !== "function") {
+    return null;
+  }
+
+  return api.showEditContextMenu();
 }
 
 export async function openDesktopScript(): Promise<DesktopScriptFile | null> {

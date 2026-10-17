@@ -9,6 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useDesktopLocale } from "@/lib/i18n";
 import { Sparkles, AlertTriangle, ShieldCheck, Lightbulb, TrendingUp, Loader2, CheckCircle2, XCircle, Copy, Lock } from "lucide-react";
 
 interface OptimizationRecommendation {
@@ -69,11 +70,12 @@ const priorityIcons = {
 
 export function ScriptOptimizationPanel({ code, isSubscriber }: ScriptOptimizationPanelProps) {
   const { toast } = useToast();
+  const { locale } = useDesktopLocale();
   const [optimization, setOptimization] = useState<OptimizationResult | null>(null);
 
   const analyzeMutation = useMutation({
     mutationFn: async (): Promise<OptimizationResult> => {
-      const response = await apiRequest('/api/ai/optimize', 'POST', { code });
+      const response = await apiRequest('/api/ai/optimize', 'POST', { code, locale });
       return await response.json();
     },
     onSuccess: (data: OptimizationResult) => {

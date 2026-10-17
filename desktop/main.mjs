@@ -9,18 +9,46 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import { extractWorkflowDeepLinkFromArgv, parseWorkflowDeepLink } from "./deeplink.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const appRoot = path.resolve(__dirname, "..");
 const isDev = !app.isPackaged;
 const devServerUrl = process.env.PSFORGE_DESKTOP_URL || "http://127.0.0.1:5173";
-const desktopUpdateFeedUrl = "https://www.psforge.app/api/desktop/updates";
 const execFileAsync = promisify(execFile);
 const { autoUpdater } = electronUpdater;
 const appUserModelId = "com.isaiahblacknall.psforge.desktop";
+const desktopEdition = process.env.PSFORGE_EDITION === "enterprise" || app.getName().toLowerCase().includes("enterprise")
+  ? "enterprise"
+  : "standard";
+const desktopUpdateFeedUrl = desktopEdition === "enterprise"
+  ? "https://psforge.app/api/desktop/enterprise-updates"
+  : "https://psforge.app/api/desktop/updates";
+const localeStorageKey = "psforge-locale";
+const supportedLocales = [
+  { code: "en", label: "English" },
+  { code: "es", label: "Espanol" },
+  { code: "fr", label: "Francais" },
+  { code: "de", label: "Deutsch" },
+  { code: "pt", label: "Portugues" },
+  { code: "it", label: "Italiano" },
+  { code: "nl", label: "Nederlands" },
+  { code: "ja", label: "Japanese" },
+  { code: "ko", label: "Korean" },
+  { code: "zh", label: "Chinese" },
+  { code: "hi", label: "Hindi" },
+  { code: "ar", label: "Arabic" },
+];
 
 app.setAppUserModelId(appUserModelId);
+
+const initialWorkflowDeepLinkResult = extractWorkflowDeepLinkFromArgv(process.argv);
+const initialWorkflowDeepLink = initialWorkflowDeepLinkResult?.ok ? initialWorkflowDeepLinkResult : null;
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
 
 let mainWindow = null;
 let splashWindow = null;
@@ -31,8 +59,136 @@ let powerShellExecutablePath = null;
 let isQuitting = false;
 let updateCheckInterval = null;
 let latestUpdateStatus = { state: "idle" };
+let pendingWorkflowDeepLink = initialWorkflowDeepLink;
+let mainWindowReadyToShow = false;
+let rendererReadyForDisplay = false;
+let hasRevealedMainWindow = false;
+let rendererReadyFallbackTimer = null;
+let startupStartedAt = Date.now();
 
-function updateSplashProgress(percent, message = "Loading PSForge Desktop...") {
+function readCommandLineValue(names) {
+  for (const rawArg of process.argv.slice(1)) {
+    const arg = String(rawArg || "").trim();
+    for (const name of names) {
+      const normalizedName = name.toLowerCase();
+      const normalizedArg = arg.toLowerCase();
+      if (normalizedArg === normalizedName) {
+        return "true";
+      }
+      if (normalizedArg.startsWith(`${normalizedName}=`)) {
+        return arg.slice(name.length + 1).replace(/^"|"$/g, "");
+      }
+      if (normalizedArg.startsWith(`${normalizedName}:`)) {
+        return arg.slice(name.length + 1).replace(/^"|"$/g, "");
+      }
+    }
+  }
+
+  return null;
+}
+
+async function readRegistryValue(root, keyPath, valueName) {
+  try {
+    const { stdout } = await execFileAsync("reg.exe", ["query", `${root}\\${keyPath}`, "/v", valueName], {
+      windowsHide: true,
+    });
+    const line = stdout
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .find((entry) => entry.toLowerCase().startsWith(valueName.toLowerCase()));
+
+    if (!line) {
+      return null;
+    }
+
+    const parts = line.split(/\s{2,}/);
+    return parts.length >= 3 ? parts.slice(2).join(" ").trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function readEnterpriseConfigFile() {
+  const candidates = [
+    path.join(process.env.ProgramData || "C:\\ProgramData", "PSForge", "Enterprise", "activation.json"),
+    path.join(app.getPath("userData"), "enterprise-activation.json"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (!fsSync.existsSync(candidate)) {
+        continue;
+      }
+
+      const parsed = JSON.parse(fsSync.readFileSync(candidate, "utf8"));
+      return {
+        licenseKey: typeof parsed.licenseKey === "string" ? parsed.licenseKey : undefined,
+        licenseServerUrl: typeof parsed.licenseServerUrl === "string" ? parsed.licenseServerUrl : undefined,
+        silent: parsed.silent === true,
+      };
+    } catch {
+      // Ignore malformed deployment config files and continue to other sources.
+    }
+  }
+
+  return {};
+}
+
+async function readEnterpriseRegistryOptions() {
+  const keyPath = "Software\\PSForge\\Enterprise";
+  const [hklmLicenseKey, hkcuLicenseKey, hklmLicenseServer, hkcuLicenseServer, hklmSilent, hkcuSilent] = await Promise.all([
+    readRegistryValue("HKLM", keyPath, "LicenseKey"),
+    readRegistryValue("HKCU", keyPath, "LicenseKey"),
+    readRegistryValue("HKLM", keyPath, "LicenseServerUrl"),
+    readRegistryValue("HKCU", keyPath, "LicenseServerUrl"),
+    readRegistryValue("HKLM", keyPath, "Silent"),
+    readRegistryValue("HKCU", keyPath, "Silent"),
+  ]);
+
+  return {
+    licenseKey: hkcuLicenseKey || hklmLicenseKey || undefined,
+    licenseServerUrl: hkcuLicenseServer || hklmLicenseServer || undefined,
+    silent: (hkcuSilent || hklmSilent || "").toLowerCase() === "true" || (hkcuSilent || hklmSilent || "") === "1",
+  };
+}
+
+async function getEnterpriseInstallOptions() {
+  if (desktopEdition !== "enterprise") {
+    return undefined;
+  }
+
+  const fileOptions = readEnterpriseConfigFile();
+  const registryOptions = await readEnterpriseRegistryOptions();
+  const licenseKey = process.env.PSFORGE_ENTERPRISE_LICENSE_KEY
+    || readCommandLineValue([
+      "--enterprise-license-key",
+      "--psforge-license-key",
+      "/enterpriseLicenseKey",
+      "/psforgeLicenseKey",
+    ])
+    || fileOptions.licenseKey
+    || registryOptions.licenseKey;
+  const licenseServerUrl = process.env.PSFORGE_ENTERPRISE_LICENSE_URL
+    || readCommandLineValue([
+      "--enterprise-license-server",
+      "--psforge-license-server",
+      "/enterpriseLicenseServer",
+      "/psforgeLicenseServer",
+    ])
+    || fileOptions.licenseServerUrl
+    || registryOptions.licenseServerUrl;
+  const silent = readCommandLineValue(["--enterprise-silent", "/enterpriseSilent"]) === "true"
+    || fileOptions.silent === true
+    || registryOptions.silent === true;
+
+  return {
+    ...(licenseKey ? { licenseKey } : {}),
+    ...(licenseServerUrl ? { licenseServerUrl } : {}),
+    silent,
+  };
+}
+
+function updateSplashProgress(percent, message = getStartupMessage("starting")) {
   if (!splashWindow || splashWindow.isDestroyed()) {
     return;
   }
@@ -44,6 +200,41 @@ function updateSplashProgress(percent, message = "Loading PSForge Desktop...") {
     .catch(() => {
       // Ignore timing issues if the splash content has not finished loading yet.
     });
+}
+
+function revealMainWindow(reason = "ready") {
+  if (hasRevealedMainWindow || !mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if ((!mainWindowReadyToShow || !rendererReadyForDisplay) && reason !== "fallback") {
+    return;
+  }
+
+  hasRevealedMainWindow = true;
+  updateSplashProgress(100, getStartupMessage("ready"));
+
+  if (rendererReadyFallbackTimer) {
+    clearTimeout(rendererReadyFallbackTimer);
+    rendererReadyFallbackTimer = null;
+  }
+
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isMaximized()) {
+      mainWindow.maximize();
+    }
+
+    mainWindow?.show();
+    mainWindow?.focus();
+
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+    }
+
+    if (latestUpdateStatus.state !== "idle") {
+      mainWindow?.webContents.send("desktop:update-status", latestUpdateStatus);
+    }
+  }, 180);
 }
 
 function sendMenuAction(action) {
@@ -74,6 +265,128 @@ function writeDesktopStorage(nextStorage) {
   const storagePath = getDesktopStoragePath();
   fsSync.mkdirSync(path.dirname(storagePath), { recursive: true });
   fsSync.writeFileSync(storagePath, JSON.stringify(nextStorage, null, 2), "utf8");
+}
+
+function normalizeLocale(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  const base = normalized.split(/[-_]/)[0];
+  return supportedLocales.some((locale) => locale.code === base) ? base : "en";
+}
+
+function getStoredLocale() {
+  const storage = readDesktopStorage();
+  return normalizeLocale(storage[localeStorageKey] || app.getLocale());
+}
+
+function getMenuLabel(key) {
+  const locale = getStoredLocale();
+  const labels = {
+    en: {
+      file: "File",
+      newScript: "New Script",
+      open: "Open",
+      saveLocal: "Save Local",
+      saveAs: "Save As",
+      recentFiles: "Recent Files",
+      exit: "Exit",
+      edit: "Edit",
+      view: "View",
+      window: "Window",
+      appSettings: "App Settings",
+      accountLicense: "Account & License",
+      subscriptionBilling: "Subscription & Billing",
+      workspaceRecovery: "Workspace Recovery",
+      language: "Language",
+      checkUpdates: "Check for Updates",
+      help: "Help",
+      website: "PSForge Website",
+      quit: "Quit PSForge",
+    },
+    es: {
+      file: "Archivo",
+      newScript: "Nuevo script",
+      open: "Abrir",
+      saveLocal: "Guardar local",
+      saveAs: "Guardar como",
+      recentFiles: "Archivos recientes",
+      exit: "Salir",
+      edit: "Editar",
+      view: "Ver",
+      window: "Ventana",
+      appSettings: "Configuracion de la aplicacion",
+      accountLicense: "Cuenta y licencia",
+      subscriptionBilling: "Suscripcion y facturacion",
+      workspaceRecovery: "Recuperacion del espacio de trabajo",
+      language: "Idioma",
+      checkUpdates: "Buscar actualizaciones",
+      help: "Ayuda",
+      website: "Sitio web de PSForge",
+      quit: "Salir de PSForge",
+    },
+  };
+  return labels[locale]?.[key] || labels.en[key] || key;
+}
+
+function setStoredLocale(locale) {
+  const storage = readDesktopStorage();
+  storage[localeStorageKey] = normalizeLocale(locale);
+  writeDesktopStorage(storage);
+}
+
+function getStartupMessage(key) {
+  const locale = getStoredLocale();
+  const messages = {
+    en: {
+      starting: "Starting PSForge Desktop...",
+      services: "Starting local workspace services...",
+      features: "Preparing desktop features...",
+      menu: "Building desktop menu...",
+      opening: "Opening desktop workspace...",
+      loading: "Loading workspace interface...",
+      finalizing: "Finalizing workspace...",
+      rendering: "Rendering workspace...",
+      finishing: "Finishing first render...",
+      ready: "Workspace ready",
+    },
+    es: {
+      starting: "Iniciando PSForge Desktop...",
+      services: "Iniciando servicios locales...",
+      features: "Preparando funciones de escritorio...",
+      menu: "Creando menu de escritorio...",
+      opening: "Abriendo el espacio de trabajo...",
+      loading: "Cargando la interfaz...",
+      finalizing: "Finalizando el espacio de trabajo...",
+      rendering: "Renderizando el espacio de trabajo...",
+      finishing: "Terminando la primera vista...",
+      ready: "Espacio de trabajo listo",
+    },
+    fr: {
+      starting: "Demarrage de PSForge Desktop...",
+      services: "Demarrage des services locaux...",
+      features: "Preparation des fonctions bureau...",
+      menu: "Creation du menu bureau...",
+      opening: "Ouverture de l'espace de travail...",
+      loading: "Chargement de l'interface...",
+      finalizing: "Finalisation de l'espace de travail...",
+      rendering: "Rendu de l'espace de travail...",
+      finishing: "Finalisation du premier rendu...",
+      ready: "Espace de travail pret",
+    },
+    de: {
+      starting: "PSForge Desktop wird gestartet...",
+      services: "Lokale Arbeitsbereichsdienste werden gestartet...",
+      features: "Desktop-Funktionen werden vorbereitet...",
+      menu: "Desktop-Menu wird erstellt...",
+      opening: "Arbeitsbereich wird geoffnet...",
+      loading: "Arbeitsbereichsoberflache wird geladen...",
+      finalizing: "Arbeitsbereich wird abgeschlossen...",
+      rendering: "Arbeitsbereich wird gerendert...",
+      finishing: "Erste Ansicht wird abgeschlossen...",
+      ready: "Arbeitsbereich bereit",
+    },
+  };
+
+  return messages[locale]?.[key] || messages.en[key] || "Loading PSForge Desktop...";
 }
 
 async function writeDesktopLog(message) {
@@ -108,6 +421,7 @@ function sendUpdateStatus(status) {
 function withDesktopFlag(url) {
   const nextUrl = new URL(url);
   nextUrl.searchParams.set("desktop", "1");
+  nextUrl.searchParams.set("psforgeLocale", getStoredLocale());
   return nextUrl.toString();
 }
 
@@ -117,6 +431,10 @@ function getPreloadPath() {
   }
 
   return path.join(process.resourcesPath, "app.asar.unpacked", "dist-electron", "preload.cjs");
+}
+
+function getLanguagePreloadPath() {
+  return path.join(__dirname, "language-preload.cjs");
 }
 
 function getWindowIconPath() {
@@ -178,7 +496,7 @@ function createSplashWindow() {
 
   splashWindow.once("ready-to-show", () => {
     splashWindow?.show();
-    updateSplashProgress(8, "Starting PSForge Desktop...");
+    updateSplashProgress(8, getStartupMessage("starting"));
   });
 
   splashWindow.on("closed", () => {
@@ -340,6 +658,190 @@ function createSplashWindow() {
       </html>
     `)}`,
   );
+}
+
+function createFirstRunLanguageWindow() {
+  const storage = readDesktopStorage();
+  if (storage[localeStorageKey]) {
+    return Promise.resolve(getStoredLocale());
+  }
+
+  const detectedLocale = getStoredLocale();
+
+  return new Promise((resolve) => {
+    let resolved = false;
+    const finish = (locale) => {
+      if (resolved) {
+        return;
+      }
+      resolved = true;
+      const selectedLocale = normalizeLocale(locale);
+      setStoredLocale(selectedLocale);
+      if (languageWindow && !languageWindow.isDestroyed()) {
+        languageWindow.close();
+      }
+      resolve(selectedLocale);
+    };
+
+    const languageWindow = new BrowserWindow({
+      width: 560,
+      height: 520,
+      frame: false,
+      resizable: false,
+      movable: true,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      show: false,
+      center: true,
+      backgroundColor: "#0f172a",
+      icon: getWindowIcon(),
+      webPreferences: {
+        preload: getLanguagePreloadPath(),
+        contextIsolation: true,
+        sandbox: false,
+        nodeIntegration: false,
+      },
+    });
+
+    languageWindow.once("ready-to-show", () => {
+      languageWindow.show();
+      languageWindow.focus();
+    });
+
+    languageWindow.on("closed", () => {
+      finish(detectedLocale);
+    });
+
+    ipcMain.once("desktop:first-run-language-selected", (_event, locale) => {
+      finish(locale);
+    });
+
+    const options = supportedLocales
+      .map((locale) => `<option value="${locale.code}"${locale.code === detectedLocale ? " selected" : ""}>${locale.label}</option>`)
+      .join("");
+
+    languageWindow.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(`
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              * { box-sizing: border-box; }
+              html, body {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                background: #0f172a;
+                color: #f8fafc;
+                font-family: Segoe UI, Arial, sans-serif;
+              }
+              body {
+                display: grid;
+                place-items: center;
+                padding: 28px;
+              }
+              .panel {
+                width: 100%;
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                border-radius: 12px;
+                background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98));
+                box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+                padding: 28px;
+              }
+              .mark {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                color: #93c5fd;
+                font-size: 13px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+              }
+              h1 {
+                margin: 18px 0 8px;
+                font-size: 30px;
+                line-height: 1.1;
+              }
+              p {
+                margin: 0;
+                color: #cbd5e1;
+                font-size: 15px;
+                line-height: 1.5;
+              }
+              label {
+                display: block;
+                margin-top: 24px;
+                color: #e2e8f0;
+                font-size: 13px;
+                font-weight: 700;
+              }
+              select {
+                width: 100%;
+                margin-top: 8px;
+                border: 1px solid rgba(148, 163, 184, 0.32);
+                border-radius: 8px;
+                background: #111827;
+                color: #f8fafc;
+                font-size: 16px;
+                padding: 12px;
+                outline: none;
+              }
+              .actions {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 26px;
+              }
+              button {
+                border: 0;
+                border-radius: 8px;
+                background: #3b82f6;
+                color: white;
+                font-size: 15px;
+                font-weight: 700;
+                padding: 12px 18px;
+                cursor: pointer;
+              }
+              button:hover { background: #2563eb; }
+              .note {
+                margin-top: 14px;
+                color: #94a3b8;
+                font-size: 12px;
+              }
+            </style>
+          </head>
+          <body>
+            <main class="panel">
+              <div class="mark">PSForge Desktop</div>
+              <h1>Choose your language</h1>
+              <p>Select the language you want PSForge to use. You can change this later from App Settings.</p>
+              <label for="locale">Language</label>
+              <select id="locale">${options}</select>
+              <div class="note">PSForge will continue loading after this choice is saved.</div>
+              <div class="actions">
+                <button id="continue">Continue</button>
+              </div>
+            </main>
+            <script>
+              const select = document.getElementById("locale");
+              const submit = () => {
+                document.getElementById("continue").disabled = true;
+                window.psforgeLanguagePrompt.selectLanguage(select.value);
+              };
+              document.getElementById("continue").addEventListener("click", submit);
+              document.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                  submit();
+                }
+              });
+            </script>
+          </body>
+        </html>
+      `)}`,
+    );
+  });
 }
 
 function isPathInside(basePath, targetPath) {
@@ -822,7 +1324,11 @@ async function startLocalFrontendServer() {
 }
 
 function createWindow() {
-  updateSplashProgress(76, "Opening desktop workspace...");
+  mainWindowReadyToShow = false;
+  rendererReadyForDisplay = false;
+  hasRevealedMainWindow = false;
+  startupStartedAt = Date.now();
+  updateSplashProgress(76, getStartupMessage("opening"));
 
   mainWindow = new BrowserWindow({
     width: 1600,
@@ -849,20 +1355,28 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  mainWindow.webContents.on("context-menu", (event, params) => {
+    if (params.isEditable || params.selectionText) {
+      event.preventDefault();
+      showEditContextMenu(mainWindow.webContents, params);
+    }
+  });
+
   mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
     void writeDesktopLog(`[renderer-console:${level}] ${sourceId || "unknown"}:${line} ${message}`);
   });
 
   mainWindow.webContents.on("did-start-loading", () => {
-    updateSplashProgress(86, "Loading workspace interface...");
+    updateSplashProgress(86, getStartupMessage("loading"));
   });
 
   mainWindow.webContents.on("dom-ready", () => {
-    updateSplashProgress(95, "Finalizing workspace...");
+    updateSplashProgress(95, getStartupMessage("finalizing"));
   });
 
   mainWindow.webContents.on("did-finish-load", () => {
-    updateSplashProgress(100, "Workspace ready");
+    updateSplashProgress(98, getStartupMessage("rendering"));
+    sendPendingWorkflowDeepLink();
   });
 
   mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
@@ -894,24 +1408,70 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
-    updateSplashProgress(100, "Workspace ready");
-    setTimeout(() => {
-      if (splashWindow && !splashWindow.isDestroyed()) {
-        splashWindow.close();
-      }
-
-      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isMaximized()) {
-        mainWindow.maximize();
-      }
-
-      mainWindow?.show();
-      if (latestUpdateStatus.state !== "idle") {
-        mainWindow?.webContents.send("desktop:update-status", latestUpdateStatus);
-      }
-    }, 180);
+    mainWindowReadyToShow = true;
+    updateSplashProgress(99, getStartupMessage("finishing"));
+    revealMainWindow("window-ready");
   });
 
   mainWindow.loadURL(withDesktopFlag(isDev ? devServerUrl : localServerUrl));
+
+  rendererReadyFallbackTimer = setTimeout(() => {
+    void writeDesktopLog("[startup] Renderer ready signal timed out; revealing main window by fallback.");
+    mainWindowReadyToShow = true;
+    revealMainWindow("fallback");
+  }, 12000);
+}
+
+function normalizeWorkflowDeepLinkPayload(result) {
+  if (!result || !result.ok) {
+    return null;
+  }
+
+  return {
+    ok: true,
+    workflowId: result.workflowId,
+    source: "protocol",
+    receivedAt: new Date().toISOString(),
+  };
+}
+
+function sendWorkflowDeepLink(result) {
+  const payload = normalizeWorkflowDeepLinkPayload(result);
+  if (!payload) {
+    return;
+  }
+
+  pendingWorkflowDeepLink = result;
+  sendPendingWorkflowDeepLink();
+}
+
+function sendPendingWorkflowDeepLink() {
+  if (!pendingWorkflowDeepLink || !mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  const payload = normalizeWorkflowDeepLinkPayload(pendingWorkflowDeepLink);
+  if (!payload) {
+    pendingWorkflowDeepLink = null;
+    return;
+  }
+
+  if (mainWindow.webContents.isLoading()) {
+    return;
+  }
+
+  mainWindow.webContents.send("desktop:workflow-deeplink", payload);
+  pendingWorkflowDeepLink = null;
+}
+
+function handleWorkflowDeepLinkActivation(commandLine) {
+  const result = extractWorkflowDeepLinkFromArgv(commandLine);
+  if (!result?.ok) {
+    return;
+  }
+
+  showMainWindow();
+  sendWorkflowDeepLink(result);
 }
 
 function showMainWindow() {
@@ -930,6 +1490,21 @@ function showMainWindow() {
   mainWindow.focus();
 }
 
+function showEditContextMenu(webContents, params = {}) {
+  const menu = Menu.buildFromTemplate([
+    { role: "undo", enabled: Boolean(params.editFlags?.canUndo) },
+    { role: "redo", enabled: Boolean(params.editFlags?.canRedo) },
+    { type: "separator" },
+    { role: "cut", enabled: Boolean(params.editFlags?.canCut) },
+    { role: "copy", enabled: Boolean(params.editFlags?.canCopy) },
+    { role: "paste", enabled: Boolean(params.editFlags?.canPaste) },
+    { type: "separator" },
+    { role: "selectAll", enabled: Boolean(params.editFlags?.canSelectAll ?? true) },
+  ]);
+
+  menu.popup({ window: BrowserWindow.fromWebContents(webContents) || mainWindow || undefined });
+}
+
 function createApplicationMenu() {
   const isMac = process.platform === "darwin";
   const template = [
@@ -946,7 +1521,7 @@ function createApplicationMenu() {
             { role: "unhide" },
             { type: "separator" },
             {
-              label: "Quit PSForge",
+              label: getMenuLabel("quit"),
               accelerator: "CmdOrCtrl+Q",
               click: () => {
                 isQuitting = true;
@@ -957,38 +1532,38 @@ function createApplicationMenu() {
         }]
       : []),
     {
-      label: "File",
+      label: getMenuLabel("file"),
       submenu: [
         {
-          label: "New Script",
+          label: getMenuLabel("newScript"),
           accelerator: "CmdOrCtrl+N",
           click: () => sendMenuAction("file:new"),
         },
         {
-          label: "Open",
+          label: getMenuLabel("open"),
           accelerator: "CmdOrCtrl+O",
           click: () => sendMenuAction("file:open"),
         },
         {
-          label: "Save Local",
+          label: getMenuLabel("saveLocal"),
           accelerator: "CmdOrCtrl+S",
           click: () => sendMenuAction("file:save"),
         },
         {
-          label: "Save As",
+          label: getMenuLabel("saveAs"),
           accelerator: "CmdOrCtrl+Shift+S",
           click: () => sendMenuAction("file:save-as"),
         },
         { type: "separator" },
         {
-          label: "Recent Files",
+          label: getMenuLabel("recentFiles"),
           click: () => sendMenuAction("file:recent"),
         },
-        ...(isMac ? [] : [{ type: "separator" }, { role: "quit", label: "Exit" }]),
+        ...(isMac ? [] : [{ type: "separator" }, { role: "quit", label: getMenuLabel("exit") }]),
       ],
     },
     {
-      label: "Edit",
+      label: getMenuLabel("edit"),
       submenu: [
         { role: "undo" },
         { role: "redo" },
@@ -1000,7 +1575,7 @@ function createApplicationMenu() {
       ],
     },
     {
-      label: "View",
+      label: getMenuLabel("view"),
       submenu: [
         { role: "reload" },
         { role: "forceReload" },
@@ -1014,40 +1589,44 @@ function createApplicationMenu() {
       ],
     },
     {
-      label: "Window",
+      label: getMenuLabel("window"),
       submenu: [
         { role: "minimize" },
         { role: "close" },
       ],
     },
     {
-      label: "App Settings",
+      label: getMenuLabel("appSettings"),
       submenu: [
         {
-          label: "Account & License",
+          label: getMenuLabel("accountLicense"),
           click: () => sendMenuAction("settings:license"),
         },
         {
-          label: "Subscription & Billing",
+          label: getMenuLabel("subscriptionBilling"),
           click: () => sendMenuAction("settings:subscription"),
         },
         {
-          label: "Workspace Recovery",
+          label: getMenuLabel("workspaceRecovery"),
           click: () => sendMenuAction("settings:recovery"),
+        },
+        {
+          label: getMenuLabel("language"),
+          click: () => sendMenuAction("settings:language"),
         },
         { type: "separator" },
         {
-          label: "Check for Updates",
+          label: getMenuLabel("checkUpdates"),
           click: () => sendMenuAction("settings:check-updates"),
         },
       ],
     },
     {
-      label: "Help",
+      label: getMenuLabel("help"),
       submenu: [
         {
-          label: "PSForge Website",
-          click: () => shell.openExternal("https://www.psforge.app"),
+          label: getMenuLabel("website"),
+          click: () => shell.openExternal("https://psforge.app"),
         },
       ],
     },
@@ -1172,6 +1751,8 @@ ipcMain.handle("desktop:get-context", async () => ({
   platform: process.platform,
   version: app.getVersion(),
   osVersion: os.release(),
+  edition: desktopEdition,
+  enterpriseInstallOptions: await getEnterpriseInstallOptions(),
 }));
 
 ipcMain.handle("desktop:updates-get-state", async () => latestUpdateStatus);
@@ -1482,6 +2063,7 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
   const method = typeof payload?.method === "string" ? payload.method : "GET";
   const headers = payload?.headers && typeof payload.headers === "object" ? payload.headers : {};
   const body = typeof payload?.body === "string" ? payload.body : undefined;
+  const maxRedirects = 3;
 
   if (!url) {
     return {
@@ -1493,32 +2075,56 @@ ipcMain.handle("desktop:http-request", async (_event, payload) => {
   }
 
   try {
-    await writeDesktopLog(`HTTP ${method} ${url}`);
-    const result = await new Promise((resolve, reject) => {
-      const request = https.request(url, {
-        method,
-        headers,
-      }, (response) => {
-        const chunks = [];
-        response.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-        response.on("end", () => {
-          resolve({
-            ok: (response.statusCode || 0) >= 200 && (response.statusCode || 0) < 300,
-            status: response.statusCode || 0,
-            headers: response.headers,
-            text: Buffer.concat(chunks).toString("utf8"),
+    const requestWithRedirects = async (requestUrl, requestMethod, requestBody, redirectsRemaining) => {
+      await writeDesktopLog(`HTTP ${requestMethod} ${requestUrl}`);
+      const result = await new Promise((resolve, reject) => {
+        const requestClient = requestUrl.startsWith("http://") ? http : https;
+        const request = requestClient.request(requestUrl, {
+          method: requestMethod,
+          headers,
+        }, (response) => {
+          const chunks = [];
+          response.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+          response.on("end", () => {
+            resolve({
+              ok: (response.statusCode || 0) >= 200 && (response.statusCode || 0) < 300,
+              status: response.statusCode || 0,
+              headers: response.headers,
+              text: Buffer.concat(chunks).toString("utf8"),
+            });
           });
         });
+
+        request.on("error", reject);
+
+        if (requestBody) {
+          request.write(requestBody);
+        }
+
+        request.end();
       });
 
-      request.on("error", reject);
+      const locationHeader = result.headers?.location;
+      const redirectLocation = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
+      if ([301, 302, 303, 307, 308].includes(result.status) && redirectLocation && redirectsRemaining > 0) {
+        const nextUrl = new URL(redirectLocation, requestUrl);
+        if (nextUrl.protocol !== "https:" && nextUrl.protocol !== "http:") {
+          return result;
+        }
 
-      if (body) {
-        request.write(body);
+        const preserveBody = result.status === 307 || result.status === 308;
+        return requestWithRedirects(
+          nextUrl.toString(),
+          preserveBody ? requestMethod : "GET",
+          preserveBody ? requestBody : undefined,
+          redirectsRemaining - 1,
+        );
       }
 
-      request.end();
-    });
+      return result;
+    };
+
+    const result = await requestWithRedirects(url, method, body, maxRedirects);
 
     await writeDesktopLog(`HTTP ${method} ${url} -> ${result.status}`);
     return result;
@@ -1541,13 +2147,64 @@ ipcMain.handle("desktop:debug-log", async (_event, message) => {
   return { ok: true };
 });
 
+ipcMain.handle("desktop:show-edit-context-menu", async (event) => {
+  showEditContextMenu(event.sender, {
+    editFlags: {
+      canUndo: true,
+      canRedo: true,
+      canCut: true,
+      canCopy: true,
+      canPaste: true,
+      canSelectAll: true,
+    },
+  });
+  return { ok: true };
+});
+
+ipcMain.on("desktop:renderer-ready", (_event, payload = {}) => {
+  rendererReadyForDisplay = true;
+  const elapsedMs = Number.isFinite(payload?.elapsedMs)
+    ? Math.max(0, Math.round(payload.elapsedMs))
+    : Date.now() - startupStartedAt;
+  const route = typeof payload?.route === "string" ? payload.route.slice(0, 120) : "unknown";
+  void writeDesktopLog(`[startup] Renderer first paint ready in ${elapsedMs}ms route=${route}`);
+  updateSplashProgress(100, getStartupMessage("ready"));
+  revealMainWindow("renderer-ready");
+});
+
+ipcMain.handle("desktop:get-pending-workflow-deeplink", async () => {
+  const payload = normalizeWorkflowDeepLinkPayload(pendingWorkflowDeepLink);
+  pendingWorkflowDeepLink = null;
+  return payload;
+});
+
+app.on("second-instance", (_event, commandLine) => {
+  handleWorkflowDeepLinkActivation(commandLine);
+});
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  const result = parseWorkflowDeepLink(url);
+  if (result.ok) {
+    showMainWindow();
+    sendWorkflowDeepLink(result);
+  }
+});
+
 app.whenReady().then(async () => {
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient("psforge", process.execPath, [path.resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient("psforge");
+  }
+
+  await createFirstRunLanguageWindow();
   createSplashWindow();
-  updateSplashProgress(12, "Starting local workspace services...");
+  updateSplashProgress(12, getStartupMessage("services"));
   await startLocalFrontendServer();
-  updateSplashProgress(58, "Preparing desktop features...");
+  updateSplashProgress(58, getStartupMessage("features"));
   createApplicationMenu();
-  updateSplashProgress(68, "Building desktop menu...");
+  updateSplashProgress(68, getStartupMessage("menu"));
   createWindow();
   configureAutoUpdater();
 

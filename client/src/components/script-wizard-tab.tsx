@@ -17,6 +17,8 @@ import { generateBulkScript, BulkTaskConfig } from '@/lib/bulk-script-generator'
 import { trackDesktopAnalyticsEvent } from '@/lib/desktop-analytics';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useDesktopLocale } from '@/lib/i18n';
+import { localizeDesktopText } from '@/lib/desktop-localization';
 
 // Import all task libraries
 import { adTasks } from '@/lib/ad-tasks';
@@ -132,6 +134,71 @@ const platforms: PlatformConfig[] = [
   { id: 'sql-server', name: 'SQL Server', description: 'Database administration and maintenance', isPremium: true, tasks: sqlServerTasks },
 ];
 
+const spanishPlatformDisplay: Record<string, { name?: string; description: string }> = {
+  'file-system': { name: 'Sistema de archivos', description: 'Administra archivos y carpetas' },
+  network: { name: 'Red', description: 'Configuracion y diagnostico de red' },
+  services: { name: 'Servicios', description: 'Administracion de servicios de Windows' },
+  'process-management': { name: 'Gestion de procesos', description: 'Controla procesos en ejecucion' },
+  'event-logs': { name: 'Registros de eventos', description: 'Consulta y administra registros del sistema' },
+  'active-directory': { description: 'Administracion de usuarios y grupos' },
+  registry: { name: 'Registro', description: 'Operaciones del registro de Windows' },
+  security: { name: 'Seguridad', description: 'Seguridad y permisos' },
+  'exchange-online': { description: 'Administracion de buzones de Office 365' },
+  'azure-ad': { description: 'Identidad de Azure Active Directory' },
+  'azure-resources': { description: 'Infraestructura en la nube de Azure' },
+  'sharepoint-online': { description: 'Administracion de SharePoint Online' },
+  'sharepoint-onprem': { description: 'SharePoint local' },
+  mecm: { description: 'Configuration Manager' },
+  'exchange-server': { description: 'Exchange local' },
+  'hyper-v': { description: 'Administracion de maquinas virtuales' },
+  intune: { description: 'Administracion de dispositivos' },
+  'power-platform': { description: 'Power Apps y Automate' },
+  teams: { description: 'Colaboracion en Teams' },
+  office365: { description: 'Tenant de Office 365' },
+  onedrive: { description: 'Almacenamiento en la nube de OneDrive' },
+  windows365: { description: 'Administracion de Cloud PC' },
+  'windows-server': { description: 'Configuracion y caracteristicas de servidor' },
+  vmware: { description: 'Automatizacion de infraestructura VMware' },
+  veeam: { description: 'Operaciones de copia de seguridad y recuperacion' },
+  nutanix: { description: 'Infraestructura hiperconvergente Nutanix' },
+  citrix: { description: 'Citrix XenApp y XenDesktop' },
+  pdq: { description: 'Implementacion de software e inventario' },
+  chocolatey: { description: 'Automatizacion de administracion de paquetes' },
+  servicenow: { description: 'Automatizacion de ITSM y tickets' },
+  connectwise: { description: 'Automatizacion de RMM y PSA' },
+  aws: { description: 'Administracion de recursos en la nube de AWS' },
+  gcp: { description: 'Automatizacion de infraestructura GCP' },
+  crowdstrike: { description: 'Automatizacion de seguridad de endpoints' },
+  sophos: { description: 'Administracion de proteccion de endpoints' },
+  okta: { description: 'Administracion de identidad y acceso' },
+  duo: { description: 'Autenticacion multifactor' },
+  fortinet: { description: 'Firewall y seguridad de red' },
+  cisco: { description: 'Administracion de red e inalambrica' },
+  netapp: { description: 'Administracion de almacenamiento empresarial' },
+  jamf: { description: 'Administracion de dispositivos Apple' },
+  slack: { description: 'Automatizacion de colaboracion de equipo' },
+  zoom: { description: 'Automatizacion de videoconferencias' },
+  github: { description: 'Automatizacion de DevOps y repositorios' },
+  splunk: { description: 'Monitoreo y analitica' },
+  docker: { description: 'Orquestacion de contenedores' },
+  jira: { description: 'Automatizacion de gestion de proyectos' },
+  salesforce: { description: 'Automatizacion de CRM' },
+  'sql-server': { description: 'Administracion y mantenimiento de bases de datos' },
+};
+
+function getLocalizedPlatform(platform: PlatformConfig, locale: string): PlatformConfig {
+  if (locale !== 'es') {
+    return platform;
+  }
+
+  const display = spanishPlatformDisplay[platform.id];
+  return {
+    ...platform,
+    name: display?.name || platform.name,
+    description: display?.description || platform.description,
+  };
+}
+
 interface ScriptWizardTabProps {
   script: string;
   setScript: (script: string) => void;
@@ -140,6 +207,8 @@ interface ScriptWizardTabProps {
 export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   const { featureAccess } = useAuth();
   const { toast } = useToast();
+  const { locale, t } = useDesktopLocale();
+  const localize = (text: string | undefined) => localizeDesktopText(locale, text);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -183,7 +252,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   // AI Review mutation
   const aiReviewMutation = useMutation({
     mutationFn: async (code: string) => {
-      const response = await apiRequest('/api/ai/optimize', 'POST', { code });
+      const response = await apiRequest('/api/ai/optimize', 'POST', { code, locale });
       return await response.json();
     },
     onSuccess: (data) => {
@@ -245,7 +314,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
   // Apply AI optimizations mutation
   const applyOptimizationsMutation = useMutation({
     mutationFn: async ({ code, recommendations }: { code: string; recommendations: any[] }) => {
-      const response = await apiRequest('/api/ai/apply-optimizations', 'POST', { code, recommendations });
+      const response = await apiRequest('/api/ai/apply-optimizations', 'POST', { code, recommendations, locale });
       return await response.json();
     },
     onSuccess: (data) => {
@@ -282,8 +351,10 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
 
   // Filter platforms based on subscription
   const availablePlatforms = useMemo(() => {
-    return platforms.filter(p => !p.isPremium || featureAccess?.hasPremiumCategories);
-  }, [featureAccess]);
+    return platforms
+      .filter(p => !p.isPremium || featureAccess?.hasPremiumCategories)
+      .map((platform) => getLocalizedPlatform(platform, locale));
+  }, [featureAccess, locale]);
 
   // Get tasks from selected platforms
   const availableTasks = useMemo(() => {
@@ -291,17 +362,18 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
     selectedPlatforms.forEach(platformId => {
       const platform = platforms.find(p => p.id === platformId);
       if (platform) {
-        platform.tasks.forEach(task => {
+        const localizedPlatform = getLocalizedPlatform(platform, locale);
+        localizedPlatform.tasks.forEach(task => {
           tasks.push({
             ...task,
             platformId,
-            platformName: platform.name
+            platformName: localizedPlatform.name
           });
         });
       }
     });
     return tasks;
-  }, [selectedPlatforms]);
+  }, [selectedPlatforms, locale]);
 
   // Helper function to detect if a task is a bulk operation
   const isBulkTask = (task: any): boolean => {
@@ -901,7 +973,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             ))}
           </div>
           <div className="text-sm text-muted-foreground">
-            Step {currentStep} of {totalSteps}
+            {t("stepOf", { current: currentStep, total: totalSteps })}
           </div>
         </div>
       </div>
@@ -913,15 +985,15 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             <div className="space-y-6">
               <Card data-testid="wizard-step-platform-selection">
                 <CardHeader>
-                  <CardTitle>Select Platforms</CardTitle>
+                  <CardTitle>{t("selectPlatforms")}</CardTitle>
                   <CardDescription>
-                    Choose one or more IT platforms for your bulk automation tasks
+                    {t("selectPlatformsDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Alert className="mb-4">
                     <Info className="h-4 w-4" />
-                    <AlertDescription>Select the platforms where you want to perform operations. You can combine tasks from multiple platforms in a single script.</AlertDescription>
+                    <AlertDescription>{t("selectPlatformsHelp")}</AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -943,13 +1015,13 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                         />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <Label className="font-medium cursor-pointer">{platform.name}</Label>
+                            <Label className="font-medium cursor-pointer">{localize(platform.name)}</Label>
                             {platform.isPremium && (
                               <Badge variant="secondary" className="text-xs">Pro</Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">{platform.description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{platform.tasks.length} tasks</p>
+                          <p className="text-xs text-muted-foreground mt-1">{localize(platform.description)}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{platform.tasks.length} {t("tasks")}</p>
                         </div>
                       </div>
                     ))}
@@ -959,7 +1031,12 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                     <Alert className="mt-4">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? 's' : ''} selected • {availableTasks.length} tasks available
+                        {t("platformSelectionSummary", {
+                          platforms: selectedPlatforms.length,
+                          platformPlural: selectedPlatforms.length !== 1 ? "s" : "",
+                          tasks: availableTasks.length,
+                          taskPlural: availableTasks.length !== 1 ? "s" : "",
+                        })}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -973,16 +1050,16 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             <div className="space-y-6">
               <Card data-testid="wizard-step-task-selection">
                 <CardHeader>
-                  <CardTitle>Select Tasks</CardTitle>
+                  <CardTitle>{t("selectTasks")}</CardTitle>
                   <CardDescription>
-                    Choose automation tasks to include in your bulk script. Tasks will execute in the order selected.
+                    {t("selectTasksDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Alert className="mb-4">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      Select tasks in the order they should execute for each item in your bulk operation.
+                      {t("selectTasksHelp")}
                     </AlertDescription>
                   </Alert>
 
@@ -995,7 +1072,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
 
                       return (
                         <div key={platformId} className="mb-6">
-                          <h3 className="font-medium mb-3">{platform.name}</h3>
+                          <h3 className="font-medium mb-3">{localize(platform.name)}</h3>
                           <div className="space-y-2">
                             {platformTasks.map(task => (
                               <div
@@ -1015,12 +1092,12 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                 />
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
-                                    <Label className="font-medium cursor-pointer">{task.name}</Label>
+                                    <Label className="font-medium cursor-pointer">{localize(task.name)}</Label>
                                     {isBulkTask(task) && (
-                                      <Badge variant="secondary" className="text-xs">Bulk</Badge>
+                                      <Badge variant="secondary" className="text-xs">{localize("Bulk")}</Badge>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{localize(task.description)}</p>
                                 </div>
                               </div>
                             ))}
@@ -1035,14 +1112,14 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
                         <div className="space-y-1">
-                          <div>{selectedTasks.length} task{selectedTasks.length !== 1 ? 's' : ''} selected</div>
+                          <div>{selectedTasks.length} {t("tasks")} {t("selected")}</div>
                           {hasBulkTasks ? (
                             <div className="text-xs text-muted-foreground">
-                              Bulk operation detected - CSV data will be required after parameter configuration
+                              {t("bulkOperationCsvRequired")}
                             </div>
                           ) : (
                             <div className="text-xs text-green-600 dark:text-green-400">
-                              Next step: Configure parameters for your selected tasks
+                              {t("nextConfigureParameters")}
                             </div>
                           )}
                         </div>
@@ -1059,16 +1136,16 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
             <div className="space-y-6">
               <Card data-testid="wizard-step-configure-params">
                 <CardHeader>
-                  <CardTitle>Configure Parameters</CardTitle>
+                  <CardTitle>{localize("Configure Parameters")}</CardTitle>
                   <CardDescription>
-                    Enter the values for each task's parameters
+                    {localize("Enter the values for each task's parameters")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Alert className="mb-4">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      Fill in the required parameters for each task. Fields marked with * are required.
+                      {localize("Fill in the required parameters for each task. Fields marked with * are required.")}
                     </AlertDescription>
                   </Alert>
 
@@ -1085,13 +1162,13 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                 {taskIndex + 1}
                               </div>
                               <div>
-                                <h4 className="font-medium">{task.name}</h4>
-                                <p className="text-xs text-muted-foreground">{task.platformName}</p>
+                                <h4 className="font-medium">{localize(task.name)}</h4>
+                                <p className="text-xs text-muted-foreground">{localize(task.platformName)}</p>
                               </div>
                             </div>
 
                             {taskParams.length === 0 ? (
-                              <p className="text-sm text-muted-foreground italic">This task has no configurable parameters.</p>
+                              <p className="text-sm text-muted-foreground italic">{localize("This task has no configurable parameters.")}</p>
                             ) : (
                               <div className="space-y-4">
                                 {taskParams.map((param: any) => {
@@ -1100,7 +1177,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                   return (
                                     <div key={param.id} className="space-y-2">
                                       <Label htmlFor={`${task.id}-${param.id}`}>
-                                        {param.label}
+                                        {localize(param.label)}
                                         {param.required && <span className="text-destructive ml-1">*</span>}
                                       </Label>
                                       
@@ -1114,7 +1191,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                             className="h-4 w-4 rounded border-gray-300"
                                             data-testid={`input-${task.id}-${param.id}`}
                                           />
-                                          <span className="text-sm text-muted-foreground">{param.description || 'Enable/disable this option'}</span>
+                                          <span className="text-sm text-muted-foreground">{localize(param.description || "Enable/disable this option")}</span>
                                         </div>
                                       ) : param.type === 'select' ? (
                                         <select
@@ -1124,11 +1201,11 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                           data-testid={`input-${task.id}-${param.id}`}
                                         >
-                                          <option value="">Select {param.label}...</option>
+                                          <option value="">{localize("Select")} {localize(param.label)}...</option>
                                           {param.options?.map((opt: any) => {
                                             const optValue = typeof opt === 'string' ? opt : opt.value;
                                             const optLabel = typeof opt === 'string' ? opt : opt.label;
-                                            return <option key={optValue} value={optValue}>{optLabel}</option>;
+                                            return <option key={optValue} value={optValue}>{localize(optLabel)}</option>;
                                           })}
                                         </select>
                                       ) : param.type === 'textarea' ? (
@@ -1136,7 +1213,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                           id={`${task.id}-${param.id}`}
                                           value={value}
                                           onChange={(e) => handleTaskParameterChange(task.id, param.id, e.target.value)}
-                                          placeholder={param.placeholder || ''}
+                                          placeholder={localize(param.placeholder || '')}
                                           rows={3}
                                           data-testid={`input-${task.id}-${param.id}`}
                                         />
@@ -1146,14 +1223,14 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                                           id={`${task.id}-${param.id}`}
                                           value={value}
                                           onChange={(e) => handleTaskParameterChange(task.id, param.id, param.type === 'number' ? parseInt(e.target.value) || '' : e.target.value)}
-                                          placeholder={param.placeholder || ''}
+                                          placeholder={localize(param.placeholder || '')}
                                           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                           data-testid={`input-${task.id}-${param.id}`}
                                         />
                                       )}
                                       
                                       {param.description && param.type !== 'boolean' && (
-                                        <p className="text-xs text-muted-foreground">{param.description}</p>
+                                        <p className="text-xs text-muted-foreground">{localize(param.description)}</p>
                                       )}
                                     </div>
                                   );
@@ -1371,7 +1448,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                               <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between">
                                   <div>
-                                    <CardTitle className="text-base">{task.name}</CardTitle>
+                                    <CardTitle className="text-base">{localize(task.name)}</CardTitle>
                                     <CardDescription className="text-xs mt-1">
                                       {task.platformName} • {taskParams.length} parameter{taskParams.length !== 1 ? 's' : ''}
                                     </CardDescription>
@@ -1596,7 +1673,7 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
                 data-testid="button-wizard-previous"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
+                {t("previous")}
               </Button>
             )}
           </div>
@@ -1606,11 +1683,11 @@ export function ScriptWizardTab({ script, setScript }: ScriptWizardTabProps) {
               onClick={handleReset}
               data-testid="button-wizard-reset"
             >
-              Start Over
+              {t("startOver")}
             </Button>
             {currentStep < totalSteps ? (
               <Button onClick={handleNext} data-testid="button-wizard-next">
-                {currentStep === 4 || (currentStep === 3 && !hasBulkTasks) ? 'Generate Script' : 'Next'}
+                {currentStep === 4 || (currentStep === 3 && !hasBulkTasks) ? t("generateScript") : t("next")}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (

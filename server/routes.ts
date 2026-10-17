@@ -8,6 +8,7 @@ import { validatePowerShellScript as validateComprehensive } from "./script-vali
 import { getAIHelperResponse } from "./ai-helper";
 import { generateScriptDocumentation, analyzeScriptOptimization, applyScriptOptimizations } from "./ai-optimizer";
 import { analyzeLogFile } from "./ai-troubleshooter";
+import { normalizeAiLocale } from "./ai-locale";
 import { hashPassword, verifyPassword, createUserSession, deleteUserSession } from "./auth";
 import { sendPasswordResetEmail, sendSupportRequestEmail, sendWelcomeEmail } from "./email-service";
 import { 
@@ -906,6 +907,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   app.post("/api/ai-helper", requireSubscriber, async (req, res) => {
     try {
       const { message, conversationHistory } = req.body;
+      const locale = normalizeAiLocale(req.body?.locale);
 
       if (!message || typeof message !== "string") {
         return res.status(400).json({
@@ -928,7 +930,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
             }))
         : [];
 
-      const result = await getAIHelperResponse(message, sanitizedHistory);
+      const result = await getAIHelperResponse(message, sanitizedHistory, locale);
 
       return res.json(result);
     } catch (error) {
@@ -2465,12 +2467,13 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   app.post("/api/ai/generate-docs", requireAuth, async (req, res) => {
     try {
       const { code } = req.body;
+      const locale = normalizeAiLocale(req.body?.locale);
       
       if (!code || typeof code !== 'string') {
         return res.status(400).json({ error: "Code is required" });
       }
       
-      const documentation = await generateScriptDocumentation(code);
+      const documentation = await generateScriptDocumentation(code, locale);
       return res.json({ documentation });
     } catch (error) {
       console.error("Error generating documentation:", error);
@@ -2481,12 +2484,13 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   app.post("/api/ai/optimize", requireAuth, requireSubscriber, async (req, res) => {
     try {
       const { code } = req.body;
+      const locale = normalizeAiLocale(req.body?.locale);
       
       if (!code || typeof code !== 'string') {
         return res.status(400).json({ error: "Code is required" });
       }
       
-      const optimization = await analyzeScriptOptimization(code);
+      const optimization = await analyzeScriptOptimization(code, locale);
       return res.json(optimization);
     } catch (error) {
       console.error("Error optimizing script:", error);
@@ -2498,6 +2502,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   app.post("/api/ai/apply-optimizations", requireAuth, requireSubscriber, async (req, res) => {
     try {
       const { code, recommendations } = req.body;
+      const locale = normalizeAiLocale(req.body?.locale);
       
       if (!code || typeof code !== 'string') {
         return res.status(400).json({ error: "Code is required" });
@@ -2507,7 +2512,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
         return res.status(400).json({ error: "Recommendations array is required" });
       }
       
-      const optimizedScript = await applyScriptOptimizations(code, recommendations);
+      const optimizedScript = await applyScriptOptimizations(code, recommendations, locale);
       return res.json({ optimizedScript });
     } catch (error) {
       console.error("Error applying optimizations:", error);
@@ -2518,6 +2523,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
   app.post("/api/ai/troubleshoot", requireAuth, requireSubscriber, async (req, res) => {
     try {
       const { logContent, platform, context } = req.body;
+      const locale = normalizeAiLocale(req.body?.locale);
 
       if (!logContent || typeof logContent !== "string") {
         return res.status(400).json({ error: "Log content is required" });
@@ -2534,7 +2540,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
       // Log content is processed entirely in memory by OpenAI and is NEVER written
       // to the database. Only anonymised analytics metadata (platform + issue counts)
       // are recorded once analysis is complete.
-      const result = await analyzeLogFile(logContent, platform, context);
+      const result = await analyzeLogFile(logContent, platform, context, locale);
 
       // Record anonymised analytics — no log content is stored
       try {
